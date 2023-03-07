@@ -1,7 +1,7 @@
 Nerdamer-prime
 ==============
 
-This is a continuation of the Martin Donk's (jiggzson) Nerdamer project. We forked this a while ago, but are up to speed with everything
+This is a continuation of Martin Donk's (jiggzson) Nerdamer project. We forked this a while ago, but are up to speed with everything
 Martin did before he archived the original repo. The license is unchanged, everything is free under MIT terms. 
 
 Our intentions:
