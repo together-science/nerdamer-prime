@@ -13,6 +13,11 @@ algebra system. Its wealth of features can fool you, though. Its performance and
 makes it still worthwhile. But please understand that it will not achieve a whole lot more than it can do right now. See our SymType project
 for a port of SymPy, which will no doubt have other drawbacks as we complete it. YMMMV.
 
+We have made some improvements - simplification of logs and squareroots, and bug fixes related to those areas and factoring. Unit tests
+are fixed except for a couple of known flaws. There will be further work in this area. We will also work on vectors, which are not 
+useful today. Those will be breaking changes (you are welcome to fork an earlier version). We might move to modules, and at some point
+will port the code to ECMAScript O-O features. Perhaps even TypeScript, but that would be a lot of work. 
+
 If you have a clear bug, file an issue with the code to repro. If you want a new feature - and that includes many things that you will
 think of as "obvious flaws" - file the issue, but we probably won't do it. But someone else can! We will absolutely consider compatible
 PRs, but best to talk to us before you start (info@together.science).
