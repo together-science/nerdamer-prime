@@ -1,4 +1,24 @@
-[![Build Status](https://travis-ci.org/jiggzson/nerdamer.svg?branch=master)](https://travis-ci.org/jiggzson/nerdamer)
+Nerdamer-prime
+==============
+
+This is a continuation of the Martin Donk's (jiggzson) Nerdamer project. We forked this a while ago, but are up to speed with everything
+Martin did before he archived the original repo. The license is unchanged, everything is free under MIT terms. 
+
+Our intentions:
+
+To keep Nerdamer in good repair, and make improvements where we need them and where we can. Mostly bug fixes. If you investigate
+some of the bugs in the old repo, you will see that people ask for "things it should be able to do", mostly to do with simplifications.
+This kind of stuff is difficult, and it is more difficult in someone else codebase. Nerdamer wasn't meant to be a complete symbolic
+algebra system. Its wealth of features can fool you, though. Its performance and the fact that it works fast, in the browser and NodeJS,
+makes it still worthwhile. But please understand that it will not achieve a whole lot more than it can do right now. See our SymType project
+for a port of SymPy, which will no doubt have other drawbacks as we complete it. YMMMV.
+
+If you have a clear bug, file an issue with the code to repro. If you want a new feature - and that includes many things that you will
+think of as "obvious flaws" - file the issue, but we probably won't do it. But someone else can! We will absolutely consider compatible
+PRs, but best to talk to us before you start (info@together.science).
+
+Below follows the original README.
+
 
 Nerdamer
 ========
