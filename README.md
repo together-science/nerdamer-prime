@@ -15,7 +15,7 @@ for a port of SymPy, which will no doubt have other drawbacks as we complete it.
 
 We have made some improvements - simplification of logs and squareroots, and bug fixes related to those areas and factoring. Unit tests
 are fixed except for a couple of known flaws. There will be further work in this area. We will also work on vectors, which are not 
-useful today. Those will be breaking changes (you are welcome to fork an earlier version). We might move to modules, and at some point
+useful for our product together.math ( learn more at https://https://www.together.science/) today. Those will be breaking changes (you are welcome to fork an earlier version). We might move to modules, and at some point
 will port the code to ECMAScript O-O features. Perhaps even TypeScript, but that would be a lot of work. 
 
 If you have a clear bug, file an issue with the code to repro. If you want a new feature - and that includes many things that you will
