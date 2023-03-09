@@ -1,7 +1,7 @@
 Nerdamer-prime
 ==============
 
-This is a continuation of the Martin Donk's (jiggzson) Nerdamer project. We forked this a while ago, but are up to speed with everything
+This is a continuation of Martin Donk's (jiggzson) Nerdamer project. We forked this a while ago, but are up to speed with everything
 Martin did before he archived the original repo. The license is unchanged, everything is free under MIT terms. 
 
 Our intentions:
@@ -12,6 +12,11 @@ This kind of stuff is difficult, and it is more difficult in someone else codeba
 algebra system. Its wealth of features can fool you, though. Its performance and the fact that it works fast, in the browser and NodeJS,
 makes it still worthwhile. But please understand that it will not achieve a whole lot more than it can do right now. See our SymType project
 for a port of SymPy, which will no doubt have other drawbacks as we complete it. YMMMV.
+
+We have made some improvements - simplification of logs and squareroots, and bug fixes related to those areas and factoring. Unit tests
+are fixed except for a couple of known flaws. There will be further work in this area. We will also work on vectors, which are not 
+useful for our product together.math ( learn more at https://www.together.science/) today. Those will be breaking changes (you are welcome to fork an earlier version). We might move to modules, and at some point
+will port the code to ECMAScript O-O features. Perhaps even TypeScript, but that would be a lot of work. 
 
 If you have a clear bug, file an issue with the code to repro. If you want a new feature - and that includes many things that you will
 think of as "obvious flaws" - file the issue, but we probably won't do it. But someone else can! We will absolutely consider compatible
