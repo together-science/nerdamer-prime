@@ -4266,6 +4266,7 @@ if((typeof module) !== 'undefined') {
             },
             logArgSimp: function(fn, term) {
                 // console.log("----- log term: "+ term.text());
+                // note: use symbol.equals
                 if (term.value === "1" || term.value === 1) {
                     return term;
                 }
@@ -4290,7 +4291,9 @@ if((typeof module) !== 'undefined') {
                     let original = x;
                     x = x.clone();
                     let p = x.power.clone();
-                    let m = x.multiplier.clone();
+                    // note: there will be no multiplier
+                    // let m = x.multiplier.clone();
+                    // strip modifies the original
                     __.Simplify.strip(x);
                     // console.log("factor: "+m+" * "+x+"^"+p+" = "+original);
                     let a = core.Utils.format('(({1})*{0}({2}))', fn, p, x);
@@ -4307,8 +4310,7 @@ if((typeof module) !== 'undefined') {
                     symbol.args[0].group === CB) {
                     // console.log();
                     // console.log("Initial: "+symbol.text());
-                    symbol = symbol.clone();
-                    //remove power and multiplier
+                    // remove power and multiplier
                     var sym_array = __.Simplify.strip(symbol);
                     symbol = sym_array.pop();
 
@@ -4571,7 +4573,8 @@ if((typeof module) !== 'undefined') {
             },
             _simplify: function (symbol) {
                 //remove the multiplier to make calculation easier;
-                var sym_array = __.Simplify.strip(symbol);
+                let original = symbol;
+                var sym_array = __.Simplify.strip(symbol.clone());
                 symbol = sym_array.pop();
                 //remove gcd from denominator
                 symbol = __.Simplify.fracSimp(symbol);
