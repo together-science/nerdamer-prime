@@ -2356,8 +2356,12 @@ if((typeof module) !== 'undefined') {
                     //We've  already checked that we're dealing with a polynomial
                     var v = core.Utils.variables(symbol)[0]; //get the variable
                     var coeffs = __.coeffs(symbol, v);
+                    var cf;
                     //factor the lead coefficient
-                    var cf = __.Factor._factor(coeffs[2].clone());
+                    if (coeffs.length < 3){
+                        return symbol;
+                    }
+                    cf = __.Factor._factor(coeffs[2].clone());
                     //check if we have factors
                     if(cf.group === CB) {
                         var symbols = cf.collectSymbols();
@@ -3026,6 +3030,9 @@ if((typeof module) !== 'undefined') {
                         }, true);
                     };
                     var separated = core.Utils.separate(symbol.clone());
+                    if (!separated) {
+                        return symbol;
+                    }
 
                     var obj_array = [];
 
@@ -4573,7 +4580,6 @@ if((typeof module) !== 'undefined') {
             },
             _simplify: function (symbol) {
                 //remove the multiplier to make calculation easier;
-                let original = symbol;
                 var sym_array = __.Simplify.strip(symbol.clone());
                 symbol = sym_array.pop();
                 //remove gcd from denominator

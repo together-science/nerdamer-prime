@@ -434,7 +434,7 @@ var nerdamer = (function (imports) {
      * @param {type} symbol
      * @param {type} o
      * @returns {undefined}
-     * @throws {Error} for expontentials
+     * @throws {Error} for exponentials
      */
     var separate = function (symbol, o) {
         symbol = _.expand(symbol);
@@ -455,7 +455,8 @@ var nerdamer = (function (imports) {
                 separate(x.args[0]);
             }
             else if(x.group === EX || x.group === FN) {
-                throw new Error('Unable to separate. Term cannot be a function!');
+                // todo: gm: this occurs with sqrt(a+1)
+                return null;
             }
             else {
                 insert(variables(x).join(' '), x);
