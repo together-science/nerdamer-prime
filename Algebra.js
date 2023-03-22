@@ -2259,9 +2259,20 @@ if((typeof module) !== 'undefined') {
                 return symbol;
             },
             factor: function (symbol, factors) {
-                let retval = __.Factor.factorInner(symbol, factors);
-                retval.pushMinus();
-                return retval;
+                core.Utils.armTimeout();
+                let originalFactors = factors?[...factors]:null;
+                try {
+                    let retval = __.Factor.factorInner(symbol, factors);
+                    retval.pushMinus();
+                    return retval;
+                } catch (error) {
+                    if (factors) {
+                        factors.splice(0, factors.length, ...originalFactors);
+                    }
+                    return symbol;
+                } finally {
+                    core.Utils.disarmTimeout();
+                }
             },
             factorInner: function (symbol, factors) {
                 // Don't try to factor constants,
@@ -3270,10 +3281,10 @@ if((typeof module) !== 'undefined') {
          * @param {type} set
          * @returns {Boolean}
          */
-        allLinear: function (set) {
-            var l = set.length;
+        allLinear: function (s) {
+            var l = s.length;
             for(var i = 0; i < l; i++) {
-                if(!__.isLinear(set[i]))
+                if(!__.isLinear(s[i]))
                     return false;
             }
             return true;
