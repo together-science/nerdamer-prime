@@ -8,8 +8,8 @@ require('../Calculus.js');
 
 describe('Algebra', function () {
     it('debug problem of the day', function () {
-        expect(nerdamer('baseunit_m^(-1)*sqrt((2209/10000)baseunit_m^2cos(22003657519/7043110110)^2+(2209/10000)baseunit_m^2sin(22003657519/7043110110)^2+(4/15625)*baseunit_m^2+(47/3125)baseunit_m^2sin(22003657519/7043110110))').evaluate().text())
-            .toEqual('');
+        expect(nerdamer('baseunit_m^(-1)*sqrt(baseunit_m^2*cos(3)+baseunit_m^2)').evaluate().text())
+            .toEqual('0.100037509962788179');
     });
 
     it('should perform gcd operations correctly', function () {
