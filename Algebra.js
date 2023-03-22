@@ -4574,9 +4574,20 @@ if((typeof module) !== 'undefined') {
                 return [symbol, patterns];
             },
             simplify: function (symbol) {
-                let retval = __.Simplify._simplify(symbol);
-                retval.pushMinus();
-                return retval;
+                core.Utils.armTimeout();
+                try {
+                    let retval = __.Simplify._simplify(symbol);
+                    retval.pushMinus();
+                    return retval;
+                } catch (error) {
+                    if (error.message === "timeout") {
+                        return symbol;
+                    }
+                    throw error;
+                }
+                finally {
+                    core.Utils.disarmTimeout()
+                }
             },
             _simplify: function (symbol) {
                 //remove the multiplier to make calculation easier;

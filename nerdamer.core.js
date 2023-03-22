@@ -121,7 +121,9 @@ var nerdamer = (function (imports) {
         //The number of scientific place to round to
         SCIENTIFIC_MAX_DECIMAL_PLACES: 14,
         //True if ints should not be converted to
-        SCIENTIFIC_IGNORE_ZERO_EXPONENTS: true
+        SCIENTIFIC_IGNORE_ZERO_EXPONENTS: true,
+        // no simplify() or solveFor() should take more ms than this
+        TIMEOUT: 1000,
     };
 
     (function () {
@@ -135,6 +137,24 @@ var nerdamer = (function (imports) {
             }
         }
     })();
+
+    var __starttime = 0
+    var __timeout;
+
+    function armTimeout() {
+        __starttime = Date.now();
+        __timeout = Settings.TIMEOUT;
+    }
+
+    function disarmTimeout() {
+       __starttime = 0;
+    }
+
+    function checkTimeout() {
+        if ((__starttime !== 0) && (Date.now() > (__starttime+__timeout))) {
+            throw new Error("timeout");
+        }
+    }
 
     //Add the groups. These have been reorganized as of v0.5.1 to make CP the highest group
     //The groups that help with organizing during parsing. Note that for FN is still a function even
@@ -2511,6 +2531,8 @@ var nerdamer = (function (imports) {
      */
 
     function primeFactors(num) {
+        checkTimeout();
+
         if(isPrime(num)) {
             return [num];
         }
@@ -2548,7 +2570,7 @@ var nerdamer = (function (imports) {
         });
     }
     ;
-    primeFactors(314146179365)
+    // primeFactors(314146179365)
 //Expression ===================================================================
     /**
      * This is what nerdamer returns. It's sort of a wrapper around the symbol class and
@@ -11957,6 +11979,7 @@ var nerdamer = (function (imports) {
         allSame: allSame,
         allNumeric: allNumeric,
         arguments2Array: arguments2Array,
+        armTimeout: armTimeout,
         arrayAddSlices: arrayAddSlices,
         arrayClone: arrayClone,
         arrayMax: arrayMax,
@@ -11967,6 +11990,7 @@ var nerdamer = (function (imports) {
         arraySum: arraySum,
         block: block,
         build: Build.build,
+        checkTimeout: checkTimeout,
         clearU: clearU,
         comboSort: comboSort,
         compare: compare,
@@ -11974,6 +11998,7 @@ var nerdamer = (function (imports) {
         customError: customError,
         customType: customType,
         decompose_fn: decompose_fn,
+        disarmTimeout: disarmTimeout,
         each: each,
         evaluate: evaluate,
         even: even,

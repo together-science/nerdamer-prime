@@ -236,29 +236,35 @@ if((typeof module) !== 'undefined') {
     };
 
     core.Expression.prototype.solveFor = function (x) {
-        var symbol;
-        if(this.symbol instanceof Equation) {
-            //exit right away if we already have the answer
-            //check the LHS
-            if(this.symbol.LHS.isConstant() && this.symbol.RHS.equals(x))
-                return new core.Expression(this.symbol.LHS);
+        core.Utils.armTimeout();
+        try {
+            var symbol;
+            if(this.symbol instanceof Equation) {
+                //exit right away if we already have the answer
+                //check the LHS
+                if(this.symbol.LHS.isConstant() && this.symbol.RHS.equals(x))
+                    return new core.Expression(this.symbol.LHS);
 
-            //check the RHS
-            if(this.symbol.RHS.isConstant() && this.symbol.LHS.equals(x))
-                return new core.Expression(this.symbol.RHS);
+                //check the RHS
+                if(this.symbol.RHS.isConstant() && this.symbol.LHS.equals(x))
+                    return new core.Expression(this.symbol.RHS);
 
-            //otherwise just bring it to LHS
-            symbol = this.symbol.toLHS();
+                //otherwise just bring it to LHS
+                symbol = this.symbol.toLHS();
+            }
+            else {
+                symbol = this.symbol;
+            }
+
+            return solve(symbol, x).map(function (x) {
+                x = new core.Expression(x);
+                x = x.simplify();
+                return x;
+            });
+        } finally {
+            core.Utils.disarmTimeout();
         }
-        else {
-            symbol = this.symbol;
-        }
-
-        return solve(symbol, x).map(function (x) {
-            x = new core.Expression(x);
-            x = x.simplify();
-            return x;
-        });
+    
     };
 
     core.Expression.prototype.expand = function () {
