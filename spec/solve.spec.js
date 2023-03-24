@@ -78,6 +78,7 @@ describe('Solve', function () {
         expect(nerdamer('(y+((x)^(2)))=9').solveFor('x').toString() ).toEqual('sqrt(-y+9),-sqrt(-y+9)');
         expect(nerdamer('solve(c*((((((4*x)+1))*d))/(5))*f=((a)/(b)), x)').toString()).toEqual('[(-5/4)*((1/5)*b*c*d*f-a)*(b*c*d*f)^(-1)]');
         expect(nerdamer('c*((((((4*x)+1))*d))/(5))*f=((a)/(b))').solveFor('x').toString()).toEqual('(1/4)*(-b*c*d*f+5*a)*(b*c*d*f)^(-1)');
+        expect(nerdamer('solve(1000+200*x=100*2^(x/2), x)').toString()).toEqual('[-246320546/50179663,605937277/62026537]');
     });
     it('should solve system of equations correctly', function () {
         expect(nerdamer.solveEquations(['x+y=1', '2*x=6', '4*z+y=6']).toString()).toEqual('x,3,y,-2,z,2');
@@ -128,5 +129,7 @@ describe('Solve', function () {
         var eq2 ="x+y=1";
         var sol = nerdamer.solveEquations([eq1, eq2]);
         expect(sol.toString()).toEqual('x,1,0,y,0,1');
+    });
+    it('known flaws:', function() {
     });
 });

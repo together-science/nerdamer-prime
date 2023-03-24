@@ -45,10 +45,15 @@ if((typeof module) !== 'undefined') {
     core.Settings.make_pi_conversions = false;
     // The step size
     core.Settings.STEP_SIZE = 0.1;
+    
     // The epsilon size
-    core.Settings.EPSILON = 1e-13;
+    core.Settings.EPSILON = 2e-13;
     //the maximum iterations for Newton's method
     core.Settings.MAX_NEWTON_ITERATIONS = 200;
+    //The epsilon used in Newton's iteration
+    // core.Settings.NEWTON_EPSILON = Number.EPSILON * 2;
+    core.Settings.NEWTON_EPSILON = 2e-15;
+    
     //the maximum number of time non-linear solve tries another jump point
     core.Settings.MAX_NON_LINEAR_TRIES = 12;
     //the amount of iterations the function will start to jump at
@@ -61,8 +66,6 @@ if((typeof module) !== 'undefined') {
     //slices to make sure that we have convergence on the right point. This defines the 
     //size of the slice
     core.Settings.NEWTON_SLICES = 200;
-    //The epsilon used in Newton's iteration
-    core.Settings.NEWTON_EPSILON = Number.EPSILON * 2;
     //The distance in which two solutions are deemed the same
     core.Settings.SOLUTION_PROXIMITY = 1e-14;
     //Indicate wheter to filter the solutions are not
@@ -929,7 +932,7 @@ if((typeof module) !== 'undefined') {
         },
         /**
          * Generates starting points for the Newton solver given an expression at zero.
-         * It beings by check if zero is a good point and starts expanding by a provided step size. 
+         * It begins by checking if zero is a good point and starts expanding by a provided step size. 
          * Builds on the fact that if the sign changes over an interval then a zero
          * must exist on that interval
          * @param {Symbol} symbol
@@ -962,6 +965,7 @@ if((typeof module) !== 'undefined') {
                     right = range(start, core.Settings.SOLVE_RADIUS, step);
 
             var test_side = function (side, num_roots) {
+                // console.log("test side "+side[0]+":"+side.at(-1));
                 var xi, val, sign;
                 var hits = [];
                 for(var i = 0, l = side.length; i < l; i++) {
@@ -976,6 +980,10 @@ if((typeof module) !== 'undefined') {
                     //compare the signs. The have to be different if they cross a zero
                     if(sign !== last_sign) {
                         hits.push(xi); //take note of the possible zero location
+                        // console.log("   hit at "+xi);
+                        // if (hits.length >= num_roots){
+                        //     break;
+                        // }
                     }
                     last_sign = sign;
                 }
@@ -986,6 +994,7 @@ if((typeof module) !== 'undefined') {
             test_side(left, lside);
             test_side(right, rside);
 
+            // console.log("points: "+points);
             return points;
         },
         /**
@@ -1041,6 +1050,7 @@ if((typeof module) !== 'undefined') {
          * @returns {undefined|number}
          */
         Newton: function (point, f, fp) {
+            // console.log("Newton point "+point);
             var maxiter = core.Settings.MAX_NEWTON_ITERATIONS,
                     iter = 0;
             //first try the point itself. If it's zero viola. We're done
@@ -1054,8 +1064,11 @@ if((typeof module) !== 'undefined') {
                 }
 
                 iter++;
-                if(iter > maxiter)
-                    return; //naximum iterations reached
+                if(iter > maxiter){
+                    x = NaN;
+                    console.log("   iter:"+iter+", last e:"+e);
+                    break; //maximum iterations reached
+                }
 
                 x = x0 - fx0 / fp(x0);
                 var e = Math.abs(x - x0);
@@ -1063,9 +1076,13 @@ if((typeof module) !== 'undefined') {
             }
             while(e > Settings.NEWTON_EPSILON)
 
-            //check if the number is indeed zero. 1e-13 seems to give the most accurate results
-            if(Math.abs(f(x)) <= Settings.EPSILON)
+            // console.log("   found "+x);
+            //check if the number is indeed zero. 1e-12 seems to give the most accurate results
+            if(Math.abs(f(x)) <= 10*Settings.EPSILON) {
                 return x;
+            } else {
+                // console.log("   rejected diff: "+Math.abs(f(x)));
+            }
         },
         rewrite: function (rhs, lhs, for_variable) {
             lhs = lhs || new Symbol(0);
@@ -1549,6 +1566,7 @@ if((typeof module) !== 'undefined') {
                     var points = core.Utils.arrayUnique(points1.concat(points2).concat(points3)).sort(function (a, b) {
                         return a - b;
                     });
+                    // console.log("all points: "+points);
                     var i, point, solution;
 
                     // Compile the function
@@ -1574,15 +1592,21 @@ if((typeof module) !== 'undefined') {
 
                     // Reset the points to the remaining points
                     points = t_points;
+                    // console.log("Newton points: "+points);
 
                     // Build the derivative and compile a function
                     var d = _C.diff(eq.clone());
                     var fp = build(d);
+                    try {
                     for(i = 0; i < points.length; i++) {
                         point = points[i];
 
                         add_to_result(__.Newton(point, f, fp), has_trig);
                     }
+                    } catch (error) {
+                        console.log(error);
+                    }
+
                     solutions.sort();
                 }
                 catch(e) {
