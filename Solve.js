@@ -1257,7 +1257,7 @@ if((typeof module) !== 'undefined') {
             return solutions;
         }
 
-        // Is usued to add solutions to set. 
+        // Is used to add solutions to set. 
         // TODO: Set is now implemented and should be utilized
         var add_to_result = function (r, has_trig) {
             var r_is_symbol = isSymbol(r);
@@ -1597,17 +1597,29 @@ if((typeof module) !== 'undefined') {
                     // Build the derivative and compile a function
                     var d = _C.diff(eq.clone());
                     var fp = build(d);
-                    try {
                     for(i = 0; i < points.length; i++) {
                         point = points[i];
 
                         add_to_result(__.Newton(point, f, fp), has_trig);
                     }
-                    } catch (error) {
-                        console.log(error);
-                    }
 
                     solutions.sort();
+
+                    // uniquefy to epsilon
+                    // console.log("solutions: "+solutions);
+                    solutions = solutions.filter((x,i,a)=>{
+                        x = Number(x);
+                        let x2 = Number(a[i-1]);
+                        // console.log("   x: "+x)
+                        if (i === 0 || isNaN(x) || isNaN(x2)) {
+                            return true;
+                        }
+                        // if ((Math.abs(x-x2) < Settings.EPSILON)) {
+                        //     console.log("diff too small: "+x+", "+x2);
+                        // }
+                        return (Math.abs(x-x2) >= Settings.EPSILON);
+                    });
+                    // console.log("solutions after filter: "+solutions);
                 }
                 catch(e) {
                     console.log(e);
