@@ -5,6 +5,7 @@
 var nerdamer = require('../nerdamer.core.js');
 require('../Algebra.js');
 require('../Calculus.js');
+require('../Solve.js');
 
 describe('Algebra', function () {
     it('debug problem of the day', function () {

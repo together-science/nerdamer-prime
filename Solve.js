@@ -1060,29 +1060,30 @@ if((typeof module) !== 'undefined') {
                 //if the value is zero then we're done because 0 - (0/d f(x0)) = 0
                 if(x0 === 0 && fx0 === 0) {
                     x = 0;
+                    // console.log("  exact zero");
                     break;
                 }
 
                 iter++;
                 if(iter > maxiter){
-                    x = NaN;
-                    console.log("   iter:"+iter+", last e:"+e);
-                    break; //maximum iterations reached
+                    // console.log("   iter:"+iter+", last e:"+e);
+                    return;
                 }
 
-                x = x0 - fx0 / fp(x0);
+                const fpx0 = fp(x0);
+                // infinite or NaN or 0 derivative at x0? 
+                if (isNaN(fpx0) || !isFinite(fpx0) || fpx0 === 0) {
+                    // console.log("   non-finite derivative");
+                    return; //maximum iterations reached
+                }
+                x = x0 - fx0 / fpx0;
                 var e = Math.abs(x - x0);
                 x0 = x;
             }
             while(e > Settings.NEWTON_EPSILON)
 
             // console.log("   found "+x);
-            //check if the number is indeed zero. 1e-12 seems to give the most accurate results
-            if(Math.abs(f(x)) <= 10*Settings.EPSILON) {
-                return x;
-            } else {
-                // console.log("   rejected diff: "+Math.abs(f(x)));
-            }
+            return x;
         },
         rewrite: function (rhs, lhs, for_variable) {
             lhs = lhs || new Symbol(0);
@@ -1587,6 +1588,8 @@ if((typeof module) !== 'undefined') {
                         }
 
                         // Add the solution to the solution set
+                        // console.log("added without Newton: "+solution);
+                        // console.log("for: "+eq.text());
                         add_to_result(solution, has_trig);
                     }
 
