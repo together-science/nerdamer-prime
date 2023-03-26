@@ -4244,7 +4244,11 @@ var nerdamer = (function (imports) {
                         s.power = _.multiply(s.power, new Symbol(p));
                     }
                     else {
-                        this.symbols[x].power = this.symbols[x].power.multiply(p);
+                        if (isSymbol(this.symbols[x].power)) {
+                            this.symbols[x].power = _.multiply(this.symbols[x].power, new Symbol(p));
+                        } else {
+                            this.symbols[x].power = this.symbols[x].power.multiply(p);
+                        }
                     }
                 }
                 this.toLinear();
