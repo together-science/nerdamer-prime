@@ -42,7 +42,7 @@ describe('Solve', function () {
         expect(nerdamer('solve(a*log(x^2-4)-4,x)').toString()).toEqual('[(1/2)*sqrt(16+4*e^(4*a^(-1))),(-1/2)*sqrt(16+4*e^(4*a^(-1)))]');
         expect(nerdamer('solve(x/(x^2+2*x+1)+4,x)').toString()).toEqual('[(1/8)*sqrt(17)-9/8,(-1/8)*sqrt(17)-9/8]');
         expect(nerdamer('solve((a*x^2+1),x)').toString()).toEqual('[a^(-1)*sqrt(-a),-a^(-1)*sqrt(-a)]');
-        expect(nerdamer('solve(sqrt(x)-2x+x^2,x)').toString()).toEqual('[(-1/2)*sqrt(5)+3/2,0,1,832040/2178309]');
+        expect(nerdamer('solve(sqrt(x)-2x+x^2,x)').toString()).toEqual('[0,1,(-1/2)*sqrt(5)+3/2,832040/2178309]');
         expect(nerdamer('solve((2x+x^2)^2-x,x)').toString()).toEqual('[0,((-1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)+((1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)-4/3,(((-1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)+((1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)-4/3)*((1/2)*i*sqrt(3)+1/2),(((-1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)+((1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)-4/3)*((1/2)*i*sqrt(3)+1/2)^2]');
         expect(nerdamer('solve((5*x^4-2)/(x+1)/(x^2-1),x)').toString()).toEqual('[72425485/91070226,-72425485/91070226,(316684236/398209345)*i,(-316684236/398209345)*i]');
         expect(nerdamer('solve(0=(x^(2)-2)/(e^(x)-1), x)').toString()).toEqual('[sqrt(2),-sqrt(2)]');
@@ -75,14 +75,16 @@ describe('Solve', function () {
         expect(nerdamer('solve(log(y) = -t, y)').toString() ).toEqual('[e^(-t)]');
         expect(nerdamer('solve(y=exp(4x),x)').toString() ).toEqual('[(1/4)*log(y)]');
         expect(nerdamer('solve(s=exp(m/2), m)').toString()).toEqual('[2*log(s)]');
-        expect(nerdamer('solve(x=2^x/4,x)').toString()).toEqual('[4,6469019/20874070]');
+        expect(nerdamer('solve(x=2^x/4,x)').toString()).toEqual('[6469019/20874070,4]');
         expect(nerdamer('solve(x*y+y=0,x)').toString() ).toEqual('[-1]');
         expect(nerdamer('(y+((x)^(2)))=9').solveFor('x').toString() ).toEqual('sqrt(-y+9),-sqrt(-y+9)');
         expect(nerdamer('solve(c*((((((4*x)+1))*d))/(5))*f=((a)/(b)), x)').toString()).toEqual('[(-5/4)*((1/5)*b*c*d*f-a)*(b*c*d*f)^(-1)]');
         expect(nerdamer('c*((((((4*x)+1))*d))/(5))*f=((a)/(b))').solveFor('x').toString()).toEqual('(1/4)*(-b*c*d*f+5*a)*(b*c*d*f)^(-1)');
-        expect(nerdamer('solve(1000+200*x=100*2^(x/2), x)').toString()).toEqual('[-246320546/50179663,605937277/62026537]');
+        expect(nerdamer('solve(1000+200*x=100*2^(x/2), x)').toString()).toEqual('[-430164205/87631727,605937277/62026537]');
+        expect(nerdamer('solve(x=100*2^((1/400)*(-1000+x)), x)').toString()).toEqual('[332944835/18248037,17412920500/5895091]');
     });
-    it('should solve system of equations correctly', function () {
+
+        it('should solve system of equations correctly', function () {
         expect(nerdamer.solveEquations(['x+y=1', '2*x=6', '4*z+y=6']).toString()).toEqual('x,3,y,-2,z,2');
         expect(nerdamer.solveEquations(['x+y=a', 'x-y=b', 'z+y=c'], ['x', 'y', 'z']).toString()).toEqual('x,0.5*a+0.5*b,y,-0.5*b+0.5*a,z,-0.5*a+0.5*b+c');
         expect(nerdamer.solveEquations(['x-2*y=-3', 'x+y-z+2*d=8', '5*d-1=19', 'z+d=7']).toString()).toEqual('d,4,x,1,y,2,z,3');
@@ -95,7 +97,7 @@ describe('Solve', function () {
         expect(nerdamer.solveEquations(["a=1"]).toString()).toEqual('a,1');
         expect(nerdamer.solveEquations(["x=5", "0.6=1-(x/(10+y))"]).toString()).toEqual('x,5,y,2.5');
     });
-    /** #55: nerdamer.solveEquation quits working */
+    //#55: nerdamer.solveEquation quits working
     it('should handle text("fractions") without later impact', function () {
         expect(nerdamer.solveEquations("x+1=2", "x").toString()).toEqual('1');
         expect(nerdamer('x=1').text("fractions")).toEqual('x=1');
@@ -131,7 +133,5 @@ describe('Solve', function () {
         var eq2 ="x+y=1";
         var sol = nerdamer.solveEquations([eq1, eq2]);
         expect(sol.toString()).toEqual('x,1,0,y,0,1');
-    });
-    it('known flaws:', function() {
     });
 });
