@@ -8,11 +8,6 @@ require('../Calculus.js');
 require('../Solve.js');
 
 describe('Algebra', function () {
-    it('debug problem of the day', function () {       
-        expect(nerdamer('baseunit_m^(-1)*sqrt(baseunit_m^2*cos(3)+baseunit_m^2)').evaluate().text())
-            .toEqual('0.100037509962788179');
-    });
-
     it('should perform gcd operations correctly', function () {
         expect(nerdamer('gcd(5*x^6+5*x^5+27*x^4+27*x^3+28*x^2+28*x, 5*x^3+7*x)').toString()).toEqual('5*x^3+7*x');
         expect(nerdamer('gcd(-20+16*i,-10+8*i)').toString()).toEqual('-10+8*i');

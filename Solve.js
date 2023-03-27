@@ -1226,11 +1226,11 @@ if((typeof module) !== 'undefined') {
                 return [new Symbol(0)];
             }
             //if the lhs = x then we're done
-            if(eqns.LHS.equals(solve_for) && !eqns.RHS.contains(solve_for)) {
+            if(eqns.LHS.equals(solve_for) && !eqns.RHS.contains(solve_for, true)) {
                 return [eqns.RHS];
             }
             //if the rhs = x then we're done
-            if(eqns.RHS.equals(solve_for) && !eqns.LHS.contains(solve_for)) {
+            if(eqns.RHS.equals(solve_for) && !eqns.LHS.contains(solve_for, true)) {
                 return [eqns.LHS];
             }
         }
