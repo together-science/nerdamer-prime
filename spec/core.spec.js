@@ -1121,6 +1121,8 @@ describe('Nerdamer core', function () {
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value, 14)).toEqual(round(testCases[i].expectedValue), 14);
         }
+        // np issue #2
+        expect(nerdamer('log(2*(a+b)^7)').toString()).toEqual('log(2*(a+b)^7)');
     });
     it('should check for equality', function () {
         var a, b, c, d, e, f, g;

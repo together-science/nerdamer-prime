@@ -74,6 +74,7 @@ describe('Solve', function () {
         expect(nerdamer('solve((x+1)(x+1)x=3x,x)').toString()).toEqual('[0,-1+sqrt(3),-1-sqrt(3)]');
         expect(nerdamer('solve(log(y) = -t, y)').toString() ).toEqual('[e^(-t)]');
         expect(nerdamer('solve(y=exp(4x),x)').toString() ).toEqual('[(1/4)*log(y)]');
+        expect(nerdamer('solve(s=exp(m/2), m)').toString()).toEqual('[2*log(s)]');
         expect(nerdamer('solve(x*y+y=0,x)').toString() ).toEqual('[-1]');
         expect(nerdamer('(y+((x)^(2)))=9').solveFor('x').toString() ).toEqual('sqrt(-y+9),-sqrt(-y+9)');
         expect(nerdamer('solve(c*((((((4*x)+1))*d))/(5))*f=((a)/(b)), x)').toString()).toEqual('[(-5/4)*((1/5)*b*c*d*f-a)*(b*c*d*f)^(-1)]');

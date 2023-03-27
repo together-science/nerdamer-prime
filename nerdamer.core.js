@@ -8174,7 +8174,7 @@ var nerdamer = (function (imports) {
             }
             else {
                 var s;
-                if(!symbol.power.equals(1) && !symbol.contains('e')) {
+                if(!symbol.power.equals(1) && !symbol.contains('e') && symbol.multiplier.isOne()) {
                     s = symbol.group === EX ? symbol.power : new Symbol(symbol.power);
                     symbol.toLinear();
                 }
@@ -8187,8 +8187,9 @@ var nerdamer = (function (imports) {
                     retval = _.symfunction(Settings.LOG, arguments);
                 }
 
-                if(s)
+                if(s) {
                     retval = _.multiply(s, retval);
+                }
             }
 
             return retval;

@@ -4305,27 +4305,38 @@ if((typeof module) !== 'undefined') {
                 }
                 // now each factor, with its power
                 // console.log("---- term factors");
-                term.each(function (x) {
-                    let original = x;
-                    x = x.clone();
+                if (term.group === CB) {
+                    // product
+                    term.each(function (x) {
+                        x = x.clone();
+                        let p = x.power.clone();
+                        // note: there will be no multiplier
+                        // strip modifies the original
+                        __.Simplify.strip(x);
+                        // console.log("factor: "+m+" * "+x+"^"+p+" = "+original);
+                        let a = core.Utils.format('(({1})*{0}({2}))', fn, p, x);
+                        // console.log("factor transformed: "+a);
+                        r = _.add(r, _.parse(a));
+                        // console.log("running sum: "+r.text());
+                    });
+                } else {
+                    // everything else
+                    let x = term.clone();
                     let p = x.power.clone();
                     // note: there will be no multiplier
-                    // let m = x.multiplier.clone();
                     // strip modifies the original
                     __.Simplify.strip(x);
                     // console.log("factor: "+m+" * "+x+"^"+p+" = "+original);
                     let a = core.Utils.format('(({1})*{0}({2}))', fn, p, x);
-                    // console.log("factor transformed: "+a);
+                    // console.log("factor transformed: "+r+"+"+a);
                     r = _.add(r, _.parse(a));
                     // console.log("running sum: "+r.text());
-                });
-                //put back the multiplier
+                }
                 // console.log("result: "+r.text());
                 return r;
             },
             logSimp: function (symbol) {
-                if(symbol.group === FN && (symbol.fname === "log" || symbol.fname === "log10") &&
-                    symbol.args[0].group === CB) {
+                if(symbol.group === FN && (symbol.fname === "log" || symbol.fname === "log10")) {
                     // console.log();
                     // console.log("Initial: "+symbol.text());
                     // remove power and multiplier

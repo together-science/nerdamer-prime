@@ -8,7 +8,7 @@ require('../Calculus.js');
 require('../Solve.js');
 
 describe('Algebra', function () {
-    it('debug problem of the day', function () {
+    it('debug problem of the day', function () {       
         expect(nerdamer('baseunit_m^(-1)*sqrt(baseunit_m^2*cos(3)+baseunit_m^2)').evaluate().text())
             .toEqual('0.100037509962788179');
     });
@@ -302,9 +302,12 @@ describe('Algebra', function () {
         expect(nerdamer('simplify(sin(2)+1)').toString()).toEqual('180783971/94686123');
         expect(nerdamer("simplify(sqrt((sin(1/6)+1)^2+3*cos(1/6)^2))").toString()).toEqual('sqrt(1+2*sin(1/6)+sin(1/6)^2+3*cos(1/6)^2)');
         // also test the non-string API
+        expect(nerdamer('(log((s))+log(2)) - (log((s*2)))').simplify().toString()).toEqual('0');
+        expect(nerdamer('(log((s))-log(2)) - (log((s/2)))').simplify().toString()).toEqual('0');
         expect(nerdamer('1+sin(x)+1').simplify().toString()).toEqual('2+sin(x)');
         expect(nerdamer("sqrt(55225+64)").simplify().evaluate().text()).toEqual('235.136130783850405119');
         expect(nerdamer("(1/5)*sqrt(55225*sin(0)^2+55225*cos(0)^2+64)").simplify().evaluate().text()).toEqual('47.027226156770083846');
+        expect(nerdamer('log(2*((a+b)^7))').simplify().toString()).toEqual('49180508/70952475+7*log(a+b)');
     });
     it('simplify should be pure', function() {
         const a = nerdamer('100*2^((1/2)*m)');
