@@ -1656,9 +1656,21 @@ if((typeof module) !== 'undefined') {
                                         rhs = separated[1];
                                 
                                 if(lhs.group === core.groups.EX) {
+                                    // we have a*b^(mx) = rhs
+                                    // old solution says 
+                                    // x = log(rhs/a)/log(b)/m
+                                    // causes problems with parser due to undefined ordering
+                                    //
+                                    // correct:
+                                    // a*b^(mx) = rhs
+                                    // => log(b^(mx)) = log(rhs/a)
+                                    // => mx*log(b) = log(rhs/a)
+                                    // => x = log(rhs/a)/(m*log(b))
+
                                     var log = core.Settings.LOG;
-                                    var expr_str = `${log}((${rhs})/(${lhs.multiplier}))/${log}(${lhs.value})/${lhs.power.multiplier}`;
-                                    add_to_result(_.parse(expr_str));
+                                    var expr_str = `${log}((${rhs})/(${lhs.multiplier}))/(${log}(${lhs.value})*${lhs.power.multiplier})`;
+                                    let parsed = _.parse(expr_str);
+                                    add_to_result(parsed);
                                 }
                                 break;
                             case 1:
