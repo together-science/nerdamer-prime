@@ -967,7 +967,7 @@ if((typeof module) !== 'undefined') {
                 // console.log("test side "+side[0]+":"+side.at(-1));
                 var xi, val, sign;
                 var hits = [];
-                last_sign = Math.sign(f(side[0]));
+                let last_sign = Math.sign(f(side[0]));
                 for (var i = 0, l = side.length; i < l && hits.length < num_roots; i++) {
                     xi = side[i]; //the point being evaluated
                     val = f(xi);
