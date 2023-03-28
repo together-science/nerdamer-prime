@@ -117,7 +117,8 @@ if((typeof module) !== 'undefined') {
             return this.LHS.text(option) + '=' + this.RHS.text(option);
         },
         toLHS: function (expand) {
-            expand = typeof expand === 'undefined' ? true : false;
+            // expand = typeof expand === 'undefined' ? true : false;
+            expand = !!expand;
             var eqn;
             if(!expand) {
                 eqn = this.clone();
@@ -259,11 +260,12 @@ if((typeof module) !== 'undefined') {
                 symbol = this.symbol;
             }
 
-            return solve(symbol, x).map(function (x) {
+            const result = solve(symbol, x).map(function (x) {
                 x = new core.Expression(x);
                 x = x.simplify();
                 return x;
             });
+            return result;
         } finally {
             core.Utils.disarmTimeout();
         }
@@ -1637,7 +1639,20 @@ if((typeof module) !== 'undefined') {
                     }
 
                     // sort by numerical value to be ready for uniquefy filter
-                    solutions.sort((a,b)=>a.gt(b));
+                    solutions.sort((a,b)=>{
+                        const sa = a.text("decimals");
+                        const sb = b.text("decimals");
+                        const xa = Number(sa);
+                        const xb = Number(sb);
+                        if (isNaN(xa) && isNaN(xb)) {
+                            return sa.localeCompare(sb);
+                        } else if (isNaN(xa) && !isNaN(xb)) {
+                            return -1;
+                        }  else if (!isNaN(xa) && isNaN(xb)) {
+                            return 1;
+                        }
+                        return xa-xb;
+                    });
 
                     // uniquefy to epsilon
                     // console.log("solutions: "+solutions);
