@@ -117,7 +117,8 @@ if((typeof module) !== 'undefined') {
             return this.LHS.text(option) + '=' + this.RHS.text(option);
         },
         toLHS: function (expand) {
-            expand = typeof expand === 'undefined' ? true : false;
+            // expand = typeof expand === 'undefined' ? true : false;
+            expand = !!expand;
             var eqn;
             if(!expand) {
                 eqn = this.clone();
@@ -259,11 +260,12 @@ if((typeof module) !== 'undefined') {
                 symbol = this.symbol;
             }
 
-            return solve(symbol, x).map(function (x) {
+            const result = solve(symbol, x).map(function (x) {
                 x = new core.Expression(x);
                 x = x.simplify();
                 return x;
             });
+            return result;
         } finally {
             core.Utils.disarmTimeout();
         }
@@ -940,15 +942,14 @@ if((typeof module) !== 'undefined') {
          * @param {Array} points
          * @returns {Array}
          */
-        getPoints: function (symbol, step, points) {
+        getPoints: function (symbol, step, extended) {
             step = step || 0.01;
-            points = points || [];
+            let points = [];
             var f = build(symbol);
             var x0 = 0;
 
             var start = Math.round(x0),
                     last = f(start),
-                    last_sign = last / Math.abs(last),
                     rside = core.Settings.ROOTS_PER_SIDE, // the max number of roots on right side
                     lside = rside; // the max number of roots on left side
             // check around the starting point
@@ -968,12 +969,13 @@ if((typeof module) !== 'undefined') {
                 // console.log("test side "+side[0]+":"+side.at(-1));
                 var xi, val, sign;
                 var hits = [];
-                for(var i = 0, l = side.length; i < l; i++) {
+                let last_sign = Math.sign(f(side[0]));
+                for (var i = 0, l = side.length; i < l && hits.length < num_roots; i++) {
                     xi = side[i]; //the point being evaluated
                     val = f(xi);
-                    sign = val / Math.abs(val);
+                    sign = Math.sign(val);
                     //Don't add non-numeric values
-                    if(isNaN(val) || !isFinite(val) || hits.length > num_roots) {
+                    if(isNaN(sign)) {
                         continue;
                     }
 
@@ -993,6 +995,14 @@ if((typeof module) !== 'undefined') {
 
             test_side(left, lside);
             test_side(right, rside);
+
+            if (extended) {
+                // check for sign changes way outside the range
+                // in a limited way
+                const max = core.Settings.SOLVE_RADIUS;
+                test_side([max, max*max], 1);
+                test_side([-max*max, -max], 1);
+            }
 
             // console.log("points: "+points);
             return points;
@@ -1054,7 +1064,7 @@ if((typeof module) !== 'undefined') {
             var maxiter = core.Settings.MAX_NEWTON_ITERATIONS,
                     iter = 0;
             //first try the point itself. If it's zero viola. We're done
-            var x0 = point, x;
+            var x0 = point, x, e, delta;
             do {
                 var fx0 = f(x0); //store the result of the function
                 //if the value is zero then we're done because 0 - (0/d f(x0)) = 0
@@ -1072,15 +1082,37 @@ if((typeof module) !== 'undefined') {
 
                 const fpx0 = fp(x0);
                 // infinite or NaN or 0 derivative at x0? 
-                if (isNaN(fpx0) || !isFinite(fpx0) || fpx0 === 0) {
+                if (isNaN(fpx0) || isNaN(fx0)) {
+                    // nothing we can do
                     // console.log("   non-finite derivative");
-                    return; //maximum iterations reached
+                    return;
+                } else if (fpx0 === 0) {
+                    // max/min or saddle point. what can we do? repeat last delta.
+                    x = x + delta;
+                } else if ((!isFinite(fx0) && !isFinite(fpx0)) || Math.abs(fx0)>1e20) {
+                    // numbers got too big
+                    // at least follow the slope down
+                    const direction = Math.sign(fpx0)/Math.sign(fx0);
+                    // direction is 1 or -1
+                    // big and growing: shrink x
+                    // -big and -growing: shrink x
+                    // big and -growing: grow x
+                    // -big and growing: grow x
+                    x = x0 / (direction===1?2:0.5);
+                } else if (!isFinite(fx0) || !isFinite(fpx0)) {
+                    return;
+                } else {
+                    // regular case, follow tangent
+                    x = x0 - fx0 / fpx0;
                 }
-                x = x0 - fx0 / fpx0;
-                var e = Math.abs(x - x0);
+                delta = x - x0;
+                if (delta === 0 && !isFinite(fpx0)) {
+                    // no movement
+                    return;
+                }
+                e = Math.abs(delta);
                 x0 = x;
-            }
-            while(e > Settings.NEWTON_EPSILON)
+            } while(e > Settings.NEWTON_EPSILON)
 
             // console.log("   found "+x);
             return x;
@@ -1563,7 +1595,7 @@ if((typeof module) !== 'undefined') {
                     // we get all the points where a possible zero might exist.
                     var points1 = __.getPoints(eq, 0.1);
                     var points2 = __.getPoints(eq, 0.05);
-                    var points3 = __.getPoints(eq, 0.01);
+                    var points3 = __.getPoints(eq, 0.01, true);
                     var points = core.Utils.arrayUnique(points1.concat(points2).concat(points3)).sort(function (a, b) {
                         return a - b;
                     });
@@ -1606,7 +1638,21 @@ if((typeof module) !== 'undefined') {
                         add_to_result(__.Newton(point, f, fp), has_trig);
                     }
 
-                    solutions.sort();
+                    // sort by numerical value to be ready for uniquefy filter
+                    solutions.sort((a,b)=>{
+                        const sa = a.text("decimals");
+                        const sb = b.text("decimals");
+                        const xa = Number(sa);
+                        const xb = Number(sb);
+                        if (isNaN(xa) && isNaN(xb)) {
+                            return sa.localeCompare(sb);
+                        } else if (isNaN(xa) && !isNaN(xb)) {
+                            return -1;
+                        }  else if (!isNaN(xa) && isNaN(xb)) {
+                            return 1;
+                        }
+                        return xa-xb;
+                    });
 
                     // uniquefy to epsilon
                     // console.log("solutions: "+solutions);
@@ -1657,12 +1703,6 @@ if((typeof module) !== 'undefined') {
                                 
                                 if(lhs.group === core.groups.EX) {
                                     // we have a*b^(mx) = rhs
-                                    // old solution says 
-                                    // x = log(rhs/a)/log(b)/m
-                                    // causes problems with parser due to undefined ordering
-                                    //
-                                    // correct:
-                                    // a*b^(mx) = rhs
                                     // => log(b^(mx)) = log(rhs/a)
                                     // => mx*log(b) = log(rhs/a)
                                     // => x = log(rhs/a)/(m*log(b))
