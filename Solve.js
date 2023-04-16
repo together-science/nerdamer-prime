@@ -254,7 +254,7 @@ if((typeof module) !== 'undefined') {
                     return new core.Expression(this.symbol.RHS);
 
                 //otherwise just bring it to LHS
-                symbol = this.symbol.toLHS();
+                symbol = this.symbol.toLHS(true);
             }
             else {
                 symbol = this.symbol;

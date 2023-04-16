@@ -84,7 +84,8 @@ describe('Solve', function () {
         expect(nerdamer('solve(x=100*2^((1/400)*(-1000+x)), x)').toString()).toEqual('[332944835/18248037,17412920500/5895091]');
         expect(nerdamer('solve(m=(34141034228515471851/614756350000000000000000000)*(3631430813109509/100837351+51955423*log(5+m)), m)')
             .toString()).toEqual('[-246320546/50179663,265407305/27168317]');  
-    });
+        expect(nerdamer('(5-3y)/(5+y)=(1-9y)/(3y-7)').solveFor("y").toString()).toEqual('1/2');
+        });
 
         it('should solve system of equations correctly', function () {
         expect(nerdamer.solveEquations(['x+y=1', '2*x=6', '4*z+y=6']).toString()).toEqual('x,3,y,-2,z,2');

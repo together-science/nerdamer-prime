@@ -7,12 +7,8 @@ require('../Algebra.js');
 require('../Calculus.js');
 require('../Solve.js');
 
-console.log(nerdamer('m=(34141034228515471851/614756350000000000000000000)*(3631430813109509/100837351+51955423*log(5+m))')
-    .solveFor("x").map(x=>x.text("decimals")).toString());
+console.log(nerdamer('(5-3y)/(5+y)=(1-9y)/(3y-7)').text());
+console.log(nerdamer('(5-3y)/(5+y)=(1-9y)/(3y-7)').solveFor("y").toString());
+console.log(nerdamer('solve((5-3y)/(5+y)=(1-9y)/(3y-7),y)').toString());
+console.log(nerdamer("(5-3y)*(3y-7)=(1-9y)*(5+y)").solveFor("y").toString());
 
-const a = nerdamer('solve(m=(34141034228515471851/614756350000000000000000000)*(3631430813109509/100837351+51955423*log(5+m)),m)')
-    .toString();
-const b = a.substring(1,a.length-1);
-const c = b.split(",");
-const d = c.map(x=>eval(x))
-console.log(d);
