@@ -46,7 +46,7 @@ describe('Solve', function () {
         expect(nerdamer('solve((2x+x^2)^2-x,x)').toString()).toEqual('[0,((-1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)+((1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)-4/3,(((-1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)+((1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)-4/3)*((1/2)*i*sqrt(3)+1/2),(((-1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)+((1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)-4/3)*((1/2)*i*sqrt(3)+1/2)^2]');
         expect(nerdamer('solve((5*x^4-2)/(x+1)/(x^2-1),x)').toString()).toEqual('[72425485/91070226,-72425485/91070226,(316684236/398209345)*i,(-316684236/398209345)*i]');
         expect(nerdamer('solve(0=(x^(2)-2)/(e^(x)-1), x)').toString()).toEqual('[sqrt(2),-sqrt(2)]');
-        expect(nerdamer('solve(4/y^2=x^2+1,y)').toString()).toEqual('[(1/2)*(-1-x^2)^(-1)*sqrt(16+16*x^2),(-1/2)*(-1-x^2)^(-1)*sqrt(16+16*x^2)]');
+        expect(nerdamer('solve(4/y^2=x^2+1,y)').toString()).toEqual('[(1/2)*(1+x^2)^(-1)*sqrt(16+16*x^2),(-1/2)*(1+x^2)^(-1)*sqrt(16+16*x^2)]');
         expect(nerdamer('solve(1/(x+x^2), x)').toString()).toEqual('[]');
         expect(nerdamer('solve(1/(x+x^2-1), x)').toString()).toEqual('[]');
         expect(nerdamer('solve(-1+11000*(-100*(10+x)^(-1)+20)^(-2)*(10+x)^(-2), x)').toString()).toEqual('[(-1/2)*sqrt(110)-5,(1/2)*sqrt(110)-5]');
@@ -67,7 +67,7 @@ describe('Solve', function () {
         expect(nerdamer('solve((x-1)*(x+1)*x=3x,x)').toString()).toEqual('[0,2,-2]');
         expect(nerdamer('solve(sqrt(x^2+1),x)').toString()).toEqual('[i,-i]');
         expect(nerdamer('solve(sqrt(x^2-1),x)').toString()).toEqual('[1,-1]');
-        expect(nerdamer('solve(((x+1)*((x+1)+1))/2=n,x)').toString()).toEqual('[-3/2+sqrt(1/4+2*n),-3/2-sqrt(1/4+2*n)]');
+        expect(nerdamer('solve(((x+1)*((x+1)+1))/2=n,x)').toString()).toEqual('[(1/2)*(-3+sqrt(1+8*n)),(1/2)*(-3-sqrt(1+8*n))]');
         expect(nerdamer('solve(sqrt(10x+186)=x+9,x)').toString()).toEqual('[7]');
         expect(nerdamer('solve(x^3+8=x^2+6,x)').toString()).toEqual('[-1,1+i,-i+1]');
         expect(nerdamer('solve(x^2=x^-2,x)').toString()).toEqual('[1,-1,i,-i]');
@@ -78,12 +78,12 @@ describe('Solve', function () {
         expect(nerdamer('solve(x=2^x/4,x)').toString()).toEqual('[6469019/20874070,4]');
         expect(nerdamer('solve(x*y+y=0,x)').toString() ).toEqual('[-1]');
         expect(nerdamer('(y+((x)^(2)))=9').solveFor('x').toString() ).toEqual('sqrt(-y+9),-sqrt(-y+9)');
-        expect(nerdamer('solve(c*((((((4*x)+1))*d))/(5))*f=((a)/(b)), x)').toString()).toEqual('[(-5/4)*((1/5)*b*c*d*f-a)*(b*c*d*f)^(-1)]');
+        expect(nerdamer('solve(c*((((((4*x)+1))*d))/(5))*f=((a)/(b)), x)').toString()).toEqual('[(-1/4)*(-5*a+b*c*d*f)*(b*c*d*f)^(-1)]');
         expect(nerdamer('c*((((((4*x)+1))*d))/(5))*f=((a)/(b))').solveFor('x').toString()).toEqual('(1/4)*(-b*c*d*f+5*a)*(b*c*d*f)^(-1)');
         expect(nerdamer('solve(1000+200*x=100*2^(x/2), x)').toString()).toEqual('[-246320546/50179663,605937277/62026537]');
-        expect(nerdamer('solve(x=100*2^((1/400)*(-1000+x)), x)').toString()).toEqual('[332944835/18248037,17412920500/5895091]');
+        expect(nerdamer('solve(x=100*2^((1/400)*(-1000+x)), x)').toString()).toEqual('[332944835/18248037,2393608973/810349]');
         expect(nerdamer('solve(m=(34141034228515471851/614756350000000000000000000)*(3631430813109509/100837351+51955423*log(5+m)), m)')
-            .toString()).toEqual('[-246320546/50179663,265407305/27168317]');  
+            .toString()).toEqual('[-246320546/50179663,260402392/26655991]');  
         expect(nerdamer('(5-3y)/(5+y)=(1-9y)/(3y-7)').solveFor("y").toString()).toEqual('1/2');
         });
 
@@ -124,7 +124,7 @@ describe('Solve', function () {
             `j=y + max (y * 0.1, 23)`,
             `6694.895373 = j + z + (max(j * 0.280587, z * 0.280587, 176))`
         ]);
-        expect(ans.toString()).toEqual('j,2935.601831019821,x,1334.364468645373,y,2668.728937290746,z,2935.601831019821');
+        expect(ans.toString()).toEqual('j,2935.601831019821,x,1334.3644686453729,y,2668.7289372907458,z,2935.601831019821');
     });
 
     it('should solve factors', function () {

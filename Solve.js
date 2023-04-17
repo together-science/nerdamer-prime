@@ -117,15 +117,15 @@ if((typeof module) !== 'undefined') {
             return this.LHS.text(option) + '=' + this.RHS.text(option);
         },
         toLHS: function (expand) {
-            // expand = typeof expand === 'undefined' ? true : false;
             expand = !!expand;
             var eqn;
-            if(!expand) {
-                eqn = this.clone();
-            }
-            else {
-                eqn = this.removeDenom();
-            }
+            // if(!expand) {
+            //     eqn = this.clone();
+            // }
+            // else {
+            //     eqn = this.removeDenom();
+            // }
+            eqn = this.removeDenom();
             var a = eqn.LHS;
             var b = eqn.RHS;
             
@@ -180,10 +180,11 @@ if((typeof module) !== 'undefined') {
                         for(var y in sym.symbols) {
                             var sym2 = sym.symbols[y];
                             if(sym2.power.lessThan(0)) {
-                                return new Equation(
+                                var result = new Equation(
                                         _.expand(_.multiply(sym2.clone().toLinear(), a)),
                                         _.expand(_.multiply(sym2.clone().toLinear(), b))
                                         );
+                                return result;
                             }
                         }
                     }
@@ -969,7 +970,8 @@ if((typeof module) !== 'undefined') {
                 // console.log("test side "+side[0]+":"+side.at(-1));
                 var xi, val, sign;
                 var hits = [];
-                let last_sign = Math.sign(f(side[0]));
+                let last_point = side[0];
+                let last_sign = Math.sign(f(last_point));
                 for (var i = 0, l = side.length; i < l && hits.length < num_roots; i++) {
                     xi = side[i]; //the point being evaluated
                     val = f(xi);
@@ -982,6 +984,7 @@ if((typeof module) !== 'undefined') {
                     //compare the signs. The have to be different if they cross a zero
                     if(sign !== last_sign) {
                         hits.push(xi); //take note of the possible zero location
+                        hits.push(side[i-1]); // also the other side
                         // console.log("   hit at "+xi);
                         // if (hits.length >= num_roots){
                         //     break;
@@ -1052,6 +1055,46 @@ if((typeof module) !== 'undefined') {
                 }
             }
         },
+        // helper function for when Newton gets into the weeds
+        // look from left and right of a sign-change interval
+        // narrows it down 
+        // result: A real point with tractable numbers to continue from
+        // or undefined
+        bSearch: function(left, right, f) {
+            let f_left = f(left);
+            let f_right = f(right);
+            // reject imposters
+            if (Math.sign(f_left) === Math.sign(f_right) ||
+                isNaN(f_left) || isNaN(f_right)) {
+                return undefined;
+            }
+
+            const max_iter = 50; // guess the amount of iterations to outrun precision?
+            let iterations = 0;
+            do {
+                let x = (left+right)/2;
+                const s_left = Math.sign(f_left);
+                const s_x = Math.sign(f(x));
+                if (s_left === s_x) {
+                    if (x === left) {
+                        break; // precision exceeded
+                    }
+                    left = x;
+                    f_left = f(left);
+                } else {
+                    if (x === right) {
+                        break; // precision exceeded
+                    }
+                    right = x;
+                    f_right = f(right);
+                }
+                iterations++;
+            } while (left !== right && iterations < max_iter);
+            if (!isFinite(f(left)) || !isFinite(f(right))){
+                return undefined;
+            }
+            return left;
+        },
         /**
          * Implements Newton's iterations. Returns undefined if no solutions if found
          * @param {number} point
@@ -1059,11 +1102,11 @@ if((typeof module) !== 'undefined') {
          * @param {function} fp
          * @returns {undefined|number}
          */
-        Newton: function (point, f, fp) {
+        Newton: function (point, f, fp, point2) {
             // console.log("Newton point "+point);
             var maxiter = core.Settings.MAX_NEWTON_ITERATIONS,
                     iter = 0;
-            //first try the point itself. If it's zero viola. We're done
+            //first try the point itself. If it's zero voila. We're done
             var x0 = point, x, e, delta;
             do {
                 var fx0 = f(x0); //store the result of the function
@@ -1089,21 +1132,30 @@ if((typeof module) !== 'undefined') {
                 } else if (fpx0 === 0) {
                     // max/min or saddle point. what can we do? repeat last delta.
                     x = x + delta;
-                } else if ((!isFinite(fx0) && !isFinite(fpx0)) || Math.abs(fx0)>1e20) {
-                    // numbers got too big
-                    // at least follow the slope down
-                    const direction = Math.sign(fpx0)/Math.sign(fx0);
-                    // direction is 1 or -1
-                    // big and growing: shrink x
-                    // -big and -growing: shrink x
-                    // big and -growing: grow x
-                    // -big and growing: grow x
-                    x = x0 / (direction===1?2:0.5);
-                } else if (!isFinite(fx0) || !isFinite(fpx0)) {
-                    return;
+                } else if (!isFinite(fx0) || !isFinite(fpx0) || Math.abs(fx0)>1e25) {
+                    // Hail Mary: binary search through the 
+                    // sign-switch interval
+                    return __.bSearch(point2, x0, f);
+                    // // numbers got too big
+                    // // at least follow the slope down
+                    // const direction = Math.sign(fpx0)/Math.sign(fx0);
+                    // // direction is 1 or -1
+                    // // big and growing: shrink x
+                    // // -big and -growing: shrink x
+                    // // big and -growing: grow x
+                    // // -big and growing: grow x
+                    // if (x0 === 0) {
+                    //     // just move it a bit, so in the next loop
+                    //     // we can make progress
+                    //     x = x0 + direction;
+                    // } else {
+                    //     // can shrink/grow by dividing or multiplying
+                    //     x = x0 / (direction===1?2:0.5);
+                    // }
                 } else {
                     // regular case, follow tangent
                     x = x0 - fx0 / fpx0;
+                    // console.log("new x: "+x);
                 }
                 delta = x - x0;
                 if (delta === 0 && !isFinite(fpx0)) {
@@ -1283,7 +1335,7 @@ if((typeof module) !== 'undefined') {
         var existing = {};
 
         // Easy fail. If it's a rational function and the denominator is zero
-        // the we're done. Issue #555
+        // then we're done. Issue #555
         var known = {};
         known[solve_for] = 0;
         if(isSymbol(eqns) && evaluate(eqns.getDenom(), known).equals(0) === true) {
@@ -1632,10 +1684,12 @@ if((typeof module) !== 'undefined') {
                     // Build the derivative and compile a function
                     var d = _C.diff(eq.clone());
                     var fp = build(d);
+                    let last_point = points[0];
                     for(i = 0; i < points.length; i++) {
                         point = points[i];
 
-                        add_to_result(__.Newton(point, f, fp), has_trig);
+                        add_to_result(__.Newton(point, f, fp, last_point), has_trig);
+                        last_point = point;
                     }
 
                     // sort by numerical value to be ready for uniquefy filter
