@@ -1090,10 +1090,12 @@ if((typeof module) !== 'undefined') {
                 }
                 iterations++;
             } while (left !== right && iterations < max_iter);
+            // if one of them is infinite or NaN, there is probably a singularity here
             if (!isFinite(f(left)) || !isFinite(f(right))){
                 return undefined;
             }
-            return left;
+            // return the point where the absolute value is smaller
+            return (Math.abs(f(left)) < Math.abs(f(right)))? left:right;
         },
         /**
          * Implements Newton's iterations. Returns undefined if no solutions if found
