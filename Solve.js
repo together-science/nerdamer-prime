@@ -1095,7 +1095,8 @@ if((typeof module) !== 'undefined') {
                 return undefined;
             }
             // return the point where the absolute value is smaller
-            return (Math.abs(f(left)) < Math.abs(f(right)))? left:right;
+            // return (Math.abs(f(left)) < Math.abs(f(right)))? left:right;
+            return left;
         },
         /**
          * Implements Newton's iterations. Returns undefined if no solutions if found
