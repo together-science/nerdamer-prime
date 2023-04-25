@@ -26,7 +26,7 @@ If you have a clear bug, file an issue with the code to repro. If you want a new
 think of as "obvious flaws" - file the issue, but we probably won't do it. But someone else can! We will absolutely consider compatible
 PRs, but best to [talk to us](mailto:info@together.science) before you start.
 
-Below follows the original README.
+Below follows the original README. Obviously, the npm instructions will install the original Nerdamer. I will update this README if we ever get into the game of releasing nerdamer-prime on npm. 
 
 
 Nerdamer
