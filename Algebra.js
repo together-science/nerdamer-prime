@@ -4689,8 +4689,18 @@ if((typeof module) !== 'undefined') {
 
     // Add a link to simplify
     core.Expression.prototype.simplify = function () {
-        let retval = new core.Expression(__.Simplify.simplify(this.symbol));
-        return retval;
+        let retval;
+        // equation?
+        if (typeof this.symbol.LHS !== "undefined") {
+            // don't have access to equation here, so we clone instead
+            let eq = this.symbol.clone();
+            eq.LHS = __.Simplify.simplify(eq.LHS);
+            eq.RHS = __.Simplify.simplify(eq.RHS);
+            retval = eq;
+        } else {
+            retval = new core.Expression(__.Simplify.simplify(this.symbol));
+        }
+    return retval;
     };
 
     nerdamer.useAlgebraDiv = function () {

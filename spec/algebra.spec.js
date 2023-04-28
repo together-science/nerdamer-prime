@@ -323,4 +323,7 @@ describe('Algebra', function () {
         expect(nerdamer('sqcomp(9*x^2-18*x+17)').toString()).toEqual('(-3+3*x)^2+8');
         expect(nerdamer('sqcomp(s^2+s+1)').toString()).toEqual('(1/2+s)^2+3/4');
     });
+    it('should simplify equations', function() {
+        expect(nerdamer('cos(x)^2+sin(x)^2+cos(x)-tan(x)-1+sin(x^2)^2+cos(x^2)^2=3+b+4').simplify().toString()).toEqual('-tan(x)+1+cos(x)=7+b');
+    });
 });
