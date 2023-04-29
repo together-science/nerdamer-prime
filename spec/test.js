@@ -11,5 +11,5 @@ require('../Solve.js');
 //     .toString());
 // console.log(nerdamer('(5-3y)/(5+y)=(1-9y)/(3y-7)').solveFor("y").toString());
 
-console.log(nerdamer("(19279880988/10000000000)/(10000000000000000*x)").text("decimals"));
+console.log(nerdamer('limit((2sin(x)-sin(2x))/(x-sin(x)),x,0)').toString());
 

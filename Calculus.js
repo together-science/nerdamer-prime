@@ -2226,6 +2226,9 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                 };
 
                 var retval;
+                let count = 0;
+                // let fOrig = f.clone();
+                // let gOrig = g.clone();
                 do {
                     var lim1 = evaluate(__.Limit.limit(f.clone(), x, lim, depth));
                     var lim2 = evaluate(__.Limit.limit(g.clone(), x, lim, depth));
@@ -2237,13 +2240,24 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                         var ft = __.diff(f.clone(), x);
                         var gt = __.diff(g.clone(), x);
 
-                        var t_symbol = _.expand(_.divide(ft, gt));
+                        // expanding here causes issue #12.
+                        // there is something fishy with expand that we will 
+                        // have to find some day.
+                        // var t_symbol = _.expand(_.divide(ft, gt));
+                        var t_symbol = _.divide(ft, gt);
                         f = t_symbol.getNum();
                         g = t_symbol.getDenom();
 
                     }
                 }
-                while(indeterminate)
+                while(indeterminate && ++count < Settings.max_lim_depth)
+
+                if (count >= Settings.max_lim_depth) {
+                    // console.log("L'Hospital likely endless loop");
+                    // console.log("  f:"+f);
+                    // console.log("  g:"+g);
+                    return;
+                }
 
                 //REMEMBER: 
                 //- 1/cos(x)

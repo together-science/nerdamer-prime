@@ -81,6 +81,8 @@ describe('Calculus', function () {
         expect(nerdamer('limit(x/(x+1)^2, x, -1)').toString()).toEqual('-Infinity');
         expect(nerdamer('limit(log(x),x, 0)').toString()).toEqual('-Infinity');
         expect(nerdamer('limit((3*sin(x)-sin(2*x))/(x-sin(x)),x,0)').toString()).toEqual('Infinity');
+        // issue #12
+        expect(nerdamer('limit((2sin(x)-sin(2x))/(x-sin(x)),x,0)').toString()).toEqual('6');
     });
 
     it('should integrate properly', function () {
