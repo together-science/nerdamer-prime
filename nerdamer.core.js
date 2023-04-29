@@ -2470,8 +2470,12 @@ var nerdamer = (function (imports) {
 
             if(decp && (option === 'decimal' || option === 'decimals' && multiplier)) {
                 // scientific notation? regular rounding would be the wrong decision here
-                if ((''+multiplier).includes('e')) {
-                    multiplier = multiplier.toExponential();
+                if (multiplier.toString().includes('e')) {
+                    // toPrecision can create extra digits, so we also
+                    // convert it to string straight up and pick the shorter version
+                    const m1 = multiplier.toExponential();
+                    const m2 = multiplier.toPrecision(decp);
+                    multiplier = m1.length < m2.length?m1:m2;
                 } else {
                     multiplier = nround(multiplier, decp);
                 }
