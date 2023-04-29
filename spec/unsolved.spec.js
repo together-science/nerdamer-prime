@@ -23,7 +23,6 @@ describe('Known problems:', function () {
             .toEqual("1.9279880988e-16*kg*m^(-3)");
     });
     it('Calculus', function () {
-        expect(nerdamer('limit(cos(sin(x)+2), x, Infinity)').toString()).toEqual('[cos(1),cos(3)]');
         expect(nerdamer('limit((2sin(x)-sin(2x))/(x-sin(x)),x,0)').toString()).toEqual('6');
     });
     

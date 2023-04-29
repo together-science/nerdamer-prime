@@ -2469,7 +2469,12 @@ var nerdamer = (function (imports) {
             }
 
             if(decp && (option === 'decimal' || option === 'decimals' && multiplier)) {
-                multiplier = nround(multiplier, decp);
+                // scientific notation? regular rounding would be the wrong decision here
+                if ((''+multiplier).includes('e')) {
+                    multiplier = multiplier.toExponential();
+                } else {
+                    multiplier = nround(multiplier, decp);
+                }
             }
 
 
