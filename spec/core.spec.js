@@ -2977,3 +2977,12 @@ describe('together.math functionalituy', function() {
         expect(nerdamer('sqrt(4*baseunit_kg^4)').toString()).toEqual('2*baseunit_kg^2');
     });
 });
+
+describe('misc', function() {
+    it('bugs fixes', function() {
+        // issue #11 - lost precision
+        expect(nerdamer("(19279880988/100000000000000000)kg(1/((km)^(3)))(((((1km))/((1000m))))^(3))")
+            .text("decimals"))
+            .toEqual("1.9279880988e-16*kg*m^(-3)");
+    });
+});
