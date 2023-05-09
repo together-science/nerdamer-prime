@@ -244,7 +244,7 @@ return _.multiply(sum, product)
 		 * nerdamer('a*x^2+b*x=y').evaluate({y: 'x-7'}) // == ??
 		 * eq.solveFor('x') // ?? TODO
 		 */
-		solveFor(variable: string): Expression
+		solveFor(variable: string): Expression[]
 
 		/**
 		 * Forces the expression to displayed with decimals
