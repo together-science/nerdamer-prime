@@ -99,6 +99,8 @@ describe('Solve', function () {
         expect(nerdamer.solveEquations(["x/(45909438.9 + 0 + x)=0", "45909438.9+0+x=45909438.9"]).toString()).toEqual('x,0');
         expect(nerdamer.solveEquations(["a=1"]).toString()).toEqual('a,1');
         expect(nerdamer.solveEquations(["x=5", "0.6=1-(x/(10+y))"]).toString()).toEqual('x,5,y,2.5');
+        // np issue #13
+        expect(nerdamer.solveEquations(["0=a*c", "0=b"], ["a", "b"]).toString()).toEqual('a,0,b,0');
     });
     //#55: nerdamer.solveEquation quits working
     it('should handle text("fractions") without later impact', function () {

@@ -745,7 +745,7 @@ if((typeof module) !== 'undefined') {
                 for(i = 0; i < l; i++) {
                     //prefill
                     c.set(i, 0, new Symbol(0));
-                    var e = _.expand(eqns[i]).collectSymbols(); //expand and store
+                    var e = _.expand(eqns[i]).collectSummandSymbols(); //expand and store
                     //go trough each of the variables
                     for(var j = 0; j < var_array.length; j++) {
                         m.set(i, j, new Symbol(0));
@@ -766,6 +766,8 @@ if((typeof module) !== 'undefined') {
                             //variable is found then the remainder is the coefficient.
                             if(term.contains(v)) {
                                 var tparts = explode(remove(e, k), v);
+                                // remove(e,k);
+                                // var tparts = explode(eqns[i], v);
                                 m.set(i, j, _.add(m.get(i, j), tparts[0]));
                             }
                         }

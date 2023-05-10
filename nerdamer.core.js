@@ -4572,6 +4572,34 @@ var nerdamer = (function (imports) {
 
             return collected.sort(sort_fn);//sort hopefully gives us some sort of consistency
         },
+
+        /**
+         * collectSymbols but only for summands
+         * @param {Function} fn
+         * @param {Object} opt
+         * @param {Function} sort_fn
+         * @@param {Boolean} expand_symbol
+         * @returns {Array}
+         */
+        collectSummandSymbols: function (fn, opt, sort_fn, expand_symbol) {
+            var collected = [];
+            if(!this.symbols || this.group === CB)
+                collected.push(this);
+            else {
+                for(var x in this.symbols) {
+                    var symbol = this.symbols[x];
+                    if(expand_symbol && (symbol.group === PL || symbol.group === CP)) {
+                        collected = collected.concat(symbol.collectSymbols());
+                    }
+                    else
+                        collected.push(fn ? fn(symbol, opt) : symbol);
+                }
+            }
+            if(sort_fn === null)
+                sort_fn = undefined; //WTF Firefox? Seriously?
+
+            return collected.sort(sort_fn);//sort hopefully gives us some sort of consistency
+        },
         /**
          * Returns the latex representation of the symbol
          * @param {String} option

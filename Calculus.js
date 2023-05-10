@@ -2233,7 +2233,7 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                     var lim1 = evaluate(__.Limit.limit(f.clone(), x, lim, depth));
                     var lim2 = evaluate(__.Limit.limit(g.clone(), x, lim, depth));
 
-                    //if it's in indeterminate form apply L'Hospital's rule
+                    //if it's in indeterminate form apply L'Hopital's rule
                     var indeterminate = isInfinity(lim1) && isInfinity(lim2) || equals(lim1, 0) && equals(lim2, 0);
                     //pull the derivatives
                     if(indeterminate) {
