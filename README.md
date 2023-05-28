@@ -14,7 +14,7 @@ This kind of stuff is difficult, and it is more difficult in someone else's code
 algebra system. Its wealth of features can fool you, though. Its features and the fact that it works fast, in the browser and NodeJS,
 makes it still worthwhile. But please understand that it will not achieve a whole lot more than it can do right now. See our 
 [SymType project](https://github.com/together-science/symtype) for a port of SymPy, which will no doubt have other drawbacks as we complete it.
-YMMMV.
+YMMV.
 
 We have made some improvements - simplification of logs and squareroots, and bug fixes related to those areas and factoring. Unit tests
 are fixed except for a couple of known flaws. There will be further work in this area. We will also work on vectors, which are not 
