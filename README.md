@@ -14,7 +14,7 @@ This kind of stuff is difficult, and it is more difficult in someone else's code
 algebra system. Its wealth of features can fool you, though. Its features and the fact that it works fast, in the browser and NodeJS,
 makes it still worthwhile. But please understand that it will not achieve a whole lot more than it can do right now. See our 
 [SymType project](https://github.com/together-science/symtype) for a port of SymPy, which will no doubt have other drawbacks as we complete it.
-YMMMV.
+YMMV.
 
 We have made some improvements - simplification of logs and squareroots, and bug fixes related to those areas and factoring. Unit tests
 are fixed except for a couple of known flaws. There will be further work in this area. We will also work on vectors, which are not 
@@ -26,7 +26,7 @@ If you have a clear bug, file an issue with the code to repro. If you want a new
 think of as "obvious flaws" - file the issue, but we probably won't do it. But someone else can! We will absolutely consider compatible
 PRs, but best to [talk to us](mailto:info@together.science) before you start.
 
-Below follows the original README. Obviously, the npm instructions will install the original Nerdamer. I will update this README if we ever get into the game of releasing nerdamer-prime on npm. 
+Below follows the original README. Obviously, the npm instructions will install the original Nerdamer. I will update this README if we ever get into the game of releasing nerdamer-prime on npm. Until then, please be aware that the Nerdamer you find on npm follows the original (archived) repo.
 
 
 Nerdamer
