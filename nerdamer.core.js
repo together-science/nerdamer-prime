@@ -2549,6 +2549,7 @@ var nerdamer = (function (imports) {
         var l = num, i = 1, factors = [],
                 epsilon = 2.2204460492503130808472633361816E-16;
         while(i < l) {
+            checkTimeout();
             var quotient = num / i;
             var whole = Math.floor(quotient);
             var remainder = quotient - whole;

@@ -4367,6 +4367,55 @@ if((typeof module) !== 'undefined') {
 
                 return symbol;
             },
+            _sqrtCompression: function (symbol, num, den) {
+                // look for sqrt terms in products in num and den
+                // if we find any, combine them
+
+                // first, collect all factors in numerator and denominator
+                let numSymbols = [num];
+                let denSymbols = [den];
+                if (num.type === CB) {
+                    numSymbols = num.collectFactors();
+                }
+                if (den.type === CB) {
+                    denSymbols = den.collectFactors();
+                }
+
+                // find sqrt functions
+                let sqNum = numSymbols.filter((f)=>f.isSQRT());
+                let sqDen = denSymbols.filter((f)=>f.isSQRT());
+
+                // only if we have sqrts in both:
+                if (sqNum.length > 0 && sqDen > 0) {
+                    // strip power and such
+                    var sym_array = __.Simplify.strip(symbol);
+                    // remove the sqrts from the remaining num and den factors
+                    numSymbols = numSymbols.filter((f)=>!f.isSQRT());
+                    denSymbols = denSymbols.filter((f)=>!f.isSQRT());
+
+                    // combine the sqrt-args under a single sqrt
+                    // multiple the arg with all the numerator factors
+                    let arg = sqNum.reduce((acc, s)=>acc = _.multiply(acc, s.symbols[0]), new Symbol(1));
+                    // and divide it by the denominator factors
+                    arg = sqDen.reduce((acc, s)=>acc = _.divide(acc, s.symbols[0]), arg);
+                    // simplify it
+                    arg = __.Simplify._simplify(arg);
+                    // wrap it in a sqrt, let's just take the one from the num list
+                    let sqrt = sqNum[0].clone()
+                    sqrt.symbols[0] = arg;
+                    // stick it on the end of the numerator list
+                    numSymbols.push(sqrt);
+
+                    // reassemble the fraction symbol
+                    symbol = numSymbols.reduce((acc, s)=>acc = _.multiply(acc, s), new Symbol(1));
+                    symbol = denSymbols.reduce((acc, s)=>acc = _.divide(acc, s), arg);
+                    
+                    // add power etc. back in
+                    symbol = __.Simplify.unstrip(sym_array, symbol);
+                }
+                return symbol;
+            },
+
             fracSimp: function (symbol) {
                 //try a quick simplify of imaginary numbers
                 var den = symbol.getDenom();
@@ -4415,6 +4464,8 @@ if((typeof module) !== 'undefined') {
 
                     //otherwise simplify it some more
                     return __.Simplify._simplify(retval);
+                } else {
+                    symbol = __.Simplify._sqrtCompression(symbol, num, den);
                 }
                 return symbol;
             },
@@ -4596,7 +4647,7 @@ if((typeof module) !== 'undefined') {
                 return [symbol, patterns];
             },
             simplify: function (symbol) {
-                core.Utils.armTimeout();
+                // core.Utils.armTimeout();
                 try {
                     let retval = __.Simplify._simplify(symbol);
                     retval.pushMinus();
