@@ -123,7 +123,7 @@ var nerdamer = (function (imports) {
         //True if ints should not be converted to
         SCIENTIFIC_IGNORE_ZERO_EXPONENTS: true,
         // no simplify() or solveFor() should take more ms than this
-        TIMEOUT: 1000,
+        TIMEOUT: 500,
     };
 
     (function () {
@@ -2549,6 +2549,7 @@ var nerdamer = (function (imports) {
         var l = num, i = 1, factors = [],
                 epsilon = 2.2204460492503130808472633361816E-16;
         while(i < l) {
+            checkTimeout();
             var quotient = num / i;
             var whole = Math.floor(quotient);
             var remainder = quotient - whole;

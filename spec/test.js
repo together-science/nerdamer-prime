@@ -13,7 +13,9 @@ require('../Solve.js');
 
 // console.log(nerdamer('limit((2sin(x)-sin(2x))/(x-sin(x)),x,0)').toString());
 
-const testEq= ["0=a*c", "0=b"];
-const testUnkwowns = ["a", "b"];
-const sol = nerdamer.solveEquations(testEq, [...testUnkwowns]);
-console.log(sol.toString());
+// const testEq= ["0=a*c", "0=b"];
+// const testUnkwowns = ["a", "b"];
+// const sol = nerdamer.solveEquations(testEq, [...testUnkwowns]);
+// console.log(sol.toString());
+
+console.log(nerdamer("baseunit__a/sqrt(baseunit__a)").simplify().toString());

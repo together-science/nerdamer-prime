@@ -2259,7 +2259,7 @@ if((typeof module) !== 'undefined') {
                 return symbol;
             },
             factor: function (symbol, factors) {
-                core.Utils.armTimeout();
+                core.Utils.checkTimeout();
                 let originalFactors = factors?[...factors]:null;
                 try {
                     let retval = __.Factor.factorInner(symbol, factors);
@@ -2270,11 +2270,10 @@ if((typeof module) !== 'undefined') {
                         factors.splice(0, factors.length, ...originalFactors);
                     }
                     return symbol;
-                } finally {
-                    core.Utils.disarmTimeout();
                 }
             },
             factorInner: function (symbol, factors) {
+                core.Utils.checkTimeout();
                 // Don't try to factor constants,
                 // do it with Math2.factor
                 if(symbol.isConstant()) {
@@ -2467,6 +2466,7 @@ if((typeof module) !== 'undefined') {
                 return symbol;
             },
             _factor: function (symbol, factors) {
+                core.Utils.checkTimeout();
                 var g = symbol.group;
                 //some items cannot be factored any further so return those right away
                 if(symbol.group === FN) {
@@ -2669,6 +2669,9 @@ if((typeof module) !== 'undefined') {
                     return symbol;
                 }
                 catch(e) {
+                    if (e?.message === "timeout") {
+                        throw e;
+                    }
                     //no need to stop the show because something went wrong :). Just return the unfactored.
                     return untouched;
                 }
@@ -4367,6 +4370,95 @@ if((typeof module) !== 'undefined') {
 
                 return symbol;
             },
+            _sqrtCompression: function (symbol, num, den) {
+                // return symbol;
+                // strip power and such
+                var sym_array = __.Simplify.strip(symbol);
+
+                // helper functions
+                const isABS = (s)=> (s.fname === "abs");
+                const getArg = (s) => s.args[0];
+                const absArg = (s) => isABS(s)?getArg(s):null;
+                const isUnit = (s) => s.type === S && s.value.startsWith("baseunit_");
+
+                // main workhorse function
+                const cancel = (a, sqrt)=> {
+                    const sqrtArg = getArg(sqrt);
+                    // abs(x):sqrt(x) => sqrt(x)
+                    if (sqrtArg.equals(absArg(a))) {
+                        return [sqrt, null];
+                    }
+                    // unit(x):sqrt(x) => sqrt(x)
+                    if (sqrtArg.equals(a) && isUnit(a)) {
+                        return [sqrt, null];
+                    }
+                    // sqrt(a):sqrt(x) => sqrt(a/x)
+                    if (a.isSQRT()) {
+                        let newArg = getArg(a);
+                        newArg = _.divide(newArg, sqrtArg);
+                        let result = core.Utils.format('sqrt({1})', newArg);
+                        return [_.parse(result), null];
+                    }
+
+                    // nothing to be done
+                    return [null, sqrt];
+                };
+
+                let workDone;
+                let totalWorkDone = false;
+
+                const cancelTerms = (top, bottom) => {
+                    for (let i = 0; i < top.length; i++) {
+                        // examine the first top symbol 
+                        let sqrt = top[i];
+                        if (!sqrt.isSQRT()) {
+                            continue;
+                        }
+                        // it's a sqrt. try to cancel it against each 
+                        // bottom term
+                        for (let j = 0; j < bottom.length; j++) {
+                            let term = bottom[j];
+                            [term, sqrt] = cancel(term, sqrt);
+                            if (term !== null) {
+                                // we found a match, substitute the remains and exit here
+                                bottom[j] = term;
+                                workDone = true;
+                                totalWorkDone = true;
+                                break;
+                            }
+                        }
+                        // whatever remains of sqrt gets put back
+                        top[i] = sqrt;
+                    }
+                    return [top.filter(x=>x), bottom.filter(x=>x)]
+                }
+
+                // look for sqrt terms in products in num and den
+                // if we find any, combine them with other terms
+
+                // first, collect all factors in numerator and denominator
+                let numSymbols = num.collectFactors();
+                let denSymbols = den.collectFactors();
+                
+                // now cancel terms until nothing to cancel was found
+                do {
+                    workDone = false;
+                    [numSymbols, denSymbols] = cancelTerms(numSymbols, denSymbols);
+                    [denSymbols, numSymbols] = cancelTerms(denSymbols, numSymbols);
+                } while (workDone);
+
+                if (totalWorkDone) {
+                    // reassemble the fraction symbol
+                    symbol = numSymbols.reduce((acc, s)=>acc = _.multiply(acc, s), new Symbol(1));
+                    symbol = denSymbols.reduce((acc, s)=>acc = _.divide(acc, s), symbol);
+                } 
+
+                // add power etc. back in
+                symbol = __.Simplify.unstrip(sym_array, symbol);
+
+                return symbol;
+            },
+
             fracSimp: function (symbol) {
                 //try a quick simplify of imaginary numbers
                 var den = symbol.getDenom();
@@ -4415,6 +4507,8 @@ if((typeof module) !== 'undefined') {
 
                     //otherwise simplify it some more
                     return __.Simplify._simplify(retval);
+                } else {
+                    symbol = __.Simplify._sqrtCompression(symbol, num, den);
                 }
                 return symbol;
             },
@@ -4596,20 +4690,9 @@ if((typeof module) !== 'undefined') {
                 return [symbol, patterns];
             },
             simplify: function (symbol) {
-                core.Utils.armTimeout();
-                try {
-                    let retval = __.Simplify._simplify(symbol);
-                    retval.pushMinus();
-                    return retval;
-                } catch (error) {
-                    if (error.message === "timeout") {
-                        return symbol;
-                    }
-                    throw error;
-                }
-                finally {
-                    core.Utils.disarmTimeout()
-                }
+                let retval = __.Simplify._simplify(symbol);
+                retval.pushMinus();
+                return retval;
             },
             _simplify: function (symbol) {
                 //remove the multiplier to make calculation easier;
@@ -4689,18 +4772,25 @@ if((typeof module) !== 'undefined') {
 
     // Add a link to simplify
     core.Expression.prototype.simplify = function () {
-        let retval;
-        // equation?
-        if (typeof this.symbol.LHS !== "undefined") {
-            // don't have access to equation here, so we clone instead
-            let eq = this.symbol.clone();
-            eq.LHS = __.Simplify.simplify(eq.LHS);
-            eq.RHS = __.Simplify.simplify(eq.RHS);
-            retval = eq;
-        } else {
-            retval = new core.Expression(__.Simplify.simplify(this.symbol));
+        core.Utils.armTimeout();
+        try {
+            let retval;
+            // equation?
+            if (typeof this.symbol.LHS !== "undefined") {
+                // don't have access to equation here, so we clone instead
+                let eq = this.symbol.clone();
+                eq.LHS = __.Simplify.simplify(eq.LHS);
+                eq.RHS = __.Simplify.simplify(eq.RHS);
+                retval = eq;
+            } else {
+                retval = new core.Expression(__.Simplify.simplify(this.symbol));
+            }
+            return retval;
+        } catch (error) {
+            return this;
+        } finally {
+            core.Utils.disarmTimeout();
         }
-    return retval;
     };
 
     nerdamer.useAlgebraDiv = function () {
