@@ -73,7 +73,7 @@ declare namespace nerdamer {
 	 * @param TeX The expression being converted.
 	 */
 	export function convertFromLaTeX(TeX: string): Expression
-	
+
 	/**
 	 * Each time an expression is parsed nerdamer stores the result. Use this method to get back stored expressions.
 	 * @param asObject Pass in true to get expressions as numbered object with 1 as starting index
@@ -238,7 +238,7 @@ return _.multiply(sum, product)
 		text(outputType?: 'decimals' | 'fractions'): string
 
 		/**
-		 * This method requires that the Solve, Calculus, and Algebra add-ons are loaded. It will attempt to solve an equation. If solutions no solutions are found then an empty array is returned. It can solve for multivariate polynomials up to the third degree. After which it can solve numerically for polynomials up to the the 100th degree. If it's a univariate equation it will attempt to solve it using numerical methods.
+		 * This method requires that the Solve, Calculus, and Algebra add-ons are loaded. It will attempt to solve an equation. If no solutions are found then an empty array is returned. It can solve for multivariate polynomials up to the third degree. After which it can solve numerically for polynomials up to the 100th degree. If it's a univariate equation it will attempt to solve it using numerical methods.
 		 * @param variable The variable to solve for.
 		 * @example
 		 * nerdamer('a*x^2+b*x=y').evaluate({y: 'x-7'}) // == ??
@@ -261,7 +261,7 @@ return _.multiply(sum, product)
 		 * // true
 		 */
 		isNumber(): boolean
-		
+
 		/**
 		 * Checks if a number evaluates to an imaginary number
 		 * @example
@@ -361,7 +361,7 @@ return _.multiply(sum, product)
 		 * // false
 		 */
 		gte(value: number | string | Expression): boolean
-		
+
 		/**
 		 * Expands a function or expression.
 		 * @example

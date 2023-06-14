@@ -1,0 +1,37 @@
+name: nerdamer prime CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: [ubuntu-22.04]
+    name: Build and test
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: 'npm'
+          cache-dependency-path: |
+              ./package-lock.json
+
+      - name: Install dependencies
+        shell: bash
+        run: npm ci
+
+      # results in an error, so commenting out
+         
+      #- name: Audit fix
+      #  shell: bash
+      #  run: npm audit fix --audit-level=high
+
+      - name: Run tests
+        shell: bash
+        run: npm run test
