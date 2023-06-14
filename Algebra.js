@@ -2275,7 +2275,7 @@ if((typeof module) !== 'undefined') {
                 }
             },
             factorInner: function (symbol, factors) {
-                checkTimeout();
+                core.Utils.checkTimeout();
                 // Don't try to factor constants,
                 // do it with Math2.factor
                 if(symbol.isConstant()) {
