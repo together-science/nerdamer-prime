@@ -4424,7 +4424,7 @@ if((typeof module) !== 'undefined') {
                                 bottom[j] = term;
                                 workDone = true;
                                 totalWorkDone = true;
-                                break
+                                break;
                             }
                         }
                         // whatever remains of sqrt gets put back
@@ -4772,7 +4772,7 @@ if((typeof module) !== 'undefined') {
 
     // Add a link to simplify
     core.Expression.prototype.simplify = function () {
-        // core.Utils.armTimeout();
+        core.Utils.armTimeout();
         try {
             let retval;
             // equation?
