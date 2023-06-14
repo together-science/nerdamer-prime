@@ -4368,51 +4368,91 @@ if((typeof module) !== 'undefined') {
                 return symbol;
             },
             _sqrtCompression: function (symbol, num, den) {
+                return symbol;
+                // strip power and such
+                var sym_array = __.Simplify.strip(symbol);
+
+                // helper functions
+                const isABS = (s)=> (s.fname === "abs");
+                const getArg = (s) => s.args[0];
+                const absArg = (s) => isABS(s)?getArg(s):null;
+
+                // main workhorse function
+                const cancel = (a, sqrt)=> {
+                    const sqrtArg = getArg(sqrt);
+                    // abs(x):sqrt(x) => sqrt(x)
+                    if (sqrtArg.equals(absArg(a))) {
+                        return [sqrt, null];
+                    }
+                    // sqrt(a):sqrt(x) => sqrt(a/x)
+                    if (a.isSQRT()) {
+                        let newArg = getArg(a);
+                        newArg = _.divide(newArg, sqrtArg);
+                        let result = core.Utils.format('sqrt({1})', newArg);
+                        return [_.parse(result), null];
+                    }
+
+                    // nothing to be done
+                    return [null, sqrt];
+                };
+
                 // look for sqrt terms in products in num and den
-                // if we find any, combine them
+                // if we find any, combine them with other terms
 
                 // first, collect all factors in numerator and denominator
-                let numSymbols = [num];
-                let denSymbols = [den];
-                if (num.type === CB) {
-                    numSymbols = num.collectFactors();
-                }
-                if (den.type === CB) {
-                    denSymbols = den.collectFactors();
-                }
+                let numSymbols = num.collectFactors();
+                let denSymbols = den.collectFactors();
+                let workDone = false;
+                let totalWorkDone = false;
 
-                // find sqrt functions
+                // try to cancel numerator sqrts
                 let sqNum = numSymbols.filter((f)=>f.isSQRT());
+                if (sqNum.length > 0) {
+                    const newNumTerms = [];
+                    for (const sqrt of sqNum) {
+                        denSymbols = denSymbols.map((nTerm)=>{
+                            const [num,den] = cancel(nTerm, sqrt);
+                            newNumTerms.push(den)
+                            if (num) {
+                                workDone = true;
+                                totalWorkDone = true;
+                            } else {
+                                return nTerm;
+                            }
+                            return num;
+                        });
+                    }
+                    numSymbols = newNumTerms.filter((s)=>!!s);
+                }
+                // try to cancel denominator sqrts
                 let sqDen = denSymbols.filter((f)=>f.isSQRT());
+                if (sqDen.length > 0) {
+                    const newDenTerms = [];
+                    for (const sqrt of sqDen) {
+                        numSymbols = numSymbols.map((dTerm)=>{
+                            const [num,den] = cancel(dTerm, sqrt);
+                            newDenTerms.push(den);
+                            if (num) {
+                                workDone = true;
+                                totalWorkDone = true;
+                            } else {
+                                return dTerm;
+                            }
+                            return num;
+                        });
+                    }
+                    denSymbols = newDenTerms.filter((s)=>!!s);
+                }
 
-                // only if we have sqrts in both:
-                if (sqNum.length > 0 && sqDen > 0) {
-                    // strip power and such
-                    var sym_array = __.Simplify.strip(symbol);
-                    // remove the sqrts from the remaining num and den factors
-                    numSymbols = numSymbols.filter((f)=>!f.isSQRT());
-                    denSymbols = denSymbols.filter((f)=>!f.isSQRT());
-
-                    // combine the sqrt-args under a single sqrt
-                    // multiple the arg with all the numerator factors
-                    let arg = sqNum.reduce((acc, s)=>acc = _.multiply(acc, s.symbols[0]), new Symbol(1));
-                    // and divide it by the denominator factors
-                    arg = sqDen.reduce((acc, s)=>acc = _.divide(acc, s.symbols[0]), arg);
-                    // simplify it
-                    arg = __.Simplify._simplify(arg);
-                    // wrap it in a sqrt, let's just take the one from the num list
-                    let sqrt = sqNum[0].clone()
-                    sqrt.symbols[0] = arg;
-                    // stick it on the end of the numerator list
-                    numSymbols.push(sqrt);
-
+                if (totalWorkDone) {
                     // reassemble the fraction symbol
                     symbol = numSymbols.reduce((acc, s)=>acc = _.multiply(acc, s), new Symbol(1));
-                    symbol = denSymbols.reduce((acc, s)=>acc = _.divide(acc, s), arg);
-                    
-                    // add power etc. back in
-                    symbol = __.Simplify.unstrip(sym_array, symbol);
-                }
+                    symbol = denSymbols.reduce((acc, s)=>acc = _.divide(acc, s), symbol);
+                } 
+
+                // add power etc. back in
+                symbol = __.Simplify.unstrip(sym_array, symbol);
+
                 return symbol;
             },
 
