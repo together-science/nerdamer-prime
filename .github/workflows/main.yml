@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: npm ci
 
-        # results in an error, so commenting out
+    # results in an error, so commenting out
         
       #- name: Audit fix
       #  shell: bash
@@ -35,3 +35,4 @@ jobs:
       - name: Run tests
         shell: bash
         run: npm run test
+        
