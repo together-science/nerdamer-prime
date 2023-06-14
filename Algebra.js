@@ -2671,7 +2671,7 @@ if((typeof module) !== 'undefined') {
                 }
                 catch(e) {
                     if (e?.message === "timeout") {
-                        throw error;
+                        throw e;
                     }
                     //no need to stop the show because something went wrong :). Just return the unfactored.
                     return untouched;
