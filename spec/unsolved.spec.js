@@ -8,13 +8,13 @@ require('../Calculus.js');
 require('../Solve.js');
 
 describe('Known problems:', function () {
-    // it('Core', function() {
-    //     nerdamer.setFunction("f", ["x"], "-3x+5")
-    //     nerdamer.setFunction("g", ["x"], "-2x^2")
+    it('Core', function() {
+        nerdamer.setFunction("f", ["x"], "-3x+5")
+        nerdamer.setFunction("g", ["x"], "-2x^2")
     
-    //     expect(nerdamer("f(g(x))").text()).toEqual('5+6*x^2');
-    //     expect(nerdamer("f(2x)").expand().text()).toEqual('-6*x+5');
-    // });
+        expect(nerdamer("f(g(x))").text()).toEqual('5+6*x^2');
+        expect(nerdamer("f(2x)").expand().text()).toEqual('-6*x+5');
+    });
     
 
     // it('Algebra', function () {    

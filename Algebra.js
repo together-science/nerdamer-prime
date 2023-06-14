@@ -4371,7 +4371,7 @@ if((typeof module) !== 'undefined') {
                 return symbol;
             },
             _sqrtCompression: function (symbol, num, den) {
-                return symbol;
+                // return symbol;
                 // strip power and such
                 var sym_array = __.Simplify.strip(symbol);
 
@@ -4379,12 +4379,17 @@ if((typeof module) !== 'undefined') {
                 const isABS = (s)=> (s.fname === "abs");
                 const getArg = (s) => s.args[0];
                 const absArg = (s) => isABS(s)?getArg(s):null;
+                const isUnit = (s) => s.type === S && s.value.startsWith("baseunit_");
 
                 // main workhorse function
                 const cancel = (a, sqrt)=> {
                     const sqrtArg = getArg(sqrt);
                     // abs(x):sqrt(x) => sqrt(x)
                     if (sqrtArg.equals(absArg(a))) {
+                        return [sqrt, null];
+                    }
+                    // unit(x):sqrt(x) => sqrt(x)
+                    if (sqrtArg.equals(a) && isUnit(a)) {
                         return [sqrt, null];
                     }
                     // sqrt(a):sqrt(x) => sqrt(a/x)
@@ -4399,53 +4404,48 @@ if((typeof module) !== 'undefined') {
                     return [null, sqrt];
                 };
 
+                let workDone;
+                let totalWorkDone = false;
+
+                const cancelTerms = (top, bottom) => {
+                    for (let i = 0; i < top.length; i++) {
+                        // examine the first top symbol 
+                        let sqrt = top[i];
+                        if (!sqrt.isSQRT()) {
+                            continue;
+                        }
+                        // it's a sqrt. try to cancel it against each 
+                        // bottom term
+                        for (let j = 0; j < bottom.length; j++) {
+                            let term = bottom[j];
+                            [term, sqrt] = cancel(term, sqrt);
+                            if (term !== null) {
+                                // we found a match, substitute the remains and exit here
+                                bottom[j] = term;
+                                workDone = true;
+                                totalWorkDone = true;
+                                break
+                            }
+                        }
+                        // whatever remains of sqrt gets put back
+                        top[i] = sqrt;
+                    }
+                    return [top.filter(x=>x), bottom.filter(x=>x)]
+                }
+
                 // look for sqrt terms in products in num and den
                 // if we find any, combine them with other terms
 
                 // first, collect all factors in numerator and denominator
                 let numSymbols = num.collectFactors();
                 let denSymbols = den.collectFactors();
-                let workDone = false;
-                let totalWorkDone = false;
-
-                // try to cancel numerator sqrts
-                let sqNum = numSymbols.filter((f)=>f.isSQRT());
-                if (sqNum.length > 0) {
-                    const newNumTerms = [];
-                    for (const sqrt of sqNum) {
-                        denSymbols = denSymbols.map((nTerm)=>{
-                            const [num,den] = cancel(nTerm, sqrt);
-                            newNumTerms.push(den)
-                            if (num) {
-                                workDone = true;
-                                totalWorkDone = true;
-                            } else {
-                                return nTerm;
-                            }
-                            return num;
-                        });
-                    }
-                    numSymbols = newNumTerms.filter((s)=>!!s);
-                }
-                // try to cancel denominator sqrts
-                let sqDen = denSymbols.filter((f)=>f.isSQRT());
-                if (sqDen.length > 0) {
-                    const newDenTerms = [];
-                    for (const sqrt of sqDen) {
-                        numSymbols = numSymbols.map((dTerm)=>{
-                            const [num,den] = cancel(dTerm, sqrt);
-                            newDenTerms.push(den);
-                            if (num) {
-                                workDone = true;
-                                totalWorkDone = true;
-                            } else {
-                                return dTerm;
-                            }
-                            return num;
-                        });
-                    }
-                    denSymbols = newDenTerms.filter((s)=>!!s);
-                }
+                
+                // now cancel terms until nothing to cancel was found
+                do {
+                    workDone = false;
+                    [numSymbols, denSymbols] = cancelTerms(numSymbols, denSymbols);
+                    [denSymbols, numSymbols] = cancelTerms(denSymbols, numSymbols);
+                } while (workDone);
 
                 if (totalWorkDone) {
                     // reassemble the fraction symbol
@@ -4772,7 +4772,7 @@ if((typeof module) !== 'undefined') {
 
     // Add a link to simplify
     core.Expression.prototype.simplify = function () {
-        core.Utils.armTimeout();
+        // core.Utils.armTimeout();
         try {
             let retval;
             // equation?

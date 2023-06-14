@@ -18,4 +18,4 @@ require('../Solve.js');
 // const sol = nerdamer.solveEquations(testEq, [...testUnkwowns]);
 // console.log(sol.toString());
 
-console.log(nerdamer("sqrt(a)/abs(a)").simplify().toString());
+console.log(nerdamer("baseunit__a/sqrt(baseunit__a)").simplify().toString());
