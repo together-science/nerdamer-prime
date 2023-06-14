@@ -2259,7 +2259,7 @@ if((typeof module) !== 'undefined') {
                 return symbol;
             },
             factor: function (symbol, factors) {
-                core.Utils.armTimeout();
+                core.Utils.checkTimeout();
                 let originalFactors = factors?[...factors]:null;
                 try {
                     let retval = __.Factor.factorInner(symbol, factors);
@@ -2270,8 +2270,6 @@ if((typeof module) !== 'undefined') {
                         factors.splice(0, factors.length, ...originalFactors);
                     }
                     return symbol;
-                } finally {
-                    core.Utils.disarmTimeout();
                 }
             },
             factorInner: function (symbol, factors) {
@@ -4692,20 +4690,9 @@ if((typeof module) !== 'undefined') {
                 return [symbol, patterns];
             },
             simplify: function (symbol) {
-                core.Utils.armTimeout();
-                try {
-                    let retval = __.Simplify._simplify(symbol);
-                    retval.pushMinus();
-                    return retval;
-                } catch (error) {
-                    if (error.message === "timeout") {
-                        return symbol;
-                    }
-                    throw error;
-                }
-                finally {
-                    core.Utils.disarmTimeout()
-                }
+                let retval = __.Simplify._simplify(symbol);
+                retval.pushMinus();
+                return retval;
             },
             _simplify: function (symbol) {
                 //remove the multiplier to make calculation easier;
@@ -4785,18 +4772,25 @@ if((typeof module) !== 'undefined') {
 
     // Add a link to simplify
     core.Expression.prototype.simplify = function () {
-        let retval;
-        // equation?
-        if (typeof this.symbol.LHS !== "undefined") {
-            // don't have access to equation here, so we clone instead
-            let eq = this.symbol.clone();
-            eq.LHS = __.Simplify.simplify(eq.LHS);
-            eq.RHS = __.Simplify.simplify(eq.RHS);
-            retval = eq;
-        } else {
-            retval = new core.Expression(__.Simplify.simplify(this.symbol));
+        core.Utils.armTimeout();
+        try {
+            let retval;
+            // equation?
+            if (typeof this.symbol.LHS !== "undefined") {
+                // don't have access to equation here, so we clone instead
+                let eq = this.symbol.clone();
+                eq.LHS = __.Simplify.simplify(eq.LHS);
+                eq.RHS = __.Simplify.simplify(eq.RHS);
+                retval = eq;
+            } else {
+                retval = new core.Expression(__.Simplify.simplify(this.symbol));
+            }
+            return retval;
+        } catch (error) {
+            return this;
+        } finally {
+            core.Utils.disarmTimeout();
         }
-    return retval;
     };
 
     nerdamer.useAlgebraDiv = function () {
