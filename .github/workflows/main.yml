@@ -26,8 +26,8 @@ jobs:
         shell: bash
         run: npm ci
 
-    # results in an error, so commenting out
-        
+      # results in an error, so commenting out
+         
       #- name: Audit fix
       #  shell: bash
       #  run: npm audit fix --audit-level=high
