@@ -2468,6 +2468,7 @@ if((typeof module) !== 'undefined') {
                 return symbol;
             },
             _factor: function (symbol, factors) {
+                core.Utils.checkTimeout();
                 var g = symbol.group;
                 //some items cannot be factored any further so return those right away
                 if(symbol.group === FN) {
