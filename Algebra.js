@@ -4687,7 +4687,7 @@ if((typeof module) !== 'undefined') {
                 return [symbol, patterns];
             },
             simplify: function (symbol) {
-                // core.Utils.armTimeout();
+                core.Utils.armTimeout();
                 try {
                     let retval = __.Simplify._simplify(symbol);
                     retval.pushMinus();
