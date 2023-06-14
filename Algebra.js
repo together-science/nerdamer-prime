@@ -2670,6 +2670,9 @@ if((typeof module) !== 'undefined') {
                     return symbol;
                 }
                 catch(e) {
+                    if (e?.message === "timeout") {
+                        throw error;
+                    }
                     //no need to stop the show because something went wrong :). Just return the unfactored.
                     return untouched;
                 }
