@@ -4393,12 +4393,12 @@ if((typeof module) !== 'undefined') {
                         return [sqrt, null];
                     }
                     // sqrt(a):sqrt(x) => sqrt(a/x)
-                    if (a.isSQRT()) {
-                        let newArg = getArg(a);
-                        newArg = _.divide(newArg, sqrtArg);
-                        let result = core.Utils.format('sqrt({1})', newArg);
-                        return [_.parse(result), null];
-                    }
+                    // if (a.isSQRT()) {
+                    //     let newArg = getArg(a);
+                    //     newArg = _.divide(newArg, sqrtArg);
+                    //     let result = core.Utils.format('sqrt({0})', newArg);
+                    //     return [_.parse(result), null];
+                    // }
 
                     // nothing to be done
                     return [null, sqrt];
@@ -4429,8 +4429,10 @@ if((typeof module) !== 'undefined') {
                         }
                         // whatever remains of sqrt gets put back
                         top[i] = sqrt;
+                        top = top.filter(x=>x);
+                        bottom = bottom.filter(x=>x);
                     }
-                    return [top.filter(x=>x), bottom.filter(x=>x)]
+                    return [top, bottom];
                 }
 
                 // look for sqrt terms in products in num and den
@@ -4631,6 +4633,7 @@ if((typeof module) !== 'undefined') {
                     // debugout("");
                     return retval;
                 } catch (error) {
+                    console.error(error);
                     debugout("crash in sqrtsimp, symbol: "+symbol.text()+" "+error.msg);
                     return symbol;
                 } finally {
