@@ -7,6 +7,7 @@ require('../Solve');
 
 describe('Solve', function () {
     it('debug problem of the day', function () {
+        // expect(nerdamer('x^3+x^2-4x-4=y').solveFor('x').toString()).toEqual('');
     });
     it('should solve correctly', function () {
         expect(nerdamer('solve(x=y/3416.3333333333344, y)').toString()).toEqual('[(1073228064103962/314146179365)*x]');
