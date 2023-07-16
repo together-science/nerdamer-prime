@@ -86,6 +86,10 @@ describe('Solve', function () {
         expect(nerdamer('solve(m=(34141034228515471851/614756350000000000000000000)*(3631430813109509/100837351+51955423*log(5+m)), m)')
             .toString()).toEqual('[-246320546/50179663,260402392/26655991]');  
         expect(nerdamer('(5-3y)/(5+y)=(1-9y)/(3y-7)').solveFor("y").toString()).toEqual('1/2');
+        // np issue #26
+        expect(nerdamer("solve(h=1/2*(9.81)*m*s^(-2)*t^2, t)").evaluate().text()).toEqual("[0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1),-0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1)]");
+        // like:
+        expect(nerdamer("solve(h=1/2*(9.81)*t^2, t)").evaluate().text()).toEqual("[-0.4515236409857309*sqrt(h),0.4515236409857309*sqrt(h)]");
         });
 
         it('should solve system of equations correctly', function () {

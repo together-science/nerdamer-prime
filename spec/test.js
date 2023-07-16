@@ -18,4 +18,6 @@ require('../Solve.js');
 // const sol = nerdamer.solveEquations(testEq, [...testUnkwowns]);
 // console.log(sol.toString());
 
-console.log(nerdamer("sqrt((2 h)/(g))").simplify().text());
+nerdamer.setVar("x","-sqrt(-1+z)");
+nerdamer.setVar("y","-2*sqrt(-1+z)+5");
+console.log(nerdamer("(-1/2)*abs(-5+y)*sqrt(-1+z)^(-1)-1").simplify().text());
