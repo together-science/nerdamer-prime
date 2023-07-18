@@ -551,6 +551,9 @@ var nerdamer = (function (imports) {
      * @param {Number} num
      */
     var isInt = function (num) {
+        if (typeof num === "number") {
+            return Number.isInteger(num);
+        }
         return (typeof num !== "undefined") && /^[-+]?\d+e?\+?\d*$/gim.test(num.toString());
     };
 
