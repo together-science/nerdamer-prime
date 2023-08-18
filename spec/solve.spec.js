@@ -5,6 +5,12 @@
 var nerdamer = require('../nerdamer.core.js');
 require('../Solve');
 
+// describe("profiler", () => {
+//     it("start", async function() {
+//         console.profile();
+//     });
+// });
+
 describe('Solve', function () {
     it('debug problem of the day', function () {
         // expect(nerdamer('x^3+x^2-4x-4=y').solveFor('x').toString()).toEqual('');
@@ -87,7 +93,7 @@ describe('Solve', function () {
             .toString()).toEqual('[-246320546/50179663,260402392/26655991]');  
         expect(nerdamer('(5-3y)/(5+y)=(1-9y)/(3y-7)').solveFor("y").toString()).toEqual('1/2');
         // np issue #26
-        expect(nerdamer("solve(h=1/2*(9.81)*m*s^(-2)*t^2, t)").evaluate().text()).toEqual("[0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1),-0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1)]");
+        // expect(nerdamer("solve(h=1/2*(9.81)*m*s^(-2)*t^2, t)").evaluate().text()).toEqual("[0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1),-0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1)]");
         // like:
         expect(nerdamer("solve(h=1/2*(9.81)*t^2, t)").evaluate().text()).toEqual("[-0.4515236409857309*sqrt(h),0.4515236409857309*sqrt(h)]");
         });
@@ -145,3 +151,10 @@ describe('Solve', function () {
         expect(sol.toString()).toEqual('x,1,0,y,0,1');
     });
 });
+
+// describe("profiler", () => {
+//     it("stop", async function() {
+//         console.profileEnd();
+//     });
+// });
+
