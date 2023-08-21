@@ -4748,16 +4748,18 @@ if((typeof module) !== 'undefined') {
                         r = _.add(r, s);
                     });
                     simplified = r;
-                    //put back the multiplier
+                    //place back original multiplier and return
+                    simplified = __.Simplify.unstrip(sym_array, simplified);
+                    //mult on back the multiplier we saved here
                     simplified = _.multiply(simplified, new Symbol(m));
                     if (simplified.multiplier.equals(-1)) {
                         simplified.distributeMultiplier();
                     }
+                    return simplified;
                 }  
 
                 //place back original multiplier and return
                 simplified = __.Simplify.unstrip(sym_array, simplified);
-                
                 // console.log("final result: "+simplified.text());
                 return simplified;
             }
@@ -4772,7 +4774,7 @@ if((typeof module) !== 'undefined') {
 
     // Add a link to simplify
     core.Expression.prototype.simplify = function () {
-        core.Utils.armTimeout();
+        // core.Utils.armTimeout();
         try {
             let retval;
             // equation?
@@ -4789,7 +4791,7 @@ if((typeof module) !== 'undefined') {
         } catch (error) {
             return this;
         } finally {
-            core.Utils.disarmTimeout();
+            // core.Utils.disarmTimeout();
         }
     };
 
