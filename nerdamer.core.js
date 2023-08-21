@@ -142,6 +142,12 @@ var nerdamer = (function (imports) {
     var __timeout;
 
     function armTimeout() {
+        if (console.global &&
+            console.global.tsDebugChannels &&
+            console.global.tsDebugChannels["notimeout"]) {
+            disarmTimeout();
+            return;
+        }
         __starttime = Date.now();
         __timeout = Settings.TIMEOUT;
     }

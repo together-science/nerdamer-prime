@@ -4530,10 +4530,10 @@ if((typeof module) !== 'undefined') {
                 let retval;
                 let workDone = false;
 
+                const original = symbol.clone();
                 try {
                     // debuglevel(1);
                     // debugout("input:  "+symbol.toString());
-                    const original = symbol.clone();
 
                     if(symbol.isSQRT()) {
                         // symbol is itself sqrt
