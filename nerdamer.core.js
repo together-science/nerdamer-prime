@@ -3467,9 +3467,12 @@ var nerdamer = (function (imports) {
                     var p = x.power;
                     //why waste time if I can't do anything anyway
                     if(isSymbol(p) || p.equals(1))
-                        return this.clone();
+                        return;
                     powers.push(p);
                 });
+                if (powers.length === 0) {
+                    return this.clone();
+                }
                 var min = new Frac(arrayMin(powers));
 
                 //handle the coefficient
