@@ -2224,7 +2224,8 @@ if((typeof module) !== 'undefined') {
 
                     //if we don't have an integer then exit
                     if(!isInt(p))
-                        exit();
+                        return symbol; //nothing to do
+                        // exit();
 
                     //build the factor
                     for(var i = 0; i < terms.length; i++) {
@@ -4396,7 +4397,7 @@ if((typeof module) !== 'undefined') {
                     if (a.isSQRT()) {
                         let newArg = getArg(a);
                         newArg = _.divide(newArg, sqrtArg);
-                        let result = core.Utils.format('sqrt({1})', newArg);
+                        let result = core.Utils.format('sqrt({0})', newArg);
                         return [_.parse(result), null];
                     }
 
@@ -4529,6 +4530,7 @@ if((typeof module) !== 'undefined') {
                 try {
                     // debuglevel(1);
                     // debugout("input:  "+symbol.toString());
+                    const original = symbol.clone();
 
                     if(symbol.isSQRT()) {
                         // symbol is itself sqrt
@@ -4631,6 +4633,7 @@ if((typeof module) !== 'undefined') {
                     // debugout("");
                     return retval;
                 } catch (error) {
+                    symbol = original;
                     debugout("crash in sqrtsimp, symbol: "+symbol.text()+" "+error.msg);
                     return symbol;
                 } finally {
@@ -4774,7 +4777,7 @@ if((typeof module) !== 'undefined') {
 
     // Add a link to simplify
     core.Expression.prototype.simplify = function () {
-        // core.Utils.armTimeout();
+        core.Utils.armTimeout();
         try {
             let retval;
             // equation?
@@ -4791,7 +4794,7 @@ if((typeof module) !== 'undefined') {
         } catch (error) {
             return this;
         } finally {
-            // core.Utils.disarmTimeout();
+            core.Utils.disarmTimeout();
         }
     };
 
