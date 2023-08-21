@@ -18,4 +18,9 @@ require('../Solve.js');
 // const sol = nerdamer.solveEquations(testEq, [...testUnkwowns]);
 // console.log(sol.toString());
 
-console.log(nerdamer("baseunit__a/sqrt(baseunit__a)").simplify().toString());
+// let text = nerdamer("2-2*(x/3)").text()
+// console.log(text);
+// const text = nerdamer("2-2*(x/3)").simplify().text()
+const text = nerdamer("(1/3)*(-2x+6)").simplify().text()
+console.log(text);
+console.log("done");
