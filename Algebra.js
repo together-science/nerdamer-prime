@@ -4373,7 +4373,7 @@ if((typeof module) !== 'undefined') {
             },
             _sqrtCompression: function (symbol, num, den) {
                 // return symbol;
-                // strip power and such
+                // preserve power and multiplier
                 var sym_array = __.Simplify.strip(symbol);
 
                 // helper functions
@@ -4393,12 +4393,15 @@ if((typeof module) !== 'undefined') {
                     if (sqrtArg.equals(a) && isUnit(a)) {
                         return [sqrt, null];
                     }
-                    // sqrt(a):sqrt(x) => sqrt(a/x)
+                    // n*sqrt(a):d*sqrt(x) => (n/d)*sqrt(a/x)
                     if (a.isSQRT()) {
                         let newArg = getArg(a);
+                        let m = new Symbol(a.multiplier);
+                        m = _.divide(m, sqrt.multiplier);
                         newArg = _.divide(newArg, sqrtArg);
-                        let result = core.Utils.format('sqrt({0})', newArg);
-                        return [_.parse(result), null];
+                        const combinedSqrt = core.Utils.format('sqrt({0})', newArg);
+                        const result = _.multiply(new Symbol(m), _.parse(combinedSqrt));
+                        return [result, null];
                     }
 
                     // nothing to be done

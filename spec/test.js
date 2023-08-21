@@ -23,7 +23,7 @@ require('../Solve.js');
 // const text = nerdamer("2-2*(x/3)").simplify().text()
 // const text = nerdamer("solve(h=((1)/(2))*(((981)/(100)))*m*(1/((s)^(2)))*((t)^(2)), t)").simplify().text()
 // const text = nerdamer("(530678210/1662132951)*s*sqrt(h^(-1))*sqrt(m)^(-1)").simplify().text()
-const text = nerdamer("h=(981/200)*m*s^(-2)*t^2").solveFor("t").toString()
+const text = nerdamer("-sqrt(h)*sqrt(m)^(-1)").simplify().simplify().text()
 
 console.log(text);
 console.log("done");
