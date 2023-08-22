@@ -6,6 +6,8 @@ var nerdamer = require('../nerdamer.core.js');
 require('../Algebra.js');
 require('../Calculus.js');
 require('../Solve.js');
+console.global = {tsDebugChannels: {notimeout: true}};
+
 
 // console.log(nerdamer('solve((5-3y)/(5+y)=(1-9y)/(3y-7),y)')
 //     .toString());
@@ -23,7 +25,10 @@ require('../Solve.js');
 // const text = nerdamer("2-2*(x/3)").simplify().text()
 // const text = nerdamer("solve(h=((1)/(2))*(((981)/(100)))*m*(1/((s)^(2)))*((t)^(2)), t)").simplify().text()
 // const text = nerdamer("(530678210/1662132951)*s*sqrt(h^(-1))*sqrt(m)^(-1)").simplify().text()
-const text = nerdamer("-sqrt(h)*sqrt(m)^(-1)").simplify().simplify().text()
+let result = nerdamer("(530678210/1662132951)*s*(-sqrt(h))*sqrt(m)^(-1)");
+result = result.simplify();
+result = result.simplify();
+const text = result.text()
 
 console.log(text);
 console.log("done");

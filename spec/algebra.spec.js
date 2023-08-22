@@ -270,7 +270,7 @@ describe('Algebra', function () {
         expect(nerdamer('simplify((-2*i+7)^(-1)*(3*i+4))').toString()).toEqual('(29/53)*i+22/53');
         expect(nerdamer('simplify(((a+b)^2)/c)').toString()).toEqual('(a+b)^2*c^(-1)');
         expect(nerdamer('simplify(-(-5*x - 9 + 2*y))').toString()).toEqual('-2*y+5*x+9');
-        expect(nerdamer('simplify(a/b+b/a)').toString()).toEqual('(a*b)^(-1)*(a^2+b^2)');
+        expect(nerdamer('simplify(a/b+b/a)').toString()).toEqual('(a^2+b^2)*a^(-1)*b^(-1)');
         expect(nerdamer('simplify(((2*e^t)/(e^t))+(1/(e^t)))').toString()).toEqual('(1+2*e^t)*e^(-t)');
         expect(nerdamer('simplify(0.5sqrt(4a+4y))').toString()).toEqual('sqrt(a+y)');
         expect(nerdamer('simplify(log(3*(a/b)^2))').toString()).toEqual('-2*log(b)+2*log(a)+30312094/27591257');
@@ -305,6 +305,7 @@ describe('Algebra', function () {
         expect(nerdamer('log(2*((a+b)^7))').simplify().toString()).toEqual('49180508/70952475+7*log(a+b)');
         // should simplify twice in a row and not lose the minus!
         expect(nerdamer("-sqrt(h)*sqrt(m)^(-1)").simplify().simplify().text()).toEqual('-sqrt(h)*sqrt(m)^(-1)')
+        expect(nerdamer("(530678210/1662132951)*s*(-sqrt(h))*sqrt(m)^(-1)").simplify().simplify().text("fractions")).toEqual('(-530678210/1662132951)*s*sqrt(h)*sqrt(m)^(-1)');
     });
     it('simplify should be pure', function() {
         const a = nerdamer('100*2^((1/2)*m)');

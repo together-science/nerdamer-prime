@@ -4698,6 +4698,7 @@ if((typeof module) !== 'undefined') {
             simplify: function (symbol) {
                 let retval = __.Simplify._simplify(symbol);
                 retval.pushMinus();
+                retval = _.parse(retval);
                 return retval;
             },
             _simplify: function (symbol) {
