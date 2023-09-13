@@ -12199,6 +12199,18 @@ var nerdamer = (function (imports) {
      * @returns {String}
      */
     libExports.convertFromLaTeX = function (e) {
+        // convert x^2 => x^{2}
+        e = e.replace(/(\^|_)([A-Za-z0-9])/g, (...g)=>{
+            return g[1]+"{"+g[2]+"}"
+        });
+        // convert \frac12 => \frac{1}2
+        e = e.replace(/(\\[A-Za-z]+)(\d)/g, (...g)=>{
+            return g[1]+"{"+g[2]+"}"
+        });
+        // convert \frac{1}2 => \frac{1}{2}
+        e = e.replace(/(\\[A-Za-z]+{.*?})(\d)/g, (...g)=>{
+            return g[1]+"{"+g[2]+"}"
+        });
         var txt = LaTeX.parse(_.tokenize(e));
         return new Expression(_.parse(txt));
     };
