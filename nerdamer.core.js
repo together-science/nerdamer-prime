@@ -12199,9 +12199,13 @@ var nerdamer = (function (imports) {
      * @returns {String}
      */
     libExports.convertFromLaTeX = function (e) {
+        // convert x_2a => x_2 a
+        e = e.replace(/_([A-Za-z0-9])/g, (...g)=>{
+            return g[0]+" "
+        });
         // convert x^2 => x^{2}
-        e = e.replace(/(\^|_)([A-Za-z0-9])/g, (...g)=>{
-            return g[1]+"{"+g[2]+"}"
+        e = e.replace(/\^([A-Za-z0-9])/g, (...g)=>{
+            return "^{"+g[1]+"}"
         });
         // convert \frac12 => \frac{1}2
         e = e.replace(/(\\[A-Za-z]+)(\d)/g, (...g)=>{

@@ -26,7 +26,7 @@ console.global = {tsDebugChannels: {notimeout: true}};
 // const text = nerdamer("solve(h=((1)/(2))*(((981)/(100)))*m*(1/((s)^(2)))*((t)^(2)), t)").simplify().text()
 // const text = nerdamer("(530678210/1662132951)*s*sqrt(h^(-1))*sqrt(m)^(-1)").simplify().text()
 
-const text = nerdamer.convertFromLaTeX("x^6 \\cdot cos(\\frac{1}{2})").text();
+const text = nerdamer.convertFromLaTeX("x_2a").text();
 
 console.log(text);
 console.log("done");
