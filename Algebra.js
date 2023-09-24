@@ -988,13 +988,19 @@ if((typeof module) !== 'undefined') {
     core.Utils.subFunctions = function (symbol, map) {
         map = map || {};
         var subbed = [];
+        var vars = new Set(variables(symbol));
         symbol.each(function (x) {
             if(x.group === FN || x.previousGroup === FN) {
                 //we need a new variable name so why not use one of the existing
                 var val = core.Utils.text(x, 'hash'), tvar = map[val];
                 if(!tvar) {
                     //generate a unique enough name
-                    var t = x.fname + keys(map).length;
+                    // GM make sure it's not the name of an existing variable
+                    let i = 0;
+                    do {
+                        var t = x.fname + keys(map).length + (i > 0?String(i):"");
+                        i++;
+                    } while (vars.has(t));
                     map[val] = t;
                     subbed.push(x.altVar(t));
                 }
@@ -2717,6 +2723,10 @@ if((typeof module) !== 'undefined') {
                 if(symbol.isConstant() || symbol.group === S)
                     return symbol;
 
+                if (!symbol.isPoly()) {
+                    return symbol;
+                }
+
                 var poly = new Polynomial(symbol, variable);
                 var sqfr = poly.squareFree();
                 var p = sqfr[2];
@@ -2844,7 +2854,7 @@ if((typeof module) !== 'undefined') {
                     // they'll be moved to the actual factors.
                     var factor_array = [];
 
-                    if(symbol.isConstant() || symbol.group === S)
+                    if(symbol.isConstant() || symbol.group === S || !symbol.isPoly())
                         return symbol;
                     var poly = new Polynomial(symbol, variable),
                             cnst = poly.coeffs[0],
@@ -2964,6 +2974,7 @@ if((typeof module) !== 'undefined') {
 
                     // Loop through all the variable and remove the partial derivatives
                     for(var i = 0; i < vars.length; i++) {
+                        var is_factor = false;
                         do {
                             if(vars[i] === symbol.value) {
                                 //the derivative tells us nothing since this symbol is already the factor
@@ -3001,8 +3012,8 @@ if((typeof module) !== 'undefined') {
                             if(can_divide) {
 
                                 let s = symbol.clone();
-                                var div = __.div(symbol, d.clone()),
-                                        is_factor = div[1].equals(0);
+                                var div = __.divWithCheck(symbol, d.clone());
+                                is_factor = div[1].equals(0);
                                 
                                 // Break infinite loop for factoring e^t*x-1
                                 if((symbol.equals(div[0]) && div[1].equals(0))) {
@@ -3206,7 +3217,7 @@ if((typeof module) !== 'undefined') {
                         if(divided[1].equals(0) && !neg_numeric_factor) { //we found at least one factor
 
                             //factors.add(new_factor);
-                            var d = __.div(symbol.clone(), divided[0].clone());
+                            var d = __.divWithCheck(symbol.clone(), divided[0].clone());
                             var r = d[0];
 
                             // Nothing left to do since we didn't get a reduction
@@ -3567,6 +3578,27 @@ if((typeof module) !== 'undefined') {
             result = __.div(symbol1, symbol2);
             remainder = _.divide(result[1], symbol2);
             return _.divide(_.add(result[0], remainder), den);
+        },
+        divWithCheck: function (symbol1, symbol2) {
+            const fail = [new Symbol(0), symbol1.clone()];
+            let div = __.div(symbol1, symbol2);
+            // GM safety check because __.div() produces b.s. sometimes
+            // see whether multiplication comes out clean
+            let a = symbol1.clone();
+            let b = _.multiply(div[0].clone(), symbol2.clone())
+            b = _.add(b, div[1].clone());
+            let test = _.subtract(a, b)
+            test = _.expand(test);
+            // test = __.Simplify._simplify(test);
+
+            if (test.equals(0)) {
+                // ok, seems good
+                return div;
+            } else {
+                // false alarm, get the default back
+                // console.log("nerdamer-prime: div failed: " + test);
+                return fail;
+            }
         },
         div: function (symbol1, symbol2) {
             // If all else fails then assume that division failed with
