@@ -4425,6 +4425,7 @@ if((typeof module) !== 'undefined') {
                     if (sqrtArg.equals(a) && isUnit(a)) {
                         return [sqrt, null];
                     }
+
                     // n*sqrt(a):d*sqrt(x) => (n/d)*sqrt(a/x)
                     if (a.isSQRT()) {
                         let newArg = getArg(a);
@@ -4465,8 +4466,10 @@ if((typeof module) !== 'undefined') {
                         }
                         // whatever remains of sqrt gets put back
                         top[i] = sqrt;
+                        top = top.filter(x=>x);
+                        bottom = bottom.filter(x=>x);
                     }
-                    return [top.filter(x=>x), bottom.filter(x=>x)]
+                    return [top, bottom];
                 }
 
                 // look for sqrt terms in products in num and den
