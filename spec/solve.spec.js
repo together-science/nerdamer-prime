@@ -96,9 +96,10 @@ describe('Solve', function () {
         // expect(nerdamer("solve(h=1/2*(9.81)*m*s^(-2)*t^2, t)").evaluate().text()).toEqual("[0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1),-0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1)]");
         // like:
         expect(nerdamer("solve(h=1/2*(9.81)*t^2, t)").evaluate().text()).toEqual("[-0.4515236409857309*sqrt(h),0.4515236409857309*sqrt(h)]");
-        });
+        expect(nerdamer("h=(981/200)*m*s^(-2)*t^2").solveFor("t").toString()).toEqual('(530678210/1662132951)*s*sqrt(h)*sqrt(m)^(-1),(-530678210/1662132951)*s*sqrt(h)*sqrt(m)^(-1)');
+    });
 
-        it('should solve system of equations correctly', function () {
+    it('should solve system of equations correctly', function () {
         expect(nerdamer.solveEquations(['x+y=1', '2*x=6', '4*z+y=6']).toString()).toEqual('x,3,y,-2,z,2');
         expect(nerdamer.solveEquations(['x+y=a', 'x-y=b', 'z+y=c'], ['x', 'y', 'z']).toString()).toEqual('x,0.5*a+0.5*b,y,-0.5*b+0.5*a,z,-0.5*a+0.5*b+c');
         expect(nerdamer.solveEquations(['x-2*y=-3', 'x+y-z+2*d=8', '5*d-1=19', 'z+d=7']).toString()).toEqual('d,4,x,1,y,2,z,3');

@@ -261,12 +261,14 @@ if((typeof module) !== 'undefined') {
                 symbol = this.symbol;
             }
 
-            const result = solve(symbol, x).map(function (x) {
-                x = new core.Expression(x);
-                x = x.simplify();
-                return x;
+            const result = solve(symbol, x).map(function (term) {
+                term = core.Algebra.Simplify.simplify(_.parse(term));
+                const expr = new core.Expression(term);
+                return expr;
             });
             return result;
+        } catch (error) {
+            console.log(error);
         } finally {
             core.Utils.disarmTimeout();
         }

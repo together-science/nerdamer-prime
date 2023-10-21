@@ -988,13 +988,19 @@ if((typeof module) !== 'undefined') {
     core.Utils.subFunctions = function (symbol, map) {
         map = map || {};
         var subbed = [];
+        var vars = new Set(variables(symbol));
         symbol.each(function (x) {
             if(x.group === FN || x.previousGroup === FN) {
                 //we need a new variable name so why not use one of the existing
                 var val = core.Utils.text(x, 'hash'), tvar = map[val];
                 if(!tvar) {
                     //generate a unique enough name
-                    var t = x.fname + keys(map).length;
+                    // GM make sure it's not the name of an existing variable
+                    let i = 0;
+                    do {
+                        var t = x.fname + keys(map).length + (i > 0?String(i):"");
+                        i++;
+                    } while (vars.has(t));
                     map[val] = t;
                     subbed.push(x.altVar(t));
                 }
@@ -2224,7 +2230,8 @@ if((typeof module) !== 'undefined') {
 
                     //if we don't have an integer then exit
                     if(!isInt(p))
-                        exit();
+                        return symbol; //nothing to do
+                        // exit();
 
                     //build the factor
                     for(var i = 0; i < terms.length; i++) {
@@ -2716,6 +2723,10 @@ if((typeof module) !== 'undefined') {
                 if(symbol.isConstant() || symbol.group === S)
                     return symbol;
 
+                if (!symbol.isPoly()) {
+                    return symbol;
+                }
+
                 var poly = new Polynomial(symbol, variable);
                 var sqfr = poly.squareFree();
                 var p = sqfr[2];
@@ -2843,7 +2854,7 @@ if((typeof module) !== 'undefined') {
                     // they'll be moved to the actual factors.
                     var factor_array = [];
 
-                    if(symbol.isConstant() || symbol.group === S)
+                    if(symbol.isConstant() || symbol.group === S || !symbol.isPoly())
                         return symbol;
                     var poly = new Polynomial(symbol, variable),
                             cnst = poly.coeffs[0],
@@ -2963,6 +2974,7 @@ if((typeof module) !== 'undefined') {
 
                     // Loop through all the variable and remove the partial derivatives
                     for(var i = 0; i < vars.length; i++) {
+                        var is_factor = false;
                         do {
                             if(vars[i] === symbol.value) {
                                 //the derivative tells us nothing since this symbol is already the factor
@@ -3000,8 +3012,8 @@ if((typeof module) !== 'undefined') {
                             if(can_divide) {
 
                                 let s = symbol.clone();
-                                var div = __.div(symbol, d.clone()),
-                                        is_factor = div[1].equals(0);
+                                var div = __.divWithCheck(symbol, d.clone());
+                                is_factor = div[1].equals(0);
                                 
                                 // Break infinite loop for factoring e^t*x-1
                                 if((symbol.equals(div[0]) && div[1].equals(0))) {
@@ -3205,7 +3217,7 @@ if((typeof module) !== 'undefined') {
                         if(divided[1].equals(0) && !neg_numeric_factor) { //we found at least one factor
 
                             //factors.add(new_factor);
-                            var d = __.div(symbol.clone(), divided[0].clone());
+                            var d = __.divWithCheck(symbol.clone(), divided[0].clone());
                             var r = d[0];
 
                             // Nothing left to do since we didn't get a reduction
@@ -3566,6 +3578,27 @@ if((typeof module) !== 'undefined') {
             result = __.div(symbol1, symbol2);
             remainder = _.divide(result[1], symbol2);
             return _.divide(_.add(result[0], remainder), den);
+        },
+        divWithCheck: function (symbol1, symbol2) {
+            const fail = [new Symbol(0), symbol1.clone()];
+            let div = __.div(symbol1, symbol2);
+            // GM safety check because __.div() produces b.s. sometimes
+            // see whether multiplication comes out clean
+            let a = symbol1.clone();
+            let b = _.multiply(div[0].clone(), symbol2.clone())
+            b = _.add(b, div[1].clone());
+            let test = _.subtract(a, b)
+            test = _.expand(test);
+            // test = __.Simplify._simplify(test);
+
+            if (test.equals(0)) {
+                // ok, seems good
+                return div;
+            } else {
+                // false alarm, get the default back
+                // console.log("nerdamer-prime: div failed: " + test);
+                return fail;
+            }
         },
         div: function (symbol1, symbol2) {
             // If all else fails then assume that division failed with
@@ -4372,7 +4405,7 @@ if((typeof module) !== 'undefined') {
             },
             _sqrtCompression: function (symbol, num, den) {
                 // return symbol;
-                // strip power and such
+                // preserve power and multiplier
                 var sym_array = __.Simplify.strip(symbol);
 
                 // helper functions
@@ -4392,13 +4425,17 @@ if((typeof module) !== 'undefined') {
                     if (sqrtArg.equals(a) && isUnit(a)) {
                         return [sqrt, null];
                     }
-                    // sqrt(a):sqrt(x) => sqrt(a/x)
-                    // if (a.isSQRT()) {
-                    //     let newArg = getArg(a);
-                    //     newArg = _.divide(newArg, sqrtArg);
-                    //     let result = core.Utils.format('sqrt({0})', newArg);
-                    //     return [_.parse(result), null];
-                    // }
+
+                    // n*sqrt(a):d*sqrt(x) => (n/d)*sqrt(a/x)
+                    if (a.isSQRT()) {
+                        let newArg = getArg(a);
+                        let m = new Symbol(a.multiplier);
+                        m = _.divide(m, sqrt.multiplier);
+                        newArg = _.divide(newArg, sqrtArg);
+                        const combinedSqrt = core.Utils.format('sqrt({0})', newArg);
+                        const result = _.multiply(new Symbol(m), _.parse(combinedSqrt));
+                        return [result, null];
+                    }
 
                     // nothing to be done
                     return [null, sqrt];
@@ -4528,6 +4565,7 @@ if((typeof module) !== 'undefined') {
                 let retval;
                 let workDone = false;
 
+                const original = symbol.clone();
                 try {
                     // debuglevel(1);
                     // debugout("input:  "+symbol.toString());
@@ -4633,7 +4671,7 @@ if((typeof module) !== 'undefined') {
                     // debugout("");
                     return retval;
                 } catch (error) {
-                    console.error(error);
+                    symbol = original;
                     debugout("crash in sqrtsimp, symbol: "+symbol.text()+" "+error.msg);
                     return symbol;
                 } finally {
@@ -4695,6 +4733,7 @@ if((typeof module) !== 'undefined') {
             simplify: function (symbol) {
                 let retval = __.Simplify._simplify(symbol);
                 retval.pushMinus();
+                retval = _.parse(retval);
                 return retval;
             },
             _simplify: function (symbol) {
@@ -4751,16 +4790,18 @@ if((typeof module) !== 'undefined') {
                         r = _.add(r, s);
                     });
                     simplified = r;
-                    //put back the multiplier
+                    //place back original multiplier and return
+                    simplified = __.Simplify.unstrip(sym_array, simplified);
+                    //mult on back the multiplier we saved here
                     simplified = _.multiply(simplified, new Symbol(m));
                     if (simplified.multiplier.equals(-1)) {
                         simplified.distributeMultiplier();
                     }
+                    return simplified;
                 }  
 
                 //place back original multiplier and return
                 simplified = __.Simplify.unstrip(sym_array, simplified);
-                
                 // console.log("final result: "+simplified.text());
                 return simplified;
             }

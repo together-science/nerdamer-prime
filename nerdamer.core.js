@@ -142,6 +142,12 @@ var nerdamer = (function (imports) {
     var __timeout;
 
     function armTimeout() {
+        if (console.global &&
+            console.global.tsDebugChannels &&
+            console.global.tsDebugChannels["notimeout"]) {
+            disarmTimeout();
+            return;
+        }
         __starttime = Date.now();
         __timeout = Settings.TIMEOUT;
     }
@@ -3470,9 +3476,12 @@ var nerdamer = (function (imports) {
                     var p = x.power;
                     //why waste time if I can't do anything anyway
                     if(isSymbol(p) || p.equals(1))
-                        return this.clone();
+                        return;
                     powers.push(p);
                 });
+                if (powers.length === 0) {
+                    return this.clone();
+                }
                 var min = new Frac(arrayMin(powers));
 
                 //handle the coefficient
@@ -12193,6 +12202,22 @@ var nerdamer = (function (imports) {
      * @returns {String}
      */
     libExports.convertFromLaTeX = function (e) {
+        // convert x_2a => x_2 a
+        e = e.replace(/_([A-Za-z0-9])/g, (...g)=>{
+            return g[0]+" "
+        });
+        // convert x^2 => x^{2}
+        e = e.replace(/\^([A-Za-z0-9])/g, (...g)=>{
+            return "^{"+g[1]+"}"
+        });
+        // convert \frac12 => \frac{1}2
+        e = e.replace(/(\\[A-Za-z]+)(\d)/g, (...g)=>{
+            return g[1]+"{"+g[2]+"}"
+        });
+        // convert \frac{1}2 => \frac{1}{2}
+        e = e.replace(/(\\[A-Za-z]+{.*?})(\d)/g, (...g)=>{
+            return g[1]+"{"+g[2]+"}"
+        });
         var txt = LaTeX.parse(_.tokenize(e));
         return new Expression(_.parse(txt));
     };
