@@ -2539,7 +2539,8 @@ if((typeof module) !== 'undefined') {
                     }
 
                     if(symbol.isConstant()) {
-                        if(symbol.equals(1) || symbol.equals(0))
+                        if(symbol.equals(1) || symbol.equals(0) ||
+                            !symbol.isInteger())
                             return symbol.clone();
                         var ret = core.Math2.factor(symbol);
                         return ret;
