@@ -20,9 +20,14 @@ console.global = {tsDebugChannels: {notimeout: true}};
 // const sol = nerdamer.solveEquations(testEq, [...testUnkwowns]);
 // console.log(sol.toString());
 
-nerdamer.setVar("x","-sqrt(-1+z)");
-nerdamer.setVar("y","-2*sqrt(-1+z)+5");
-console.log(nerdamer("(-1/2)*abs(-5+y)*sqrt(-1+z)^(-1)-1").simplify().text());
+// const x = nerdamer("-0.5*sqrt(5)+0.5").simplify().text()
+const x = nerdamer("-2*sqrt(5)+2").simplify().text()
+console.log(x);
+
+// nerdamer.setVar("x","-sqrt(-1+z)");
+// nerdamer.setVar("y","-2*sqrt(-1+z)+5");
+// console.log(nerdamer("(-1/2)*abs(-5+y)*sqrt(-1+z)^(-1)-1").simplify().text());
+
 // let text = nerdamer("2-2*(x/3)").text()
 // console.log(text);
 // const text = nerdamer("2-2*(x/3)").simplify().text()

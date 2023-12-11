@@ -714,8 +714,9 @@ if((typeof module) !== 'undefined') {
         //then add the minus one to that factor and return.
         if(s.equals(-1) && this.length > 0) {
             var fo = core.Utils.firstObject(this.factors, null, true);
-            this.add(_.symfunction(core.Settings.PARENTHESIS, [fo.obj]).negate());
+            let newObj = _.symfunction(core.Settings.PARENTHESIS, [fo.obj]).negate();
             delete this.factors[fo.key];
+            this.add(newObj);
             this.length--;
             return this;
         }
