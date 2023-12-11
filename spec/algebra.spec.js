@@ -329,4 +329,12 @@ describe('Algebra', function () {
     it('should simplify equations', function() {
         expect(nerdamer('cos(x)^2+sin(x)^2+cos(x)-tan(x)-1+sin(x^2)^2+cos(x^2)^2=3+b+4').simplify().toString()).toEqual('-tan(x)+1+cos(x)=7+b');
     });
+    it('regression tests', function() {
+        // issue #7 - everything becomes 1
+        expect(nerdamer("log(0.01s)/(-239263565+51955423log(s))-1")
+            .simplify().text())
+            .not.toEqual('1');
+        // simplify issue unlogged 12/10/2023
+        expect(nerdamer("(-1/2)*sqrt(5)+1/2").simplify().text()).toBe('-0.618033988749894960');    
+    });
 });

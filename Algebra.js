@@ -2203,11 +2203,14 @@ if((typeof module) !== 'undefined') {
                         var n_terms = symbol.length;
                         //the number of zeroes determines
                         var n_zeroes = terms.length;
-                        if(n_zeroes === 2) {
+                        let den = Math.round((Math.sqrt(8 * n_terms - 1) - 3) / 2);
+                        if (n_zeroes === 2) {
                             p = new Frac(powers[0] / (n_terms - 1));
-                        }
-                        if(n_zeroes === 3) {
-                            p = new Frac(powers[0] / Math.round((Math.sqrt(8 * n_terms - 1) - 3) / 2));
+                        } else if (n_zeroes === 3 && den !== 0) {
+                            p = new Frac(powers[0] / den);
+                        } else {
+                            //p is just the gcd of the powers
+                            p = core.Math2.QGCD.apply(null, powers);
                         }
                         /*
                          //get the lowest possible power
@@ -2225,19 +2228,25 @@ if((typeof module) !== 'undefined') {
                          });
                          */
                     }
-                    else
+                    else {
                         //p is just the gcd of the powers
                         p = core.Math2.QGCD.apply(null, powers);
+                    }
 
                     //if we don't have an integer then exit
-                    if(!isInt(p))
+                    if(!isInt(p)) {
                         return symbol; //nothing to do
                         // exit();
+                    }
 
                     //build the factor
                     for(var i = 0; i < terms.length; i++) {
                         var t = terms[i];
                         var n = t.power.clone().divide(p);
+                        // don't take squareroots of negatives
+                        if ((t.multiplier.num < 0 || t.multiplier.den < 0) && (n % 2 === 0)) {
+                            return symbol;
+                        }
                         t.multiplier = new Frac(Math.pow(t.multiplier, 1 / n));
                         t.power = p.clone();
                         sum = _.add(sum, t);
@@ -2365,7 +2374,8 @@ if((typeof module) !== 'undefined') {
                     });
 
                     //put back the multiplier and power
-                    retval = _.multiply(m, _.pow(t, p));
+                    const pow = _.pow(t, p);
+                    retval = _.multiply(m, pow);
                 }
                 return retval;
             },

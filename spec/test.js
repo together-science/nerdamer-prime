@@ -21,7 +21,25 @@ console.global = {tsDebugChannels: {notimeout: true}};
 // console.log(sol.toString());
 
 // const x = nerdamer("-0.5*sqrt(5)+0.5").simplify().text()
-const x = nerdamer("-2*sqrt(5)+2").simplify().text()
+// let x = nerdamer("solve(-4901*t^2+1000*h*s^2, t)").evaluate().text();
+// let x = nerdamer("factor(4901*t^2+1000*h*s^2)").evaluate().text("fractions");
+// console.log(x);
+// x = nerdamer("factor(4902*t^2+1000*h*s^2)").evaluate().text();
+// console.log(x);
+// x = nerdamer("factor(4903*t^2+1000*h*s^2)").evaluate().text();
+// console.log(x);
+
+let x = nerdamer("solve(h=(4.901)*(s^(-2))*t^2, t)").evaluate().text();
+console.log(x);
+x = nerdamer("solve(h=(4.902)*(s^(-2))*t^2, t)").evaluate().text();
+console.log(x);
+x = nerdamer("solve(h=(4.903)*(s^(-2))*t^2, t)").evaluate().text();
+console.log(x);
+x = nerdamer("solve(h=(4.904)*(s^(-2))*t^2, t)").evaluate().text();
+console.log(x);
+x = nerdamer("solve(h=(4.905)*(s^(-2))*t^2, t)").evaluate().text();
+console.log(x);
+x = nerdamer("h=(981/200)*baseunit_m*baseunit_s^(-2)*t^2").solveFor("t")[0].evaluate().text("decimals")
 console.log(x);
 
 // nerdamer.setVar("x","-sqrt(-1+z)");

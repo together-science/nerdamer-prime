@@ -96,7 +96,7 @@ describe('Solve', function () {
         // expect(nerdamer("solve(h=1/2*(9.81)*m*s^(-2)*t^2, t)").evaluate().text()).toEqual("[0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1),-0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1)]");
         // like:
         expect(nerdamer("solve(h=1/2*(9.81)*t^2, t)").evaluate().text()).toEqual("[-0.4515236409857309*sqrt(h),0.4515236409857309*sqrt(h)]");
-        expect(nerdamer("h=(981/200)*m*s^(-2)*t^2").solveFor("t").toString()).toEqual('(530678210/1662132951)*s*sqrt(h)*sqrt(m)^(-1),(-530678210/1662132951)*s*sqrt(h)*sqrt(m)^(-1)');
+        expect(nerdamer("h=(981/200)*m*s^(-2)*t^2").solveFor("t").toString()).toEqual('(-10/327)*abs(s)*m^(-1)*sqrt(218)*sqrt(h)*sqrt(m),(10/327)*abs(s)*m^(-1)*sqrt(218)*sqrt(h)*sqrt(m)');
     });
 
     it('should solve system of equations correctly', function () {
@@ -150,6 +150,13 @@ describe('Solve', function () {
         var eq2 ="x+y=1";
         var sol = nerdamer.solveEquations([eq1, eq2]);
         expect(sol.toString()).toEqual('x,1,0,y,0,1');
+    });
+    it('regression tests', function() {
+        expect(nerdamer('solve(a^2-a-1=0,a)').toString()).toEqual('[(1/2)*sqrt(5)+1/2,(-1/2)*sqrt(5)+1/2]');
+        // issue #26
+        expect(nerdamer("solve(h=(981/200)*baseunit_m*baseunit_s^(-2)*t^2, t)").text())
+            .toEqual('[-0.0305810397553517*baseunit_m^(-1)*baseunit_s*sqrt(218)*sqrt(baseunit_m)*sqrt(h),'+
+                '0.0305810397553517*baseunit_m^(-1)*baseunit_s*sqrt(218)*sqrt(baseunit_m)*sqrt(h)]');
     });
 });
 

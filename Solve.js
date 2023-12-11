@@ -1303,6 +1303,17 @@ if((typeof module) !== 'undefined') {
      * @param {String|Equation} fn
      * @returns {Array}
      */
+    // var solve = function (eqns, solve_for, solutions, depth, fn) {
+    //     let original = "<multiple>";
+    //     original = eqns.toString();
+    //     try {
+    //         solutions = _solve(eqns, solve_for, solutions, depth, fn);
+    //     } catch (error) {
+    //         console.error(error);
+    //     }
+    //     console.log("solve: "+original+" for "+solve_for+" = "+solutions);
+    //     return solutions;
+    // }
     var solve = function (eqns, solve_for, solutions, depth, fn) {
         depth = depth || 0;
 
@@ -1435,7 +1446,7 @@ if((typeof module) !== 'undefined') {
                 numvars = vars.length;//how many variables are we dealing with
 
         //it sufficient to solve (x+y) if eq is (x+y)^n since 0^n
-        if(core.Utils.isInt(eq.power) && eq.power > 0) {
+        if(core.Utils.isInt(eq.power) && eq.power > 1) {
             eq = _.parse(eq).toLinear();
         }
 
@@ -1741,14 +1752,23 @@ if((typeof module) !== 'undefined') {
             //place them in an array and call the quad or cubic function to get the results
             if(!eq.hasFunc(solve_for) && eq.isComposite()) {
                 try {
+                    // this is where solving certain quads goes wrong
+                    
                     var factored = core.Algebra.Factor.factorInner(eq.clone());
+                    let test = _.expand(_.parse(factored));
+                    let test2 = _.expand(eq.clone());
+                    let validFactorization = true;
+                    if (!test.equals(test2)) {
+                        // console.log("factored: "+test);
+                        // console.log("original: "+test2);
+                        validFactorization = false;
+                    }
 
-                    if(factored.group === CB) {
+                    if (validFactorization && factored.group === CB) {
                         factored.each(function (x) {
                             add_to_result(solve(x, solve_for));
                         });
-                    }
-                    else {
+                    } else {
                         var coeffs = core.Utils.getCoeffs(eq, solve_for);
 
                         var l = coeffs.length,
