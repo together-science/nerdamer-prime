@@ -46,7 +46,8 @@
         "node": ">=0.10.0"
     },
     "scripts": {
-        "test": "jasmine"
+        "test": "jasmine",
+        "gulp": "npx gulp concat_all"
     },
     "devDependencies": {
         "gulp": "^4.0.2",
