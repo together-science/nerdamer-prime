@@ -947,7 +947,7 @@ describe('Nerdamer core', function () {
         expect(nerdamer('sqrt(-x)').evaluate().text()).toEqual('sqrt(-x)');
         expect(nerdamer('sqrt(-0.5*x)').evaluate().text()).toEqual('0.7071067811865475*sqrt(-x)');
         expect(nerdamer('sqrt(-4)').evaluate().text()).toEqual('2*i');
-        expect(nerdamer('sqrt(-pi)').evaluate().text()).toEqual('1.7724538509055163*i');
+        expect(nerdamer('sqrt(-pi)').evaluate().text()).toEqual('1.772453850905516*i');
     });
     it('should expand square roots', function () {
         // given
@@ -2559,12 +2559,12 @@ describe('trigonometric functions', function () {
     });
     it('should handle inverse trig in complex domain', function() {
         expect(nerdamer('asin(2)').evaluate().text()).toEqual('-1.3169578969248164*i+1.570796326794896580');
-        expect(nerdamer('asin(2.19549352839451962743423602992)').evaluate().text()).toEqual('-1.423114269539483*i+1.570796326794896580');
+        expect(nerdamer('asin(2.19549352839451962743423602992)').evaluate().text()).toEqual('-1.4231142695394825*i+1.5707963267948963210');
         expect(nerdamer('acos(2)').evaluate().text()).toEqual('1.3169578969248164*i');
         expect(nerdamer('atan(i)').evaluate().text()).toEqual('Infinity*i');
         
-        expect(nerdamer('asec(0.89)').evaluate().text()).toEqual('0.000000000000000250+0.4921996534425188*i'); // Has rounding errors
-        expect(nerdamer('acsc(0.23)').evaluate().text()).toEqual('-2.1493278111894223*i+1.570796326794897197'); // Has rounding errors
+        expect(nerdamer('asec(0.89)').evaluate().text()).toEqual('0.000000000000000250+0.49219965344251854*i'); // Has rounding errors
+        expect(nerdamer('acsc(0.23)').evaluate().text()).toEqual('-2.149327811189424*i+1.570796326794897049'); // Has rounding errors
     });
     it('should throw for wrong trigonometric arguments', function () {
         // given
@@ -2978,12 +2978,23 @@ describe('together.math functionalituy', function() {
     });
 });
 
-describe('misc', function() {
-    it('bugs fixes', function() {
+describe('misc and regression tests', function() {
+    it('bug fixes', function() {
         // issue #11 - lost precision
         expect(nerdamer("(19279880988/100000000000000000)kg(1/((km)^(3)))(((((1km))/((1000m))))^(3))")
             .text("decimals"))
             .toEqual("1.9279880988e-16*kg*m^(-3)");
+
+        // nested functions
+        nerdamer.setFunction("f", ["x"], "-3x+5")
+        nerdamer.setFunction("g", ["x"], "-2x^2")
+    
+        expect(nerdamer("f(g(x))").text()).toEqual('5+6*x^2');
+        expect(nerdamer("f(2x)").expand().text()).toEqual('-6*x+5');
+
+        // issue #39
+        expect(nerdamer("3.535401^3.535401").evaluate().text()).toEqual('86.8861711133581315310');
+        expect(nerdamer("4.5354^3.535401").evaluate().text()).toEqual('209.603932373756644162');
     });
 });
 

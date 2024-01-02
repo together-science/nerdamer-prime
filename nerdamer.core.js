@@ -9252,14 +9252,11 @@ var nerdamer = (function (imports) {
                         return inf;
                     }
                 }
-                //the quickies
-                if(a.isConstant() && b.isConstant() && Settings.PARSE2NUMBER) {
-                    var t = new bigDec(a.multiplier.toDecimal()).times(new bigDec(b.multiplier.toDecimal())).toFixed();
-                    var retval = new Symbol(t);
-                    return retval;
-                }
 
-                //don't waste time
+                //the quickies
+                if(a.multiplier.equals(0) || b.multiplier.equals(0))
+                    return new Symbol(0);
+
                 if(a.isOne()) {
                     return b.clone();
                 }
@@ -9267,8 +9264,26 @@ var nerdamer = (function (imports) {
                     return a.clone();
                 }
 
-                if(a.multiplier.equals(0) || b.multiplier.equals(0))
-                    return new Symbol(0);
+                // now we know that neither is 0
+                if(a.isConstant() && b.isConstant() && Settings.PARSE2NUMBER) {
+                    let retval;
+                    const ad = new bigDec(a.multiplier.toDecimal());
+                    const bd = new bigDec(b.multiplier.toDecimal());
+                    if (ad.isZero() || bd.isZero()) {
+                        // we shouldn't be here - there was a precision underflow.
+                        // go the long way round to multiply these two (presumed) fractions
+                        const anum = new bigDec(String(a.multiplier.num));
+                        const aden = new bigDec(String(a.multiplier.den));
+                        const bnum = new bigDec(String(b.multiplier.num));
+                        const bden = new bigDec(String(b.multiplier.den));
+                        retval = new Symbol(anum.times(bnum).dividedBy(aden).dividedBy(bden));
+                    } else {
+                        // the original code. still don't know why toFixed()
+                        var t = ad.times(bd).toFixed();
+                        retval = new Symbol(t);
+                    }
+                    return retval;
+                }
 
                 if(b.group > a.group && !(b.group === CP))
                     return this.multiply(b, a);
@@ -9807,9 +9822,15 @@ var nerdamer = (function (imports) {
                         }
                     }
 
-                    result = new Symbol(Math.pow(a.multiplier.toDecimal(), b.multiplier.toDecimal()));
-
-                    //result = new Symbol(Math2.bigpow(a.multiplier, b.multiplier));
+                    const _pow = Math.pow(a.multiplier.toDecimal(), b.multiplier.toDecimal());
+                    if (_pow !== 0 || a.multiplier.equals(0)) {
+                        result = new Symbol(_pow);
+                    } else {
+                        // should not be here, must have underflowed precision
+                        const ad = new bigDec(a.multiplier.toDecimal());
+                        const bd = new bigDec(b.multiplier.toDecimal());
+                        result = new Symbol(ad.pow(bd).toFixed());
+                    }
                     //put the back sign
                     if(c)
                         result = _.multiply(result, c);
