@@ -4439,15 +4439,15 @@ if((typeof module) !== 'undefined') {
                     }
 
                     // n*sqrt(a):d*sqrt(x) => (n/d)*sqrt(a/x)
-                    if (a.isSQRT()) {
-                        let newArg = getArg(a);
-                        let m = new Symbol(a.multiplier);
-                        m = _.divide(m, sqrt.multiplier);
-                        newArg = _.divide(newArg, sqrtArg);
-                        const combinedSqrt = core.Utils.format('sqrt({0})', newArg);
-                        const result = _.multiply(new Symbol(m), _.parse(combinedSqrt));
-                        return [result, null];
-                    }
+                    // if (a.isSQRT()) {
+                    //     let newArg = getArg(a);
+                    //     let m = new Symbol(a.multiplier);
+                    //     m = _.divide(m, sqrt.multiplier);
+                    //     newArg = _.divide(newArg, sqrtArg);
+                    //     const combinedSqrt = core.Utils.format('sqrt({0})', newArg);
+                    //     const result = _.multiply(new Symbol(m), _.parse(combinedSqrt));
+                    //     return [result, null];
+                    // }
 
                     // nothing to be done
                     return [null, sqrt];
@@ -4558,10 +4558,31 @@ if((typeof module) !== 'undefined') {
 
                     //otherwise simplify it some more
                     return __.Simplify._simplify(retval);
-                } else {
-                    symbol = __.Simplify._sqrtCompression(symbol, num, den);
                 }
+                symbol = __.Simplify._sqrtCompression(symbol, num, den);
+                symbol = __.Simplify.simpleFracSimp(symbol);
                 return symbol;
+            },
+            simpleFracSimp: function(symbol) {
+                let den = symbol.getDenom();
+                let num = symbol.getNum();
+                let retval;
+                den = _.expand(den);
+                num = _.expand(num);
+                //simplify imaginary
+                if(num.isImaginary() && den.isImaginary()) {
+                    retval = __.Simplify.complexSimp(num, den);
+                }
+                else {
+                    retval = _.divide(num, den);
+                }
+                //we've already hit the simplest form so return that
+                if(retval.equals(symbol)) {
+                    return symbol;
+                }
+                //otherwise simplify it some more
+                retval = __.Simplify._simplify(retval);
+                return retval;
             },
             ratSimp: function (symbol) {
                 if(symbol.group === CB) {

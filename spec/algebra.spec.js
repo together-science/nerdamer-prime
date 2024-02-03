@@ -306,6 +306,9 @@ describe('Algebra', function () {
         // should simplify twice in a row and not lose the minus!
         expect(nerdamer("-sqrt(h)*sqrt(m)^(-1)").simplify().simplify().text()).toEqual('-sqrt(h)*sqrt(m)^(-1)')
         expect(nerdamer("(530678210/1662132951)*s*(-sqrt(h))*sqrt(m)^(-1)").simplify().simplify().text("fractions")).toEqual('(-530678210/1662132951)*s*sqrt(h)*sqrt(m)^(-1)');
+        // simplify nested fractions correctly
+        expect(nerdamer("((1/b)/((a/b)+(1/b)))").simplify().text()).toEqual('(1+a)^(-1)')
+        expect(nerdamer("((a/b)+(1/b))").simplify().text()).toEqual('(1+a)*b^(-1)')
     });
     it('simplify should be pure', function() {
         const a = nerdamer('100*2^((1/2)*m)');

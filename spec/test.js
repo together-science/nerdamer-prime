@@ -29,11 +29,18 @@ console.global = {tsDebugChannels: {notimeout: true}};
 // x = nerdamer("factor(4903*t^2+1000*h*s^2)").evaluate().text();
 // console.log(x);
 
-let x = nerdamer("3.53540^3.5").evaluate().text();
+// let x = nerdamer("3.53540^3.5").evaluate().text();
+// console.log(x);
+// x = nerdamer("3.535401^3.5").evaluate().text();
+// console.log(x);
+
+let x;
+
+x= nerdamer("((1/b)/((a/b)+(1/b)))").simplify().text();
 console.log(x);
-x = nerdamer("3.535401^3.5").evaluate().text();
+x = nerdamer("((a/b)+(1/b))").simplify().text();
 console.log(x);
-x = nerdamer("4.5354^3.535401").evaluate().text();
+x = nerdamer("-sqrt(h)*sqrt(m)^(-1)").simplify().text();
 console.log(x);
 
 // nerdamer.setVar("x","-sqrt(-1+z)");
