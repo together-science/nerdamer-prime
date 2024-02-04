@@ -4581,7 +4581,7 @@ if((typeof module) !== 'undefined') {
                     return symbol;
                 }
                 //otherwise simplify it some more
-                retval = __.Simplify._simplify(retval);
+                // retval = __.Simplify._simplify(retval);
                 return retval;
             },
             ratSimp: function (symbol) {

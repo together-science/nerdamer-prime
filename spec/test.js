@@ -36,11 +36,11 @@ console.global = {tsDebugChannels: {notimeout: true}};
 
 let x;
 
-x= nerdamer("((1/b)/((a/b)+(1/b)))").simplify().text();
-console.log(x);
-x = nerdamer("((a/b)+(1/b))").simplify().text();
-console.log(x);
-x = nerdamer("-sqrt(h)*sqrt(m)^(-1)").simplify().text();
+// x = nerdamer("((a/(a+b)) * (a/(a+c)))/((a/(a+b))+(a/(a+c)))").simplify().text();
+// console.log(x);
+// x = nerdamer("(a/((a+1)*(a+b)))/((1/(a+1))+(1/(a+b)))").simplify().text();
+// console.log(x);
+x = nerdamer("((a*((1/(a+1))+(1/(a+b))))/((a+1)*(a+b)))").simplify().expand().simplify().text();
 console.log(x);
 
 // nerdamer.setVar("x","-sqrt(-1+z)");
