@@ -27,6 +27,14 @@ think of as "obvious flaws" - file the issue, but we probably won't do it. But s
 PRs, but best to [talk to us](mailto:info@together.science) before you start.
 
 Below follows the original README. Obviously, the npm instructions will install the original Nerdamer. I will update this README if we ever get into the game of releasing nerdamer-prime on npm. Until then, please be aware that the Nerdamer you find on npm follows the original (archived) repo.
+As a temporary workaround, you can install [this snapshot](https://www.npmjs.com/package/nerdamer-41fb3b2) of `nerdamer-prime` published by @nickkolok:
+```
+npm i nerdamer-41fb3b2
+```
+
+```js
+const nerdamer = require('nerdamer-41fb3b2');
+```
 
 
 Nerdamer
