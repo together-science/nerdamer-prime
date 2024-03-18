@@ -157,6 +157,8 @@ describe('Solve', function () {
         expect(nerdamer("solve(h=(981/200)*baseunit_m*baseunit_s^(-2)*t^2, t)").text())
             .toEqual('[-0.0305810397553517*baseunit_m^(-1)*baseunit_s*sqrt(218)*sqrt(baseunit_m)*sqrt(h),'+
                 '0.0305810397553517*baseunit_m^(-1)*baseunit_s*sqrt(218)*sqrt(baseunit_m)*sqrt(h)]');
+        expect(nerdamer('solve(abs(a-b)=0, a)').toString()).toEqual('[b]');
+        expect(nerdamer('solve(abs(a-b)=5, a)').toString()).toEqual('[-(-5-b),-5+b]');
     });
 });
 

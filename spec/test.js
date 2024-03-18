@@ -40,7 +40,7 @@ let x;
 // console.log(x);
 // x = nerdamer("(a/((a+1)*(a+b)))/((1/(a+1))+(1/(a+b)))").simplify().text();
 // console.log(x);
-x = nerdamer("((a*((1/(a+1))+(1/(a+b))))/((a+1)*(a+b)))").simplify().expand().simplify().text();
+x = nerdamer('solve(sqrt(x^3)+sqrt(x^2)-sqrt(x)=0,x)').toString();
 console.log(x);
 
 // nerdamer.setVar("x","-sqrt(-1+z)");
