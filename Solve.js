@@ -118,6 +118,9 @@ if((typeof module) !== 'undefined') {
         },
         toLHS: function (expand) {
             expand = !!expand;
+            // if (!expand && (eqn.RHS.isZero())) {
+            //     return this;
+            // }
             var eqn;
             // if(!expand) {
             //     eqn = this.clone();
@@ -313,7 +316,10 @@ if((typeof module) !== 'undefined') {
         version: '2.0.3',
         solutions: [],
         solve: function (eq, variable) {
+            const save = Settings.PARSE2NUMBER;
+            Settings.PARSE2NUMBER = false;
             var solution = solve(eq, String(variable));
+            Settings.PARSE2NUMBER = save;
             return new core.Vector(solution);
             //return new core.Vector(solve(eq.toString(), variable ? variable.toString() : variable));
         },

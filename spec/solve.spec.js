@@ -168,6 +168,15 @@ describe('Solve', function () {
         expect(nerdamer('solve((x^2-x-6)*e^(x+4)=0,x)').toString()).toEqual('[-2,3]');
         expect(nerdamer('solve((x^2-x-6)*e^(x^2)=0,x)').toString()).toEqual('[-2,3]');
         expect(nerdamer('solve((x^2-x-6)*e^(x^2)=0,x)').toString()).toEqual('[-2,3]');
+        // API version
+        expect(nerdamer.solve('x-6/x - 1 = 0','x').toString()).toEqual('[-2,3]');
+        expect(nerdamer.solve('(x^2-x-6=0)','x').toString()).toEqual('[-2,3]');
+        expect(nerdamer.solve('(x^2-x-6)*e^2=0','x').toString()).toEqual('[-2,3]');
+        expect(nerdamer.solve('(x^2-x-6)*e^x=0','x').toString()).toEqual('[-2,3]');
+        expect(nerdamer.solve('(x^2-x-6)*e^(x-4)=0','x').toString()).toEqual('[-2,3]');
+        expect(nerdamer.solve('(x^2-x-6)*e^(x+4)=0','x').toString()).toEqual('[-2,3]');
+        expect(nerdamer.solve('(x^2-x-6)*e^(x^2)=0','x').toString()).toEqual('[-2,3]');
+        expect(nerdamer.solve('(x^2-x-6)*e^(x^2)=0','x').toString()).toEqual('[-2,3]');
     });
 });
 

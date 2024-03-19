@@ -41,7 +41,12 @@ let x;
 // x = nerdamer("(a/((a+1)*(a+b)))/((1/(a+1))+(1/(a+b)))").simplify().text();
 // console.log(x);
 
-x=nerdamer('diff(7acos(x))').toString();
+// x=nerdamer('diff(7acos(x))').toString();
+// console.log(x);
+
+x=nerdamer.solve('(x-6/x - 1)*e^x = 0','x').toString();
+console.log(x);
+x=nerdamer('solve((x-6/x - 1)*e^x = 0,x)').toString();
 console.log(x);
 
 // x=nerdamer('solve(x-6/x - 1 = 0,x)').toString();
