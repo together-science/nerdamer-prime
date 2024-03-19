@@ -37,10 +37,10 @@
     ],
     "repository": {
         "type": "git",
-        "url": "https://github.com/jiggzson/nerdamer.git"
+        "url": "https://github.com/together-science/nerdamer-prime.git"
     },
     "bugs": {
-        "url": "https://github.com/jiggzson/nerdamer/issues"
+        "url": "https://github.com/together-science/nerdamer-prime/issues"
     },
     "engines": {
         "node": ">=0.10.0"
