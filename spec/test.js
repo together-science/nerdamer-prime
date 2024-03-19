@@ -36,50 +36,8 @@ console.global = {tsDebugChannels: {notimeout: true}};
 
 let x;
 
-// x = nerdamer("((a/(a+b)) * (a/(a+c)))/((a/(a+b))+(a/(a+c)))").simplify().text();
-// console.log(x);
-// x = nerdamer("(a/((a+1)*(a+b)))/((1/(a+1))+(1/(a+b)))").simplify().text();
-// console.log(x);
-
-// x=nerdamer('diff(7acos(x))').toString();
-// console.log(x);
-
-x=nerdamer.solve('(x-6/x - 1)*e^x = 0','x').toString();
+x=nerdamer('abs(x-y) = 9').solveFor('x').map((s)=>s.text()).join("\n");
 console.log(x);
-x=nerdamer('solve((x-6/x - 1)*e^x = 0,x)').toString();
-console.log(x);
-
-// x=nerdamer('solve(x-6/x - 1 = 0,x)').toString();
-// console.log(x);
-// x=nerdamer('solve(x^2-x-6=0,x)').toString();
-// console.log(x);
-// x=nerdamer('solve((x^2-x-6)*e^2=0,x)').toString();
-// console.log(x);
-// x=nerdamer('solve((x^2-x-6)*e^x=0,x)').toString();
-// console.log(x);
-// x=nerdamer('solve((x^2-x-6)*e^(x-4)=0,x)').toString();
-// console.log(x);
-// x=nerdamer('solve((x^2-x-6)*e^(x+4)=0,x)').toString();
-// console.log(x);
-// x=nerdamer('solve((x^2-x-6)*e^(x^2)=0,x)').toString();
-// console.log(x);
-// x=nerdamer('solve((x^2-x-6)*e^(x^2)=0,x)').toString();
-// console.log(x);
-
-// nerdamer.setVar("x","-sqrt(-1+z)");
-// nerdamer.setVar("y","-2*sqrt(-1+z)+5");
-// console.log(nerdamer("(-1/2)*abs(-5+y)*sqrt(-1+z)^(-1)-1").simplify().text());
-
-// let text = nerdamer("2-2*(x/3)").text()
-// console.log(text);
-// const text = nerdamer("2-2*(x/3)").simplify().text()
-// const text = nerdamer("solve(h=((1)/(2))*(((981)/(100)))*m*(1/((s)^(2)))*((t)^(2)), t)").simplify().text()
-// const text = nerdamer("(530678210/1662132951)*s*sqrt(h^(-1))*sqrt(m)^(-1)").simplify().text()
-
-// const term = "2^y*log(y)+y";
-// const text = nerdamer(term)
-//     .simplify()
-//     .text();
 
 // console.log(text);
 console.log("done");

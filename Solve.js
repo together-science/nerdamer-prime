@@ -246,7 +246,7 @@ if((typeof module) !== 'undefined') {
     core.Expression.prototype.solveFor = function (x) {
         core.Utils.armTimeout();
         try {
-            var symbol;
+            var symbol = this.symbol;
             if(this.symbol instanceof Equation) {
                 //exit right away if we already have the answer
                 //check the LHS
@@ -256,12 +256,6 @@ if((typeof module) !== 'undefined') {
                 //check the RHS
                 if(this.symbol.RHS.isConstant() && this.symbol.LHS.equals(x))
                     return new core.Expression(this.symbol.RHS);
-
-                //otherwise just bring it to LHS
-                symbol = this.symbol.toLHS(true);
-            }
-            else {
-                symbol = this.symbol;
             }
 
             const result = solve(symbol, x).map(function (term) {
