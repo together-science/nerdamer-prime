@@ -13,7 +13,7 @@ some of the bugs in the old repo, you will see that people ask for "things it sh
 This kind of stuff is difficult, and it is more difficult in someone else's codebase. Nerdamer wasn't meant to be a complete symbolic
 algebra system. Its wealth of features can fool you, though. Its features and the fact that it works fast, in the browser and NodeJS,
 makes it still worthwhile. But please understand that it will not achieve a whole lot more than it can do right now. Consider using
-e.g. SymPy in a WASM webworked if you need more. See here for a demo: [SymPy live](https://live.sympy.org/)
+e.g. SymPy in a WASM webworker if you need more. See here for a demo: [SymPy live](https://live.sympy.org/)
 
 We have made some improvements - simplification of logs and squareroots, and bug fixes related to those areas and factoring. Unit tests
 are fixed except for a couple of known flaws. There will be further work in this area. We will also work on vectors, which are not 
