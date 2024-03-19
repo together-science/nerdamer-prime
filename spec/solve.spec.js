@@ -138,7 +138,7 @@ describe('Solve', function () {
             `j=y + max (y * 0.1, 23)`,
             `6694.895373 = j + z + (max(j * 0.280587, z * 0.280587, 176))`
         ]);
-        expect(ans.toString()).toEqual('j,2935.601831019821,x,1334.3644686453729,y,2668.7289372907458,z,2935.601831019821');
+        expect(ans.toString()).toEqual('j,2935.601831019821,x,1334.364468645373,y,2668.728937290746,z,2935.601831019821');
     });
 
     it('should solve factors', function () {

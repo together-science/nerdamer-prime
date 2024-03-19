@@ -508,6 +508,9 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                 }
                 else if(g === FN && symbol.power.equals(1)) {
                     // Table of known derivatives
+                    let m = symbol.multiplier.clone();
+                    symbol.toUnitMultiplier();
+
                     switch(symbol.fname) {
                         case LOG:
                             cp = symbol.clone();
@@ -551,14 +554,11 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                             symbol = _.parse('(1+(' + text(symbol.args[0]) + ')^2)^(-1)');
                             break;
                         case ABS:
-                            m = symbol.multiplier.clone();
-                            symbol.toUnitMultiplier();
                             //depending on the complexity of the symbol it's easier to just parse it into a new symbol
                             //this should really be readdressed soon
                             b = symbol.args[0].clone();
                             b.toUnitMultiplier();
                             symbol = _.parse(inBrackets(text(symbol.args[0])) + '/abs' + inBrackets(text(b)));
-                            symbol.multiplier = m;
                             break;
                         case 'parens':
                             //see product rule: f'.g goes to zero since f' will return zero. This way we only get back
@@ -584,11 +584,11 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                             break;
                         case CSCH:
                             var arg = String(symbol.args[0]);
-                            return _.parse('-coth(' + arg + ')*csch(' + arg + ')');
+                            symbol = _.parse('-coth(' + arg + ')*csch(' + arg + ')');
                             break;
                         case COTH:
                             var arg = String(symbol.args[0]);
-                            return _.parse('-csch(' + arg + ')^2');
+                            symbol = _.parse('-csch(' + arg + ')^2');
                             break;
                         case 'asinh':
                             symbol = _.parse('(sqrt(1+(' + text(symbol.args[0]) + ')^2))^(-1)');
@@ -673,6 +673,7 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                         default:
                             symbol = _.symfunction('diff', [symbol, wrt]);
                     }
+                    symbol.multiplier = symbol.multiplier.multiply(m);
                 }
                 else if(g === EX || g === FN && isSymbol(symbol.power)) {
                     var value;

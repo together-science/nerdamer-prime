@@ -43,7 +43,56 @@ describe('Calculus', function () {
         expect(nerdamer('diff([sin(x), x^2, x],x)').toString()).toEqual('[cos(x),2*x,1]');
         expect(nerdamer('diff(sinc(a*x^3+b),x)').toString()).toEqual('3*((a*x^3+b)*cos(a*x^3+b)-sin(a*x^3+b))*(a*x^3+b)^(-2)*a*x^2');
         expect(nerdamer('diff(sqrt(e^x + a),x)').toString()).toEqual('(1/2)*(a+e^x)^(-1/2)*e^x');
+    
+        // issue #
+        expect(nerdamer('diff(3asin(x),x)').toString()).toEqual('3*sqrt(-x^2+1)^(-1)');
+        expect(nerdamer('diff(5acos(x),x)').toString()).toEqual('-5*sqrt(-x^2+1)^(-1)');
+        expect(nerdamer('diff(7atan(x),x)').toString()).toEqual('7*(1+x^2)^(-1)');
+
     });
+
+    /*
+    todo: cover all function differentiation, with scalars:
+        case LOG:
+        case COS:
+        case SIN:
+        case TAN:
+        case SEC:
+        case CSC:
+        case COT:
+        case ASIN:
+        case ACOS:
+        case ATAN:
+        case ABS:
+        case 'cosh':
+        case 'sinh':
+        case TANH:
+        case SECH:
+        case CSCH:
+        case COTH:
+        case 'asinh':
+        case 'acosh':
+        case 'atanh':
+        case ASECH:
+        case ACOTH:
+        case ACSCH:
+        case ASEC:
+        case ACSC:
+        case ACOT:
+        case 'S':
+        case 'C':
+        case 'Si':
+        case 'Shi':
+        case 'Ci':
+        case 'Chi':
+        case 'Ei':
+        case 'Li':
+        case 'erf':
+        case 'atan2':
+        case 'sign':
+        case 'sinc':
+        case Settings.LOG10:
+    */
 
     it('should calculate sums correctly', function () {
         expect(nerdamer('sum(x+y, x, 0, 3)').evaluate().toString()).toEqual('4*y+6');
