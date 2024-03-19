@@ -40,8 +40,26 @@ let x;
 // console.log(x);
 // x = nerdamer("(a/((a+1)*(a+b)))/((1/(a+1))+(1/(a+b)))").simplify().text();
 // console.log(x);
-x = nerdamer("((a*((1/(a+1))+(1/(a+b))))/((a+1)*(a+b)))").simplify().expand().simplify().text();
+
+x=nerdamer('diff(7acos(x))').toString();
 console.log(x);
+
+// x=nerdamer('solve(x-6/x - 1 = 0,x)').toString();
+// console.log(x);
+// x=nerdamer('solve(x^2-x-6=0,x)').toString();
+// console.log(x);
+// x=nerdamer('solve((x^2-x-6)*e^2=0,x)').toString();
+// console.log(x);
+// x=nerdamer('solve((x^2-x-6)*e^x=0,x)').toString();
+// console.log(x);
+// x=nerdamer('solve((x^2-x-6)*e^(x-4)=0,x)').toString();
+// console.log(x);
+// x=nerdamer('solve((x^2-x-6)*e^(x+4)=0,x)').toString();
+// console.log(x);
+// x=nerdamer('solve((x^2-x-6)*e^(x^2)=0,x)').toString();
+// console.log(x);
+// x=nerdamer('solve((x^2-x-6)*e^(x^2)=0,x)').toString();
+// console.log(x);
 
 // nerdamer.setVar("x","-sqrt(-1+z)");
 // nerdamer.setVar("y","-2*sqrt(-1+z)+5");

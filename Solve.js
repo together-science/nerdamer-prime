@@ -1260,6 +1260,7 @@ if((typeof module) !== 'undefined') {
             else if(rhs.group === FN || rhs.group === S || rhs.group === PL) {
                 return [rhs, lhs];
             }
+            return [rhs, lhs];
         },
         sqrtSolve: function (symbol, v) {
             var sqrts = new Symbol(0);
@@ -1294,6 +1295,27 @@ if((typeof module) !== 'undefined') {
         }
     };
 
+    // special case to handle solving equations with exactly one abs() correctly
+    var absSolve = function (eqns, solve_for, depth, fn) {
+        const eq = eqns.toString();
+        const match = eq.match(/(?<![a-z])abs/g);
+        // not found or more than 1 occurrence? get out!
+        if (!match || match.length > 2) {
+            return null;
+        }
+        // can handle only abs at beginning
+        if ((eqns.LHS.group !== FN || false)&& eqns.RHS.group !== FN) {
+            return null;
+        }
+        // we have exactly one abs. kill it and make two cases
+        const eqplus = eqns.constructor(eq.replace(/(?<![a-z])abs/, ""));
+        const eqminus = eqns.constructor(eq.replace(/(?<![a-z])abs/, "(-1)"));
+
+        const resultplus = solve(eqplus, solve_for, null, depth, fn);
+        const resultminus = solve(eqminus, solve_for, null, depth, fn);
+
+        return [resultminus, resultplus];
+    }
     /*
      * 
      * @param {String[]|String|Equation} eqns
@@ -1321,31 +1343,6 @@ if((typeof module) !== 'undefined') {
             return solutions;
         }
 
-        //make preparations if it's an Equation
-        if(eqns instanceof Equation) {
-            //if it's zero then we're done
-            if(eqns.isZero()) {
-                return [new Symbol(0)];
-            }
-            //if the lhs = x then we're done
-            if(eqns.LHS.equals(solve_for) && !eqns.RHS.contains(solve_for, true)) {
-                return [eqns.RHS];
-            }
-            //if the rhs = x then we're done
-            if(eqns.RHS.equals(solve_for) && !eqns.LHS.contains(solve_for, true)) {
-                return [eqns.LHS];
-            }
-        }
-
-        //unwrap the vector since what we want are the elements
-        if(eqns instanceof core.Vector)
-            eqns = eqns.elements;
-        solve_for = solve_for || 'x'; //assumes x by default
-        //If it's an array then solve it as a system of equations
-        if(isArray(eqns)) {
-            return __.solveSystem.apply(undefined, arguments);
-        }
-
         // Parse out functions. Fix for issue #300
         // eqns = core.Utils.evaluate(eqns);
         solutions = solutions || [];
@@ -1356,9 +1353,6 @@ if((typeof module) !== 'undefined') {
         // then we're done. Issue #555
         var known = {};
         known[solve_for] = 0;
-        if(isSymbol(eqns) && evaluate(eqns.getDenom(), known).equals(0) === true) {
-            return solutions;
-        }
 
         // Is used to add solutions to set. 
         // TODO: Set is now implemented and should be utilized
@@ -1402,6 +1396,45 @@ if((typeof module) !== 'undefined') {
                 }
             }
         };
+
+
+        //make preparations if it's an Equation
+        if(eqns instanceof Equation) {
+            // see absSolve above
+            // the rest of solve does a crappy job at solving abs, 
+            // so we wrap it here if necessary
+            let absResult = absSolve(eqns, solve_for, solutions, depth, fn);
+            if (absResult) {
+                add_to_result(absResult);
+                return solutions;
+            }
+
+            //if it's zero then we're done
+            if(eqns.isZero()) {
+                return [new Symbol(0)];
+            }
+            //if the lhs = x then we're done
+            if(eqns.LHS.equals(solve_for) && !eqns.RHS.contains(solve_for, true)) {
+                return [eqns.RHS];
+            }
+            //if the rhs = x then we're done
+            if(eqns.RHS.equals(solve_for) && !eqns.LHS.contains(solve_for, true)) {
+                return [eqns.LHS];
+            }
+        }
+
+        //unwrap the vector since what we want are the elements
+        if(eqns instanceof core.Vector)
+            eqns = eqns.elements;
+        solve_for = solve_for || 'x'; //assumes x by default
+        //If it's an array then solve it as a system of equations
+        if(isArray(eqns)) {
+            return __.solveSystem.apply(undefined, arguments);
+        }
+
+        if(isSymbol(eqns) && evaluate(eqns.getDenom(), known).equals(0) === true) {
+            return solutions;
+        }
 
         // Maybe we get lucky. Try the point at the function. If it works we have a point
         // If not it failed
@@ -1711,7 +1744,8 @@ if((typeof module) !== 'undefined') {
                     }
 
                     // sort by numerical value to be ready for uniquefy filter
-                    solutions.sort((a,b)=>{
+                    solutions
+                        .sort((a,b)=>{
                         const sa = a.text("decimals");
                         const sb = b.text("decimals");
                         const xa = Number(sa);
@@ -1726,10 +1760,15 @@ if((typeof module) !== 'undefined') {
                         return xa-xb;
                     });
 
+                    // round to 15 digits
+                    solutions = solutions
+                        .map((a)=>(!a.isConstant()?a:new Symbol(Number(Number(a).toPrecision(15)))));
+
                     // uniquefy to epsilon
                     // console.log("solutions: "+solutions);
-                    solutions = solutions.filter((x,i,a)=>{
-                        x = Number(x);
+                    solutions = solutions
+                        .filter((x,i,a)=>{
+                        x = Number(Number(x).toPrecision(15));
                         let x2 = Number(a[i-1]);
                         // console.log("   x: "+x)
                         if (i === 0 || isNaN(x) || isNaN(x2)) {
@@ -1832,7 +1871,10 @@ if((typeof module) !== 'undefined') {
                     var rhs = rw[1];
                     if(lhs.group === FN) {
                         if(lhs.fname === 'abs') {
-                            add_to_result([rhs.clone(), rhs.negate()]);
+                            // solve only if solve_for was the only arg
+                            if (lhs.args[0].toString() === solve_for) {
+                                add_to_result([rhs.clone(), rhs.negate()]);
+                            }
                         }
                         else if(lhs.fname === 'sin') {
                             //asin
@@ -1889,7 +1931,7 @@ if((typeof module) !== 'undefined') {
                         }
                     }
                     catch(error) {
-                        ;
+                        console.log("error "+error);
                     }
                 }
             }
