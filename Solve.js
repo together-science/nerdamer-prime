@@ -1260,6 +1260,7 @@ if((typeof module) !== 'undefined') {
             else if(rhs.group === FN || rhs.group === S || rhs.group === PL) {
                 return [rhs, lhs];
             }
+            return [rhs, lhs];
         },
         sqrtSolve: function (symbol, v) {
             var sqrts = new Symbol(0);
@@ -1303,7 +1304,7 @@ if((typeof module) !== 'undefined') {
             return null;
         }
         // can handle only abs at beginning
-        if (eqns.LHS.group !== FN && eqns.RHS.group !== FN) {
+        if ((eqns.LHS.group !== FN || false)&& eqns.RHS.group !== FN) {
             return null;
         }
         // we have exactly one abs. kill it and make two cases
@@ -1313,7 +1314,7 @@ if((typeof module) !== 'undefined') {
         const resultplus = solve(eqplus, solve_for, null, depth, fn);
         const resultminus = solve(eqminus, solve_for, null, depth, fn);
 
-        return [resultplus, resultminus];
+        return [resultminus, resultplus];
     }
     /*
      * 
@@ -1743,7 +1744,8 @@ if((typeof module) !== 'undefined') {
                     }
 
                     // sort by numerical value to be ready for uniquefy filter
-                    solutions.sort((a,b)=>{
+                    solutions
+                        .sort((a,b)=>{
                         const sa = a.text("decimals");
                         const sb = b.text("decimals");
                         const xa = Number(sa);
@@ -1758,10 +1760,15 @@ if((typeof module) !== 'undefined') {
                         return xa-xb;
                     });
 
+                    // round to 15 digits
+                    solutions = solutions
+                        .map((a)=>(!a.isConstant()?a:new Symbol(Number(Number(a).toPrecision(15)))));
+
                     // uniquefy to epsilon
                     // console.log("solutions: "+solutions);
-                    solutions = solutions.filter((x,i,a)=>{
-                        x = Number(x);
+                    solutions = solutions
+                        .filter((x,i,a)=>{
+                        x = Number(Number(x).toPrecision(15));
                         let x2 = Number(a[i-1]);
                         // console.log("   x: "+x)
                         if (i === 0 || isNaN(x) || isNaN(x2)) {
@@ -1924,7 +1931,7 @@ if((typeof module) !== 'undefined') {
                         }
                     }
                     catch(error) {
-                        ;
+                        console.log("error "+error);
                     }
                 }
             }
