@@ -4334,7 +4334,7 @@ if((typeof module) !== 'undefined') {
                 // console.log("----- log term: "+ term.text());
                 // note: use symbol.equals
                 if (term.value === "1" || term.value === 1) {
-                    return term;
+                    return new Symbol(0);
                 }
                 // work on all factors of the arg term
                 // inintialize the sum
@@ -4345,7 +4345,7 @@ if((typeof module) !== 'undefined') {
                 term.toUnitMultiplier();
                 // console.log("term with unit multiplier: "+term);
 
-                if (m) {
+                if (!m.equals(1)) {
                     let a = core.Utils.format('({0}({1}))', fn, m);
                     // console.log("m transformed: "+a);
                     r = _.add(r, _.parse(a));
@@ -4388,6 +4388,7 @@ if((typeof module) !== 'undefined') {
                     // console.log();
                     // console.log("Initial: "+symbol.text());
                     // remove power and multiplier
+                    let original = symbol.clone();
                     var sym_array = __.Simplify.strip(symbol);
                     symbol = sym_array.pop();
 
@@ -4400,8 +4401,10 @@ if((typeof module) !== 'undefined') {
                     let fn = symbol.fname;
 
                     let retval = __.Simplify.logArgSimp(fn, n);
-                    let rd = __.Simplify.logArgSimp(fn, d);
-                    retval = _.subtract(retval, rd);
+                    if (!d.equals(1)) {
+                        let rd = __.Simplify.logArgSimp(fn, d);
+                        retval = _.subtract(retval, rd);
+                    }
 
                     retval = __.Simplify.unstrip(sym_array, retval).distributeMultiplier();
                     symbol = retval;

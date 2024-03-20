@@ -36,7 +36,11 @@ console.global = {tsDebugChannels: {notimeout: true}};
 
 let x;
 
-x=nerdamer('abs(x-y) = 9').solveFor('x').map((s)=>s.text()).join("\n");
+try {
+x=nerdamer('log10(x)').simplify().text();
+} catch (error) {
+    console.log("error "+error)
+}
 console.log(x);
 
 // console.log(text);
