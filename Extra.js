@@ -27,6 +27,7 @@ if((typeof module) !== 'undefined') {
             S = core.groups.S,
             EX = core.groups.EX,
             CP = core.groups.CP,
+            PL = core.groups.PL,
             CB = core.groups.CB,
             FN = core.groups.FN;
     core.Settings.Laplace_integration_depth = 40;
@@ -170,7 +171,7 @@ if((typeof module) !== 'undefined') {
                         //num = core.Algebra.Factor.factor(symbol.getNum());
                         //den = core.Algebra.Factor.factor(symbol.getDenom().invert(null, true));
 
-                        if(den.group === CP) {
+                        if(den.group === CP || den.group === PL) {
                             den_p = den.power.clone();
                             den.toLinear();
                         }
@@ -356,6 +357,8 @@ if((typeof module) !== 'undefined') {
                             }
                             else {
                                 retval = new Symbol(0);
+
+                                symbol = core.Algebra.PartFrac.partfrac(_.expand(symbol), s_);
 
                                 symbol.each(function (x) {
                                     retval = _.add(retval, __.LaPlace.inverse(x, s_, t));
