@@ -39,6 +39,21 @@ declare namespace nerdamer {
 	export function setFunction(function_name: string, param_array: string[], function_body: string): typeof nerdamer
 
 	/**
+	 * Sets a JavaScript function which can then be called using nerdamer.
+	 * @param {Function} js_function The JavaScript function to be set.
+	 * @returns {boolean}  Success flag.
+	 * @example
+	 * function custom(x , y) {
+	 *     return x + y;
+	 * }
+	 * nerdamer.setJsFunction(custom);
+	 * var x = nerdamer('custom(4, 7)').toString();
+	 * console.log(x.toString())
+	 * console.log(x.valueOf())
+	 */
+	export function setJsFunction(js_function: Function): boolean
+
+	/**
 	 * Returns the nerdamer core object. This object contains all the core functions of nerdamer and houses the parser.
 	 * @example
 	 * Object.keys(nerdamer.getCore())

@@ -330,6 +330,18 @@ console.log(result);
 //result: 5
 ```
 
+Custom JavaScript functions can also be set. For example
+
+```javascript
+function hyp(a, b) {
+    return Math.sqrt(a*a + b*b);
+}
+nerdamer.setJsFunction(hyp);
+var result = nerdamer('hyp(3, 4)').evaluate().text();
+console.log(result);
+//result: 5
+```
+
 
 If you need to add a constant use the setConstant method
 
