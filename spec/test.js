@@ -6,6 +6,7 @@ var nerdamer = require('../nerdamer.core.js');
 require('../Algebra.js');
 require('../Calculus.js');
 require('../Solve.js');
+require('../Extra.js');
 console.global = {tsDebugChannels: {notimeout: true}};
 
 
@@ -37,7 +38,8 @@ console.global = {tsDebugChannels: {notimeout: true}};
 let x;
 
 try {
-x=nerdamer('log10(x)').simplify().text();
+    x=nerdamer('ilt(1/(s^3+4s^2+s),s,t)').text();
+    // x=nerdamer('ilt(1/(s^2+2s+1),s,t)').toString()
 } catch (error) {
     console.log("error "+error)
 }
