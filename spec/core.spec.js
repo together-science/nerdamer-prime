@@ -2996,5 +2996,20 @@ describe('misc and regression tests', function() {
         expect(nerdamer("3.535401^3.535401").evaluate().text()).toEqual('86.8861711133581315310');
         expect(nerdamer("4.5354^3.535401").evaluate().text()).toEqual('209.603932373756644162');
     });
+
+    it('should use JavaScript functions', function() {
+        function jsA(a,b) {
+            return a+b;
+        }
+        function jsB(x,y) {
+            return x**y;
+        }
+
+        nerdamer.setJsFunction(jsA);
+        nerdamer.setJsFunction(jsB);
+
+        expect(nerdamer('jsA(3, 5)').evaluate().text()).toEqual('8');
+        expect(nerdamer('jsB(3, 5)').evaluate().text()).toEqual('243');
+    });
 });
 

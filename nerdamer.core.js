@@ -724,6 +724,25 @@ var nerdamer = (function (imports) {
     };
 
     /**
+     * Is used to set a user defined JavaScript function using the function assign operator
+     * @param {Function} js_function
+     * @returns {Boolean}
+     */
+    var setJsFunction = function (js_function) {
+        if (typeof js_function === 'function') {
+            var name = js_function.name;
+            validateName(name);
+            if (!isReserved(name)) {
+                C.Math2[name] = js_function;
+                _.functions[name] = [, js_function.length];
+
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Returns the minimum number in an array
      * @param {Array} arr
      * @returns {Number}
@@ -12308,6 +12327,21 @@ var nerdamer = (function (imports) {
      * @example nerdamer.setFunction('f',['x'], 'x^2+2');
      */
     libExports.setFunction = setFunction;
+
+    /**
+     *
+     * @param {Function} js_function The JavaScript function to be set.
+     * @returns {boolean}  Success flag.
+     * @example
+     * function custom(x , y) {
+     *     return x + y;
+     * }
+     * nerdamer.setJsFunction(custom);
+     * var x = nerdamer('custom(4, 7)').toString();
+     * console.log(x.toString())
+     * console.log(x.valueOf())
+     */
+    libExports.setJsFunction = setJsFunction;
 
     /**
      *
