@@ -197,6 +197,8 @@ var nerdamer = (function (imports) {
 
     var WARNINGS = [];
 
+    var USER_FUNCTIONS = [];
+
     /**
      * Use this when errors are suppressible
      * @param {String} msg
@@ -702,11 +704,22 @@ var nerdamer = (function (imports) {
     /**
      * Is used to set a user defined function using the function assign operator
      * @param {String} name
-     * @param {String[]} params_array
-     * @param {String} body
+     * @param {String[] | undefined} params_array
+     * @param {String | undefined} body
      * @returns {Boolean}
      */
     var setFunction = function (name, params_array, body) {
+        // Option for declaring function only by name: setFunction('f(x)=x^2+2')
+        if (!params_array) {
+            const [left, right] = name.split(/\s*=\s*/);
+            const [,fname, params] = left.match(/^(\w+)\(([^)]+)\)$/);
+            if (!fname) {
+                throw new Error('Invalid function definition');
+            }
+            name = fname;
+            params_array = params.split(/\s*,\s*/).map(p => p.trim());
+            body = right;
+        }
         validateName(name);
         if(!isReserved(name)) {
             params_array = params_array || variables(_.parse(body));
@@ -717,6 +730,10 @@ var nerdamer = (function (imports) {
                     params: params_array,
                     body: body
                 }];
+
+            if (!USER_FUNCTIONS.includes(name)) {
+                USER_FUNCTIONS.push(name);
+            }
 
             return body;
         }
@@ -736,11 +753,27 @@ var nerdamer = (function (imports) {
                 C.Math2[name] = js_function;
                 _.functions[name] = [, js_function.length];
 
+                if (!USER_FUNCTIONS.includes(name)) {
+                    USER_FUNCTIONS.push(name);
+                }
+
                 return true;
             }
         }
         return false;
     }
+
+    /**
+     * Clears all user defined functions
+     */
+    var clearFunctions = function () {
+        for(var name of USER_FUNCTIONS) {
+            // delete C.Math2[name];
+            delete _.functions[name];
+        }
+    }
+
+    var clear
 
     /**
      * Returns the minimum number in an array
@@ -12315,8 +12348,17 @@ var nerdamer = (function (imports) {
      * @returns {String}
      */
     libExports.getConstant = function (constant) {
-        return String(_.constant[constant]);
+        return String(_.CONSTANTS[constant]);
     };
+
+    /**
+     * Clear added constants from the CONSTANTS object
+     * @returns {Object} Returns the nerdamer object
+     */
+    libExports.clearConstants = function () {
+        _.initConstants.bind(_);
+        return this;
+    }
 
     /**
      *
@@ -12325,6 +12367,7 @@ var nerdamer = (function (imports) {
      * @param {String} body The body of the function
      * @returns {Boolean} returns true if succeeded and falls on fail
      * @example nerdamer.setFunction('f',['x'], 'x^2+2');
+     *          OR nerdamer.setFunction('f(x)=x^2+2');
      */
     libExports.setFunction = setFunction;
 
@@ -12342,6 +12385,15 @@ var nerdamer = (function (imports) {
      * console.log(x.valueOf())
      */
     libExports.setJsFunction = setJsFunction;
+
+    /**
+     * Clears all added functions
+     * @returns {libExports}
+     */
+    libExports.clearFunctions = function () {
+        clearFunctions();
+        return this;
+    }
 
     /**
      *
