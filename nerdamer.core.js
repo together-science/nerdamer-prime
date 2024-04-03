@@ -16,7 +16,7 @@ var nerdamer = (function (imports) {
     "use strict"; 
 
 //version ======================================================================
-    var version = '1.1.13';
+    var version = '1.1.15';
 
     
 
