@@ -5,7 +5,7 @@
  * Source : https://github.com/jiggzson/nerdamer
  */
 
-/* global trig, trigh, Infinity, define, arguments2Array, NaN */
+/* global trig, trigh, Infinity, define, arguments2Array, NaN  */
 //externals ====================================================================
 /* BigInterger.js v1.6.40 https://github.com/peterolson/BigInteger.js/blob/master/LICENSE */
 //var nerdamerBigInt = typeof nerdamerBigInt !== 'undefined' ? nerdamerBigInt : require("big-integer");
