@@ -1,15 +1,18 @@
 {
     "author": {
-        "name": "Martin Donk",
-        "email": "martin.r.donk@gmail.com"
+        "name": "Gunnar Mein taking over from Martin Donk",
+        "email": "info@together.science"
     },
     "description": "javascript light-weight symbolic math expression evaluator",
-    "name": "nerdamer",
+    "name": "nerdamer-prime",
     "license": "MIT",
     "version": "1.1.15",
-    "homepage": "http://nerdamer.com/",
+    "homepage": "https://github.com/together-science/nerdamer-prime",
     "directory": {
         "lib": "./"
+    },
+    "publishConfig": {
+        "access": "public"
     },
     "main": "nerdamer.core.js",
     "typings": "index.d.ts",
