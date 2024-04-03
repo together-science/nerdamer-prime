@@ -12,12 +12,12 @@ jobs:
     runs-on: [ubuntu-22.04]
     name: Build and test
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Use Node.js 16.x
-        uses: actions/setup-node@v3
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
         with:
-          node-version: 16.x
+          node-version: 20
           cache: 'npm'
           cache-dependency-path: |
               ./package-lock.json
