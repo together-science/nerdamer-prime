@@ -6,6 +6,8 @@ but are up to speed with everything Martin did before he archived the original r
 
 The license is unchanged, everything is free under MIT terms. 
 
+The npm js installation point is now to `npm i nerdamer-prime`.
+
 Our intentions:
 
 To keep Nerdamer in good repair, and make improvements where we need them and where we can. Mostly bug fixes. If you investigate
@@ -18,22 +20,13 @@ e.g. SymPy in a WASM webworker if you need more. See here for a demo: [SymPy liv
 We have made some improvements - simplification of logs and squareroots, and bug fixes related to those areas and factoring. Unit tests
 are fixed except for a couple of known flaws. There will be further work in this area. We will also work on vectors, which are not 
 useful for our product [together.math](https://www.together.science/) today. Those will be breaking changes 
-(you are welcome to fork an earlier version). We might move to modules, and at some point will port the code to ECMAScript O-O features.
-Perhaps even TypeScript, but that would be a lot of work. 
+(you are welcome to fork an earlier version). 
 
 If you have a clear bug, file an issue with the code to repro. If you want a new feature - and that includes many things that you will
 think of as "obvious flaws" - file the issue, but we probably won't do it. But someone else can! We will absolutely consider compatible
 PRs, but best to [talk to us](mailto:info@together.science) before you start.
 
-Below follows the original README. Obviously, the npm instructions will install the original Nerdamer. I will update this README if we ever get into the game of releasing nerdamer-prime on npm. Until then, please be aware that the Nerdamer you find on npm follows the original (archived) repo.
-As a temporary workaround, you can install [this snapshot](https://www.npmjs.com/package/nerdamer-41fb3b2) of `nerdamer-prime` published by @nickkolok:
-```
-npm i nerdamer-41fb3b2
-```
-
-```js
-const nerdamer = require('nerdamer-41fb3b2');
-```
+Below follows the original README.
 
 
 Nerdamer
@@ -60,7 +53,7 @@ Or import everything
 ```html
 <script src="all.min.js"></script>  <!-- assuming you've saved the file in the root -->
 ```
-If you're using node.js install it using `npm i nerdamer` and then
+If you're using node.js install it using `npm i nerdamer-prime` (GM: originally `npm i nerdamer`)and then
 
 ```javascript
 // const cannot be used since nerdamer gets modified when other modules are loaded  
