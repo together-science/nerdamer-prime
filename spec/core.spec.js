@@ -1893,34 +1893,6 @@ describe('Nerdamer core', function () {
         expect(nerdamer('(3*abs(x))^2').toString()).toEqual('3*x^2');
     });
 
-    describe('User functions', function () {
-        afterEach(function () {
-            nerdamer.clearFunctions();
-        });
-
-        it('should handle nested functions', function () {
-            nerdamer.setFunction("a", ["x"], "2*x");
-            nerdamer.setFunction("b", ["x"], "x^2");
-
-            expect(nerdamer("a(b(x))").text()).toEqual('2*x^2');
-        });
-        it('should handle nested functions version 2', function () {
-            nerdamer.setFunction("a(x)=2*x");
-            nerdamer.setFunction("b(x)=x^2");
-
-            expect(nerdamer("a(b(x))").text()).toEqual('2*x^2');
-        });
-        it("should clear nested functions", function () {
-            nerdamer.setFunction("c(x)=2*x");
-            expect(nerdamer("sin(1)").evaluate().text()).toEqual('0.841470984807896479');
-            expect(nerdamer("c(t)").text()).toEqual('2*t');
-
-            nerdamer.clearFunctions();
-            expect(nerdamer("sin(1)").evaluate().text()).toEqual('0.841470984807896479');
-            expect(nerdamer("c(t)").text()).toEqual('c*t');
-        });
-    });
-
     describe('User constants,', function () {
         const NerdamerTypeError = nerdamer.getCore().exceptions.NerdamerTypeError;
 
@@ -1973,6 +1945,73 @@ describe('Nerdamer core', function () {
             nerdamer.setVar('aa', 'a*a');
             nerdamer.clearVars();
             expect(nerdamer('aa').text()).toEqual('aa');
+        });
+    });
+
+    describe('User functions 1', function () {
+        afterEach(function () {
+            nerdamer.clearFunctions();
+        });
+
+        it('should handle nested functions', function () {
+            nerdamer.setFunction("a", ["x"], "2*x");
+            nerdamer.setFunction("b", ["x"], "x^2");
+
+            expect(nerdamer("a(b(x))").text()).toEqual('2*x^2');
+        });
+        it('should handle nested functions version 2', function () {
+            nerdamer.setFunction("a(x)=2*x");
+            nerdamer.setFunction("b(x)=x^2");
+
+            expect(nerdamer("a(b(x))").text()).toEqual('2*x^2');
+        });
+        it("should clear nested functions", function () {
+            nerdamer.setFunction("c(x)=2*x");
+            expect(nerdamer("sin(1)").evaluate().text()).toEqual('0.841470984807896479');
+            expect(nerdamer("c(t)").text()).toEqual('2*t');
+
+            nerdamer.clearFunctions();
+            expect(nerdamer("sin(1)").evaluate().text()).toEqual('0.841470984807896479');
+            expect(nerdamer("c(t)").text()).toEqual('c*t');
+        });
+    });
+
+    describe('User functions 2,', function() {
+        afterEach(function () {
+            nerdamer.clearFunctions();
+        });
+
+        it('should add function type 1', function() {
+            nerdamer.setFunction('f', ['x', 'y'], '2*x+y');
+
+            expect(nerdamer('f(2, 3)').toString()).toEqual('7');
+        })
+
+        it('should add function type 2', function() {
+            nerdamer.setFunction('f(x, y)=2*x+y');
+
+            expect(nerdamer('f(2, 3)').toString()).toEqual('7');
+        })
+
+        it('should add function type 3', function() {
+            nerdamer('f(x, y)=2*x+y');
+
+            expect(nerdamer('f(2, 3)').toString()).toEqual('7');
+        })
+
+        it('should use JavaScript functions', function() {
+            function jsA(a,b) {
+                return a+b;
+            }
+            function jsB(x,y) {
+                return x**y;
+            }
+
+            nerdamer.setFunction(jsA);
+            nerdamer.setFunction(jsB);
+
+            expect(nerdamer('jsA(3, 5)').evaluate().text()).toEqual('8');
+            expect(nerdamer('jsB(3, 5)').evaluate().text()).toEqual('243');
         });
     });
 });
@@ -3072,21 +3111,6 @@ describe('misc and regression tests', function() {
         // issue #39
         expect(nerdamer("3.535401^3.535401").evaluate().text()).toEqual('86.8861711133581315310');
         expect(nerdamer("4.5354^3.535401").evaluate().text()).toEqual('209.603932373756644162');
-    });
-
-    it('should use JavaScript functions', function() {
-        function jsA(a,b) {
-            return a+b;
-        }
-        function jsB(x,y) {
-            return x**y;
-        }
-
-        nerdamer.setJsFunction(jsA);
-        nerdamer.setJsFunction(jsB);
-
-        expect(nerdamer('jsA(3, 5)').evaluate().text()).toEqual('8');
-        expect(nerdamer('jsB(3, 5)').evaluate().text()).toEqual('243');
     });
 });
 

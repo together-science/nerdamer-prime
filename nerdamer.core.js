@@ -16,7 +16,7 @@ var nerdamer = (function (imports) {
     "use strict"; 
 
 //version ======================================================================
-    var version = '1.1.15';
+    var version = '1.1.16';
 
     
 
@@ -79,6 +79,8 @@ var nerdamer = (function (imports) {
         USE_MULTICHARACTER_VARS: true,
         //Allow changing of power operator
         POWER_OPERATOR: '^',
+        // Function catch regex
+        FUNCTION_REGEX: /^\s*([a-z_][a-z0-9_]*)\(([a-z0-9_,\s]*)\)\s*:?=\s*(.+)\s*$/i,
         //The variable validation regex
         //VALIDATION_REGEX: /^[a-z_][a-z\d\_]*$/i
         VALIDATION_REGEX: /^[a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ∞][0-9a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ]*$/i,
@@ -165,14 +167,14 @@ var nerdamer = (function (imports) {
     //Add the groups. These have been reorganized as of v0.5.1 to make CP the highest group
     //The groups that help with organizing during parsing. Note that for FN is still a function even
     //when it's raised to a symbol, which typically results in an EX
-    var N = Groups.N = 1, // A number
-            P = Groups.P = 2, // A number with a rational power e.g. 2^(3/5).
-            S = Groups.S = 3, // A single variable e.g. x.
-            EX = Groups.EX = 4, // An exponential
-            FN = Groups.FN = 5, // A function
-            PL = Groups.PL = 6, // A symbol/expression having same name with different powers e.g. 1/x + x^2
-            CB = Groups.CB = 7, // A symbol/expression composed of one or more variables through multiplication e.g. x*y
-            CP = Groups.CP = 8; // A symbol/expression composed of one variable and any other symbol or number x+1 or x+y
+    var N = Groups.N = 1; // A number
+    var P = Groups.P = 2; // A number with a rational power e.g. 2^(3/5).
+    var S = Groups.S = 3; // A single variable e.g. x.
+    var EX = Groups.EX = 4; // An exponential
+    var FN = Groups.FN = 5; // A function
+    var PL = Groups.PL = 6; // A symbol/expression having same name with different powers e.g. 1/x + x^2
+    var CB = Groups.CB = 7; // A symbol/expression composed of one or more variables through multiplication e.g. x*y
+    var CP = Groups.CP = 8; // A symbol/expression composed of one variable and any other symbol or number x+1 or x+y
 
     var CONST_HASH = Settings.CONST_HASH = '#';
 
@@ -702,66 +704,65 @@ var nerdamer = (function (imports) {
     };
 
     /**
-     * Is used to set a user defined function using the function assign operator
-     * @param {String} name
-     * @param {String[] | undefined} params_array
-     * @param {String | undefined} body
-     * @returns {Boolean}
+     * Is used to set a user defined function using the function assign operator and also
+     * is used to set a user defined JavaScript function using the function assign operator
+     * @param {string | Function} fnName
+     * @param {string[]} [fnParams]
+     * @param {string} [fnBody]
+     * @returns {boolean}
      */
-    var setFunction = function (name, params_array, body) {
-        // Option for declaring function only by name: setFunction('f(x)=x^2+2')
-        if (!params_array) {
-            const [left, right] = name.split(/\s*=\s*/);
-            const [,fname, params] = left.match(/^(\w+)\(([^)]+)\)$/);
-            if (!fname) {
-                throw new Error('Invalid function definition');
-            }
-            name = fname;
-            params_array = params.split(/\s*,\s*/).map(p => p.trim());
-            body = right;
-        }
-        validateName(name);
-        if(!isReserved(name)) {
-            params_array = params_array || variables(_.parse(body));
-            // The function gets set to PARSER.mapped function which is just
-            // a generic function call.
-            _.functions[name] = [_.mapped_function, params_array.length, {
-                    name: name,
-                    params: params_array,
-                    body: body
-                }];
+    var setFunction = function (fnName, fnParams, fnBody) {
+        // Option setFunction(function fox(x) { return x^2; })
+        if (typeof fnName === 'function') {
+            var jsFunction = fnName;
+            var jsName = jsFunction.name;
+            validateName(jsName);
+            if (!isReserved(jsName)) {
+                C.Math2[jsName] = jsFunction;
+                _.functions[jsName] = [, jsFunction.length];
 
-            if (!USER_FUNCTIONS.includes(name)) {
-                USER_FUNCTIONS.push(name);
-            }
-
-            return body;
-        }
-        return null;
-    };
-
-    /**
-     * Is used to set a user defined JavaScript function using the function assign operator
-     * @param {Function} js_function
-     * @returns {Boolean}
-     */
-    var setJsFunction = function (js_function) {
-        if (typeof js_function === 'function') {
-            var name = js_function.name;
-            validateName(name);
-            if (!isReserved(name)) {
-                C.Math2[name] = js_function;
-                _.functions[name] = [, js_function.length];
-
-                if (!USER_FUNCTIONS.includes(name)) {
-                    USER_FUNCTIONS.push(name);
+                if (!USER_FUNCTIONS.includes(jsName)) {
+                    USER_FUNCTIONS.push(jsName);
                 }
-
                 return true;
             }
+            return false;
+        }
+        // Option setFunction('f(x)=x^2+2'), setFunction('f(x):=x^2+2')
+        if (!fnParams) {
+            var match = Settings.FUNCTION_REGEX.exec(fnName);
+            if (!match) {
+                return false;
+            }
+            var [,fName, fParams, fBody] = match;
+            fnName = fName;
+            fnParams = fParams.split(',').map(arg => arg.trim());
+            fnBody = fBody;
+        }
+
+        fnName = fnName.trim();
+        validateName(fnName);
+
+        // Option setFunction('f(x)', ['x'], 'x^2+2') or setFunction('f(x)=x^2+2'), setFunction('f(x):=x^2+2')
+        if(!isReserved(fnName)) {
+            fnParams = fnParams || variables(_.parse(fnBody));
+            fnParams = fnParams.map((p) => p.trim());
+            // The function gets set to PARSER.mapped function which is just
+            // a generic function call.
+            _.functions[fnName] = [_.mapped_function, fnParams.length, {
+                    name: fnName,
+                    params: fnParams,
+                    body: fnBody
+                }];
+
+            if (!USER_FUNCTIONS.includes(fnName)) {
+                USER_FUNCTIONS.push(fnName);
+            }
+
+            return true;
         }
         return false;
-    }
+    };
 
     /**
      * Clears all user defined functions
@@ -772,8 +773,6 @@ var nerdamer = (function (imports) {
             delete _.functions[name];
         }
     }
-
-    var clear
 
     /**
      * Returns the minimum number in an array
@@ -12207,14 +12206,19 @@ var nerdamer = (function (imports) {
         var numer = false;
 
         // Is the user declaring a function?
-        var fndec = /^([a-z_][a-z\d\_]*)\(([a-z_,\s]*)\):=(.+)$/gi.exec(expression);
-        if(fndec)
-            return nerdamer.setFunction(fndec[1], fndec[2].split(','), fndec[3]);
+        var fnDeclaration = Settings.FUNCTION_REGEX.exec(expression);
+        if (fnDeclaration) {
+            if (!nerdamer.setFunction(expression)) {
+                throw new Error('Invalid function declaration!');
+            }
+            return nerdamer;
+        }
 
         // var variable, fn, args;
         // Convert any expression passed in to a string
-        if(expression instanceof Expression)
+        if (expression instanceof Expression) {
             expression = expression.toString();
+        }
 
         // Convert it to an array for simplicity
         if(!isArray(option)) {
@@ -12362,29 +12366,23 @@ var nerdamer = (function (imports) {
 
     /**
      *
-     * @param {String} name The name of the function
-     * @param {Array} params_array A list containing the parameter name of the functions
-     * @param {String} body The body of the function
-     * @returns {Boolean} returns true if succeeded and falls on fail
+     * @param {string | Function} fnName The name of the function
+     * @param {string[] | undefined} fnParams A list containing the parameter name of the functions
+     * @param {string | undefined} body The body of the function
+     * @returns {nerdamer} returns nerdamer if succeeded and falls on fail
      * @example nerdamer.setFunction('f',['x'], 'x^2+2');
      *          OR nerdamer.setFunction('f(x)=x^2+2');
+     *          OR function custom(x , y) {
+     *              return x + y;
+     *          }
+     *          nerdamer.setFunction(custom);
      */
-    libExports.setFunction = setFunction;
-
-    /**
-     *
-     * @param {Function} js_function The JavaScript function to be set.
-     * @returns {boolean}  Success flag.
-     * @example
-     * function custom(x , y) {
-     *     return x + y;
-     * }
-     * nerdamer.setJsFunction(custom);
-     * var x = nerdamer('custom(4, 7)').toString();
-     * console.log(x.toString())
-     * console.log(x.valueOf())
-     */
-    libExports.setJsFunction = setJsFunction;
+    libExports.setFunction = function (fnName, fnParams, fnBody) {
+        if(!setFunction(fnName, fnParams, fnBody)) {
+            throw new Error('Failed to set function!');
+        }
+        return this;
+    }
 
     /**
      * Clears all added functions

@@ -293,20 +293,19 @@ console.log(e.text());
 
 Nerdamer can also handle runtime functions. To do this use the method setFunction. 
 The runtime functions do have symbolic capabilities and support for imaginary numbers. 
-The setfunction method is used as follows:
+The setFunction method is used as follows:
 
-nerdamer.setFunction( function_name, parameter_array, function_body ) 
+Mode 1a:
+nerdamer.setFunction( functionName, functionParameters , functionBody )
 
-For Example:
-
-```javascript             
+```javascript      
 //generate some points
 var f = function(x) { return 5*x-1; }
 console.log(f(1)); //4
 console.log(f(2)); //9 - value to be found
 console.log(f(7)); //34
 
-nerdamer.setFunction('interpolate',['y0','x0','y1','x1','x'],'y0+(y1-y0)*((x-x0)/(x1-x0))')
+nerdamer.setFunction('interpolate', ['y0','x0','y1','x1','x'], 'y0+(y1-y0)*((x-x0)/(x1-x0))')
 var answer = nerdamer('interpolate(4,1,34,7,2)').evaluate();
 
 console.log(answer);
@@ -314,22 +313,36 @@ console.log(answer);
 //result: 9
 ```
 
+Mode 1b:
+nerdamer.setFunction( functionDefinition )
+
+```javascript
+nerdamer.setFunction('interpolate(y0,x0,y1,x1,x)=y0+(y1-y0)*((x-x0)/(x1-x0))')
+var answer = nerdamer('interpolate(4,1,34,7,2)').evaluate();
+
+console.log(answer);
+
+//result: 9
+```
+
+Mode 2:
 Custom functions alternatively be set in following manner.
 
 ```javascript
-nerdamer('hyp(a, b) := sqrt(a^2 + b^2) ');
+nerdamer('hyp(a, b) = sqrt(a^2 + b^2) ');
 var result = nerdamer('hyp(3, 4)').evaluate().text();
 console.log(result);
 //result: 5
 ```
 
+Mode 3:
 Custom JavaScript functions can also be set. For example
 
 ```javascript
 function hyp(a, b) {
     return Math.sqrt(a*a + b*b);
 }
-nerdamer.setJsFunction(hyp);
+nerdamer.setFunction(hyp);
 var result = nerdamer('hyp(3, 4)').evaluate().text();
 console.log(result);
 //result: 5

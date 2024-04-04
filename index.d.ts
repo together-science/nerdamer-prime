@@ -25,33 +25,34 @@ declare namespace nerdamer {
 
 	/**
 	 * Sets a function which can then be called using nerdamer.
-	 * @param function_name The function name
-	 * @param param_array The parameter array in the order in which the arguments are to be passed
-	 * @param function_body The body of the function
-	 * @example
-	 * nerdamer.setFunction('f', ['x', 'y'], 'x^2+y')
-	 * var x = nerdamer('f(4, 7)').toString()
-	 * console.log(x.toString())
-	 * nerdamer.setFunction('g', ['z', 'x', 'y'], '2*x+3*y+4*z')
-	 * x = nerdamer('g(3, 1, 2)')
-	 * console.log(x.toString())
+	 * @param fnName The function name
+	 * @param fnParams The parameter array in the order in which the arguments are to be passed
+	 * @param fnBody The body of the function
+	 * @example 1
+	 * 		nerdamer.setFunction('f', ['x', 'y'], 'x^2+y')
+	 * 		var x = nerdamer('f(4, 7)').toString()
+	 * 		console.log(x.toString())
+	 * 		nerdamer.setFunction('g', ['z', 'x', 'y'], '2*x+3*y+4*z')
+	 * 		x = nerdamer('g(3, 1, 2)')
+	 * 		console.log(x.toString())
+	 * @example 2
+	 *        nerdamer.setFunction('f(x, y) = x^2+y') //OR 'f(x, y) := x^2+y'
+	 *        var x = nerdamer('f(4, 7)').toString()
+	 *        console.log(x.toString())
+	 *        nerdamer.setFunction('g', ['z', 'x', 'y'], '2*x+3*y+4*z')
+	 *        x = nerdamer('g(3, 1, 2)')
+	 *        console.log(x.toString())
+	 * @example 3
+	 * 		function custom(x , y) {
+	 * 		    return x + y;
+	 * 		}
+	 * 		nerdamer.setFunction(custom);
+	 * 		var x = nerdamer('custom(4, 7)').toString();
+	 * 		console.log(x.toString())
+	 * 		console.log(x.valueOf())
+	 * 		OR just nerdamer.setFunction(function custom(x , y) { return x + y; });
 	 */
-	export function setFunction(function_name: string, param_array: string[], function_body: string): typeof nerdamer
-
-	/**
-	 * Sets a JavaScript function which can then be called using nerdamer.
-	 * @param {Function} js_function The JavaScript function to be set.
-	 * @returns {boolean}  Success flag.
-	 * @example
-	 * function custom(x , y) {
-	 *     return x + y;
-	 * }
-	 * nerdamer.setJsFunction(custom);
-	 * var x = nerdamer('custom(4, 7)').toString();
-	 * console.log(x.toString())
-	 * console.log(x.valueOf())
-	 */
-	export function setJsFunction(js_function: Function): boolean
+	export function setFunction(fnName: string | Function, fnParams?: string[], fnBody?: string): typeof nerdamer
 
 	/**
 	 * Returns the nerdamer core object. This object contains all the core functions of nerdamer and houses the parser.
