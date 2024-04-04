@@ -6,7 +6,7 @@ but are up to speed with everything Martin did before he archived the original r
 
 The license is unchanged, everything is free under MIT terms. 
 
-The npm js installation point is now to `npm i nerdamer-prime`.
+The npm js installation point has moved: `npm i nerdamer-prime`.
 
 Our intentions:
 
