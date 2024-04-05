@@ -1987,16 +1987,20 @@ describe('Nerdamer core', function () {
             expect(nerdamer('f(2, 3)').toString()).toEqual('7');
         })
 
-        it('should add function type 2', function() {
+        it('should add function type 2a', function() {
             nerdamer.setFunction('f(x, y)=2*x+y');
+            nerdamer.setFunction(' g(x, y) = 2 * x + y ');
 
             expect(nerdamer('f(2, 3)').toString()).toEqual('7');
+            expect(nerdamer('g(2, 3)').toString()).toEqual('7');
         })
 
-        it('should add function type 3', function() {
-            nerdamer('f(x, y)=2*x+y');
+        it('should add function type 2b', function() {
+            nerdamer.setFunction('f(x, y):=2*x+y');
+            nerdamer.setFunction(' g(x, y) := 2 * x + y ');
 
             expect(nerdamer('f(2, 3)').toString()).toEqual('7');
+            expect(nerdamer('g(2, 3)').toString()).toEqual('7');
         })
 
         it('should use JavaScript functions', function() {
@@ -2012,6 +2016,48 @@ describe('Nerdamer core', function () {
 
             expect(nerdamer('jsA(3, 5)').evaluate().text()).toEqual('8');
             expect(nerdamer('jsB(3, 5)').evaluate().text()).toEqual('243');
+        });
+    });
+
+    describe('User functions 3,', function() {
+        afterEach(function () {
+            nerdamer.clearFunctions();
+        });
+
+        it('should add function string type', function() {
+            nerdamer('a1(x, y)=2*x+y');
+            nerdamer('b1(x, y):=3*x+y');
+            nerdamer(' c1(x, y) = 2 * x + y ');
+            nerdamer(' d1(x, y) := 3 * x + y ');
+
+            expect(nerdamer('a1(2, 1)').toString()).toEqual('5');
+            expect(nerdamer('b1(2, 1)').toString()).toEqual('7');
+            expect(nerdamer('c1(2, 1)').toString()).toEqual('5');
+            expect(nerdamer('d1(2, 1)').toString()).toEqual('7');
+        })
+
+        it('should use JavaScript functions', function() {
+            function jsA(a,b) {
+                return a+b;
+            }
+            function jsB(x,y) {
+                return x**y;
+            }
+            function h(x) {
+                return 4*x;
+            }
+
+            nerdamer.setFunction(jsA);
+            nerdamer.setFunction(jsB);
+            nerdamer.setFunction(h);
+
+            expect(nerdamer('jsA(3, 5)').text()).toEqual('jsA(3,5)');
+            expect(nerdamer('jsB(3, 5)').text()).toEqual('jsB(3,5)');
+            expect(nerdamer('h(2)').text()).toEqual('h(2)');
+
+            expect(nerdamer('jsA(3, 5)').evaluate().text()).toEqual('8');
+            expect(nerdamer('jsB(3, 5)').evaluate().text()).toEqual('243');
+            expect(nerdamer('h(2)').evaluate().text()).toEqual('8');
         });
     });
 });

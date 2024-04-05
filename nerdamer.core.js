@@ -712,32 +712,43 @@ var nerdamer = (function (imports) {
      * @returns {boolean}
      */
     var setFunction = function (fnName, fnParams, fnBody) {
-        // Option setFunction(function fox(x) { return x^2; })
-        if (typeof fnName === 'function') {
-            var jsFunction = fnName;
-            var jsName = jsFunction.name;
-            validateName(jsName);
-            if (!isReserved(jsName)) {
-                C.Math2[jsName] = jsFunction;
-                _.functions[jsName] = [, jsFunction.length];
-
-                if (!USER_FUNCTIONS.includes(jsName)) {
-                    USER_FUNCTIONS.push(jsName);
-                }
-                return true;
-            }
-            return false;
-        }
-        // Option setFunction('f(x)=x^2+2'), setFunction('f(x):=x^2+2')
         if (!fnParams) {
-            var match = Settings.FUNCTION_REGEX.exec(fnName);
-            if (!match) {
+            var fnNameType = typeof fnName;
+
+            // Option setFunction('f(x)=x^2+2'), setFunction('f(x):=x^2+2')
+            if (fnNameType === 'string') {
+                if (!/:?=/.test(fnName)) {
+                    return false;
+                }
+
+                var match = Settings.FUNCTION_REGEX.exec(fnName);
+                if (!match) {
+                    return false;
+                }
+                var [, fName, fParams, fBody] = match;
+                fnName = fName;
+                fnParams = fParams.split(',').map(arg => arg.trim());
+                fnBody = fBody;
+            }
+
+            // Option setFunction(function fox(x) { return x^2; })
+            else if (fnNameType === 'function') {
+                var jsFunction = fnName;
+                var jsName = jsFunction.name;
+                validateName(jsName);
+                if (!isReserved(jsName)) {
+                    C.Math2[jsName] = jsFunction;
+                    _.functions[jsName] = [, jsFunction.length];
+
+                    if (!USER_FUNCTIONS.includes(jsName)) {
+                        USER_FUNCTIONS.push(jsName);
+                    }
+                    return true;
+                }
+                return false;
+            } else {
                 return false;
             }
-            var [,fName, fParams, fBody] = match;
-            fnName = fName;
-            fnParams = fParams.split(',').map(arg => arg.trim());
-            fnBody = fBody;
         }
 
         fnName = fnName.trim();
@@ -769,7 +780,7 @@ var nerdamer = (function (imports) {
      */
     var clearFunctions = function () {
         for(var name of USER_FUNCTIONS) {
-            // delete C.Math2[name];
+            delete C.Math2[name];
             delete _.functions[name];
         }
     }
@@ -2714,6 +2725,7 @@ var nerdamer = (function (imports) {
 
             //Enable getting of expressions using the % so for example %1 should get the first expression
             if(typeof first_arg === 'string') {
+                //TODO Replace substr with slice, and test it
                 expression = (first_arg.charAt(0) === '%') ? Expression.getExpression(first_arg.substr(1)).text() : first_arg;
             }
             else if(first_arg instanceof Expression || isSymbol(first_arg)) {
@@ -6173,6 +6185,7 @@ var nerdamer = (function (imports) {
 //            }
 //            else {
             if(!fn) {
+                // Call JS function
                 //Remember assumption 1. No function defined so it MUST be numeric in nature
                 fn = findFunction(fn_name);
                 if(Settings.PARSE2NUMBER && numericArgs)
@@ -6181,6 +6194,7 @@ var nerdamer = (function (imports) {
                     retval = _.symfunction(fn_name, args);
             }
             else {
+                // Call nerdamer function
                 //Remember assumption 2. The function is defined so it MUST handle all aspects including numeric values
                 retval = fn.apply(fn_settings[2], args);
             }
@@ -12205,12 +12219,8 @@ var nerdamer = (function (imports) {
         // Initiate the numer flag
         var numer = false;
 
-        // Is the user declaring a function?
-        var fnDeclaration = Settings.FUNCTION_REGEX.exec(expression);
-        if (fnDeclaration) {
-            if (!nerdamer.setFunction(expression)) {
-                throw new Error('Invalid function declaration!');
-            }
+        // Is the user declaring a function? Try to add user function
+        if (setFunction(expression)) {
             return nerdamer;
         }
 
@@ -12462,6 +12472,33 @@ var nerdamer = (function (imports) {
         }
         return result;
     };
+
+    /**
+     *
+     * @param {Boolean} asObject
+     * @param {String|String[]} option
+     * @returns {Array}
+     */
+    libExports.functions = function (asObject, option) {
+        var result = asObject ? {} : [];
+        for (var i = 0; i < USER_FUNCTIONS.length; i++) {
+            var params, body;
+            var fnName = USER_FUNCTIONS[i];
+            var fnDef = _.functions[fnName][2];
+            if(fnDef) {
+                ({params, body} = fnDef);
+            } else {
+                var fnString = C.Math2[fnName].toString();
+                ([,params] = /\((.*?)\)/.exec(fnString));
+                params = params.split(',').map(x => x.trim());
+                body = '{JavaScript}';
+            }
+            var fn = fnName + '(' + params.join(', ') + ')=' + body;
+            var eq = text(fn, option);
+            asObject ? result[i + 1] = eq : result.push(eq);
+        }
+        return result;
+    }
 
     //the method for registering modules
     libExports.register = function (obj) {
