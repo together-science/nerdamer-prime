@@ -19,5 +19,7 @@ describe('Known problems:', function () {
         //     .toEqual('0.100037509962788179');
     });
     it('Solve', function () { 
+        // solve x^3-1,x
+        // solve x^3-2x^2+8x-12,x
     });
 });

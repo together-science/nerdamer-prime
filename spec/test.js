@@ -38,8 +38,11 @@ console.global = {tsDebugChannels: {notimeout: true}};
 let x;
 
 try {
-    x=nerdamer('ilt(1/(s^3+4s^2+s),s,t)').text();
+    // x=nerdamer('ilt(1/(s^3+4s^2+s),s,t)').text();
     // x=nerdamer('ilt(1/(s^2+2s+1),s,t)').toString()
+    // x = nerdamer("solve(x^3-1=0,x)").text()
+    x = nerdamer("arg(1/i)").text();
+    // x = nerdamer("simplify(-0.9413895002348294*i+1.210178148039533+2.044319483931663*(-0.5+0.8660254037844386*i)^(-1))").evaluate().text()
 } catch (error) {
     console.log("error "+error)
 }

@@ -3981,8 +3981,15 @@ var nerdamer = (function (imports) {
          * @returns {Symbol}
          */
         imagpart: function () {
-            if(this.group === S && this.isImaginary())
-                return new Symbol(this.multiplier);
+            if(this.group === S && this.isImaginary()) {
+                let x = this;
+                if (this.power.isNegative()) {
+                    x = this.clone();
+                    x.power.negate();
+                    x.multiplier.negate()
+                }
+                return new Symbol(x.multiplier);
+            }
             if(this.isComposite()) {
                 var retval = new Symbol(0);
                 this.each(function (x) {
@@ -8072,15 +8079,35 @@ var nerdamer = (function (imports) {
             var re = symbol.realpart();
             var im = symbol.imagpart();
             if(re.isConstant() && im.isConstant()) {
-                if(im.equals(0) && re.equals(-1)) {
-                    return _.parse('pi');
+                // right angles
+                if(im.equals(0) && re.equals(1)) {
+                    return _.parse('0');
                 }
                 else if(im.equals(1) && re.equals(0)) {
                     return _.parse('pi/2');
                 }
+                if(im.equals(0) && re.equals(-1)) {
+                    return _.parse('pi');
+                }
+                else if(im.equals(-1) && re.equals(0)) {
+                    return _.parse('-pi/2');
+                }
+
+                // 45 degrees
                 else if(im.equals(1) && re.equals(1)) {
                     return _.parse('pi/4');
                 }
+                else if(im.equals(1) && re.equals(-1)) {
+                    return _.parse('pi*3/4');
+                }
+                else if(im.equals(-1) && re.equals(1)) {
+                    return _.parse('-pi/4');
+                }
+                else if(im.equals(-1) && re.equals(-1)) {
+                    return _.parse('-pi*3/4');
+                }
+                
+                // all the rest
                 return new Symbol(Math.atan2(im, re));
             }
             return _.symfunction('atan2', [im, re]);
