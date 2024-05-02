@@ -177,6 +177,10 @@ describe('Solve', function () {
         expect(nerdamer.solve('(x^2-x-6)*e^(x+4)=0','x').toString()).toEqual('[-2,3]');
         expect(nerdamer.solve('(x^2-x-6)*e^(x^2)=0','x').toString()).toEqual('[-2,3]');
         expect(nerdamer.solve('(x^2-x-6)*e^(x^2)=0','x').toString()).toEqual('[-2,3]');
+
+        // issue 52
+        expect(nerdamer.solveEquations(['x*(b+1)+y=1', 'x+y=6'], ["x","y"]).toString())
+            .toEqual('x,((-(1+b)^(-1)+1)^(-1)*(1+b)^(-1)+1)*(1+b)^(-1)-6*(-(1+b)^(-1)+1)^(-1)*(1+b)^(-1),y,-(-(1+b)^(-1)+1)^(-1)*(1+b)^(-1)+6*(-(1+b)^(-1)+1)^(-1)');
     });
 });
 

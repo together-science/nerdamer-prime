@@ -768,8 +768,7 @@ if((typeof module) !== 'undefined') {
                             //variable is found then the remainder is the coefficient.
                             if(term.contains(v)) {
                                 var tparts = explode(remove(e, k), v);
-                                // remove(e,k);
-                                // var tparts = explode(eqns[i], v);
+                                k--; // issue #52: decrement k to hit this spot in the array e again next loop
                                 m.set(i, j, _.add(m.get(i, j), tparts[0]));
                             }
                         }
@@ -846,6 +845,29 @@ if((typeof module) !== 'undefined') {
                 _.parse(`(${x})(${w})`),
                 _.parse(`(${x})(${w})^2`)
             ];
+
+
+            // https://www.wikihow.com/Solve-a-Cubic-Equation method 3
+            // const delta0 = `(${b})^2-(3*(${a})(${c}))`;
+            // _.parse(delta0);
+            // const delta1 = `2(${b})^3-(9*(${a})(${b})(${c}))+27((${a})^2)(${d})`;
+            // _.parse(delta1);
+            // // const delta = `(${delta1})^2-(4*(${delta0})^3)/(-27(${a})^2)`;
+
+            // const C = `((sqrt((${delta1})^2-(4*(${delta0})^3))+(${delta1}))/2)^(1/3)`;
+            // _.parse(C);
+            // const u = `(-1+sqrt(-3))/2`
+            // _.parse(u);
+
+            // const result = []
+            // for (let n = 1; n <=3; n++) {
+            //     let x = `-((${b})+ (${u})^${n}*(${C})+(${delta0})/((${u})^${n}*(${C})))/(3(${a}))`;
+            //     console.log(x);
+            //     console.log(x.substring(168));
+            //     result.push(_.parse(x));
+            // }
+            
+            // return result.map((x)=>_.parse(x))
         },
         /**
          * The quartic equation

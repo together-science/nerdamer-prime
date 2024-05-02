@@ -3072,6 +3072,9 @@ describe('misc and regression tests', function() {
         // issue #39
         expect(nerdamer("3.535401^3.535401").evaluate().text()).toEqual('86.8861711133581315310');
         expect(nerdamer("4.5354^3.535401").evaluate().text()).toEqual('209.603932373756644162');
+
+        // issue 53
+        expect(nerdamer("arg(1/i)").text()).toEqual('-0.5*pi');
     });
 
     it('should use JavaScript functions', function() {
