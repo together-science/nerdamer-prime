@@ -251,11 +251,11 @@ if((typeof module) !== 'undefined') {
                 //exit right away if we already have the answer
                 //check the LHS
                 if(this.symbol.LHS.isConstant() && this.symbol.RHS.equals(x))
-                    return new core.Expression(this.symbol.LHS);
+                    return [new core.Expression(this.symbol.LHS)];
 
                 //check the RHS
                 if(this.symbol.RHS.isConstant() && this.symbol.LHS.equals(x))
-                    return new core.Expression(this.symbol.RHS);
+                    return [new core.Expression(this.symbol.RHS)];
             }
 
             const result = solve(symbol, x).map(function (term) {

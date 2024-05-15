@@ -37,16 +37,28 @@ console.global = {tsDebugChannels: {notimeout: true}};
 
 let x;
 
+const solveConversion = (
+    currentUnit,
+    currentUnitValue,
+    targetUnit,
+    conversionString,
+  ) => {
+    const conversion = nerdamer(conversionString)
+    let convertedExpression = conversion
+      .evaluate({ [currentUnit]: currentUnitValue })
+      .solveFor(targetUnit)
+    const convertedValue = convertedExpression[0].text()
+    return Number(convertedValue)
+  }
+
+
+
 try {
-    // x=nerdamer('ilt(1/(s^3+4s^2+s),s,t)').text();
-    // x=nerdamer('ilt(1/(s^2+2s+1),s,t)').toString()
-    // x = nerdamer("solve(x^3-1=0,x)").text()
-    x = nerdamer("arg(1/i)").text();
-    // x = nerdamer("simplify(-0.9413895002348294*i+1.210178148039533+2.044319483931663*(-0.5+0.8660254037844386*i)^(-1))").evaluate().text()
+    x = solveConversion('x', 10, 'y', 'x = 2 * y');
+    console.log(x);
 } catch (error) {
     console.log("error "+error)
 }
-console.log(x);
 
 // console.log(text);
 console.log("done");

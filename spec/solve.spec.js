@@ -181,6 +181,9 @@ describe('Solve', function () {
         // issue 52
         expect(nerdamer.solveEquations(['x*(b+1)+y=1', 'x+y=6'], ["x","y"]).toString())
             .toEqual('x,((-(1+b)^(-1)+1)^(-1)*(1+b)^(-1)+1)*(1+b)^(-1)-6*(-(1+b)^(-1)+1)^(-1)*(1+b)^(-1),y,-(-(1+b)^(-1)+1)^(-1)*(1+b)^(-1)+6*(-(1+b)^(-1)+1)^(-1)');
+    
+        // issue #54
+        expect(nerdamer('x=y').solveFor('x').map(s=>s.text()).join(",")).toEqual('y');
     });
 });
 
