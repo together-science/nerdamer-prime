@@ -12243,53 +12243,58 @@ var nerdamer = (function (imports) {
      * @returns {Expression}
      */
     var libExports = function (expression, subs, option, location) {
-        // Initiate the numer flag
-        var numer = false;
+        armTimeout();
+        try {
+            // Initiate the numer flag
+            var numer = false;
 
-        // Is the user declaring a function? Try to add user function
-        if (setFunction(expression)) {
-            return nerdamer;
-        }
-
-        // var variable, fn, args;
-        // Convert any expression passed in to a string
-        if (expression instanceof Expression) {
-            expression = expression.toString();
-        }
-
-        // Convert it to an array for simplicity
-        if(!isArray(option)) {
-            option = typeof option === 'undefined' ? [] : [option];
-        }
-
-        option.forEach(function (o) {
-            // Turn on the numer flag if requested
-            if(o === 'numer') {
-                numer = true;
-                return;
+            // Is the user declaring a function? Try to add user function
+            if (setFunction(expression)) {
+                return nerdamer;
             }
-            // Wrap it in a function if requested. This only holds true for
-            // functions that take a single argument which is the expression
-            var f = _.functions[option];
-            // If there's a function and it takes a single argument, then wrap
-            // the expression in it
-            if(f && f[1] === 1) {
-                expression = `${o}(${expression})`;
+
+            // var variable, fn, args;
+            // Convert any expression passed in to a string
+            if (expression instanceof Expression) {
+                expression = expression.toString();
             }
-        });
 
-        var e = block('PARSE2NUMBER', function () {
-            return _.parse(expression, subs);
-        }, numer || Settings.PARSE2NUMBER);
+            // Convert it to an array for simplicity
+            if(!isArray(option)) {
+                option = typeof option === 'undefined' ? [] : [option];
+            }
 
-        if(location) {
-            EXPRESSIONS[location - 1] = e;
+            option.forEach(function (o) {
+                // Turn on the numer flag if requested
+                if(o === 'numer') {
+                    numer = true;
+                    return;
+                }
+                // Wrap it in a function if requested. This only holds true for
+                // functions that take a single argument which is the expression
+                var f = _.functions[option];
+                // If there's a function and it takes a single argument, then wrap
+                // the expression in it
+                if(f && f[1] === 1) {
+                    expression = `${o}(${expression})`;
+                }
+            });
+
+            var e = block('PARSE2NUMBER', function () {
+                return _.parse(expression, subs);
+            }, numer || Settings.PARSE2NUMBER);
+
+            if(location) {
+                EXPRESSIONS[location - 1] = e;
+            }
+            else {
+                EXPRESSIONS.push(e);
+            }
+
+            return new Expression(e);
+        } finally {
+            disarmTimeout();
         }
-        else {
-            EXPRESSIONS.push(e);
-        }
-
-        return new Expression(e);
     };
     /**
      * Converts expression into rpn form
