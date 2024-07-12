@@ -35,27 +35,16 @@ console.global = {tsDebugChannels: {notimeout: true}};
 // x = nerdamer("3.535401^3.5").evaluate().text();
 // console.log(x);
 
+let text;
 let x;
 
-const solveConversion = (
-    currentUnit,
-    currentUnitValue,
-    targetUnit,
-    conversionString,
-  ) => {
-    const conversion = nerdamer(conversionString)
-    let convertedExpression = conversion
-      .evaluate({ [currentUnit]: currentUnitValue })
-      .solveFor(targetUnit)
-    const convertedValue = convertedExpression[0].text()
-    return Number(convertedValue)
-  }
-
-
-
 try {
-    x = solveConversion('x', 10, 'y', 'x = 2 * y');
-    console.log(x);
+    // x = nerdamer("(-sqrt(y^2)+4)^2");
+    x= nerdamer("(1-y)^2");
+    const y=x.simplify();
+    console.log(y.text());
+    text = x.divide(y).simplify().text();
+    console.log(text);
 } catch (error) {
     console.log("error "+error)
 }

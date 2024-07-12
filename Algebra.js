@@ -4826,13 +4826,13 @@ if((typeof module) !== 'undefined') {
                         r = _.add(r, s);
                     });
                     simplified = r;
-                    //place back original multiplier and return
-                    simplified = __.Simplify.unstrip(sym_array, simplified);
                     //mult on back the multiplier we saved here
                     simplified = _.multiply(simplified, new Symbol(m));
                     if (simplified.multiplier.equals(-1)) {
                         simplified.distributeMultiplier();
                     }
+                    //place back original multiplier and return
+                    simplified = __.Simplify.unstrip(sym_array, simplified);
                     return simplified;
                 }  
 
