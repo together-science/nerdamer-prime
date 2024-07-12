@@ -177,6 +177,7 @@ describe('Solve', function () {
         expect(nerdamer.solve('(x^2-x-6)*e^(x+4)=0','x').toString()).toEqual('[-2,3]');
         expect(nerdamer.solve('(x^2-x-6)*e^(x^2)=0','x').toString()).toEqual('[-2,3]');
         expect(nerdamer.solve('(x^2-x-6)*e^(x^2)=0','x').toString()).toEqual('[-2,3]');
+        expect(nerdamer("y=-y+2+8*a").solveFor("y").toString()).toEqual('1+4*a');
 
         // issue 52
         expect(nerdamer.solveEquations(['x*(b+1)+y=1', 'x+y=6'], ["x","y"]).toString())
