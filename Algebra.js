@@ -4262,8 +4262,10 @@ if((typeof module) !== 'undefined') {
             },
             unstrip: function (cp, symbol) {
                 var c = cp[0];
+                let s = new Symbol(symbol.sign());
+                symbol = symbol.abs();
                 var p = cp[1];
-                return _.multiply(c, _.pow(symbol, p));
+                return _.multiply(s, _.multiply(c, _.pow(symbol, p)));
             },
             complexSimp: function (num, den) {
                 var ac, bd, bc, ad, cd, r1, r2, i1, i2;

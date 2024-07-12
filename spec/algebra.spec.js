@@ -309,6 +309,9 @@ describe('Algebra', function () {
         // simplify nested fractions correctly
         expect(nerdamer("((1/b)/((a/b)+(1/b)))").simplify().text()).toEqual('(1+a)^(-1)')
         expect(nerdamer("((a/b)+(1/b))").simplify().text()).toEqual('(1+a)*b^(-1)')
+        // simplify must preserve signs of certain terms
+        expect(nerdamer("(1-y)^2").simplify().text()).toBe('(-y+1)^2');
+        expect(nerdamer("48-48*(x/100)").simplify().text()).toBe('0.48*(-x+100)');
     });
     it('simplify should be pure', function() {
         const a = nerdamer('100*2^((1/2)*m)');

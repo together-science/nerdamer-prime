@@ -40,7 +40,9 @@ let x;
 
 try {
     // x = nerdamer("(-sqrt(y^2)+4)^2");
-    x= nerdamer("(1-y)^2");
+    // x= nerdamer("-12*(-100+x)").multiply(nerdamer("1/25"));
+    // console.log(x.text());
+    x= nerdamer("48-48*(x/100)");
     const y=x.simplify();
     console.log(y.text());
     text = x.divide(y).simplify().text();
