@@ -9557,7 +9557,7 @@ var nerdamer = (function (imports) {
                         }
                     }
                     else {
-                        result = b.clone().toUnitMultiplier();
+                        result = b.clone().toUnitMultiplier(true);
                     }
                 }
 

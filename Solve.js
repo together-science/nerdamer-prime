@@ -258,7 +258,8 @@ if((typeof module) !== 'undefined') {
                     return [new core.Expression(this.symbol.RHS)];
             }
 
-            const result = solve(symbol, x).map(function (term) {
+            const terms = solve(symbol, x);
+            const result = terms.map(function (term) {
                 term = core.Algebra.Simplify.simplify(_.parse(term));
                 const expr = new core.Expression(term);
                 return expr;
@@ -1818,8 +1819,9 @@ if((typeof module) !== 'undefined') {
                     var factored = core.Algebra.Factor.factorInner(eq.clone());
                     let test = _.expand(_.parse(factored));
                     let test2 = _.expand(eq.clone());
+                    let diff = _.subtract(test, test2);
                     let validFactorization = true;
-                    if (!test.equals(test2)) {
+                    if (!diff.equals(0)) {
                         // console.log("factored: "+test);
                         // console.log("original: "+test2);
                         validFactorization = false;

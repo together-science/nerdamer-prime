@@ -39,10 +39,15 @@ let text;
 let x;
 
 try {
-    // x = nerdamer("(-sqrt(y^2)+4)^2");
-    // x= nerdamer("-12*(-100+x)").multiply(nerdamer("1/25"));
+    // x = nerdamer("(-1/2)*(-2-8*a)");
+    // x=x.simplify();
     // console.log(x.text());
-    x= nerdamer("48-48*(x/100)");
+    // return;
+    x= nerdamer("y=-y+2+8*a")
+    x = x.solveFor("y");
+    console.log(x[0].text());
+    console.log(x[0].simplify().text());
+    return;
     const y=x.simplify();
     console.log(y.text());
     text = x.divide(y).simplify().text();
