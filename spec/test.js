@@ -44,7 +44,7 @@ try {
     // console.log(x.text());
     // return;
     // x= nerdamer("-sqrt(8/12)")
-    x= nerdamer("-sqrt(12/5)").simplify().evaluate()
+    x= nerdamer("sqrt(-abs(y))").evaluate()
     console.log(x.text());
    
     

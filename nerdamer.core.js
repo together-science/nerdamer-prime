@@ -7743,6 +7743,8 @@ var nerdamer = (function (imports) {
             if(!isSymbol(symbol)) {
                 symbol = _.parse(symbol);
             }
+
+            const original = _.symfunction('sqrt', [symbol]);
             
             // Exit early for EX
             if(symbol.group === EX) {
@@ -7886,8 +7888,10 @@ var nerdamer = (function (imports) {
                     retval = _.multiply(img, retval);
             }
 
-            if(is_negative && Settings.PARSE2NUMBER)
+            if(is_negative && Settings.PARSE2NUMBER &&
+                retval.text() !== original.text()) {
                 return _.parse(retval);
+            }
 
             return retval;
         }
