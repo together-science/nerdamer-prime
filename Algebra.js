@@ -2280,7 +2280,7 @@ if((typeof module) !== 'undefined') {
                 let originalFactors = factors?[...factors]:null;
                 try {
                     let retval = __.Factor.factorInner(symbol, factors);
-                    retval.pushMinus();
+                    retval = retval.pushMinus();
                     return retval;
                 } catch (error) {
                     if (factors) {
@@ -4769,11 +4769,14 @@ if((typeof module) !== 'undefined') {
             },
             simplify: function (symbol) {
                 let retval = __.Simplify._simplify(symbol);
-                retval.pushMinus();
+                retval = retval.pushMinus();
                 retval = _.parse(retval);
                 return retval;
             },
             _simplify: function (symbol) {
+                // debuglevel(1);
+                // debugout("input to _simplify: "+symbol.text());
+                // try {
                 //remove the multiplier to make calculation easier;
                 var sym_array = __.Simplify.strip(symbol.clone());
                 symbol = sym_array.pop();
@@ -4783,6 +4786,7 @@ if((typeof module) !== 'undefined') {
                 if(symbol.isConstant() || symbol.group === core.groups.S) {
                     sym_array.push(symbol);
                     var ret = __.Simplify.unstrip(sym_array, symbol);
+                    // debugout("final result: "+ret.text());
                     return ret;
                 }
                 // console.log("array: "+sym_array);
@@ -4834,13 +4838,17 @@ if((typeof module) !== 'undefined') {
                     }
                     //place back original multiplier and return
                     simplified = __.Simplify.unstrip(sym_array, simplified);
+                    // debugout("final result: "+simplified.text());
                     return simplified;
                 }  
 
                 //place back original multiplier and return
                 simplified = __.Simplify.unstrip(sym_array, simplified);
-                // console.log("final result: "+simplified.text());
+                // debugout("final result: "+simplified.text());
                 return simplified;
+                // } finally {
+                //     // debuglevel(-1);
+                // }
             }
         },
 

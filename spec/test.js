@@ -43,10 +43,11 @@ try {
     // x=x.simplify();
     // console.log(x.text());
     // return;
-    x= nerdamer("y=-y+2+8*a")
-    x = x.solveFor("y");
-    console.log(x[0].text());
-    console.log(x[0].simplify().text());
+    // x= nerdamer("-sqrt(8/12)")
+    x= nerdamer("-sqrt(12/5)").simplify().evaluate()
+    console.log(x.text());
+   
+    
     return;
     const y=x.simplify();
     console.log(y.text());

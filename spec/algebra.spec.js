@@ -312,6 +312,7 @@ describe('Algebra', function () {
         // simplify must preserve signs of certain terms
         expect(nerdamer("(1-y)^2").simplify().text()).toBe('(-y+1)^2');
         expect(nerdamer("48-48*(x/100)").simplify().text()).toBe('0.48*(-x+100)');
+        expect(nerdamer("-sqrt(12/5)").simplify().evaluate().text()).toBe("-1.549193338482966855");
     });
     it('simplify should be pure', function() {
         const a = nerdamer('100*2^((1/2)*m)');
