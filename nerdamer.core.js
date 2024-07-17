@@ -3318,6 +3318,8 @@ var nerdamer = (function (imports) {
      * @returns {Symbol}
      */
     function Symbol(obj) {
+        checkTimeout();
+
         var isInfinity = obj === 'Infinity';
         // This enables the class to be instantiated without the new operator
         if(!(this instanceof Symbol)) {

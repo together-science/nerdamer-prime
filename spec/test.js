@@ -44,15 +44,9 @@ try {
     // console.log(x.text());
     // return;
     // x= nerdamer("-sqrt(8/12)")
-    x= nerdamer("sqrt(-abs(y))").evaluate()
+    x= nerdamer("11^p=10^j")
+    x= x.solveFor("p")[0]
     console.log(x.text());
-   
-    
-    return;
-    const y=x.simplify();
-    console.log(y.text());
-    text = x.divide(y).simplify().text();
-    console.log(text);
 } catch (error) {
     console.log("error "+error)
 }
