@@ -434,6 +434,7 @@ if((typeof module) !== 'undefined') {
                         retval = sorted[Math.floor(l / 2)];
                 }
                 catch(e) {
+                    if (e.message === "timeout") throw error;
                     retval = _.symfunction('median', args);
                 }
                 return retval;

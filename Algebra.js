@@ -830,6 +830,7 @@ if((typeof module) !== 'undefined') {
             }
         }
         catch(e) {
+            if (e.message === "timeout") throw error;
         }
         ;
     };
@@ -2160,6 +2161,8 @@ if((typeof module) !== 'undefined') {
                     }
                 }
                 catch(e) {
+                    if (e.message === "timeout") throw error;
+
                     ;
                 }
 
@@ -2270,6 +2273,7 @@ if((typeof module) !== 'undefined') {
                     }
                 }
                 catch(e) {
+                    if (e.message === "timeout") throw error;
                 }
                 ;
 
@@ -2283,6 +2287,8 @@ if((typeof module) !== 'undefined') {
                     retval = retval.pushMinus();
                     return retval;
                 } catch (error) {
+                    if (error.message === "timeout") throw error;
+
                     if (factors) {
                         factors.splice(0, factors.length, ...originalFactors);
                     }
@@ -2911,6 +2917,7 @@ if((typeof module) !== 'undefined') {
                     return poly.toSymbol();
                 }
                 catch(e) {
+                    if (e.message === "timeout") throw error;
                     return untouched;
                 }
             },
@@ -3134,6 +3141,7 @@ if((typeof module) !== 'undefined') {
                     }
                 }
                 catch(e) {
+                    if (e.message === "timeout") throw error;
                     ;
                 }
 
@@ -3932,6 +3940,7 @@ if((typeof module) !== 'undefined') {
                 return [quot, rem];
             }
             catch(e) {
+                if (e.message === "timeout") throw error;
                 return fail;
             }
 
@@ -4108,6 +4117,7 @@ if((typeof module) !== 'undefined') {
                     return retval;
                 }
                 catch(e) {
+                    if (e.message === "timeout") throw error;
                     //try to group symbols
                     try {
                         if(symbol.isComposite()) {
@@ -4131,6 +4141,7 @@ if((typeof module) !== 'undefined') {
                         }
                     }
                     catch(e2) {
+                        if (e2.message === "timeout") throw error;
                     }
                     ;
                 }
@@ -4708,6 +4719,7 @@ if((typeof module) !== 'undefined') {
                     // debugout("");
                     return retval;
                 } catch (error) {
+                    if (error.message === "timeout") throw error;
                     symbol = original;
                     debugout("crash in sqrtsimp, symbol: "+symbol.text()+" "+error.msg);
                     return symbol;
@@ -4876,6 +4888,7 @@ if((typeof module) !== 'undefined') {
             }
             return retval;
         } catch (error) {
+            if (error.message === "timeout") throw error;
             return this;
         } finally {
             core.Utils.disarmTimeout();
@@ -5008,6 +5021,7 @@ if((typeof module) !== 'undefined') {
                         return sq.f;
                     }
                     catch(e) {
+                        if (e.message === "timeout") throw error;
                         return x;
                     }
                 };

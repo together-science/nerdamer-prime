@@ -266,6 +266,8 @@ if((typeof module) !== 'undefined') {
             });
             return result;
         } catch (error) {
+            if (error.message === "timeout") throw error;
+
             console.log(error);
         } finally {
             core.Utils.disarmTimeout();
@@ -622,6 +624,7 @@ if((typeof module) !== 'undefined') {
                         return __.solveNonLinearSystem(eqns);
                     }
                     catch(e) {
+                        if (e.message === "timeout") throw error;
                         if(e instanceof core.exceptions.DivisionByZero) {
                             return __.solveSystemBySubstitution(eqns);
                         }
@@ -1469,6 +1472,7 @@ if((typeof module) !== 'undefined') {
                 add_to_result(new Symbol(0));
             }
             catch(e) {
+                if (e.message === "timeout") throw error;
                 // Do nothing;
             }
 
@@ -1805,6 +1809,7 @@ if((typeof module) !== 'undefined') {
                     // console.log("solutions after filter: "+solutions);
                 }
                 catch(e) {
+                    if (e.message === "timeout") throw error;
                     console.log(e);
                 }
             }
@@ -1885,6 +1890,7 @@ if((typeof module) !== 'undefined') {
 
                 }
                 catch(e) { /*something went wrong. EXITING*/
+                    if (e.message === "timeout") throw error;
                     ;
                 }
             }
@@ -1935,6 +1941,7 @@ if((typeof module) !== 'undefined') {
                     }
                 }
                 catch(error) {
+                    if (error.message === "timeout") throw error;
                     //Let's try this another way
                     try {
                         //1. if the symbol is in the form a*b*c*... then the solution is zero if 
@@ -1955,6 +1962,7 @@ if((typeof module) !== 'undefined') {
                         }
                     }
                     catch(error) {
+                        if (error.message === "timeout") throw error;
                         console.log("error "+error);
                     }
                 }
@@ -1983,6 +1991,7 @@ if((typeof module) !== 'undefined') {
                     return true;
                 }
                 catch(e) {
+                    if (e.message === "timeout") throw error;
                     return false;
                 }
             });
