@@ -4293,7 +4293,11 @@ if((typeof module) !== 'undefined') {
                 return _.divide(_.add(_.add(ac, bd), _.multiply(_.subtract(bc, ad), Symbol.imaginary())), cd);
             },
             trigSimp: function (symbol) {
-                if(symbol.containsFunction(['cos', 'sin', 'tan'])) {
+                let workDone = true;
+                let iterations = 0;
+                while (workDone && symbol.containsFunction(['cos', 'sin', 'tan'])) {
+                    iterations++;
+                    workDone = false;
                     symbol = symbol.clone();
                     //remove power and multiplier
                     var sym_array = __.Simplify.strip(symbol);
@@ -4312,33 +4316,108 @@ if((typeof module) !== 'undefined') {
 
                         //put back the power and multiplier and return
                         retval = _.pow(_.multiply(new Symbol(symbol.multiplier), sym), new Symbol(symbol.power));
-                    }
-                    else if(symbol.group === CB) {
-
+                        workDone = retval.text() !== symbol.text();
+                    } else if(symbol.group === CB) {
                         var n = symbol.getNum();
                         var d = symbol.getDenom();
 
-                        //try for tangent
+                        //try for tangent or fractions with tangent
                         if(n.fname === 'sin' && d.fname === 'cos' && n.args[0].equals(d.args[0]) && n.power.equals(d.power)) {
-                            retval = _.parse(core.Utils.format('({0})*({1})*tan({2})^({3})', d.multiplier, n.multiplier, n.args[0], n.power));
-                        }
-                        if(retval.group === CB) {
+                            retval = _.parse(core.Utils.format('(({1})/({0}))*tan({2})^({3})', d.multiplier, n.multiplier, n.args[0], n.power));
+                            workDone = true;
+                        } else if(n.fname === 'tan' && d.fname === 'sin' && n.args[0].equals(d.args[0]) && n.power.equals(d.power)) {
+                            retval = _.parse(core.Utils.format('(({1})/({0}))*cos({2})^(-({3}))', d.multiplier, n.multiplier, n.args[0], n.power));
+                            workDone = true;
+                        } else {
                             var t = new Symbol(1);
                             retval.each(function (x) {
                                 if(x.fname === 'tan') {
                                     x = _.parse(core.Utils.format('({0})*sin({1})^({2})/cos({1})^({2})', x.multiplier, __.Simplify._simplify(x.args[0]), x.power));
+                                    workDone = true;
+                                } 
+                                else {
+                                    if (x.containsFunction(['cos', 'sin', 'tan'])) {
+                                        //rewrite the function
+                                        const y = __.Simplify.trigSimp(x);
+                                        if (!x.equals(y)) {
+                                            x = y;
+                                            workDone = true;
+                                        }
+                                    }
                                 }
                                 t = _.multiply(t, x);
                             });
                             retval = t;
                         }
                     }
+                    else if((symbol.fname === 'cos' || symbol.fname === 'sin') &&
+                            (symbol.args[0].group == CP)) {
+                        
+                            // capture cos(x-pi/2) => sin(x) and sin(x+pi/2) = cos(x)
+                            // but generalized
+                            // test the sum for presence of a "n*pi/2" summands
+                            let count = 0;
+                            let newArg = new Symbol(0);
+                            let piOverTwo = _.parse('pi/2');
+                            symbol.args[0].each((x)=>{
+                                let c = _.divide(x.clone(), piOverTwo.clone());
+                                c = __.Simplify._simplify(c);
+                                c = core.Utils.evaluate(c);
+                                if (isInt(c)) {
+                                    count += c.multiplier.num.value;
+                                } else {
+                                    newArg = _.add(newArg, x);
+                                }
+                            });
+                            if (count) {
+                                count = count % 4;
+                                count += (count < 0)?4:0;
+                                count += (symbol.fname === 'cos')?1:0;
+                                // console.log(count);
+                                // debugger;
+                                const results = [
+                                    "sin({0})",
+                                    "cos({0})",
+                                    "-sin({0})",
+                                    "-cos({0})",
+                                ];
+                                const s = core.Utils.format(results[count], newArg);
+                                retval = _.parse(s);
+                                workDone = true;
+                            }
+                        
+                    } else if((symbol.fname === 'cos' || symbol.fname === 'sin') &&
+                            (symbol.args[0].multiplier.sign() == -1)) {
+                        // remove the minus from the argument
+                        const newArg = symbol.args[0].clone().negate();
+                        // make the new trig call
+                        let s = core.Utils.format(symbol.fname+"({0})", newArg);
+                        if (symbol.fname === 'sin') {
+                            s = "-"+s;
+                        }
+                        retval = _.parse(s);
+                        // continue with the simpler form
+                        workDone = true;
+                    } if(symbol.fname === 'sin' &&
+                        symbol.args[0].multiplier.equals(2) &&
+                        !symbol.args[0].equals(2)) {
+                        // remove the minus from the argument
+                        const newArg = symbol.args[0].clone().toUnitMultiplier();
+                        // make the new trig call
+                        let s = core.Utils.format("2sin({0})cos({0})", newArg);
+                        retval = _.parse(s);
+                        // continue with the simpler form
+                        workDone = true;
+                    }
+
 
 
                     retval = __.Simplify.unstrip(sym_array, retval).distributeMultiplier();
-
                     symbol = retval;
-                }
+                    if (iterations > 10) {
+                        debugger;
+                    }
+                };
 
                 return symbol;
             },

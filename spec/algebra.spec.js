@@ -336,6 +336,44 @@ describe('Algebra', function () {
     it('should simplify equations', function() {
         expect(nerdamer('cos(x)^2+sin(x)^2+cos(x)-tan(x)-1+sin(x^2)^2+cos(x^2)^2=3+b+4').simplify().toString()).toEqual('-tan(x)+1+cos(x)=7+b');
     });
+
+    it('should simplify trig identities', function() {
+        expect(nerdamer('simplify(cos(3/2*pi*x+pi)-sin(3/2*pi*x+3/2*pi))').toString()).toEqual('0')
+
+        expect(nerdamer('simplify(sin(-x)+sin(x))').toString()).toEqual('0')
+        expect(nerdamer('simplify(cos(-x)-cos(x))').toString()).toEqual('0')
+        expect(nerdamer('simplify(sin(pi-x)-sin(x))').toString()).toEqual('0')
+        expect(nerdamer('simplify(cos(pi-x)+cos(x))').toString()).toEqual('0')
+        expect(nerdamer('simplify(sin(pi/2-x)-cos(x))').toString()).toEqual('0')
+        expect(nerdamer('simplify(cos(pi/2-x)-sin(x))').toString()).toEqual('0')
+
+        expect(nerdamer('simplify(sin(0)-1/2*sqrt(0))').toString()).toEqual('0')
+        expect(nerdamer('simplify(sin(pi/6)-1/2*sqrt(1))').toString()).toEqual('0')
+        expect(nerdamer('simplify(sin(pi/4)-1/2*sqrt(2))').toString()).toEqual('0')
+        expect(nerdamer('simplify(sin(pi/3)-1/2*sqrt(3))').toString()).toEqual('0')
+        expect(nerdamer('simplify(sin(pi/2)-1/2*sqrt(4))').toString()).toEqual('0')
+
+        expect(nerdamer('simplify(cos(0)-1/2*sqrt(4))').toString()).toEqual('0')
+        expect(nerdamer('simplify(cos(pi/6)-1/2*sqrt(3))').toString()).toEqual('0')
+        expect(nerdamer('simplify(cos(pi/4)-1/2*sqrt(2))').toString()).toEqual('0')
+        expect(nerdamer('simplify(cos(pi/3)-1/2*sqrt(1))').toString()).toEqual('0')
+        expect(nerdamer('simplify(cos(pi/2)-1/2*sqrt(0))').toString()).toEqual('0')
+
+        expect(nerdamer('simplify(tan(0)-0)').toString()).toEqual('0')
+        expect(nerdamer('simplify(tan(pi/6)-1/sqrt(3))').toString()).toEqual('0')
+        expect(nerdamer('simplify(tan(pi/4)-1)').toString()).toEqual('0')
+        expect(nerdamer('simplify(tan(pi/3)-sqrt(3))').toString()).toEqual('0')
+
+        expect(nerdamer('simplify(sin(2*x)-2*sin(x)*cos(x))').toString()).toEqual('0')
+        expect(nerdamer('simplify(cos(2*x)-(2*cos(x)*cos(x)-1))').toString()).toEqual('0')
+
+        expect(nerdamer('simplify(tan(x)-sin(x)/cos(x))').toString()).toEqual('0')
+
+        // todo:
+        // expect(nerdamer('simplify(sin(x+y)-(sin(x)*cos(y)+cos(x)*sin(y)))').toString()).toEqual('0')
+        // expect(nerdamer('simplify(cos(x+y)-(cos(x)*cos(y)-sin(x)*sin(y)))').toString()).toEqual('0')
+    });
+    
     it('regression tests', function() {
         // issue #7 - everything becomes 1
         expect(nerdamer("log(0.01s)/(-239263565+51955423log(s))-1")
