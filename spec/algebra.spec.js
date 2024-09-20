@@ -369,9 +369,8 @@ describe('Algebra', function () {
 
         expect(nerdamer('simplify(tan(x)-sin(x)/cos(x))').toString()).toEqual('0')
 
-        // todo:
-        // expect(nerdamer('simplify(sin(x+y)-(sin(x)*cos(y)+cos(x)*sin(y)))').toString()).toEqual('0')
-        // expect(nerdamer('simplify(cos(x+y)-(cos(x)*cos(y)-sin(x)*sin(y)))').toString()).toEqual('0')
+        expect(nerdamer('simplify(sin(x+y)-(sin(x)*cos(y)+cos(x)*sin(y)))').toString()).toEqual('0')
+        expect(nerdamer('simplify(cos(x+y)-(cos(x)*cos(y)-sin(x)*sin(y)))').toString()).toEqual('0')
     });
     
     it('regression tests', function() {

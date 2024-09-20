@@ -44,7 +44,7 @@ try {
     // console.log(x.text());
     // return;
     // x= nerdamer("-sqrt(8/12)")
-    x= nerdamer("limit(tan(3*x)/tan(x), x, pi/2)");
+    x= nerdamer("simplify(cos(a+b))");
     console.log(x.text());
 } catch (error) {
     console.log("error "+error)

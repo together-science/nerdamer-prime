@@ -4352,42 +4352,57 @@ if((typeof module) !== 'undefined') {
                     }
                     else if((symbol.fname === 'cos' || symbol.fname === 'sin') &&
                             (symbol.args[0].group == CP)) {
-                        
-                            // capture cos(x-pi/2) => sin(x) and sin(x+pi/2) = cos(x)
-                            // but generalized
-                            // test the sum for presence of a "n*pi/2" summands
-                            let count = 0;
-                            let newArg = new Symbol(0);
-                            let piOverTwo = _.parse('pi/2');
-                            symbol.args[0].each((x)=>{
-                                let c = _.divide(x.clone(), piOverTwo.clone());
-                                c = __.Simplify._simplify(c);
-                                c = core.Utils.evaluate(c);
-                                if (isInt(c)) {
-                                    count += c.multiplier.num.value;
-                                } else {
-                                    newArg = _.add(newArg, x);
-                                }
-                            });
-                            if (count) {
-                                count = count % 4;
-                                count += (count < 0)?4:0;
-                                count += (symbol.fname === 'cos')?1:0;
-                                // console.log(count);
-                                // debugger;
-                                const results = [
-                                    "sin({0})",
-                                    "cos({0})",
-                                    "-sin({0})",
-                                    "-cos({0})",
-                                ];
-                                const s = core.Utils.format(results[count], newArg);
-                                retval = _.parse(s);
-                                workDone = true;
+                        // capture cos(x-pi/2) => sin(x) and sin(x+pi/2) = cos(x)
+                        // but generalized
+                        // test the sum for presence of a "n*pi/2" summands
+                        let count = 0;
+                        let newArg = new Symbol(0);
+                        let piOverTwo = _.parse('pi/2');
+                        symbol.args[0].each((x)=>{
+                            let c = _.divide(x.clone(), piOverTwo.clone());
+                            c = __.Simplify._simplify(c);
+                            c = core.Utils.evaluate(c);
+                            if (isInt(c)) {
+                                count += c.multiplier.num.value;
+                            } else {
+                                newArg = _.add(newArg, x);
                             }
-                        
+                        });
+                        if (count) {
+                            count += (symbol.fname === 'cos')?1:0;
+                            count = count % 4;
+                            count += (count < 0)?4:0;
+                            // console.log(count);
+                            // debugger;
+                            const results = [
+                                "sin({0})",
+                                "cos({0})",
+                                "-sin({0})",
+                                "-cos({0})",
+                            ];
+                            const s = core.Utils.format(results[count], newArg);
+                            retval = _.parse(s);
+                            workDone = true;
+                        } else if (Object.keys(symbol.args[0].symbols).length > 1) {
+                            // apply sin(a+-b) => sin(a)cos(b)+-cos(a)sin(b)
+                            //   and cos(a+-b) => cos(a)cos(b)-+sin(a)sin(b)
+                            const arg = symbol.args[0].clone();
+                            const summands = Object.values(arg.symbols);
+                            const a = summands[0];
+                            const b = summands.slice(1);
+                            const bStr = b.map((x)=>"("+x.text()+")").join("+");
+                            let s;
+                            if (symbol.fname === 'sin') {
+                                s = core.Utils.format("sin({0})cos({1})+sin({1})cos({0})", a, bStr);
+                            } else {
+                                s = core.Utils.format("cos({0})cos({1})-sin({1})sin({0})", a, bStr);
+                            }
+                            retval = _.parse(s);
+                            workDone = true;
+                        }
                     } else if((symbol.fname === 'cos' || symbol.fname === 'sin') &&
                             (symbol.args[0].multiplier.sign() == -1)) {
+                        // sin(-x) => -sin(x), cos(-x) => cos(x)
                         // remove the minus from the argument
                         const newArg = symbol.args[0].clone().negate();
                         // make the new trig call
@@ -4401,6 +4416,7 @@ if((typeof module) !== 'undefined') {
                     } if(symbol.fname === 'sin' &&
                         symbol.args[0].multiplier.equals(2) &&
                         !symbol.args[0].equals(2)) {
+                        // sin(2x) => 2sin(x)cos(x)
                         // remove the minus from the argument
                         const newArg = symbol.args[0].clone().toUnitMultiplier();
                         // make the new trig call
@@ -4409,8 +4425,6 @@ if((typeof module) !== 'undefined') {
                         // continue with the simpler form
                         workDone = true;
                     }
-
-
 
                     retval = __.Simplify.unstrip(sym_array, retval).distributeMultiplier();
                     symbol = retval;
