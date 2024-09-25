@@ -164,6 +164,46 @@ var nerdamer = (function (imports) {
         }
     }
 
+/**
+ * Class used to collect arguments for functions
+ * @returns {Parser.Collection}
+ */
+    function Collection() {
+        this.elements = [];
+    }
+    Collection.prototype.append = function (e) {
+        this.elements.push(e);
+    };
+    Collection.prototype.getItems = function () {
+        return this.elements;
+    };
+    Collection.prototype.toString = function () {
+        return _.pretty_print(this.elements);
+    };
+    Collection.prototype.text = function (options) {
+        return "("+this.elements.map((e)=>e.text(options)).join(",")+")";
+    };
+    Collection.create = function (e) {
+        var collection = new Collection();
+        if(e)
+            collection.append(e);
+        return collection;
+    };
+    Collection.prototype.clone = function (elements) {
+        const c = Collection.create();
+        c.elements = this.elements.map((e)=>e.clone());
+        return c;
+    };
+    Collection.prototype.expand = function (options) {
+        this.elements = this.elements.map((e)=>_.expand(e, options));
+        return this;
+    };
+
+    Collection.prototype.evaluate = function () {
+        this.elements = this.elements.map((e)=>_.evaluate(e, options));
+        return this;
+    };
+
     //Add the groups. These have been reorganized as of v0.5.1 to make CP the highest group
     //The groups that help with organizing during parsing. Note that for FN is still a function even
     //when it's raised to a symbol, which typically results in an EX
@@ -4833,46 +4873,6 @@ var nerdamer = (function (imports) {
         };
         Slice.prototype.text = function () {
             return text(this.start) + ':' + text(this.end);
-        };
-
-        /**
-         * Class used to collect arguments for functions
-         * @returns {Parser.Collection}
-         */
-        function Collection() {
-            this.elements = [];
-        }
-        Collection.prototype.append = function (e) {
-            this.elements.push(e);
-        };
-        Collection.prototype.getItems = function () {
-            return this.elements;
-        };
-        Collection.prototype.toString = function () {
-            return _.pretty_print(this.elements);
-        };
-        Collection.prototype.text = function (options) {
-            return "("+this.elements.map((e)=>e.text(options)).join(",")+")";
-        };
-        Collection.create = function (e) {
-            var collection = new Collection();
-            if(e)
-                collection.append(e);
-            return collection;
-        };
-        Collection.prototype.clone = function (elements) {
-            const c = Collection.create();
-            c.elements = this.elements.map((e)=>e.clone());
-            return c;
-        };
-        Collection.prototype.expand = function (options) {
-            this.elements = this.elements.map((e)=>_.expand(e, options));
-            return this;
-        };
-
-        Collection.prototype.evaluate = function () {
-            this.elements = this.elements.map((e)=>_.evalute(e, options));
-            return this;
         };
 
         function Token(node, node_type, column) {
@@ -12262,6 +12262,7 @@ var nerdamer = (function (imports) {
         groups: Groups,
         Symbol: Symbol,
         Expression: Expression,
+        Collection: Collection,
         Frac: Frac,
         Vector: Vector,
         Matrix: Matrix,

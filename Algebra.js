@@ -4873,6 +4873,9 @@ if((typeof module) !== 'undefined') {
                 return [symbol, patterns];
             },
             simplify: function (symbol) {
+                if (symbol.simplify) {
+                    return symbol.simplify();
+                }
                 let retval = __.Simplify._simplify(symbol);
                 retval = retval.pushMinus();
                 retval = _.parse(retval);
@@ -4987,6 +4990,12 @@ if((typeof module) !== 'undefined') {
             core.Utils.disarmTimeout();
         }
     };
+
+    core.Collection.prototype.simplify = function () {
+        this.elements = this.elements.map((e)=>__.Simplify.simplify(e));
+        return this;
+    };
+
 
     nerdamer.useAlgebraDiv = function () {
         var divide = __.divideFn = _.divide;

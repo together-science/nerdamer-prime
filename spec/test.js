@@ -44,8 +44,9 @@ try {
     // console.log(x.text());
     // return;
     // x= nerdamer("-sqrt(8/12)")
-    x= nerdamer("(3*(sin(pi/2)+4),4)")
-    x=x.evaluate();
+    x= nerdamer("(x*3+x*4,4)")
+    x= x.simplify();
+    x= x.evaluate();
     console.log(x.text());
 } catch (error) {
     console.log("error "+error)
