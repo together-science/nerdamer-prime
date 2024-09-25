@@ -4851,6 +4851,9 @@ var nerdamer = (function (imports) {
         Collection.prototype.toString = function () {
             return _.pretty_print(this.elements);
         };
+        Collection.prototype.text = function (options) {
+            return "("+this.elements.map((e)=>e.text(options)).join(",")+")";
+        };
         Collection.create = function (e) {
             var collection = new Collection();
             if(e)
@@ -4864,6 +4867,11 @@ var nerdamer = (function (imports) {
         };
         Collection.prototype.expand = function (options) {
             this.elements = this.elements.map((e)=>_.expand(e, options));
+            return this;
+        };
+
+        Collection.prototype.evaluate = function () {
+            this.elements = this.elements.map((e)=>_.evalute(e, options));
             return this;
         };
 
