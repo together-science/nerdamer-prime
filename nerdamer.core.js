@@ -4857,6 +4857,15 @@ var nerdamer = (function (imports) {
                 collection.append(e);
             return collection;
         };
+        Collection.prototype.clone = function (elements) {
+            const c = Collection.create();
+            c.elements = this.elements.map((e)=>e.clone());
+            return c;
+        };
+        Collection.prototype.expand = function (options) {
+            this.elements = this.elements.map((e)=>_.expand(e, options));
+            return this;
+        };
 
         function Token(node, node_type, column) {
             this.type = node_type;
@@ -8525,6 +8534,9 @@ var nerdamer = (function (imports) {
                     return expand(x, opt);
                 });
             }
+            if (symbol.expand) {
+                return symbol.expand(opt);
+            }
             opt = opt || {};
             //deal with parenthesis
             if(symbol.group === FN && symbol.fname === '') {
@@ -8532,7 +8544,7 @@ var nerdamer = (function (imports) {
                 var x = expand(_.pow(f, _.parse(symbol.power)), opt);
                 return _.multiply(_.parse(symbol.multiplier), x).distributeMultiplier();
             }
-            // We can expand these groups so no need to waste time. Just return and be done.
+            // We cannot expand these groups so no need to waste time. Just return and be done.
             if([N, P, S].indexOf(symbol.group) !== -1) {
                 return symbol; //nothing to do
             }
@@ -11222,6 +11234,11 @@ var nerdamer = (function (imports) {
                 V.getter = this.getter.clone();
             }
             return V;
+        },
+
+        expand: function (options) {
+            this.elements = this.elements.map((e)=>_.expand(e, options));
+            return this;
         },
 
         // Maps the vector to another vector according to the given function

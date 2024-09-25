@@ -1807,6 +1807,12 @@ describe('Nerdamer core', function () {
         expect(nerdamer('[21,15]/3').toString()).toEqual('[7,5]');
         expect(nerdamer('[a^2, b^2]/[a,b]').toString()).toEqual('[a,b]');
     });
+    it('should expand vectors correctly', function() {
+        expect(nerdamer('[a*(b+c),4]').expand().toString()).toEqual('[a*b+a*c,4]');
+    });
+    it('should expand collections correctly', function() {
+        expect(nerdamer('(a*(b+c),4)').expand().toString()).toEqual('(a*b+a*c, 4)');
+    });
     it('should get slices correctly', function() {
         expect(nerdamer('[1,2,3][0:2]').toString()).toEqual('[1,2]');
     });
