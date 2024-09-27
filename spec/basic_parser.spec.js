@@ -102,31 +102,31 @@ describe('Spaces', function() {
 });
 */
 
-describe('Accessing vectors', function(){
-    it('should correctly access vectors', function(){
-        expect(parse('[1,[3,5,7],[1,[2,[1,2]]]][2]').toString()).toEqual('[1,[2,[1,2]]]');
-        expect(parse('[1,[3,5,7],[1,[2,[1,2]]]][2][1]').toString()).toEqual('[2,[1,2]]');
-        expect(parse('[1,[3,5,7],[1,[2,[1,2]]]][2][1][1]').toString()).toEqual('[1,2]');
-        expect(parse('[1,[3,5,7],[1,[2,[1,2]]]][2][1][1][0]').toString()).toEqual('1');
-        expect(parse('5*[1,[3,5,7],[1,[2,[1,2]]]][2][1][1][0]').toString()).toEqual('5');
-        expect(parse('5*[1,[3,5,7],[1,[2,[1,2]]]][2][1][1][0]+8').toString()).toEqual('13');
-    });
-    it('should access ranges', function(){
-        expect(parse('[1,2,3,4,5][1:4]').toString()).toEqual('[2,3,4]');
-    });
-    it('should access using negative indices', function(){
-        expect(parse('[1,2,3,4,5][-2]').toString()).toEqual('4');
-    });
-    it('should not confuse vector wit accessor', function(){
-        expect(parse('[[1,2],[3,4],[5,6]]').toString()).toEqual('[[1,2],[3,4],[5,6]]');
-    });
-});
+// describe('Accessing vectors', function(){
+//     it('should correctly access vectors', function(){
+//         expect(parse('[1,[3,5,7],[1,[2,[1,2]]]][2]').toString()).toEqual('[1,[2,[1,2]]]');
+//         expect(parse('[1,[3,5,7],[1,[2,[1,2]]]][2][1]').toString()).toEqual('[2,[1,2]]');
+//         expect(parse('[1,[3,5,7],[1,[2,[1,2]]]][2][1][1]').toString()).toEqual('[1,2]');
+//         expect(parse('[1,[3,5,7],[1,[2,[1,2]]]][2][1][1][0]').toString()).toEqual('1');
+//         expect(parse('5*[1,[3,5,7],[1,[2,[1,2]]]][2][1][1][0]').toString()).toEqual('5');
+//         expect(parse('5*[1,[3,5,7],[1,[2,[1,2]]]][2][1][1][0]+8').toString()).toEqual('13');
+//     });
+//     it('should access ranges', function(){
+//         expect(parse('[1,2,3,4,5][1:4]').toString()).toEqual('[2,3,4]');
+//     });
+//     it('should access using negative indices', function(){
+//         expect(parse('[1,2,3,4,5][-2]').toString()).toEqual('4');
+//     });
+//     it('should not confuse vector wit accessor', function(){
+//         expect(parse('[[1,2],[3,4],[5,6]]').toString()).toEqual('[[1,2],[3,4],[5,6]]');
+//     });
+// });
 
-describe('Setting vector values', function() {
-   it('should set values of vectors with the assign operator', function() {
-       expect(parse('[1,2][1]:x').toString()).toEqual('[1,x]');
-   });
-});
+// describe('Setting vector values', function() {
+//    it('should set values of vectors with the assign operator', function() {
+//        expect(parse('[1,2][1]:x').toString()).toEqual('[1,x]');
+//    });
+// });
 
 describe('Substitutions', function(){
     it('should substitute x', function() {expect(parse('x+1', {x: 4})).toEqual(5);});

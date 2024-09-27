@@ -180,6 +180,9 @@ var nerdamer = (function (imports) {
     Collection.prototype.toString = function () {
         return _.pretty_print(this.elements);
     };
+    Collection.prototype.dimensions = function () {
+        return this.elements.length;
+    };
     Collection.prototype.text = function (options) {
         return "("+this.elements.map((e)=>e.text(options)).join(",")+")";
     };
@@ -203,6 +206,38 @@ var nerdamer = (function (imports) {
         this.elements = this.elements.map((e)=>_.evaluate(e, options));
         return this;
     };
+
+    Collection.prototype.map = function (lambda) {
+        const c2 = this.clone();
+        c2.elements = c2.elements.map((x,i)=>lambda(x,i+1));
+        return c2;
+    };
+
+     // Returns the result of adding the argument to the vector
+     Collection.prototype.add = function (c2) {
+        return block('SAFE', function () {
+            var V = c2.elements || c2;
+            if(this.elements.length !== V.length) {
+                return null;
+            }
+            return this.map(function (x, i) {
+                return _.add(x, V[i - 1]);
+            });
+        }, undefined, this);
+    }
+
+    // Returns the result of subtracting the argument from the vector
+    Collection.prototype.subtract = function (vector) {
+        return block('SAFE', function () {
+            var V = vector.elements || vector;
+            if(this.elements.length !== V.length) {
+                return null;
+            }
+            return this.map(function (x, i) {
+                return _.subtract(x, V[i - 1]);
+            });
+        }, undefined, this);
+    }
 
     //Add the groups. These have been reorganized as of v0.5.1 to make CP the highest group
     //The groups that help with organizing during parsing. Note that for FN is still a function even
@@ -558,6 +593,10 @@ var nerdamer = (function (imports) {
      */
     var isVector = function (obj) {
         return (obj instanceof Vector);
+    };
+
+    var isCollection = function (obj) {
+        return (obj instanceof Collection);
     };
 
     /**
@@ -6939,7 +6978,6 @@ var nerdamer = (function (imports) {
                             //with an "getter" object and return the requested values
 
                             //call the function. This is the _.callfunction method in nerdamer
-                            //call the function. This is the _.callfunction method in nerdamer
                             var fn_name = e.value;
                             var fn_args = args.getItems();
 
@@ -6955,46 +6993,46 @@ var nerdamer = (function (imports) {
                             var next = rpn[i + 1];
                             var next_is_comma = next && next.type === Token.OPERATOR && next.value === ',';
 
-                            if(!next_is_comma && ret instanceof Vector && last && last.elements && !(last instanceof Collection)) {
-                                //remove the item from the queue
-                                var item = Q.pop();
+                            // if(!next_is_comma && ret instanceof Vector && last && last.elements && !(last instanceof Collection)) {
+                            //     //remove the item from the queue
+                            //     var item = Q.pop();
 
-                                var getter = ret.elements[0];
-                                //check if it's symbolic. If so put it back and add the item to the stack
-                                if(!getter.isConstant()) {
-                                    item.getter = getter;
-                                    Q.push(item);
-                                    Q.push(ret);
-                                }
-                                else if(getter instanceof Slice) {
-                                    //if it's a Slice return the slice
-                                    Q.push(Vector.fromArray(item.elements.slice(getter.start, getter.end)));
-                                }
-                                else {
-                                    var index = Number(getter);
-                                    var il = item.elements.length;
-                                    //support for negative indices
-                                    if(index < 0)
-                                        index = il + index;
-                                    //it it's still out of bounds
-                                    if(index < 0 || index >= il) //index should no longer be negative since it's been reset above
-                                        //range error
-                                        throw new OutOfRangeError('Index out of range ' + (e.column + 1));
+                            //     var getter = ret.elements[0];
+                            //     //check if it's symbolic. If so put it back and add the item to the stack
+                            //     if(!getter.isConstant()) {
+                            //         item.getter = getter;
+                            //         Q.push(item);
+                            //         Q.push(ret);
+                            //     }
+                            //     else if(getter instanceof Slice) {
+                            //         //if it's a Slice return the slice
+                            //         Q.push(Vector.fromArray(item.elements.slice(getter.start, getter.end)));
+                            //     }
+                            //     else {
+                            //         var index = Number(getter);
+                            //         var il = item.elements.length;
+                            //         //support for negative indices
+                            //         if(index < 0)
+                            //             index = il + index;
+                            //         //it it's still out of bounds
+                            //         if(index < 0 || index >= il) //index should no longer be negative since it's been reset above
+                            //             //range error
+                            //             throw new OutOfRangeError('Index out of range ' + (e.column + 1));
 
-                                    var element = item.elements[index];
-                                    //cyclic but we need to mark this for future reference
-                                    item.getter = index;
-                                    element.parent = item;
+                            //         var element = item.elements[index];
+                            //         //cyclic but we need to mark this for future reference
+                            //         item.getter = index;
+                            //         element.parent = item;
 
-                                    Q.push(element);
-                                }
-                            }
-                            else {
+                            //         Q.push(element);
+                            //     }
+                            // }
+                            // else {
                                 //extend the parent reference
                                 if(parent)
                                     ret.parent = parent;
                                 Q.push(ret);
-                            }
+                            // }
 
                         }
                         else {
@@ -8784,7 +8822,7 @@ var nerdamer = (function (imports) {
                 return _.symfunction('matsetcol', arguments);
             j = Number(j);
             if(matrix.rows() !== col.elements.length)
-                throw new DimensionError('Matrix columns must match number of columns!');
+                throw new DimensionError('Matrix column length must match number of rows!');
             col.each(function (x, i) {
                 matrix.set(i - 1, j, x.elements[0].clone());
             });
@@ -9292,11 +9330,11 @@ var nerdamer = (function (imports) {
                         return _.subtract(a.clone(), x);
                     });
                 }
-                else if(isVector(a) && isVector(b)) {
+                else if((isVector(a) && isVector(b)) || (isCollection(a) && isCollection(b))) {
                     if(a.dimensions() === b.dimensions())
                         b = a.subtract(b);
                     else
-                        _.error('Unable to subtract vectors. Dimensions do not match.');
+                        _.error('Unable to subtract vectors/collections. Dimensions do not match.');
                 }
                 else if(isMatrix(a) && isVector(b)) {
                     if(b.elements.length === a.rows()) {
@@ -12239,6 +12277,7 @@ var nerdamer = (function (imports) {
         isSymbol: isSymbol,
         isVariableSymbol: isVariableSymbol,
         isVector: isVector,
+        isCollection: isCollection,
         keys: keys,
         knownVariable: knownVariable,
         nroots: nroots,

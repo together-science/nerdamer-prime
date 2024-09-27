@@ -44,9 +44,7 @@ try {
     // console.log(x.text());
     // return;
     // x= nerdamer("-sqrt(8/12)")
-    x= nerdamer("(x*3+x*4,4)")
-    x= x.simplify();
-    x= x.evaluate();
+    x= nerdamer("[4,5]+[3,4]")
     console.log(x.text());
 } catch (error) {
     console.log("error "+error)
