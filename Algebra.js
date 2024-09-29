@@ -4996,6 +4996,13 @@ if((typeof module) !== 'undefined') {
         return this;
     };
 
+    core.Matrix.prototype.simplify = function () {
+        this.elements = this.elements.map((row)=>{
+            return row.map((e)=>__.Simplify.simplify(e));
+        });
+        return this;
+    };
+
 
     nerdamer.useAlgebraDiv = function () {
         var divide = __.divideFn = _.divide;

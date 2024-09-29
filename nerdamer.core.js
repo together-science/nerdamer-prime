@@ -11200,6 +11200,7 @@ var nerdamer = (function (imports) {
     };
 //Vector =======================================================================
     function Vector(v) {
+        this.multiplier = new Frac(1);
         if(isVector(v))
             this.elements = v.items.slice(0);
         else if(isArray(v))
@@ -11464,7 +11465,6 @@ var nerdamer = (function (imports) {
         },
 
         toUnitMultiplier: function() {
-            this.m = new Frac(1);
             return this;
         },
 
@@ -11516,6 +11516,7 @@ var nerdamer = (function (imports) {
 
 //Matrix =======================================================================
     function Matrix() {
+        this.multiplier = new Frac(1);
         var m = arguments,
                 l = m.length, i, el = [];
         if(isMatrix(m)) { // if it's a matrix then make a clone
@@ -11658,7 +11659,14 @@ var nerdamer = (function (imports) {
             return m;
         },
         toUnitMultiplier: function() {
-            this.m = new Frac(1);
+            return this;
+        },
+        expand: function(options) {
+            this.eachElement((e)=>_.expand(e, options));
+            return this;
+        },
+        evaluate: function(options) {
+            this.eachElement((e)=>_.evaluate(e, options));
             return this;
         },
 
@@ -11876,7 +11884,7 @@ var nerdamer = (function (imports) {
             return 'matrix' + inBrackets(s.join(','));
         },
         text: function () {
-            return 'matrix(' + this.elements.toString('') + ')';
+            return 'matrix(' + this.elements.map(row=>"["+row.toString('')+"]") + ')';
         },
         latex: function (option) {
             var cols = this.cols(), elements = this.elements;
