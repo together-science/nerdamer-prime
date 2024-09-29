@@ -11463,6 +11463,11 @@ var nerdamer = (function (imports) {
             }, undefined, this);
         },
 
+        toUnitMultiplier: function() {
+            this.m = new Frac(1);
+            return this;
+        },
+
         // Returns the (absolute) largest element of the vector
         max: function () {
             var m = 0, n = this.elements.length, k = n, i;
@@ -11652,6 +11657,11 @@ var nerdamer = (function (imports) {
             }
             return m;
         },
+        toUnitMultiplier: function() {
+            this.m = new Frac(1);
+            return this;
+        },
+
         // ported from Sylvester.js
         invert: function () {
             if(!this.isSquare())
