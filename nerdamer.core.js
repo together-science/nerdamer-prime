@@ -8869,12 +8869,26 @@ var nerdamer = (function (imports) {
         }
 
         function dot(vec1, vec2) {
+            if (isMatrix(vec1)) {
+                vec1 = new Vector(vec1);
+            }
+            if (isMatrix(vec2)) {
+                vec2 = new Vector(vec2);
+            }
+            
             if(isVector(vec1) && isVector(vec2))
                 return vec1.dot(vec2);
             err('function dot expects 2 vectors');
         }
 
         function cross(vec1, vec2) {
+            if (isMatrix(vec1)) {
+                vec1 = new Vector(vec1);
+            }
+            if (isMatrix(vec2)) {
+                vec2 = new Vector(vec2);
+            }
+            
             if(isVector(vec1) && isVector(vec2))
                 return vec1.cross(vec2);
             err('function cross expects 2 vectors');
@@ -11190,6 +11204,13 @@ var nerdamer = (function (imports) {
             this.elements = v.items.slice(0);
         else if(isArray(v))
             this.elements = v.slice(0);
+        else if(isMatrix(v)) {
+            if (v.elements.length === 1) {
+                this.elements = [...v.elements[0]];
+            } else if (v.elements.length > 1 && Array.isArray(v.elements[0]) && v.elements[0].length === 1) {
+                this.elements = v.elements.map((row)=>row[0]);
+            }
+        }
         else
             this.elements = [].slice.call(arguments);
     }

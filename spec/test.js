@@ -44,7 +44,7 @@ try {
     // console.log(x.text());
     // return;
     // x= nerdamer("-sqrt(8/12)")
-    x= nerdamer("[4,5]+[3,4]")
+    x= nerdamer("cross(matrix([4,5,4]),matrix([3,4,4]))")
     console.log(x.text());
 } catch (error) {
     console.log("error "+error)
