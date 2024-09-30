@@ -44,9 +44,7 @@ try {
     // console.log(x.text());
     // return;
     // x= nerdamer("-sqrt(8/12)")
-    x= nerdamer('matrix([1,0,0])*matrix([1,2,3],[4,5,6],[7,8,9])');
-    x=x.expand();
-    x=x.evaluate();
+    x= nerdamer('[[1,2,0]] -  matrix([1,2,3])');
     console.log(x.text());
 } catch (error) {
     console.log("error "+error)

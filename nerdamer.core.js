@@ -9301,8 +9301,14 @@ var nerdamer = (function (imports) {
                                 var M = new Matrix(), l = a.cols();
                                 b.each(function (e, i) {
                                     var row = [];
-                                    for(var j = 0; j < l; j++) {
-                                        row.push(_.add(a.elements[i - 1][j].clone(), e.clone()));
+                                    if (isVector(e)) {
+                                        for(var j = 0; j < l; j++) {
+                                            row.push(_.add(a.elements[i - 1][j].clone(), e.elements[j].clone()));
+                                        }
+                                    } else {
+                                        for(var j = 0; j < l; j++) {
+                                            row.push(_.add(a.elements[i - 1][j].clone(), e.clone()));
+                                        }
                                     }
                                     M.elements.push(row);
                                 });
@@ -11208,8 +11214,10 @@ var nerdamer = (function (imports) {
         else if(isMatrix(v)) {
             if (v.elements.length === 1) {
                 this.elements = [...v.elements[0]];
+                this.rowVector = true;
             } else if (v.elements.length > 1 && Array.isArray(v.elements[0]) && v.elements[0].length === 1) {
                 this.elements = v.elements.map((row)=>row[0]);
+                this.rowVector = false;
             }
         }
         else
@@ -11298,9 +11306,7 @@ var nerdamer = (function (imports) {
                 //Rule: all items within the vector must have a clone method.
                 V.elements.push(this.elements[i].clone());
             }
-            if(this.getter) {
-                V.getter = this.getter.clone();
-            }
+            V.rowVector = this.rowVector;
             return V;
         },
 
@@ -11454,13 +11460,16 @@ var nerdamer = (function (imports) {
             if(this.elements.length !== 3 || B.length !== 3) {
                 return null;
             }
+            const rowVector = this.rowVector && vector.rowVector;
             var A = this.elements;
             return block('SAFE', function () {
-                return new Vector([
+                const result = new Vector([
                     _.subtract(_.multiply(A[1], B[2]), _.multiply(A[2], B[1])),
                     _.subtract(_.multiply(A[2], B[0]), _.multiply(A[0], B[2])),
                     _.subtract(_.multiply(A[0], B[1]), _.multiply(A[1], B[0]))
                 ]);
+                result.rowVector = rowVector;
+                return result;
             }, undefined, this);
         },
 
@@ -11499,8 +11508,13 @@ var nerdamer = (function (imports) {
             while(--n);
             return index;
         },
+        text_: function (x) {
+            let result = text(this);
+            return (this.rowVector?"[":"")+result+(this.rowVector?"]":"");
+        },
         text: function (x) {
-            return text(this);
+            let result = text(this);
+            return (this.rowVector?"[":"")+result+(this.rowVector?"]":"");
         },
         toString: function () {
             return this.text();
