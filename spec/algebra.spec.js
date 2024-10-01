@@ -325,8 +325,8 @@ describe('Algebra', function () {
         expect(nerdamer('sqrt(2*baseunit_m^2*sin(3*alpha))').toString()).toEqual('baseunit_m*sqrt(2)*sqrt(sin(3*alpha))');
     });
     it('should calculate nth roots correctly', function() {
-        expect(nerdamer('roots((-1)^(1/5))').evaluate().text()).toEqual('[0.5877852522924731*i+0.809016994374947,-0.309016994374947+0.9510565162951536*i,-1,-0.309016994374948-0.9510565162951536*i,-0.5877852522924734*i+0.809016994374947]');
-        expect(nerdamer('roots((2)^(1/3))').evaluate().text()).toEqual('[1.122462048309381,-1.122462048309381]');
+        expect(nerdamer('roots((-1)^(1/5))').evaluate().text()).toEqual('[(181485532/308761629)*i+260449120/321932817,(55918065/58795733)*i-39088169/126491972,-1,(-8795017271979437/9247628423009475)*i-24157817/78176338,(-8677593/14763203)*i+102334155/126491972]');
+        expect(nerdamer('roots((2)^(1/3))').evaluate().text()).toEqual('[131293077/116968834,-131293077/116968834]');
     });
     it('should complete the square', function() {
         expect(nerdamer('sqcomp(a*x^2+b*x-11*c, x)').toString()).toEqual('((1/2)*abs(b)*sqrt(a)^(-1)+sqrt(a)*x)^2+(-1/4)*(abs(b)*sqrt(a)^(-1))^2-11*c');

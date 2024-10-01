@@ -63,10 +63,10 @@ describe('Solve', function () {
         expect(nerdamer('solve(x^3-10x^2+31x-30,x)').toString()).toEqual('[3,5,2]');
         expect(nerdamer('solve(8x^3-26x^2+3x+9,x)').toString()).toEqual('[3/4,-1/2,3]');
         expect(nerdamer('solve(x^3-1/2x^2-13/2x-3,x)').toString()).toEqual('[-2,3,-1/2]');
-        expect(nerdamer('solve(x^3+2x^2+3x-4=0,x)').evaluate().text()).toEqual('[0.776045435028538,0.388022717514269+0.6720750612256601*i,-0.388022717514269+0.6720750612256599*i]');
+        expect(nerdamer('solve(x^3+2x^2+3x-4=0,x)').evaluate().text()).toEqual('[70419755/90741794,(9781803879340745/14554630046086988)*i+70419755/181483588,(5721734032321405/8513534220250202)*i-96689750724854153216/249185798564226019925]');
         expect(nerdamer('solve(x*log(x),x)').toString()).toEqual('[1]');
         expect(nerdamer('solve((9x+x^2)^3+10800x+40x^4+4440x^2+720x^3+20(9*x+x^2)^2+8000,x) ').toString()).toEqual('[-5,-4]');
-        expect(nerdamer('solve((x^3-4)/(x^3+7x-11),x)').evaluate().text()).toEqual('[1.587401051968199,0.7937005259840910+1.3747296369986024*i,-0.793700525984099+1.374729636998602*i]');
+        expect(nerdamer('solve((x^3-4)/(x^3+7x-11),x)').evaluate().text()).toEqual('[123554237/77834292,(17162560630828463/12484317038729784)*i+123554237/155668584,(10039007984057947/7302532595409636)*i-17388712991038935924736/21908405527990418074125]');
         expect(nerdamer('solve((93222358/131836323)*(-2*y+549964829/38888386)=10, y)').toString()).toEqual('[1/3625267041734188]');
         expect(nerdamer('solve(sqrt(x)+sqrt(2x+1)=5,x) ').toString()).toEqual('[4]');
         expect(nerdamer('solve(sqrt(x)-1,x) ').toString()).toEqual('[1]');
@@ -95,7 +95,7 @@ describe('Solve', function () {
         // np issue #26
         // expect(nerdamer("solve(h=1/2*(9.81)*m*s^(-2)*t^2, t)").evaluate().text()).toEqual("[0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1),-0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1)]");
         // like:
-        expect(nerdamer("solve(h=1/2*(9.81)*t^2, t)").evaluate().text()).toEqual("[-0.4515236409857309*sqrt(h),0.4515236409857309*sqrt(h)]");
+        expect(nerdamer("solve(h=1/2*(9.81)*t^2, t)").evaluate().text()).toEqual("[(-35364869/78323405)*sqrt(h),(35364869/78323405)*sqrt(h)]");
         expect(nerdamer("h=(981/200)*m*s^(-2)*t^2").solveFor("t").toString()).toEqual('(-10/327)*abs(s)*m^(-1)*sqrt(218)*sqrt(h)*sqrt(m),(10/327)*abs(s)*m^(-1)*sqrt(218)*sqrt(h)*sqrt(m)');
     });
 
@@ -155,8 +155,7 @@ describe('Solve', function () {
         expect(nerdamer('solve(a^2-a-1=0,a)').toString()).toEqual('[(1/2)*sqrt(5)+1/2,(-1/2)*sqrt(5)+1/2]');
         // issue #26
         expect(nerdamer("solve(h=(981/200)*baseunit_m*baseunit_s^(-2)*t^2, t)").text())
-            .toEqual('[-0.0305810397553517*baseunit_m^(-1)*baseunit_s*sqrt(218)*sqrt(baseunit_m)*sqrt(h),'+
-                '0.0305810397553517*baseunit_m^(-1)*baseunit_s*sqrt(218)*sqrt(baseunit_m)*sqrt(h)]');
+            .toEqual('[(-10/327)*baseunit_m^(-1)*baseunit_s*sqrt(218)*sqrt(baseunit_m)*sqrt(h),(10/327)*baseunit_m^(-1)*baseunit_s*sqrt(218)*sqrt(baseunit_m)*sqrt(h)]');
         expect(nerdamer('solve(abs(a-b)=0, a)').toString()).toEqual('[b]');
         expect(nerdamer('solve(abs(a-b)=5, a)').toString()).toEqual('[-5+b,-(-5-b)]');
         // issue #43

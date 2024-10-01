@@ -8,6 +8,8 @@ The license is unchanged, everything is free under MIT terms.
 
 The npm js installation point has moved: `npm i nerdamer-prime`.
 
+NOTICE: Starting with version 1.2.0, vector and matrix semantics are changing to be more useful for linear algebra. If this causes you problems, please stick with 1.1.26 and let us know so we can see how we could make compatible changes.
+
 Our intentions:
 
 To keep Nerdamer in good repair, and make improvements where we need them and where we can. Mostly bug fixes. If you investigate
@@ -20,7 +22,7 @@ e.g. SymPy in a WASM webworker if you need more. See here for a demo: [SymPy liv
 We have made some improvements - simplification of logs and squareroots, and bug fixes related to those areas and factoring. Unit tests
 are fixed except for a couple of known flaws. There will be further work in this area. We will also work on vectors, which are not 
 useful for our product [together.math](https://www.together.science/) today. Those will be breaking changes 
-(you are welcome to fork an earlier version). 
+(*THESE ARE NOW IN PROGRESS* for versions >= 1.2.0, you are welcome to fork an earlier version). 
 
 If you have a clear bug, file an issue with the code to repro. If you want a new feature - and that includes many things that you will
 think of as "obvious flaws" - file the issue, but we probably won't do it. But someone else can! We will absolutely consider compatible

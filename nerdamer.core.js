@@ -11508,12 +11508,12 @@ var nerdamer = (function (imports) {
             while(--n);
             return index;
         },
-        text_: function (x) {
-            let result = text(this);
+        text_: function (x, options) {
+            let result = text(this, options);
             return (this.rowVector?"[":"")+result+(this.rowVector?"]":"");
         },
-        text: function (x) {
-            let result = text(this);
+        text: function (x, options) {
+            let result = text(this, options);
             return (this.rowVector?"[":"")+result+(this.rowVector?"]":"");
         },
         toString: function () {

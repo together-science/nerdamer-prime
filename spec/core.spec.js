@@ -1816,7 +1816,7 @@ describe('Nerdamer core', function () {
     });
     it('should remove near duplicates from vectors', function() {
         expect(nerdamer('vectrim([cos(0), 1, 1.000000000000001])').toString()).toEqual('[1]');
-        expect(nerdamer('vectrim([cos(0), 1, 1.000000000000001], 0)').text()).toEqual('[1,1.000000000000001]');
+        expect(nerdamer('vectrim([cos(0), 1, 1.000000000000001], 0)').text()).toEqual('[1,900719925474100/900719925474099]');
     });
     it('should convert degrees to radians', function() {
         expect(nerdamer('radians(45)').toString()).toEqual('(1/4)*pi');
