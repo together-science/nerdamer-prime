@@ -88,7 +88,8 @@ describe('Solve', function () {
         expect(nerdamer('solve(c*((((((4*x)+1))*d))/(5))*f=((a)/(b)), x)').toString()).toEqual('[(-1/4)*(-5*a+b*c*d*f)*(b*c*d*f)^(-1)]');
         expect(nerdamer('c*((((((4*x)+1))*d))/(5))*f=((a)/(b))').solveFor('x').toString()).toEqual('(1/4)*(-b*c*d*f+5*a)*(b*c*d*f)^(-1)');
         expect(nerdamer('solve(1000+200*x=100*2^(x/2), x)').toString()).toEqual('[-89048725/18140732,145224097/14865809]');
-        expect(nerdamer('solve(x=100*2^((1/400)*(-1000+x)), x)').toString()).toEqual('[332944835/18248037,37066322021/12548690]');
+        expect(nerdamer('solve(x=100*2^((1/400)*(-1000+x)), x)').toString()).toEqual('[332944835/18248037,5890028082/1994051]');
+        expect(nerdamer('solve(10000000=10^(x+1), x)').toString()).toEqual('[6]');
         expect(nerdamer('solve(m=(34141034228515471851/614756350000000000000000000)*(3631430813109509/100837351+51955423*log(5+m)), m)')
             .toString()).toEqual('[-89048725/18140732,145224097/14865809]');  
         expect(nerdamer('(5-3y)/(5+y)=(1-9y)/(3y-7)').solveFor("y").toString()).toEqual('1/2');

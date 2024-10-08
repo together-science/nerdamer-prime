@@ -1099,7 +1099,7 @@ if((typeof module) !== 'undefined') {
                 return undefined;
             }
 
-            const max_iter = 50; // guess the amount of iterations to outrun precision?
+            const max_iter = 80; // guess the amount of iterations to outrun precision?
             let iterations = 0;
             do {
                 let x = (left+right)/2;

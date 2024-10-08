@@ -44,8 +44,8 @@ try {
     // console.log(x.text());
     // return;
     // x= nerdamer("-sqrt(8/12)")
-    x= nerdamer('[[1,2,0]] -  matrix([1,2,3])');
-    console.log(x.text());
+    x= nerdamer('10000000=10^(x+1)').solveFor("x");
+    console.log(x.map(e=>e.text()));
 } catch (error) {
     console.log("error "+error)
 }
