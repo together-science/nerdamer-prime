@@ -1269,7 +1269,7 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                                                 retval = __.integrate(fx, u).sub(u, sq.a);
                                             }
                                             catch(e) {
-                                                if (e.message === "timeout") throw error;
+                                                if (e.message === "timeout") throw e;
                                                 __.integration.stop();
                                             }
                                         }
@@ -1570,7 +1570,7 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                                         retval = __.integration.u_substitution(symbols, dx);
                                     }
                                     catch(e) {/* failed :`(*/
-                                        if (e.message === "timeout") throw error;
+                                        if (e.message === "timeout") throw e;
                                         ;
                                     }
 
@@ -2137,7 +2137,7 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                     return _.parse(integral, vars);
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                     //it failed for some reason so return the limit
                     var lim = __.Limit.limit(integral, dx, point);
                     return lim;
@@ -2298,7 +2298,7 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                     retval = f.sub(x, lim);
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                     //Nope. No go, so just return the unsubbed function so we can test the limit instead.
                     retval = f;
                 }
@@ -2370,7 +2370,7 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
 
                         }
                         catch(e) { /*Nothing. Maybe we tried to divide by zero.*/
-                            if (e.message === "timeout") throw error;
+                            if (e.message === "timeout") throw e;
                         }
                         ;
 
@@ -2428,7 +2428,7 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                                             evaluates = true;
                                         }
                                         catch(e) {
-                                            if (e.message === "timeout") throw error;
+                                            if (e.message === "timeout") throw e;
 
                                             evaluates = false;
                                         }
@@ -2574,7 +2574,7 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                                             _lim = __.Limit.limit(sym, x, lim, depth);
                                         }
                                         catch(e) {
-                                            if (e.message === "timeout") throw error;
+                                            if (e.message === "timeout") throw e;
                                             _lim = __.Limit.diverges();
                                         }
 
@@ -2582,7 +2582,7 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                                             retval = _.add(retval, _lim);
                                         }
                                         catch(e) {
-                                            if (e.message === "timeout") throw error;
+                                            if (e.message === "timeout") throw e;
                                             if(depth++ > Settings.max_lim_depth) {
                                                 return;
                                             }
@@ -2604,7 +2604,7 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                         retval = _.symfunction('limit', [symbol, x, lim]);
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                     //if all else fails return the symbolic function
                     retval = _.symfunction('limit', [symbol, x, lim]);
                 }

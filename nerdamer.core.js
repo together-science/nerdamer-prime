@@ -1904,7 +1904,7 @@ var nerdamer = (function (imports) {
                     }
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                     //reset factors
                     factors = {};
                     add(input);
@@ -2114,7 +2114,7 @@ var nerdamer = (function (imports) {
                 retval = integrate(f, a, b, tol, maxdepth);
             }
             catch(e) {
-                if (e.message === "timeout") throw error;
+                if (e.message === "timeout") throw e;
                 /*fallback to non-adaptive*/
                 return Math2.simpson(f, a, b);
             }
@@ -2679,7 +2679,7 @@ var nerdamer = (function (imports) {
                 return obj.toString();
             }
             catch(e) {
-                if (e.message === "timeout") throw error;
+                if (e.message === "timeout") throw e;
                 return '';
             }
         }
@@ -2870,7 +2870,7 @@ var nerdamer = (function (imports) {
                 return this.symbol.toString();
             }
             catch(e) {
-                if (e.message === "timeout") throw error;
+                if (e.message === "timeout") throw e;
                 return '';
             }
         },
@@ -2936,7 +2936,7 @@ var nerdamer = (function (imports) {
                 return d.equals(0);
             }
             catch(e) {
-                if (e.message === "timeout") throw error;
+                if (e.message === "timeout") throw e;
                 return false;
             }
             ;
@@ -2949,7 +2949,7 @@ var nerdamer = (function (imports) {
                 return d.lessThan(0);
             }
             catch(e) {
-                if (e.message === "timeout") throw error;
+                if (e.message === "timeout") throw e;
                 return false;
             }
             ;
@@ -2962,7 +2962,7 @@ var nerdamer = (function (imports) {
                 return d.greaterThan(0);
             }
             catch(e) {
-                if (e.message === "timeout") throw error;
+                if (e.message === "timeout") throw e;
                 return false;
             }
         },
@@ -3151,7 +3151,7 @@ var nerdamer = (function (imports) {
                     this.den = bigInt(1);
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                     return Frac.simple(n);
                 }
             }
@@ -3162,7 +3162,7 @@ var nerdamer = (function (imports) {
             }
         }
         catch(e) {
-            if (e.message === "timeout") throw error;
+            if (e.message === "timeout") throw e;
             return Frac.simple(n);
         }
 
@@ -8228,7 +8228,7 @@ var nerdamer = (function (imports) {
                 }
             }
             catch(e) {
-                if (e.message === "timeout") throw error;
+                if (e.message === "timeout") throw e;
                 return original;
             }
         }
@@ -8486,7 +8486,7 @@ var nerdamer = (function (imports) {
                     n = Frac.simple(n);
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                     n = new Frac(n);
                 }
             }
@@ -8711,7 +8711,7 @@ var nerdamer = (function (imports) {
                 return retval;
             }
             catch(e) {
-                if (e.message === "timeout") throw error;
+                if (e.message === "timeout") throw e;
                 return original;
             }
 
@@ -12493,7 +12493,7 @@ var nerdamer = (function (imports) {
                 return C[add_on].version;
             }
             catch(e) {
-                if (e.message === "timeout") throw error;
+                if (e.message === "timeout") throw e;
                 return "No module named " + add_on + " found!";
             }
         }
@@ -12724,7 +12724,7 @@ var nerdamer = (function (imports) {
             return RESERVED.indexOf(varname) === -1;
         }
         catch(e) {
-            if (e.message === "timeout") throw error;
+            if (e.message === "timeout") throw e;
             return false;
         }
     };

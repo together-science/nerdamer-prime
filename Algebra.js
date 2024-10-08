@@ -830,7 +830,7 @@ if((typeof module) !== 'undefined') {
             }
         }
         catch(e) {
-            if (e.message === "timeout") throw error;
+            if (e.message === "timeout") throw e;
         }
         ;
     };
@@ -2161,7 +2161,7 @@ if((typeof module) !== 'undefined') {
                     }
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
 
                     ;
                 }
@@ -2273,7 +2273,7 @@ if((typeof module) !== 'undefined') {
                     }
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                 }
                 ;
 
@@ -2917,7 +2917,7 @@ if((typeof module) !== 'undefined') {
                     return poly.toSymbol();
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                     return untouched;
                 }
             },
@@ -3141,7 +3141,7 @@ if((typeof module) !== 'undefined') {
                     }
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                     ;
                 }
 
@@ -3940,7 +3940,7 @@ if((typeof module) !== 'undefined') {
                 return [quot, rem];
             }
             catch(e) {
-                if (e.message === "timeout") throw error;
+                if (e.message === "timeout") throw e;
                 return fail;
             }
 
@@ -4117,7 +4117,7 @@ if((typeof module) !== 'undefined') {
                     return retval;
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                     //try to group symbols
                     try {
                         if(symbol.isComposite()) {
@@ -5130,7 +5130,7 @@ if((typeof module) !== 'undefined') {
                         return sq.f;
                     }
                     catch(e) {
-                        if (e.message === "timeout") throw error;
+                        if (e.message === "timeout") throw e;
                         return x;
                     }
                 };

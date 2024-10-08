@@ -624,7 +624,7 @@ if((typeof module) !== 'undefined') {
                         return __.solveNonLinearSystem(eqns);
                     }
                     catch(e) {
-                        if (e.message === "timeout") throw error;
+                        if (e.message === "timeout") throw e;
                         if(e instanceof core.exceptions.DivisionByZero) {
                             return __.solveSystemBySubstitution(eqns);
                         }
@@ -1472,7 +1472,7 @@ if((typeof module) !== 'undefined') {
                 add_to_result(new Symbol(0));
             }
             catch(e) {
-                if (e.message === "timeout") throw error;
+                if (e.message === "timeout") throw e;
                 // Do nothing;
             }
 
@@ -1809,7 +1809,7 @@ if((typeof module) !== 'undefined') {
                     // console.log("solutions after filter: "+solutions);
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                     console.log(e);
                 }
             }
@@ -1890,7 +1890,7 @@ if((typeof module) !== 'undefined') {
 
                 }
                 catch(e) { /*something went wrong. EXITING*/
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                     ;
                 }
             }
@@ -1991,7 +1991,7 @@ if((typeof module) !== 'undefined') {
                     return true;
                 }
                 catch(e) {
-                    if (e.message === "timeout") throw error;
+                    if (e.message === "timeout") throw e;
                     return false;
                 }
             });
