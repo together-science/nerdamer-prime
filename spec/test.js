@@ -44,8 +44,18 @@ try {
     // console.log(x.text());
     // return;
     // x= nerdamer("-sqrt(8/12)")
-    x= nerdamer('10000000=10^(x+1)').solveFor("x");
-    console.log(x.map(e=>e.text()));
+    const equation = "-x^3+x+5=0"
+    console.log("Equation:", equation);
+    var e = nerdamer.convertFromLaTeX(equation);
+    console.log("Converted:", e.text());
+
+
+    const d1 = nerdamer.diff(e, "x");
+    console.log("First Derivative:", d1.toString());
+    var d2 = nerdamer.diff(d1, "x");
+    console.log("Second Derivative:", d2.toString());
+    var cp = d1.solveFor("x");
+    console.log("Critical points: "+cp.map(e=>e.text()));
 } catch (error) {
     console.log("error "+error)
 }

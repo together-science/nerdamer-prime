@@ -49,6 +49,8 @@ describe('Calculus', function () {
         expect(nerdamer('diff(5acos(x),x)').toString()).toEqual('-5*sqrt(-x^2+1)^(-1)');
         expect(nerdamer('diff(7atan(x),x)').toString()).toEqual('7*(1+x^2)^(-1)');
 
+        // equations
+        expect(nerdamer('diff(3asin(x)=x,x)').toString()).toEqual('3*sqrt(-x^2+1)^(-1)=1');
     });
 
     /*

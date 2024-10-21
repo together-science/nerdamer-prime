@@ -432,13 +432,17 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                     vector.elements.push(__.diff(x, wrt, nth));
                 });
                 return vector;
-            }
-            else if(core.Utils.isMatrix(symbol)) {
+            } else if(core.Utils.isMatrix(symbol)) {
                 var matrix = new core.Matrix();
                 symbol.each(function (x, i, j) {
                     matrix.set(i, j, __.diff(x, wrt, nth));
                 });
                 return matrix;
+            } else if(symbol.LHS && symbol.RHS) {
+                // equation, diff both sides
+                var result = new core.Equation(__.diff(symbol.LHS.clone(), wrt, nth),
+                    __.diff(symbol.RHS.clone(), wrt, nth));
+                return result;
             }
 
             var d = isSymbol(wrt) ? wrt.text() : wrt;
