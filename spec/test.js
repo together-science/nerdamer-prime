@@ -39,23 +39,8 @@ let text;
 let x;
 
 try {
-    // x = nerdamer("(-1/2)*(-2-8*a)");
-    // x=x.simplify();
-    // console.log(x.text());
-    // return;
-    // x= nerdamer("-sqrt(8/12)")
-    const equation = "-x^3+x+5=0"
-    console.log("Equation:", equation);
-    var e = nerdamer.convertFromLaTeX(equation);
-    console.log("Converted:", e.text());
-
-
-    const d1 = nerdamer.diff(e, "x");
-    console.log("First Derivative:", d1.toString());
-    var d2 = nerdamer.diff(d1, "x");
-    console.log("Second Derivative:", d2.toString());
-    var cp = d1.solveFor("x");
-    console.log("Critical points: "+cp.map(e=>e.text()));
+    x = nerdamer("dot(1,2)");
+    console.log(x.text());
 } catch (error) {
     console.log("error "+error)
 }

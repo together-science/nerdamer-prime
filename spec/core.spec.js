@@ -1803,6 +1803,14 @@ describe('Nerdamer core', function () {
         expect(nerdamer('[a,b]*x').toString()).toEqual('[a*x,b*x]');
         expect(nerdamer('[a,b]*[a,b]').toString()).toEqual('[a^2,b^2]');
     });
+    it('should cross-multiply vectors correctly', function() {
+        expect(nerdamer('cross([1,2,3],[4,5,6])').toString()).toEqual('[-3,6,-3]');
+        expect(nerdamer('cross(1,2)').toString()).toEqual('2');
+    });
+    it('should dot-multiply vectors correctly', function() {
+        expect(nerdamer('dot([1,2,3],[4,5,6])').toString()).toEqual('32');
+        expect(nerdamer('dot(1,2)').toString()).toEqual('2');
+    });
     it('should divide vectors correctly', function() {
         expect(nerdamer('12/[3,4]').toString()).toEqual('[4,3]');
         expect(nerdamer('[21,15]/3').toString()).toEqual('[7,5]');
