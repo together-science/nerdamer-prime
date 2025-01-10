@@ -1955,6 +1955,11 @@ describe('Nerdamer core', function () {
             nerdamer.clearVars();
             expect(nerdamer('aa').text()).toEqual('aa');
         });
+
+        it('should parse variables with scientific number patterns in the subscript', function () {
+            expect(nerdamer('x_a1e1').text()).toEqual('x_a1e1');
+        });
+
     });
 
     describe('User functions 1', function () {

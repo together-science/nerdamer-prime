@@ -39,7 +39,7 @@ let text;
 let x;
 
 try {
-    x = nerdamer("dot(1,2)");
+    x = nerdamer("x_a1e1");
     console.log(x.text());
 } catch (error) {
     console.log("error "+error)

@@ -6382,7 +6382,12 @@ var nerdamer = (function (imports) {
 
             //only even bother to check if the string contains e. This regex is painfully slow and might need a better solution. e.g. hangs on (0.06/3650))^(365)
             if(/e/gi.test(e)) {
-                e = e.replace(/\-*\d+\.*\d*e\+?\-?\d+/gi, function (x) {
+                // negative numbers
+                e = e.replace(/\-+\d+\.?\d*e\+?\-?\d+/gi, function (x) {
+                    return scientificToDecimal(x);
+                });
+                // positive numbers that are not part of an identifier
+                e = e.replace(/(?<![A-Za-z])\d+\.?\d*e\+?\-?\d+/gi, function (x) {
                     return scientificToDecimal(x);
                 });
             }
