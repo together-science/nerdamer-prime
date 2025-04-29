@@ -39,7 +39,7 @@ let text;
 let x;
 
 try {
-    x = nerdamer("x_a1e1");
+    x = nerdamer('256^(1/8)');
     console.log(x.text());
 } catch (error) {
     console.log("error "+error)
