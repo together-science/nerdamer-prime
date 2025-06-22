@@ -6140,6 +6140,7 @@ var nerdamer = (function (imports) {
             'difference': [difference, 2],
             'intersects': [intersects, 2],
             'is_subset': [is_subset, 2],
+            'primes': [primes, 2],
             //system support
             'print': [print, -1]
         };
@@ -8948,6 +8949,18 @@ var nerdamer = (function (imports) {
 
         function is_subset(set1, set2) {
             return new Symbol(Number(set1.is_subset(set2)));
+        }
+        function primes(a, b) {
+            b ??= a;
+            let primes = PRIMES.slice(a, b)
+                .map((p)=>new Symbol(p));
+            if (primes.length === 1) {
+                return primes[0];
+            }
+            if (primes.length === 0) {
+                return new Symbol(0);
+            }
+            return new Vector(primes);
         }
 
         function print() {

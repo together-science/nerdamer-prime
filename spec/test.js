@@ -39,7 +39,7 @@ let text;
 let x;
 
 try {
-    x = nerdamer('256^(1/8)');
+    x = nerdamer('vecget(primes(0,5),3)').evaluate();
     console.log(x.text());
 } catch (error) {
     console.log("error "+error)

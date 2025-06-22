@@ -3152,6 +3152,11 @@ describe('together.math functionality', function() {
         expect(nerdamer('sqrt(4*baseunit_kg^2)').toString()).toEqual('2*baseunit_kg');
         expect(nerdamer('sqrt(4*baseunit_kg^4)').toString()).toEqual('2*baseunit_kg^2');
     });
+    it('should give vectors of primes', function() {
+        expect(nerdamer('primes(0,5)').toString()).toEqual('[2,3,5,7,11]');
+        expect(nerdamer('primes(0,1)').toString()).toEqual('2');
+        expect(nerdamer('primes(5,0)').toString()).toEqual('0');
+    });
 });
 
 describe('misc and regression tests', function() {
