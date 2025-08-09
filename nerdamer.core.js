@@ -127,7 +127,7 @@ var nerdamer = (function (imports) {
         LOG2: 'log2',
         LOG2_LATEX: 'log_{2}',
         LOG1P: 'log1p',
-        LOG1P_LATEX: 'log(1+{0})',
+        LOG1P_LATEX: 'ln\\left( 1 + {0} \\right)',
         MAX_EXP: 200000,
         //The number of scientific place to round to
         SCIENTIFIC_MAX_DECIMAL_PLACES: 14,
@@ -10797,7 +10797,7 @@ var nerdamer = (function (imports) {
                     v[index] = '\\mathrm' + this.braces(Settings.LOG) + '_' + this.braces(2) + this.brackets(input[0]);
                 }
                 else if(fname === Settings.LOG1P) {
-                    v[index] = '\\mathrm' + this.braces(Settings.LOG) + this.brackets('1 + ' + input[0]);
+                    v[index] = '\\ln' + this.brackets('1 + ' + input[0]);
                 }
                 else if(fname === 'sum') {
                     var a = input[0],

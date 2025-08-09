@@ -275,6 +275,8 @@ describe('TeX features', function () {
         expect(nerdamer.convertToLaTeX('a*x^-3+1/a')).toEqual('\\frac{a}{{x}^{3}} + \\frac{1}{a}');
         expect(nerdamer.convertToLaTeX('a*x^+3+1/a')).toEqual('a \\cdot {x}^{3} + \\frac{1}{a}');
         expect(nerdamer.convertToLaTeX('x^2/y-x')).toEqual('\\frac{{x}^{2}}{y} - x');
+        expect(nerdamer.convertToLaTeX('log2(x)')).toEqual('\\log_{2}\\left( x\\right)');
+        expect(nerdamer.convertToLaTeX('log1p(x)')).toEqual('\\ln\\left( 1 + x \\right)');
     });
 
     it('should display integrals', function () {
