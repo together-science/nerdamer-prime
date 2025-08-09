@@ -124,6 +124,10 @@ var nerdamer = (function (imports) {
         LOG: 'log',
         LOG10: 'log10',
         LOG10_LATEX: 'log_{10}',
+        LOG2: 'log2',
+        LOG2_LATEX: 'log_{2}',
+        LOG1P: 'log1p',
+        LOG1P_LATEX: 'log(1+{0})',
         MAX_EXP: 200000,
         //The number of scientific place to round to
         SCIENTIFIC_MAX_DECIMAL_PLACES: 14,
@@ -7399,6 +7403,12 @@ var nerdamer = (function (imports) {
                         else if(fname === Settings.LOG10) {
                             f = '\\' + Settings.LOG10_LATEX + '\\left( ' + this.toTeX(e.args) + '\\right)';
                         }
+                        else if(fname === Settings.LOG2) {
+                            f = '\\' + Settings.LOG2_LATEX + '\\left( ' + this.toTeX(e.args) + '\\right)';
+                        }
+                        else if(fname === Settings.LOG1P) {
+                            f = '\\' + format(Settings.LOG1P_LATEX, this.toTeX(e.args)) + '';
+                        }
                         else if(fname === 'integrate') {
                             /* Retrive [Expression, x] */
                             var chunks = chunkAtCommas(e.args);
@@ -10782,6 +10792,12 @@ var nerdamer = (function (imports) {
                 // capture log(a, b)
                 else if(fname === Settings.LOG10) {
                     v[index] = '\\mathrm' + this.braces(Settings.LOG) + '_' + this.braces(10) + this.brackets(input[0]);
+                }
+                else if(fname === Settings.LOG2) {
+                    v[index] = '\\mathrm' + this.braces(Settings.LOG) + '_' + this.braces(2) + this.brackets(input[0]);
+                }
+                else if(fname === Settings.LOG1P) {
+                    v[index] = '\\mathrm' + this.braces(Settings.LOG) + this.brackets('1 + ' + input[0]);
                 }
                 else if(fname === 'sum') {
                     var a = input[0],
