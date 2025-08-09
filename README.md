@@ -270,7 +270,7 @@ Here's an example of reserved variable and function names.
 var reserved = nerdamer.reserved();
 console.log(reserved);
 //result:
-/* csc, sec, cot, erf, fact, mod, GCD, QGCD, LCM, pow, PI, E, cos, sin, tan, acos, asin, atan, sinh, cosh, tanh, asinh, acosh, atanh, exp, min, max, floor, ceil, round, vector, matrix, parens, sqrt, log, expand, abs, invert, transpose, dot */
+/* csc, sec, cot, erf, fact, mod, GCD, QGCD, LCM, pow, PI, E, cos, sin, tan, acos, asin, atan, sinh, cosh, tanh, asinh, acosh, atanh, exp, min, max, floor, ceil, round, vector, matrix, parens, sqrt, log, log10, log2, log1p, expand, abs, invert, transpose, dot */
 
 //or as an array
 
@@ -278,7 +278,7 @@ var reserved = nerdamer.reserved(true);
 console.log(reserved);
 //result:
 /* [ 'csc', 'sec', 'cot', 'erf', 'fact', 'mod', 'GCD', 'QGCD', 'LCM', 'pow', 'PI', 'E', 'cos', 'sin', 'tan', 'acos', 'asin', 'atan', 'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh', 'exp', 'min', 'max', 'floor', 'ceil', 'round', 'vector', 'matrix',
-  'parens', 'sqrt', 'log', 'expand', 'abs', 'invert', 'transpose', 'dot' ]  */
+  'parens', 'sqrt', 'log', 'log10', 'log2', 'log1p', 'expand', 'abs', 'invert', 'transpose', 'dot' ]  */
 ```            
 
 Most math functions are passed in as part of the expression. If you want to differentiate for instance you just use the function diff which is located in the Calculus add-on as of version 0.5.0
