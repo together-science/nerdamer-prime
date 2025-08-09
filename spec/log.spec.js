@@ -51,6 +51,36 @@ describe('Logarithms', function () {
         }
     });
 
+    it('should evaluate binary logarithm log2(x)', function () {
+        var cases = [
+            { given: 'log2(8)', expectedValue: '3' },
+            { given: 'log2(4)', expectedValue: '2' },
+            { given: 'log2(2)', expectedValue: '1' },
+            { given: 'log2(1/4)', expectedValue: '-2' }
+        ];
+
+        for (var i = 0; i < cases.length; i++) {
+            var parsed = nerdamer(cases[i].given);
+            var value = parsed.evaluate().text('decimals');
+            expect(round(value), 14).toEqual(round(cases[i].expectedValue), 14);
+        }
+    });
+
+    it('should evaluate log1p(x)', function () {
+        var cases = [
+            { given: 'log1p(0)', expectedValue: '0' },
+            { given: 'log1p(0.5)', expectedValue: '0.4054651081081644' },
+            { given: 'log1p(-0.5)', expectedValue: '-0.6931471805599453' },
+            { given: 'log1p(1e-9)', expectedValue: String(Math.log1p(1e-9)) }
+        ];
+
+        for (var i = 0; i < cases.length; i++) {
+            var parsed = nerdamer(cases[i].given);
+            var value = parsed.evaluate().text('decimals');
+            expect(round(value), 14).toEqual(round(cases[i].expectedValue), 14);
+        }
+    });
+
     it('should throw on log(0)', function () {
         expect(function () { nerdamer('log(0)'); }).toThrow();
     });

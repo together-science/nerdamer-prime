@@ -6062,6 +6062,8 @@ var nerdamer = (function (imports) {
             'acosh': [trigh.acosh, 1],
             'atanh': [trigh.atanh, 1],
             'log10': [, 1],
+            'log2': [, 1],
+            'log1p': [, 1],
             'exp': [exp, 1],
             'radians': [radians, 1],
             'degrees': [degrees, 1],
