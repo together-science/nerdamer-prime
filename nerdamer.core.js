@@ -2387,10 +2387,6 @@ var nerdamer = (function (imports) {
         return Math.log((1 + x) / (1 - x)) / 2;
     };
 
-    Math.log10 = Math.log10 || function (x) {
-        return Math.log(x) * Math.LOG10E;
-    };
-
     Math.trunc = Math.trunc || function (x) {
         if(isNaN(x)) {
             return NaN;
