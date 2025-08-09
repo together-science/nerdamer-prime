@@ -46,10 +46,11 @@
         "url": "https://github.com/together-science/nerdamer-prime/issues"
     },
     "engines": {
-        "node": ">=4"
+        "node": ">=15"
     },
     "scripts": {
         "test": "jasmine",
+        "silent": "npm test --silent | cat",
         "gulp": "npx gulp concat_all"
     },
     "devDependencies": {
