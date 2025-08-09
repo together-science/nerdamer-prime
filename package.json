@@ -46,7 +46,7 @@
         "url": "https://github.com/together-science/nerdamer-prime/issues"
     },
     "engines": {
-        "node": ">=0.10.0"
+        "node": ">=4"
     },
     "scripts": {
         "test": "jasmine",
