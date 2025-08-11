@@ -6,7 +6,7 @@
     "description": "javascript light-weight symbolic math library",
     "name": "nerdamer-prime",
     "license": "MIT",
-    "version": "1.2.5",
+    "version": "1.2.6",
     "homepage": "https://github.com/together-science/nerdamer-prime",
     "directory": {
         "lib": "./"
@@ -46,10 +46,11 @@
         "url": "https://github.com/together-science/nerdamer-prime/issues"
     },
     "engines": {
-        "node": ">=0.10.0"
+        "node": ">=15"
     },
     "scripts": {
         "test": "jasmine",
+        "silent": "npm test --silent | cat",
         "gulp": "npx gulp concat_all"
     },
     "devDependencies": {
@@ -57,7 +58,7 @@
         "gulp-cli": "^2.3.0",
         "gulp-concat": "^2.6.1",
         "gulp-uglify": "^3.0.2",
-        "gulp-watch": "^4.0.1",
+        "gulp-watch": "^4.3.11",
         "jasmine": "^2.99.0"
     }
 }
