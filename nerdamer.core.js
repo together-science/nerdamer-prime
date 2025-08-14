@@ -134,7 +134,7 @@ var nerdamer = (function (imports) {
         //True if ints should not be converted to
         SCIENTIFIC_IGNORE_ZERO_EXPONENTS: true,
         // no simplify() or solveFor() should take more ms than this
-        TIMEOUT: 800,
+        TIMEOUT: 200,
     };
 
     (function () {
