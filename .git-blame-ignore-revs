@@ -1,0 +1,6 @@
+# Git blame ignore file
+# This file contains commit hashes that should be ignored by git blame
+# These are typically formatting commits that don't change functionality
+
+# style(format): format entire project using Prettier
+6ab7f2c11beadd69daf221e599f4df1b71aab740
