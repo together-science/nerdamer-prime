@@ -6,7 +6,6 @@ var nerdamer = require('../nerdamer.core.js');
 require('../Extra');
 
 describe('Extra Calculus', function () {
-
     it('should transform Laplace correctly', function () {
         expect(nerdamer('laplace(5, t, s)').toString()).toEqual('5*s^(-1)');
         expect(nerdamer('laplace(a*t, t, s)').toString()).toEqual('a*s^(-2)');
@@ -52,4 +51,3 @@ describe('Extra Calculus', function () {
         expect(nerdamer('mode(x, r+1, 21, tan(x), r+1, x)').toString()).toEqual('mode(1+r,x)');
     });
 });
-    

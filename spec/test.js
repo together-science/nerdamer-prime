@@ -7,8 +7,7 @@ require('../Algebra.js');
 require('../Calculus.js');
 require('../Solve.js');
 require('../Extra.js');
-console.global = {tsDebugChannels: {notimeout: true}};
-
+console.global = { tsDebugChannels: { notimeout: true } };
 
 // console.log(nerdamer('solve((5-3y)/(5+y)=(1-9y)/(3y-7),y)')
 //     .toString());
@@ -43,8 +42,8 @@ try {
     // x=nerdamer('1/100000000000000000000');
     console.log(x.text());
 } catch (error) {
-    console.log("error "+error)
+    console.log('error ' + error);
 }
 
 // console.log(text);
-console.log("done");
+console.log('done');

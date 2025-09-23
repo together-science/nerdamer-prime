@@ -6,7 +6,6 @@ var nerdamer = require('../nerdamer.core.js');
 var round = nerdamer.getCore().Utils.round;
 
 describe('Calculus', function () {
-
     it('should differentiate correctly', function () {
         expect(nerdamer('diff(cos(x),x)').toString()).toEqual('-sin(x)');
         expect(nerdamer('diff(log(x),x)').toString()).toEqual('x^(-1)');
@@ -26,7 +25,9 @@ describe('Calculus', function () {
         expect(nerdamer('diff(tan(x)*log(1/cos(x)),x)').toString()).toEqual('-(-cos(x)^(-1)*sin(x)*tan(x)+log(cos(x))*sec(x)^2)');
         expect(nerdamer('diff((2*x)^(e),x)').toString()).toEqual('2^e*e*x^(-1+e)');
         expect(nerdamer('diff(2*cos(x)*log(x),x)').toString()).toEqual('2*(-log(x)*sin(x)+cos(x)*x^(-1))');
-        expect(nerdamer('diff(cos(5*x)*log(sec(sqrt(cos(x^(4/5))^2))/y^2)*y,x)').toString()).toEqual('(-4/5)*abs(cos(x^(4/5)))^(-1)*cos(x^(4/5))*sec(abs(cos(x^(4/5))))*sin(x^(4/5))*tan(abs(cos(x^(4/5))))*x^(-1/5)*y^(-2)*cos(5*x)*sec(abs(cos(x^(4/5))))^(-1)*y^3-5*log(sec(abs(cos(x^(4/5))))*y^(-2))*sin(5*x)*y');
+        expect(nerdamer('diff(cos(5*x)*log(sec(sqrt(cos(x^(4/5))^2))/y^2)*y,x)').toString()).toEqual(
+            '(-4/5)*abs(cos(x^(4/5)))^(-1)*cos(x^(4/5))*sec(abs(cos(x^(4/5))))*sin(x^(4/5))*tan(abs(cos(x^(4/5))))*x^(-1/5)*y^(-2)*cos(5*x)*sec(abs(cos(x^(4/5))))^(-1)*y^3-5*log(sec(abs(cos(x^(4/5))))*y^(-2))*sin(5*x)*y'
+        );
         expect(nerdamer('diff(x*cos(x)^log(x),x)').toString()).toEqual('(-cos(x)^(-1)*log(x)*sin(x)+log(cos(x))*x^(-1))*cos(x)^log(x)*x+cos(x)^log(x)');
         expect(nerdamer('diff(cos(2*x),x)').toString()).toEqual('-2*sin(2*x)');
         expect(nerdamer('diff(cos(x)*tan(x),x)').toString()).toEqual('-sin(x)*tan(x)+cos(x)*sec(x)^2');
@@ -43,7 +44,7 @@ describe('Calculus', function () {
         expect(nerdamer('diff([sin(x), x^2, x],x)').toString()).toEqual('[cos(x),2*x,1]');
         expect(nerdamer('diff(sinc(a*x^3+b),x)').toString()).toEqual('3*((a*x^3+b)*cos(a*x^3+b)-sin(a*x^3+b))*(a*x^3+b)^(-2)*a*x^2');
         expect(nerdamer('diff(sqrt(e^x + a),x)').toString()).toEqual('(1/2)*(a+e^x)^(-1/2)*e^x');
-    
+
         // issue #
         expect(nerdamer('diff(3asin(x),x)').toString()).toEqual('3*sqrt(-x^2+1)^(-1)');
         expect(nerdamer('diff(5acos(x),x)').toString()).toEqual('-5*sqrt(-x^2+1)^(-1)');
