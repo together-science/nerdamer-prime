@@ -11,7 +11,7 @@ describe('Logarithms', function () {
         var cases = [
             { given: 'log(e)', expected: '1', expectedValue: '1' },
             { given: 'log(e^e)', expected: 'e', expectedValue: '2.718281828459045' },
-            { given: 'log(1/e^e)', expected: '-e', expectedValue: '-2.718281828459045' }
+            { given: 'log(1/e^e)', expected: '-e', expectedValue: '-2.718281828459045' },
         ];
 
         for (var i = 0; i < cases.length; i++) {
@@ -26,7 +26,7 @@ describe('Logarithms', function () {
         var cases = [
             { given: 'log(8, 2)', expected: '3', expectedValue: '3' },
             { given: 'log(100, 10)', expected: '2', expectedValue: '2' },
-            { given: 'log(2^5, 2)', expected: '5', expectedValue: '5' }
+            { given: 'log(2^5, 2)', expected: '5', expectedValue: '5' },
         ];
 
         for (var i = 0; i < cases.length; i++) {
@@ -41,7 +41,7 @@ describe('Logarithms', function () {
         var cases = [
             { given: 'log10(1000)', expectedValue: '3' },
             { given: 'log10(100)', expectedValue: '2' },
-            { given: 'log10(1/100)', expectedValue: '-2' }
+            { given: 'log10(1/100)', expectedValue: '-2' },
         ];
 
         for (var i = 0; i < cases.length; i++) {
@@ -56,7 +56,7 @@ describe('Logarithms', function () {
             { given: 'log2(8)', expectedValue: '3' },
             { given: 'log2(4)', expectedValue: '2' },
             { given: 'log2(2)', expectedValue: '1' },
-            { given: 'log2(1/4)', expectedValue: '-2' }
+            { given: 'log2(1/4)', expectedValue: '-2' },
         ];
 
         for (var i = 0; i < cases.length; i++) {
@@ -71,7 +71,7 @@ describe('Logarithms', function () {
             { given: 'log1p(0)', expectedValue: '0' },
             { given: 'log1p(0.5)', expectedValue: '0.4054651081081644' },
             { given: 'log1p(-0.5)', expectedValue: '-0.6931471805599453' },
-            { given: 'log1p(1e-9)', expectedValue: String(Math.log1p(1e-9)) }
+            { given: 'log1p(1e-9)', expectedValue: String(Math.log1p(1e-9)) },
         ];
 
         for (var i = 0; i < cases.length; i++) {
@@ -82,7 +82,9 @@ describe('Logarithms', function () {
     });
 
     it('should throw on log(0)', function () {
-        expect(function () { nerdamer('log(0)'); }).toThrow();
+        expect(function () {
+            nerdamer('log(0)');
+        }).toThrow();
     });
 
     it('environment should provide native Math.log, Math.log10, Math.log2 and Math.log1p', function () {
@@ -149,7 +151,7 @@ describe('Logarithms', function () {
             [16, 4],
             [1000, 10],
             [2.5, 5],
-            [1, 10]
+            [1, 10],
         ];
         for (var i = 0; i < cases.length; i++) {
             var x = cases[i][0];
@@ -167,5 +169,3 @@ describe('Logarithms', function () {
         expect(Number(parsed.evaluate().text('decimals'))).toBeCloseTo(3, 12);
     });
 });
-
-

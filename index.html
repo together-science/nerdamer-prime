@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
     <head>
         <title>Nerdamer Tree Visualizer</title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <script src="./nerdamer.core.js"></script>
         <style>
             /* source: https://codepen.io/philippkuehn/pen/QbrOaN */
@@ -31,33 +31,36 @@
                 text-align: center;
                 list-style-type: none;
                 position: relative;
-                padding: 1em .5em 0 .5em;
+                padding: 1em 0.5em 0 0.5em;
             }
-            .tree li::before, .tree li::after {
+            .tree li::before,
+            .tree li::after {
                 content: '';
                 position: absolute;
                 top: 0;
                 right: 50%;
-                border-top: 1px solid #ABABAB;
+                border-top: 1px solid #ababab;
                 width: 50%;
                 height: 1em;
             }
             .tree li::after {
                 right: auto;
                 left: 50%;
-                border-left: 1px solid #ABABAB;
+                border-left: 1px solid #ababab;
             }
-            .tree li:only-child::after, .tree li:only-child::before {
+            .tree li:only-child::after,
+            .tree li:only-child::before {
                 display: none;
             }
             .tree li:only-child {
                 padding-top: 0;
             }
-            .tree li:first-child::before, .tree li:last-child::after {
+            .tree li:first-child::before,
+            .tree li:last-child::after {
                 border: 0 none;
             }
             .tree li:last-child::before {
-                border-right: 1px solid #ABABAB;
+                border-right: 1px solid #ababab;
                 border-radius: 0 5px 0 0;
             }
             .tree li:first-child::after {
@@ -69,14 +72,14 @@
                 position: absolute;
                 top: 0;
                 left: 50%;
-                border-left: 1px solid #ABABAB;
+                border-left: 1px solid #ababab;
                 width: 0;
                 height: 1em;
             }
 
             .tree li div {
-                border: 1px solid #ABABAB;
-                padding: .5em .75em;
+                border: 1px solid #ababab;
+                padding: 0.5em 0.75em;
                 text-decoration: none;
                 display: inline-block;
                 border-radius: 5px;
@@ -87,30 +90,30 @@
 
             .tree li div:hover,
             .tree li div:hover + ul li div {
-                background: #90C4F4;
+                background: #90c4f4;
                 color: #fff;
-                border: 1px solid #ABABAB;
+                border: 1px solid #ababab;
             }
 
             .tree li div:hover + ul li::after,
             .tree li div:hover + ul li::before,
             .tree li div:hover + ul::before,
             .tree li div:hover + ul ul::before {
-                border-color: #90C4F4;
+                border-color: #90c4f4;
             }
             .tree div span {
                 display: inline-block;
                 min-width: 30px;
             }
             .operator {
-                background: #ECF7FC;
+                background: #ecf7fc;
             }
             .function {
-                background: #05346A;
-                color: #FFF !important;
+                background: #05346a;
+                color: #fff !important;
             }
             #input {
-                border: 2px solid #ABABAB;
+                border: 2px solid #ababab;
                 border-radius: 3px;
                 padding: 5px;
                 color: #707070;
@@ -124,7 +127,7 @@
                 font: inherit;
                 color: inherit;
                 cursor: pointer;
-                background: #CCC;
+                background: #ccc;
                 padding: 7px;
                 vertical-align: top;
                 font-size: 18px;
@@ -132,27 +135,30 @@
                 border-radius: 3px;
                 margin-left: 2px;
             }
-            </style>
-        </head>
-        <body>
-            <input type="text" id="input" onKeyPress="keypress(event)"><button id="generate" onclick="generate()">Generate</button>
-            <div id="output"></div>
-            <script>
-                var output = document.getElementById('output');
-                var input = document.getElementById('input');
-                function keypress(e) {
-                    var code = Number(e.keyCode ? e.keyCode : e.which);
-                    if (code === 13) { //Enter keycode
-                        generate();
-                    }
+        </style>
+    </head>
+    <body>
+        <input type="text" id="input" onKeyPress="keypress(event)" /><button id="generate" onclick="generate()">
+            Generate
+        </button>
+        <div id="output"></div>
+        <script>
+            var output = document.getElementById('output');
+            var input = document.getElementById('input');
+            function keypress(e) {
+                var code = Number(e.keyCode ? e.keyCode : e.which);
+                if (code === 13) {
+                    //Enter keycode
+                    generate();
                 }
-                function generate() {
-                    try {
-                        output.innerHTML = nerdamer.htmlTree(input.value);
-                    } catch (e) {
-                        alert(e.message);
-                    }
+            }
+            function generate() {
+                try {
+                    output.innerHTML = nerdamer.htmlTree(input.value);
+                } catch (e) {
+                    alert(e.message);
                 }
-            </script>
-        </body>
-    </html>
+            }
+        </script>
+    </body>
+</html>
