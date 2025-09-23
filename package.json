@@ -6,7 +6,7 @@
     "description": "javascript light-weight symbolic math library",
     "name": "nerdamer-prime",
     "license": "MIT",
-    "version": "1.2.6",
+    "version": "1.3.0",
     "homepage": "https://github.com/together-science/nerdamer-prime",
     "directory": {
         "lib": "./"
@@ -50,15 +50,23 @@
     },
     "scripts": {
         "test": "jasmine",
+        "test:types": "jest -c jest.config.types.js",
         "silent": "npm test --silent | cat",
-        "gulp": "npx gulp concat_all"
+        "build": "esbuild all.js --bundle --minify --outfile=all.min.js --format=iife --global-name=nerdamer",
+        "watch": "esbuild all.js --bundle --minify --outfile=all.min.js --format=iife --global-name=nerdamer --watch",
+        "format": "prettier --write \"**/*.{ts,js,json,jml,md,html}\"",
+        "format:check": "prettier --check \"**/*.{ts,js,json,jml,md,html}\""
     },
     "devDependencies": {
-        "gulp": "^4.0.2",
-        "gulp-cli": "^2.3.0",
-        "gulp-concat": "^2.6.1",
-        "gulp-uglify": "^3.0.2",
-        "gulp-watch": "^4.3.11",
-        "jasmine": "^2.99.0"
+        "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+        "@types/jest": "^30.0.0",
+        "esbuild": "^0.25.10",
+        "jasmine": "^2.99.0",
+        "jest": "^30.1.3",
+        "prettier": "^3.6.2",
+        "prettier-plugin-jsdoc": "^1.3.3",
+        "ts-jest": "^29.4.4",
+        "ts-morph": "^27.0.0",
+        "typescript": "^5.9.2"
     }
 }
