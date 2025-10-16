@@ -7,8 +7,7 @@ require('../Algebra.js');
 require('../Calculus.js');
 require('../Solve.js');
 require('../Extra.js');
-console.global = {tsDebugChannels: {notimeout: true}};
-
+console.global = { tsDebugChannels: { notimeout: true } };
 
 // console.log(nerdamer('solve((5-3y)/(5+y)=(1-9y)/(3y-7),y)')
 //     .toString());
@@ -42,8 +41,8 @@ try {
     x = nerdamer('vecget(primes(0,5),3)').evaluate();
     console.log(x.text());
 } catch (error) {
-    console.log("error "+error)
+    console.log('error ' + error);
 }
 
 // console.log(text);
-console.log("done");
+console.log('done');
