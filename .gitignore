@@ -5,3 +5,15 @@
 /node_modules/
 /package-lock.json
 /.vscode
+
+# Temporary Files
+**/report*
+
+# TypeScript
+*.tsbuildinfo
+*.d.ts.map
+*.js.map
+dist/
+build/
+coverage/
+.nyc_output/
