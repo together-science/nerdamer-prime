@@ -550,7 +550,7 @@ describe('Nerdamer core', function () {
             }, 
             {
                 given: 'log(123-2*i)',
-                expected: '-0.01625872980512958*i+4.8123165343435139'
+                expected: '-0.01625872980512959*i+4.8123165343435139'
             }, 
             {
                 given: 'log(123-2*i+a)',
@@ -1011,7 +1011,7 @@ describe('Nerdamer core', function () {
             {
                 given: '(256*i)^(1/8)',
                 expected: '2*(-1)^(1/16)',
-                expectedValue: '0.39018064403225655*i+1.9615705608064609'
+                expectedValue: '0.3901806440322565*i+1.9615705608064609'
             },
             {
                 given: 'i/i',
@@ -1073,7 +1073,7 @@ describe('Nerdamer core', function () {
                 given: '(-2/3*x)^x',
                 expected: '(-x)^x*2^x*3^(-x)',
                 //TODO: Evaluates to NaN somewhere
-                expectedValue: '2.0270706004935852*(-1)^2.1'
+                expectedValue: '2.0270706004935857*(-1)^2.1'
             }
         ];
 
@@ -2735,12 +2735,12 @@ describe('trigonometric functions', function () {
     });
     it('should handle inverse trig in complex domain', function() {
         expect(nerdamer('asin(2)').evaluate().text()).toEqual('-1.3169578969248164*i+1.570796326794896580');
-        expect(nerdamer('asin(2.19549352839451962743423602992)').evaluate().text()).toEqual('-1.4231142695394825*i+1.5707963267948963210');
+        expect(nerdamer('asin(2.19549352839451962743423602992)').evaluate().text()).toEqual('-1.423114269539483*i+1.570796326794896580');
         expect(nerdamer('acos(2)').evaluate().text()).toEqual('1.3169578969248164*i');
         expect(nerdamer('atan(i)').evaluate().text()).toEqual('Infinity*i');
         
-        expect(nerdamer('asec(0.89)').evaluate().text()).toEqual('0.000000000000000250+0.49219965344251854*i'); // Has rounding errors
-        expect(nerdamer('acsc(0.23)').evaluate().text()).toEqual('-2.149327811189424*i+1.570796326794897049'); // Has rounding errors
+        expect(nerdamer('asec(0.89)').evaluate().text()).toEqual('0.000000000000000250+0.4921996534425184*i'); // Has rounding errors
+        expect(nerdamer('acsc(0.23)').evaluate().text()).toEqual('-2.1493278111894236*i+1.570796326794896068'); // Has rounding errors
     });
     it('should throw for wrong trigonometric arguments', function () {
         // given

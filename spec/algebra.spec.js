@@ -312,7 +312,7 @@ describe('Algebra', function () {
         // simplify must preserve signs of certain terms
         expect(nerdamer("(1-y)^2").simplify().text()).toBe('(-y+1)^2');
         expect(nerdamer("48-48*(x/100)").simplify().text()).toBe('0.48*(-x+100)');
-        expect(nerdamer("-sqrt(12/5)").simplify().evaluate().text()).toBe("-1.549193338482966855");
+        expect(nerdamer("-sqrt(12/5)").simplify().evaluate().text()).toBe("-1.549193338482966525");
     });
     it('simplify should be pure', function() {
         const a = nerdamer('100*2^((1/2)*m)');
@@ -325,8 +325,8 @@ describe('Algebra', function () {
         expect(nerdamer('sqrt(2*baseunit_m^2*sin(3*alpha))').toString()).toEqual('baseunit_m*sqrt(2)*sqrt(sin(3*alpha))');
     });
     it('should calculate nth roots correctly', function() {
-        expect(nerdamer('roots((-1)^(1/5))').evaluate().text()).toEqual('[(181485532/308761629)*i+260449120/321932817,(55918065/58795733)*i-39088169/126491972,-1,(-8795017271979437/9247628423009475)*i-24157817/78176338,(-8677593/14763203)*i+102334155/126491972]');
-        expect(nerdamer('roots((2)^(1/3))').evaluate().text()).toEqual('[131293077/116968834,-131293077/116968834]');
+        expect(nerdamer('roots((-1)^(1/5))').evaluate().text()).toEqual('[(181485532/308761629)*i+260449120/321932817,(55918065/58795733)*i-1347007376143571/4359007435394225,-1,(-256306003/269496080)*i-24157817/78176338,(-8677593/14763203)*i+102334155/126491972]');
+        expect(nerdamer('roots((2)^(1/3))').evaluate().text()).toEqual('[39735161/35400004,-39735161/35400004]');
     });
     it('should complete the square', function() {
         expect(nerdamer('sqcomp(a*x^2+b*x-11*c, x)').toString()).toEqual('((1/2)*abs(b)*sqrt(a)^(-1)+sqrt(a)*x)^2+(-1/4)*(abs(b)*sqrt(a)^(-1))^2-11*c');

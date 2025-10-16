@@ -21,5 +21,7 @@ describe('Known problems:', function () {
     it('Solve', function () { 
         // solve x^3-1,x
         // solve x^3-2x^2+8x-12,x
+        // investigate: Why did it switch to numeric solve? Also, previous result was incorrect
+        expect(nerdamer('solve(sqrt(x)-2x+x^2,x)').toString()).toEqual('[0,832040/2178309,1]'/*[(-1/2)*sqrt(5)+3/2,0,832040/2178309,1]'*/);
     });
 });

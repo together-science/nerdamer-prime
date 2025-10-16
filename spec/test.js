@@ -39,7 +39,8 @@ let text;
 let x;
 
 try {
-    x = nerdamer('vecget(primes(0,5),3)').evaluate();
+    x = nerdamer('1e-30');
+    // x=nerdamer('1/100000000000000000000');
     console.log(x.text());
 } catch (error) {
     console.log("error "+error)

@@ -376,9 +376,11 @@ var nerdamer = (function (imports) {
                     parts = String(num).toLowerCase().split('e'), //split into coeff and exponent
                     e = parts.pop(), //store the exponential part
                     l = Math.abs(e), //get the number of zeros
-                    sign = e / l,
+                    sign = Math.sign(e),
+                    
                     coeff_array = parts[0].split('.');
             if(sign === -1) {
+                //return "("+parts[0]+"/1"+"0".repeat(l)+")";
                 l = l - coeff_array[0].length;
                 if(l < 0) {
                     num = coeff_array[0].slice(0, l) + '.' + coeff_array[0].slice(l) + (coeff_array.length === 2 ? coeff_array[1] : '');
@@ -5123,29 +5125,29 @@ var nerdamer = (function (imports) {
                 //Do nothing for now. Revisit this in the future.
                 return _.symfunction('erf', [symbol]);
 
-                n = n || 30;
+                // n = n || 30;
 
-                var f = function (R, I) {
-                    return block('PARSE2NUMBER', function () {
-                        var retval = new Symbol(0);
-                        for(var i = 0; i < n; i++) {
-                            var a, b;
-                            a = _.parse(bigDec.exp(bigDec(i).toPower(2).neg().dividedBy(bigDec(n).pow(2).plus(bigDec(R).toPower(2).times(4)))));
-                            b = _.parse(format('2*({1})-e^(-(2*{0}*{1}*{2}))*(2*{1}*cosh({2}*{3})-{0}*{3}*sinh({3}*{2}))', Settings.IMAGINARY, R, I, i));
-                            retval = _.add(retval, _.multiply(a, b));
-                        }
-                        return _.multiply(retval, new Symbol(2));
-                    }, true);
-                };
-                var re, im, a, b, c, k;
-                re = symbol.realpart();
-                im = symbol.imagpart();
+                // var f = function (R, I) {
+                //     return block('PARSE2NUMBER', function () {
+                //         var retval = new Symbol(0);
+                //         for(var i = 0; i < n; i++) {
+                //             var a, b;
+                //             a = _.parse(bigDec.exp(bigDec(i).toPower(2).neg().dividedBy(bigDec(n).pow(2).plus(bigDec(R).toPower(2).times(4)))));
+                //             b = _.parse(format('2*({1})-e^(-(2*{0}*{1}*{2}))*(2*{1}*cosh({2}*{3})-{0}*{3}*sinh({3}*{2}))', Settings.IMAGINARY, R, I, i));
+                //             retval = _.add(retval, _.multiply(a, b));
+                //         }
+                //         return _.multiply(retval, new Symbol(2));
+                //     }, true);
+                // };
+                // var re, im, a, b, c, k;
+                // re = symbol.realpart();
+                // im = symbol.imagpart();
 
-                k = _.parse(format('(e^(-{0}^2))/pi', re));
-                a = _.parse(format('(1-e^(-(2*{0}*{1}*{2})))/(2*{1})', Settings.IMAGINARY, re, im));
-                b = f(re.toString(), im.toString());
+                // k = _.parse(format('(e^(-{0}^2))/pi', re));
+                // a = _.parse(format('(1-e^(-(2*{0}*{1}*{2})))/(2*{1})', Settings.IMAGINARY, re, im));
+                // b = f(re.toString(), im.toString());
 
-                return _.add(_.parse(Math2.erf(re.toString())), _.multiply(k, _.add(a, b)));
+                // return _.add(_.parse(Math2.erf(re.toString())), _.multiply(k, _.add(a, b)));
             },
             removeDen: function (symbol) {
                 var den, r, i, re, im;
@@ -10362,9 +10364,9 @@ var nerdamer = (function (imports) {
                 frac = [0, 1];
             }
             else {
-                if(value < 1e-6 || value > 1e20) {
+                if(Math.abs(value) < 1e-6 || Math.abs(value) > 1e20) {
                     var qc = this.quickConversion(Number(value));
-                    if(qc[1] <= 1e20) {
+                    if(qc[1] <= 1e16) {
                         var abs = Math.abs(value);
                         var sign = value / abs;
                         frac = this.fullConversion(abs.toFixed((qc[1] + '').length - 1));
@@ -10455,14 +10457,13 @@ var nerdamer = (function (imports) {
          * @returns {Array} - an array containing the denominator and the numerator
          */
         fullConversion: function (dec) {
+            // this doesn't work for values approaching as small as epsilon
+            var epsilon = Math.abs(dec) > 1e10?1e-16:1e-30;
             var done = false;
             // you can adjust the epsilon to a larger number if you don't need very high precision
-            var n1 = 0, d1 = 1, n2 = 1, d2 = 0, n = 0, q = dec, epsilon = 1e-16;
+            var n1 = 0, d1 = 1, n2 = 1, d2 = 0, n = 0, q = dec
             while(!done) {
                 n++;
-                if(n > 10000) {
-                    done = true;
-                }
                 var a = Math.floor(q);
                 var num = n1 + a * n2;
                 var den = d1 + a * d2;

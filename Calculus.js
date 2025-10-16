@@ -1230,6 +1230,7 @@ if((typeof module) !== 'undefined' && typeof nerdamer === 'undefined') {
                             }
                             else if(p === 1/2 && x.power.equals(2) && a.greaterThan(0)) {
                                 // TODO: Revisit
+                                // should become (sinh(2*acosh(x))/4-acosh(x)/2))
                                 __.integration.stop();
                             }
                             else {

@@ -94,8 +94,8 @@ describe('build', function () {
             {
                 given: 'asin(0.2)+atan(0.1)+acosh(y)',
                 params: ['y'],
-                one_expected: 1.6738857175240727,
-                two_expected: 1.6738857175240727
+                one_expected: 1.673885717524073,
+                two_expected: 1.673885717524073
             },
             {
                 given: '(sin(z)*cos(y))^(tan(2)+1)',
