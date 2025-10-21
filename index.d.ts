@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /**
  * Nerdamer-Prime TypeScript Declaration File
  *
@@ -32,7 +33,8 @@
  *
  * // Vector and matrix operations
  * const vec = nerdamer.vector([1, 2, 3]);
- * const mat = nerdamer.matrix([[1, 2], [3, 4]]);
+ * nerdamer.setVar('M', 'matrix([1,2],[3,4])');
+ * const mat = nerdamer('M');
  * const det = nerdamer.determinant(mat);  // -2
  * ```
  *
@@ -103,22 +105,57 @@ type int = number;
  *
  * @example
  *     ```typescript
- *     // All of these are valid ExpressionParam values:
- *     nerdamer.add('x + 1', 'y + 2')     // strings
- *     nerdamer.add(5, 10)                // numbers
- *     nerdamer.add(expr1, expr2)         // NerdamerExpression objects
- *     nerdamer.add(equation, 'x')        // NerdamerEquation objects
- *     ```;
+ *         // All of these are valid ExpressionParam values:
+ *         nerdamer.add('x + 1', 'y + 2')     // strings
+ *         nerdamer.add(5, 10)                // numbers
+ *         nerdamer.add(expr1, expr2)         // NerdamerExpression objects
+ *         nerdamer.add(equation, 'x')        // NerdamerEquation objects
+ *         ```;
  */
 type ExpressionParam = string | number | NerdamerExpression | NerdamerEquation | nerdamerPrime.NerdamerCore.Symbol;
 
 /**
- * Represents the result of solving a system of equations. Can be an object mapping variable names to their solutions,
- * or an array of [variable, solution] pairs.
+ * Represents the result of solving a system of equations.
+ *
+ * **CRITICAL BEHAVIOR NOTE**: The return format depends on the `SOLUTIONS_AS_OBJECT` setting:
+ *
+ * ```typescript
+ * // ✅ SOLUTIONS_AS_OBJECT = true (default):
+ * nerdamer.set('SOLUTIONS_AS_OBJECT', true);
+ * const result = nerdamer.solveEquations(['x + y - 1', '2*x - y'], ['x', 'y']);
+ * // Returns: { x: 0.3333333333333333, y: 0.6666666666666666 }
+ *
+ * // ✅ SOLUTIONS_AS_OBJECT = false:
+ * nerdamer.set('SOLUTIONS_AS_OBJECT', false);
+ * const result = nerdamer.solveEquations(['x + y - 1', '2*x - y'], ['x', 'y']);
+ * // Returns: [["x", 0.3333333333333333], ["y", 0.6666666666666666]]
+ *
+ * // ✅ SAFE ACCESS PATTERN for both formats:
+ * if (result && typeof result === 'object') {
+ *   if (Array.isArray(result)) {
+ *     // Array format: [["var", value], ...]
+ *     const solutionMap = new Map(result);
+ *     const xValue = solutionMap.get('x'); // number
+ *   } else {
+ *     // Object format: { var: value, ... }
+ *     const solutionMap = new Map(Object.entries(result));
+ *     const xValue = solutionMap.get('x'); // number
+ *   }
+ * }
+ * ```
+ *
+ * **Important Notes:**
+ *
+ * - Values are always **numbers**, not NerdamerExpression objects
+ * - For systems with no solution: returns `null` or empty array `[]`
+ * - For systems with multiple solutions: behavior may vary
+ * - The setting `SOLUTIONS_AS_OBJECT` controls the output format
  */
 type SolveResult =
-    | Record<string, NerdamerExpression | NerdamerExpression[]>
-    | [string, NerdamerExpression | NerdamerExpression[]][];
+    | Record<string, number | NerdamerExpression | NerdamerExpression[]>
+    | [string, number | NerdamerExpression | NerdamerExpression[]][]
+    | null
+    | [];
 
 // #endregion
 
@@ -138,8 +175,32 @@ interface CoreExpressionBase {
     /**
      * Gets the string representation of the expression.
      *
-     * @param option Pass in the string 'decimals' to always get back numbers as decimals. Pass in the string
-     *   'fractions' to always get back numbers as fractions. Defaults to decimals.
+     * **CRITICAL BEHAVIOR NOTE**: Small numbers become fractions instead of scientific notation:
+     *
+     * ```typescript
+     * nerdamer('1e-15').toString(); // becomes "1/999999999999999" instead of "1e-15"
+     * ```
+     *
+     * This breaks zero detection. Use tolerance-based comparison:
+     *
+     * ```typescript
+     * function isZero(expr: NerdamerExpression): boolean {
+     *     // Method 1: String comparison (most reliable)
+     *     if (expr.toString() === '0') return true;
+     *
+     *     // Method 2: Decimal evaluation with tolerance
+     *     try {
+     *         const decimal = expr.text('decimals');
+     *         const value = parseFloat(decimal);
+     *         return Math.abs(value) < 1e-12;
+     *     } catch {
+     *         return false;
+     *     }
+     * }
+     * ```
+     *
+     * @param option Pass in the string 'decimals' to always get back numbers as decimals. Pass in the string 'fractions'
+     *   to always get back numbers as fractions. Defaults to decimals.
      */
     text(option?: OutputType): string;
     latex(option?: OutputType): string;
@@ -155,11 +216,11 @@ interface CoreExpressionBase {
  *
  * @example
  *     ```typescript
- *     const expr = nerdamer('x^2 + 2*x + 1');
- *     const expanded = expr.expand();           // x^2 + 2*x + 1
- *     const factored = nerdamer.factor(expr);  // (x + 1)^2
- *     const value = expr.evaluate({x: 3});     // 16
- *     ```;
+ *         const expr = nerdamer('x^2 + 2*x + 1');
+ *         const expanded = expr.expand();           // x^2 + 2*x + 1
+ *         const factored = nerdamer.factor(expr);  // (x + 1)^2
+ *         const value = expr.evaluate({x: 3});     // 16
+ *         ```;
  */
 interface NerdamerExpression extends CoreExpressionBase {
     /** The underlying Symbol object. */
@@ -167,13 +228,6 @@ interface NerdamerExpression extends CoreExpressionBase {
 
     // Basic methods
     variables(): string[];
-
-    /**
-     * Checks if two expressions are equal
-     *
-     * @param other The expression to compare with
-     */
-    equals(other: ExpressionParam): boolean;
 
     /** Checks if the expression contains an integral */
     hasIntegral(): boolean;
@@ -193,8 +247,8 @@ interface NerdamerExpression extends CoreExpressionBase {
     evaluate(substitutions?: Record<string, ExpressionParam>): NerdamerExpression;
 
     /**
-     * Checks to see if the expression's value equals a number. Compares the direct value returned. The function will
-     * not check for all possible cases. To avoid this call evaluate.
+     * Checks to see if the expression's value equals a number. Compares the direct value returned. The function will not
+     * check for all possible cases. To avoid this call evaluate.
      *
      * @example
      *     nerdamer('sqrt(5)').isNumber();
@@ -302,15 +356,37 @@ interface NerdamerExpression extends CoreExpressionBase {
 
     // Comparison operations
     /**
-     * Checks if two values are equal
+     * Checks if two expressions are equal.
      *
-     * @example
-     *     nerdamer('sqrt(9)').eq(3);
-     *     // true
-     *     nerdamer('x').eq('y');
-     *     // false
+     * **IMPORTANT**: This is the ONLY public equality comparison method available on NerdamerExpression. The `equals()`
+     * method does NOT exist on wrapper objects - it's an internal method on Symbol objects.
      *
-     * @param value The value being tested
+     * **Implementation Details**:
+     *
+     * - Internally calls `(this - other).equals(0)` on the underlying Symbol
+     * - Returns `true` if expressions are mathematically equal
+     * - Returns `false` if expressions are not equal OR if comparison fails
+     * - Catches errors gracefully and returns `false` instead of throwing
+     *
+     * **Usage Examples**:
+     *
+     * ```typescript
+     * // Basic equality
+     * nerdamer('sqrt(9)').eq(3); // true
+     * nerdamer('x').eq('y'); // false
+     *
+     * // Zero detection (recommended approach)
+     * const expr = nerdamer('x - x');
+     * const isZero = expr.eq(nerdamer('0')); // true
+     *
+     * // Works with all expression types
+     * nerdamer('sqrt(7)').eq('0'); // false
+     * nerdamer('pi - pi').eq('0'); // true
+     * nerdamer('2*x').eq('2*x'); // true
+     * ```
+     *
+     * @param other The expression to compare with
+     * @returns `true` if expressions are equal, `false` otherwise
      */
     eq(other: ExpressionParam): boolean;
 
@@ -406,24 +482,24 @@ interface NerdamerEquation extends NerdamerExpression {
  *
  * @example
  *     ```typescript
- *     // Register a simple custom function
- *     nerdamer.register({
- *       name: 'double',
- *       numargs: 1,
- *       visible: true,
- *       build: () => (x: number) => x * 2
- *     });
+ *         // Register a simple custom function
+ *         nerdamer.register({
+ *           name: 'double',
+ *           numargs: 1,
+ *           visible: true,
+ *           build: () => (x: number) => x * 2
+ *         });
  *
- *     // Use the custom function
- *     nerdamer('double(5)');  // 10
+ *         // Use the custom function
+ *         nerdamer('double(5)');  // 10
  *
- *     // Register a function with variable arguments
- *     nerdamer.register({
- *       name: 'average',
- *       numargs: [-1],  // Variable number of arguments
- *       build: () => (...args: number[]) => args.reduce((a, b) => a + b) / args.length
- *     });
- *     ```;
+ *         // Register a function with variable arguments
+ *         nerdamer.register({
+ *           name: 'average',
+ *           numargs: [-1],  // Variable number of arguments
+ *           build: () => (...args: number[]) => args.reduce((a, b) => a + b) / args.length
+ *         });
+ *         ```;
  */
 interface NerdamerAddon {
     /** Name of the function to register. */
@@ -451,12 +527,12 @@ interface NerdamerAddon {
  *
  * @example
  *     ```typescript
- *     // Register a custom function
- *     nerdamer(function myFunc(x, y) { return x + y; });
+ *         // Register a custom function
+ *         nerdamer(function myFunc(x, y) { return x + y; });
  *
- *     // Use the custom function
- *     nerdamer('myFunc(3, 4)');  // 7
- *     ```;
+ *         // Use the custom function
+ *         nerdamer('myFunc(3, 4)');  // 7
+ *         ```;
  *
  * @param customJsFunction Native JavaScript function to register
  * @returns The nerdamer function for chaining
@@ -471,22 +547,22 @@ declare function nerdamer(customJsFunction: Function): typeof nerdamer;
  *
  * @example
  *     ```typescript
- *     // Basic expression parsing
- *     const expr = nerdamer('x^2 + 2*x + 1');
+ *         // Basic expression parsing
+ *         const expr = nerdamer('x^2 + 2*x + 1');
  *
- *     // With substitutions
- *     const result = nerdamer('x^2 + y', {x: 3, y: 4});  // 13
+ *         // With substitutions
+ *         const result = nerdamer('x^2 + y', {x: 3, y: 4});  // 13
  *
- *     // With options
- *     const expanded = nerdamer('(x+1)^2', {}, 'expand');  // x^2 + 2*x + 1
+ *         // With options
+ *         const expanded = nerdamer('(x+1)^2', {}, 'expand');  // x^2 + 2*x + 1
  *
- *     // Equations
- *     const equation = nerdamer('x^2 = 4');
- *     const solutions = equation.solveFor('x');  // [-2, 2]
+ *         // Equations
+ *         const equation = nerdamer('x^2 = 4');
+ *         const solutions = equation.solveFor('x');  // [-2, 2]
  *
- *     // Numerical evaluation
- *     const numerical = nerdamer('sin(pi/2)', {}, 'numer');  // 1
- *     ```;
+ *         // Numerical evaluation
+ *         const numerical = nerdamer('sin(pi/2)', {}, 'numer');  // 1
+ *         ```;
  *
  * @param expression The mathematical expression or equation to parse
  * @param substitutions Optional object containing variable substitutions
@@ -799,8 +875,8 @@ declare namespace nerdamerPrime {
     function getCore(): NerdamerCore.Core;
 
     /**
-     * Gets the list of reserved names. This is a list of names already in use by nerdamer excluding variable names.
-     * This is not a static list.
+     * Gets the list of reserved names. This is a list of names already in use by nerdamer excluding variable names. This
+     * is not a static list.
      *
      * @param asArray Pass in true to get the list back as an array instead of as an object.
      */
@@ -820,9 +896,9 @@ declare namespace nerdamerPrime {
     /**
      * Registers a module function with nerdamer. The object needs to contain at a minimum, a name property (text), a
      * numargs property (int), this is -1 for variable arguments or an array containing the min and max arguments, the
-     * visible property (bool) which allows use of this function through nerdamer, defaults to true, and a build
-     * property containing a function which returns the function to be used. This function is also handy for creating
-     * aliases to functions. See below how the alias D was created for the diff function).
+     * visible property (bool) which allows use of this function through nerdamer, defaults to true, and a build property
+     * containing a function which returns the function to be used. This function is also handy for creating aliases to
+     * functions. See below how the alias D was created for the diff function).
      *
      * @example
      *     var core = nerdamer.getCore();
@@ -860,8 +936,8 @@ declare namespace nerdamerPrime {
 
     /**
      * This method can be used to check that the variable meets variable name requirements for nerdamer. Variable names
-     * Must start with a letter or underscore and may contains any combination of numbers, letters, and underscores
-     * after that.
+     * Must start with a letter or underscore and may contains any combination of numbers, letters, and underscores after
+     * that.
      *
      * @example
      *     nerdamer.validVarName('cos'); // false
@@ -874,8 +950,8 @@ declare namespace nerdamerPrime {
     function validVarName(name: string): boolean;
 
     /**
-     * Sets a known value in nerdamer. This differs from setConstant as the value can be overridden trough the scope.
-     * See example.
+     * Sets a known value in nerdamer. This differs from setConstant as the value can be overridden trough the scope. See
+     * example.
      *
      * @example
      *     nerdamer.setVar('x', '11');
@@ -966,10 +1042,10 @@ declare namespace nerdamerPrime {
      *
      * @example
      *     ```typescript
-     *     nerdamer.expand('(x+1)*(x+2)');     // x^2 + 3*x + 2
-     *     nerdamer.expand('(a+b)^2');         // a^2 + 2*a*b + b^2
-     *     nerdamer.expand('x*(y+z)');         // x*y + x*z
-     *     ```;
+     *         nerdamer.expand('(x+1)*(x+2)');     // x^2 + 3*x + 2
+     *         nerdamer.expand('(a+b)^2');         // a^2 + 2*a*b + b^2
+     *         nerdamer.expand('x*(y+z)');         // x*y + x*z
+     *         ```;
      *
      * @param expression The expression to expand
      * @returns The expanded expression
@@ -981,10 +1057,10 @@ declare namespace nerdamerPrime {
      *
      * @example
      *     ```typescript
-     *     nerdamer.factor('x^2 + 3*x + 2');   // (x + 1)*(x + 2)
-     *     nerdamer.factor('a^2 - b^2');       // (a - b)*(a + b)
-     *     nerdamer.factor('x^3 - 8');         // (x - 2)*(x^2 + 2*x + 4)
-     *     ```;
+     *         nerdamer.factor('x^2 + 3*x + 2');   // (x + 1)*(x + 2)
+     *         nerdamer.factor('a^2 - b^2');       // (a - b)*(a + b)
+     *         nerdamer.factor('x^3 - 8');         // (x - 2)*(x^2 + 2*x + 4)
+     *         ```;
      *
      * @param expression The expression to factor
      * @returns The factored expression
@@ -996,10 +1072,10 @@ declare namespace nerdamerPrime {
      *
      * @example
      *     ```typescript
-     *     nerdamer.simplify('2*x + 3*x');     // 5*x
-     *     nerdamer.simplify('sin(x)^2 + cos(x)^2'); // 1
-     *     nerdamer.simplify('(x^2 - 1)/(x - 1)'); // x + 1
-     *     ```;
+     *         nerdamer.simplify('2*x + 3*x');     // 5*x
+     *         nerdamer.simplify('sin(x)^2 + cos(x)^2'); // 1
+     *         nerdamer.simplify('(x^2 - 1)/(x - 1)'); // x + 1
+     *         ```;
      *
      * @param expression The expression to simplify
      * @returns The simplified expression
@@ -1045,8 +1121,78 @@ declare namespace nerdamerPrime {
 
     // #region Matrix and Vector Functions
 
+    /**
+     * Creates a matrix from 2D array data.
+     *
+     * **CRITICAL BEHAVIOR NOTE**: Different matrix creation methods produce different internal formats:
+     *
+     * ```typescript
+     * // Method 1: Function with 2D array - FLATTENS incorrectly for determinants:
+     * const m1 = nerdamer.matrix([
+     *     [1, 2],
+     *     [3, 4],
+     * ]); // → matrix([(1, 2, 3, 4)])
+     * nerdamer.determinant(m1); // → "" (empty, fails)
+     *
+     * // Method 2: String with double brackets - FAILS for determinants:
+     * const m2 = nerdamer('matrix([[1,2],[3,4]])'); // → matrix([[1,2],[3,4]])
+     * nerdamer.determinant(m2); // → "" (empty, fails)
+     *
+     * // Method 3: Variable-based - WORKS for determinants:
+     * nerdamer.setVar('M', 'matrix([1,2],[3,4])'); // → matrix([1,2],[3,4])
+     * const m3 = nerdamer('M');
+     * nerdamer.determinant(m3); // → "-2" ✅ WORKS!
+     * ```
+     *
+     * **For reliable determinant calculations**, use the variable-based approach:
+     *
+     * ```typescript
+     * function createMatrixForDeterminant(data: number[][]): NerdamerExpression {
+     *     const flatData = data.flat().join(',');
+     *     const rows = data.length;
+     *     const cols = data[0]?.length || 0;
+     *     const matrixStr = `matrix([${flatData}])`; // Single brackets format
+     *
+     *     const tempVar = `temp_matrix_${Date.now()}`;
+     *     nerdamer.setVar(tempVar, matrixStr);
+     *     const matrix = nerdamer(tempVar);
+     *     nerdamer.setVar(tempVar, 'delete'); // cleanup
+     *     return matrix;
+     * }
+     * ```
+     *
+     * @param data 2D array of expressions or a single expression
+     * @returns Matrix object (format depends on creation method)
+     */
     function matrix(data: ExpressionParam[][] | ExpressionParam): NerdamerCore.Matrix;
     function imatrix(size: number): NerdamerCore.Matrix;
+    /**
+     * Computes the determinant of a square matrix.
+     *
+     * **CRITICAL BEHAVIOR NOTE**: This function fails for 1x1 (single element) matrices:
+     *
+     * ```typescript
+     * // ❌ FAILS - Single element matrices throw error:
+     * nerdamer.setVar('M', 'matrix([42])');
+     * const matrix = nerdamer('M');
+     * nerdamer.determinant(matrix); // throws "Cannot read properties of undefined (reading '1')"
+     *
+     * // ✅ WORKAROUND - Extract the single element directly:
+     * function safeDeterminant(matrix: NerdamerExpression): NerdamerExpression {
+     *     const size = nerdamer.size(matrix).toString();
+     *     if (size === '[1,1]' || size === '1') {
+     *         return nerdamer.matget(matrix, 0, 0); // For 1x1, determinant = the element
+     *     }
+     *     return nerdamer.determinant(matrix);
+     * }
+     * ```
+     *
+     * Works correctly for 2x2, 3x3, and larger square matrices.
+     *
+     * @param matrix The square matrix to compute the determinant of
+     * @returns The determinant value (fails for 1x1 matrices)
+     * @throws Error for 1x1 matrices: "Cannot read properties of undefined (reading '1')"
+     */
     function determinant(matrix: ExpressionParam): NerdamerExpression;
     function matget(matrix: ExpressionParam, row: number, col: number): NerdamerExpression;
     function matset(matrix: ExpressionParam, row: number, col: number, value: ExpressionParam): NerdamerExpression;
@@ -1055,12 +1201,74 @@ declare namespace nerdamerPrime {
     function matgetcol(matrix: ExpressionParam, col: number): NerdamerCore.Vector;
     function matgetrow(matrix: ExpressionParam, row: number): NerdamerCore.Vector;
     function vector(components: ExpressionParam[] | ExpressionParam): NerdamerCore.Vector;
+    /**
+     * Gets an element from a vector at the specified index.
+     *
+     * **CRITICAL BEHAVIOR NOTE**: This function returns a NerdamerExpression wrapper, but for missing/invalid indices it
+     * returns an object with `symbol: undefined`:
+     *
+     * ```typescript
+     * // For valid coefficients:
+     * const result = nerdamer.vecget(coeffs, 0);
+     * result.toString(); // "5" (valid value)
+     * result.symbol; // { group: 1, value: '#', ... } (valid symbol)
+     *
+     * // For invalid/missing coefficients:
+     * const invalid = nerdamer.vecget(coeffs, 999);
+     * invalid.toString(); // "" (empty string!)
+     * invalid.symbol; // undefined (no symbol property!)
+     * ```
+     *
+     * **SAFE USAGE PATTERN**: Always check if symbol is undefined before using the result:
+     *
+     * ```typescript
+     * function safeVecget(coeffs: any, index: number): NerdamerExpression {
+     *     const result = nerdamer.vecget(coeffs, index);
+     *     // Check if symbol is undefined - this indicates missing coefficient
+     *     if (!result || result.symbol === undefined) {
+     *         return nerdamer('0'); // Return zero for missing coefficients
+     *     }
+     *     return result;
+     * }
+     * ```
+     *
+     * @param vector The vector to access
+     * @param index The index to retrieve
+     * @returns NerdamerExpression for valid indices, or object with `symbol: undefined` for invalid indices
+     */
     function vecget(vector: ExpressionParam, index: number): NerdamerExpression;
     function vecset(vector: ExpressionParam, index: number, value: ExpressionParam): NerdamerExpression;
     function cross(vector1: ExpressionParam, vector2: ExpressionParam): NerdamerCore.Vector;
     function dot(vector1: ExpressionParam, vector2: ExpressionParam): NerdamerExpression;
     function matsetcol(matrix: ExpressionParam, col: number, vector: ExpressionParam): NerdamerCore.Matrix;
     function matsetrow(matrix: ExpressionParam, row: number, vector: ExpressionParam): NerdamerCore.Matrix;
+    /**
+     * Gets the size of a matrix or vector.
+     *
+     * **CRITICAL BEHAVIOR NOTE**: This function returns dimensions in [columns, rows] order, NOT [rows, columns]:
+     *
+     * ```typescript
+     * // For a 2x3 matrix (2 rows, 3 columns):
+     * nerdamer.setVar('M', 'matrix([1,2,3],[4,5,6])');
+     * const matrix = nerdamer('M');
+     * const size = nerdamer.size(matrix);
+     * console.log(size.toString()); // "[3,2]" - returns [cols, rows]!
+     *
+     * // To get [rows, cols], you need to swap:
+     * const [cols, rows] = size
+     *     .toString()
+     *     .replace(/[\[\]]/g, '')
+     *     .split(',')
+     *     .map(Number);
+     * const actualSize = [rows, cols]; // [2, 3] - correct [rows, cols]
+     * ```
+     *
+     * This contradicts the official documentation which claims it returns [row length, column length]. Always swap the
+     * values when you need [rows, cols] format.
+     *
+     * @param matrix The matrix or vector to get the size of
+     * @returns Size expression in [columns, rows] format (contrary to documentation)
+     */
     function size(matrix: ExpressionParam): NerdamerExpression;
 
     // #endregion
@@ -1097,6 +1305,21 @@ declare namespace nerdamerPrime {
     function fact(expression: ExpressionParam): NerdamerExpression;
     function factorial(expression: ExpressionParam): NerdamerExpression;
     function dfactorial(expression: ExpressionParam): NerdamerExpression;
+    /**
+     * Computes the exponential function e^x.
+     *
+     * **CRITICAL BEHAVIOR NOTE**: Exponential expressions use numeric bases instead of symbolic 'e':
+     *
+     * ```typescript
+     * nerdamer('e^x'); // becomes "119696244^(-x)*325368125^x" instead of "exp(x)"
+     * ```
+     *
+     * This affects calculus tests that expect 'exp' notation in output strings. Accept numeric exponential
+     * representations or adjust test expectations.
+     *
+     * @param expression The exponent
+     * @returns Exponential expression (may use numeric base representation)
+     */
     function exp(expression: ExpressionParam): NerdamerExpression;
     function mod(dividend: ExpressionParam, divisor: ExpressionParam): NerdamerExpression;
     function erf(expression: ExpressionParam): NerdamerExpression;
@@ -1131,11 +1354,11 @@ declare namespace nerdamerPrime {
      *
      * @example
      *     ```typescript
-     *     nerdamer.diff('x^3', 'x');          // 3*x^2
-     *     nerdamer.diff('sin(x)', 'x');       // cos(x)
-     *     nerdamer.diff('x^4', 'x', 2);       // 12*x^2 (second derivative)
-     *     nerdamer.diff('x*y^2', 'x');        // y^2
-     *     ```;
+     *         nerdamer.diff('x^3', 'x');          // 3*x^2
+     *         nerdamer.diff('sin(x)', 'x');       // cos(x)
+     *         nerdamer.diff('x^4', 'x', 2);       // 12*x^2 (second derivative)
+     *         nerdamer.diff('x*y^2', 'x');        // y^2
+     *         ```;
      *
      * @param expression The expression to differentiate
      * @param variable The variable to differentiate with respect to
@@ -1149,11 +1372,11 @@ declare namespace nerdamerPrime {
      *
      * @example
      *     ```typescript
-     *     nerdamer.integrate('x^2', 'x');     // x^3/3
-     *     nerdamer.integrate('sin(x)', 'x');  // -cos(x)
-     *     nerdamer.integrate('1/x', 'x');     // log(x)
-     *     nerdamer.integrate('e^x', 'x');     // e^x
-     *     ```;
+     *         nerdamer.integrate('x^2', 'x');     // x^3/3
+     *         nerdamer.integrate('sin(x)', 'x');  // -cos(x)
+     *         nerdamer.integrate('1/x', 'x');     // log(x)
+     *         nerdamer.integrate('e^x', 'x');     // e^x
+     *         ```;
      *
      * @param expression The expression to integrate
      * @param variable The variable to integrate with respect to
@@ -1166,10 +1389,10 @@ declare namespace nerdamerPrime {
      *
      * @example
      *     ```typescript
-     *     nerdamer.defint('x^2', 0, 1, 'x');  // 1/3
-     *     nerdamer.defint('sin(x)', 0, 'pi', 'x'); // 2
-     *     nerdamer.defint('e^x', 0, 1, 'x');  // e - 1
-     *     ```;
+     *         nerdamer.defint('x^2', 0, 1, 'x');  // 1/3
+     *         nerdamer.defint('sin(x)', 0, 'pi', 'x'); // 2
+     *         nerdamer.defint('e^x', 0, 1, 'x');  // e - 1
+     *         ```;
      *
      * @param expression The expression to integrate
      * @param lowerBound The lower bound of integration
@@ -1212,11 +1435,11 @@ declare namespace nerdamerPrime {
      *
      * @example
      *     ```typescript
-     *     nerdamer.solve('x^2 - 4 = 0', 'x');     // Vector containing [-2, 2]
-     *     nerdamer.solve('x^2 + x - 6', 'x');     // Vector containing [-3, 2]
-     *     nerdamer.solve('sin(x) = 0', 'x');      // Vector containing [0, pi]
-     *     nerdamer.solve('a*x + b = 0', 'x');     // Vector containing [-b/a]
-     *     ```;
+     *         nerdamer.solve('x^2 - 4 = 0', 'x');     // Vector containing [-2, 2]
+     *         nerdamer.solve('x^2 + x - 6', 'x');     // Vector containing [-3, 2]
+     *         nerdamer.solve('sin(x) = 0', 'x');      // Vector containing [0, pi]
+     *         nerdamer.solve('a*x + b = 0', 'x');     // Vector containing [-b/a]
+     *         ```;
      *
      * @param equation The equation to solve (can include '=' or assume equals zero)
      * @param variable The variable to solve for
@@ -1225,23 +1448,90 @@ declare namespace nerdamerPrime {
     function solve(equation: ExpressionParam, variable: string): NerdamerCore.Vector;
 
     /**
-     * Solves a system of equations.
+     * Solves a system of linear equations. Has limited ability to solve system of nonlinear equations.
+     *
+     * **Key Behaviors:**
+     *
+     * - **Values are numbers**: Direct numeric solutions, not symbolic expressions
+     * - **Linear systems**: Solved symbolically when possible
+     * - **Nonlinear systems**: Limited support, returns first satisfying solution set
+     * - **No solution**: Returns `null` or empty array `[]`
+     * - **Floating point errors**: May occur with nonlinear equations
+     * - **Format control**: Use `nerdamer.set('SOLUTIONS_AS_OBJECT', boolean)` to control output
      *
      * @param equations An array of equations to solve.
      * @param variables Optional array of variables to solve for.
-     * @returns The solution set.
+     * @returns Solution object/array with numeric values, null, or empty array.
      * @throws {NerdamerCore.SolveError} If the system does not have a distinct solution.
      * @throws {Error} If the computation exceeds the configured `TIMEOUT` duration (error message will be "timeout").
      */
-    function solveEquations(equations: ExpressionParam[], variables?: string[]): SolveResult | [] | null;
+    function solveEquations(equations: ExpressionParam[], variables?: string[]): SolveResult;
     function setEquation(a: ExpressionParam, b: ExpressionParam): NerdamerEquation;
 
     // #endregion
 
     // #region Statistics Functions
 
+    /**
+     * Calculates the arithmetic mean of a collection of values.
+     *
+     * @param values Array of expressions to calculate mean from
+     * @returns The mean value
+     */
     function mean(values: ExpressionParam[]): NerdamerExpression;
+
+    /**
+     * Finds the mode (most frequent value) in a collection.
+     *
+     * @param values Array of expressions to find mode from
+     * @returns The mode value(s)
+     */
     function mode(values: ExpressionParam[]): NerdamerExpression | NerdamerExpression[];
+
+    /**
+     * Calculates the median of a collection of values.
+     *
+     * **CRITICAL BEHAVIOR NOTE**: The array syntax is broken, but function call syntax works perfectly:
+     *
+     * ```typescript
+     * // ✅ WORKING SYNTAX - Function call with comma-separated arguments:
+     * nerdamer('median(1,2,3,4)').evaluate(); // 5/2 ✅
+     * nerdamer('median(4,2,5,4)').evaluate(); // 4 ✅
+     * nerdamer('median(x+1,x+2,x+3)'); // median(1+x,3+x,2+x) ✅
+     *
+     * // ❌ BROKEN SYNTAX - Array-based calls return original collection:
+     * nerdamer.median([1, 2, 3, 4]); // (1, 2, 3, 4) ❌
+     * nerdamer.median(['1', '2', '3', '4']); // (1, 2, 3, 4) ❌
+     * ```
+     *
+     * **RECOMMENDED USAGE**: Always use the string function call syntax:
+     *
+     * ```typescript
+     * // For numeric arrays:
+     * const values = [1, 2, 3, 4];
+     * const result = nerdamer(`median(${values.join(',')})`).evaluate();
+     *
+     * // For symbolic expressions:
+     * const expressions = ['x+1', 'x+2', 'x+3'];
+     * const symbolic = nerdamer(`median(${expressions.join(',')})`);
+     *
+     * // Works with all data types:
+     * nerdamer('median(-2,-1,0,1,2)'); // 0
+     * nerdamer('median(1000000,2000000)'); // 1500000
+     * nerdamer('median(1.5,2.5,3.5,4.5)'); // 3
+     * ```
+     *
+     * The function correctly handles:
+     *
+     * - Even and odd length arrays
+     * - Negative numbers and decimals
+     * - Symbolic expressions
+     * - Mixed symbolic and numeric values
+     * - Unsorted input (automatically sorts)
+     *
+     * @param values Array of expressions (BROKEN - use string syntax instead)
+     * @returns Median value when using string syntax, original collection when using array syntax
+     */
     function median(values: ExpressionParam[]): NerdamerExpression;
     function zscore(value: ExpressionParam, mean: ExpressionParam, stdev: ExpressionParam): NerdamerExpression;
     function limit(expression: ExpressionParam, variable: string, approach: ExpressionParam): NerdamerExpression;
@@ -1503,19 +1793,19 @@ declare namespace nerdamerPrime {
          *
          * @example
          *     ```typescript
-         *     // Create vectors
-         *     const v1 = nerdamer.vector([1, 2, 3]);
-         *     const v2 = nerdamer.vector(['x', 'y', 'z']);
+         *         // Create vectors
+         *         const v1 = nerdamer.vector([1, 2, 3]);
+         *         const v2 = nerdamer.vector(['x', 'y', 'z']);
          *
-         *     // Vector operations (using static functions)
-         *     const dot = nerdamer.dot(v1, v2);           // Dot product
-         *     const cross = nerdamer.cross(v1, v2);       // Cross product
-         *     const elem = nerdamer.vecget(v1, 0);        // Get element at index 0
+         *         // Vector operations (using static functions)
+         *         const dot = nerdamer.dot(v1, v2);           // Dot product
+         *         const cross = nerdamer.cross(v1, v2);       // Cross product
+         *         const elem = nerdamer.vecget(v1, 0);        // Get element at index 0
          *
-         *     // Expression operations (inherited methods)
-         *     const scaled = v1.multiply(2);              // Scale vector by 2
-         *     const evaluated = v2.evaluate({x: 1, y: 2, z: 3}); // Substitute values
-         *     ```;
+         *         // Expression operations (inherited methods)
+         *         const scaled = v1.multiply(2);              // Scale vector by 2
+         *         const evaluated = v2.evaluate({x: 1, y: 2, z: 3}); // Substitute values
+         *         ```;
          */
         interface Vector extends NerdamerExpression {
             // Vector-specific semantics are provided through static functions
@@ -1533,26 +1823,34 @@ declare namespace nerdamerPrime {
         /**
          * Represents a matrix of symbolic expressions.
          *
-         * Matrices in Nerdamer are NerdamerExpression objects with matrix semantics. They inherit all expression
-         * methods and can be manipulated using matrix-specific static functions.
+         * Matrices in Nerdamer are NerdamerExpression objects with matrix semantics. They inherit all expression methods
+         * and can be manipulated using matrix-specific static functions.
+         *
+         * **IMPORTANT**: For determinant calculations, use variable-based matrix creation:
          *
          * @example
          *     ```typescript
-         *     // Create matrices
-         *     const m1 = nerdamer.matrix([[1, 2], [3, 4]]);
-         *     const m2 = nerdamer.matrix([['a', 'b'], ['c', 'd']]);
-         *     const identity = nerdamer.imatrix(3);  // 3x3 identity matrix
+         *         // ✅ RECOMMENDED - Variable-based creation (works with determinants):
+         *         nerdamer.setVar('M1', 'matrix([1,2],[3,4])');
+         *         const m1 = nerdamer('M1');                      // matrix([1,2],[3,4])
+         *         const det1 = nerdamer.determinant(m1);          // -2 ✅
          *
-         *     // Matrix operations (using static functions)
-         *     const det = nerdamer.determinant(m1);          // Determinant
-         *     const inv = nerdamer.invert(m1);               // Matrix inverse
-         *     const trans = nerdamer.transpose(m1);          // Transpose
-         *     const elem = nerdamer.matget(m1, 0, 1);        // Get element at (0,1)
+         *         // ✅ ALTERNATIVE - Identity matrices work reliably:
+         *         const identity = nerdamer.imatrix(3);           // 3x3 identity matrix
+         *         const detId = nerdamer.determinant(identity);   // 1 ✅
          *
-         *     // Expression operations (inherited methods)
-         *     const scaled = m1.multiply(2);                 // Scale matrix by 2
-         *     const evaluated = m2.evaluate({a: 1, b: 2, c: 3, d: 4}); // Substitute
-         *     ```;
+         *         // ❌ PROBLEMATIC - Function-based creation (determinants fail):
+         *         const m2 = nerdamer.matrix([[1, 2], [3, 4]]);   // matrix([(1,2,3,4)])
+         *         const det2 = nerdamer.determinant(m2);          // "" (empty) ❌
+         *
+         *         // ✅ Matrix operations work with all creation methods:
+         *         const inv = nerdamer.invert(m1);                // Matrix inverse
+         *         const trans = nerdamer.transpose(m1);           // Transpose
+         *         const elem = nerdamer.matget(m1, 0, 1);         // Get element at (0,1)
+         *
+         *         // ✅ Expression operations (inherited methods):
+         *         const scaled = m1.multiply(2);                  // Scale matrix by 2
+         *         ```;
          */
         interface Matrix extends NerdamerExpression {
             // Matrix-specific semantics are provided through static functions
@@ -1908,16 +2206,16 @@ declare namespace nerdamerPrime {
             PARSE2NUMBER: boolean;
 
             /**
-             * If `true`, forces functions like `add`, `subtract` to return a new cloned object, ensuring the original
-             * object is not mutated.
+             * If `true`, forces functions like `add`, `subtract` to return a new cloned object, ensuring the original object
+             * is not mutated.
              *
              * @default false
              */
             SAFE: boolean;
 
             /**
-             * If `true`, suppresses the throwing of errors for issues like division by zero. This can have unintended
-             * side effects.
+             * If `true`, suppresses the throwing of errors for issues like division by zero. This can have unintended side
+             * effects.
              *
              * @default false
              */
@@ -1931,8 +2229,8 @@ declare namespace nerdamerPrime {
             SILENCE_WARNINGS: boolean;
 
             /**
-             * The maximum time in milliseconds for long-running calculations like `solveFor`. The calculation will
-             * throw a timeout error if it exceeds this duration.
+             * The maximum time in milliseconds for long-running calculations like `solveFor`. The calculation will throw a
+             * timeout error if it exceeds this duration.
              *
              * @default 800
              */
@@ -1986,8 +2284,8 @@ declare namespace nerdamerPrime {
             ALLOW_CHARS: string[];
 
             /**
-             * If `true`, allows for multi-character variable names (e.g., 'myVar'). If `false`, 'abc' would be parsed
-             * as `a*b*c`.
+             * If `true`, allows for multi-character variable names (e.g., 'myVar'). If `false`, 'abc' would be parsed as
+             * `a*b*c`.
              *
              * @default true
              */
@@ -2007,8 +2305,8 @@ declare namespace nerdamerPrime {
             FUNCTION_REGEX: RegExp;
 
             /**
-             * The regular expression used to insert multiplication symbols where they are implied (e.g., converting
-             * '2x' to '2*x').
+             * The regular expression used to insert multiplication symbols where they are implied (e.g., converting '2x' to
+             * '2*x').
              */
             IMPLIED_MULTIPLICATION_REGEX: RegExp;
 
@@ -2112,8 +2410,8 @@ declare namespace nerdamerPrime {
             NEWTON_EPSILON: number;
 
             /**
-             * When points are generated as starting points for Newton's method, they are sliced into smaller intervals
-             * to improve convergence. This defines the number of slices.
+             * When points are generated as starting points for Newton's method, they are sliced into smaller intervals to
+             * improve convergence. This defines the number of slices.
              *
              * @default 200
              */
@@ -2266,8 +2564,8 @@ declare namespace nerdamerPrime {
             /** The JavaScript `Math.E` value. */
             E: number;
             /**
-             * A threshold for exponents above which JavaScript's `Math.pow` may be used for performance, as big integer
-             * power calculations can be slow.
+             * A threshold for exponents above which JavaScript's `Math.pow` may be used for performance, as big integer power
+             * calculations can be slow.
              *
              * @default 200000
              */
@@ -2872,7 +3170,12 @@ declare namespace nerdamerPrime {
         interface InvalidVariableNameError extends Error {}
         /** Error thrown when a calculation exceeds a function's value limits. */
         interface ValueLimitExceededError extends Error {}
-        /** Error thrown for invalid values on the LHS or RHS of an equation. */
+        /**
+         * Error thrown for invalid values on the LHS or RHS of an equation.
+         *
+         * **NOTE**: This error is thrown by `equals()` method when expressions are not equal, contrary to the expected
+         * boolean return behavior.
+         */
         interface NerdamerValueError extends Error {}
         /** Error thrown when an equation or system cannot be solved. */
         interface SolveError extends Error {}
