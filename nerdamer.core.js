@@ -3273,7 +3273,8 @@ var nerdamer = (function (imports) {
             this.exponent = dot_location - (zeroes + 1);
             //set the coeff but first remove leading zeroes
             var coeff = Scientific.removeLeadingZeroes(n);
-            this.coeff = coeff.charAt(0) + '.' + (coeff.substr(1, coeff.length) || '0');
+            this.coeff =
+                coeff.charAt(0) + '.' + (Scientific.removeTrailingZeroes(coeff.substr(1, coeff.length)) || '0');
 
             //the coeff decimal places
             var dec = this.coeff.split('.')[1] || ''; //if it's undefined or zero it's going to blank
@@ -3349,11 +3350,14 @@ var nerdamer = (function (imports) {
     };
 
     Scientific.round = function (c, n) {
-        var coeff = nround(c, n);
-        var m = String(coeff).split('.').pop();
+        var coeff = String(nround(c, n));
+        var m = coeff.includes('.') ? coeff.split('.').pop() : '';
         var d = n - m.length;
         //if we're asking for more significant figures
         if (d > 0) {
+            if (!coeff.includes('.')) {
+                coeff += '.';
+            }
             coeff = coeff + new Array(d + 1).join(0);
         }
         return coeff;
