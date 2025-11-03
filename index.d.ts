@@ -238,13 +238,58 @@ declare namespace nerdamer {
     export function set(setting: 'PARSE2NUMBER', value: boolean): typeof nerdamer;
     export function set(setting: 'IMAGINARY', value: string | 'i'): typeof nerdamer;
     export function set(setting: 'POWER_OPERATOR', value: '**' | '^'): typeof nerdamer;
-    export function set(setting: 'init_primes'|'PRECISION'|'EXPRESSION_DECP'|'DEFAULT_DECP'|'MAX_EXP'|'SCIENTIFIC_MAX_DECIMAL_PLACES'|'TIMEOUT', value: number): typeof nerdamer;
-    export function set(setting: 'callPeekers'|'suppress_errors'|'PARSE2NUMBER'|'SAFE'|'USE_MULTICHARACTER_VARS'|'POSITIVE_MULTIPLIERS'|'SILENCE_WARNINGS'|'SCIENTIFIC_IGNORE_ZERO_EXPONENTS', value: boolean): typeof nerdamer;
-    export function set(setting: 'IMAGINARY'|'POWER_OPERATOR'|'VECTOR'|'PARENTHESIS'|'SQRT'|'ABS'|'FACTORIAL'|'DOUBLEFACTORIAL'|'LONG_PI'|'LONG_E'|'LOG'|'LOG10'|'LOG10_LATEX'|'LOG2'|'LOG2_LATEX'|'LOG1P'|'LOG1P_LATEX', value: string): typeof nerdamer;
-    export function set(setting: 'FUNCTION_REGEX'|'VALIDATION_REGEX'|'IMPLIED_MULTIPLICATION_REGEX', value: string): typeof nerdamer;
-    export function set(setting: 'exclude'|'ALLOW_CHARS', value: string[]): typeof nerdamer;
+    export function set(
+        setting:
+            | 'init_primes'
+            | 'PRECISION'
+            | 'EXPRESSION_DECP'
+            | 'DEFAULT_DECP'
+            | 'MAX_EXP'
+            | 'SCIENTIFIC_MAX_DECIMAL_PLACES'
+            | 'SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT'
+            | 'TIMEOUT',
+        value: number
+    ): typeof nerdamer;
+    export function set(
+        setting:
+            | 'callPeekers'
+            | 'suppress_errors'
+            | 'PARSE2NUMBER'
+            | 'SAFE'
+            | 'USE_MULTICHARACTER_VARS'
+            | 'POSITIVE_MULTIPLIERS'
+            | 'SILENCE_WARNINGS'
+            | 'SCIENTIFIC_IGNORE_ZERO_EXPONENTS',
+        value: boolean
+    ): typeof nerdamer;
+    export function set(
+        setting:
+            | 'IMAGINARY'
+            | 'POWER_OPERATOR'
+            | 'VECTOR'
+            | 'PARENTHESIS'
+            | 'SQRT'
+            | 'ABS'
+            | 'FACTORIAL'
+            | 'DOUBLEFACTORIAL'
+            | 'LONG_PI'
+            | 'LONG_E'
+            | 'LOG'
+            | 'LOG10'
+            | 'LOG10_LATEX'
+            | 'LOG2'
+            | 'LOG2_LATEX'
+            | 'LOG1P'
+            | 'LOG1P_LATEX',
+        value: string
+    ): typeof nerdamer;
+    export function set(
+        setting: 'FUNCTION_REGEX' | 'VALIDATION_REGEX' | 'IMPLIED_MULTIPLICATION_REGEX',
+        value: string
+    ): typeof nerdamer;
+    export function set(setting: 'exclude' | 'ALLOW_CHARS', value: string[]): typeof nerdamer;
     export function set(setting: 'ALIASES', value: Record<string, string>): typeof nerdamer;
-    export function set(setting: 'FUNCTION_MODULES'|'CACHE', value: any): typeof nerdamer;
+    export function set(setting: 'FUNCTION_MODULES' | 'CACHE', value: any): typeof nerdamer;
 
     export interface Expression {
         /**
@@ -292,7 +337,17 @@ declare namespace nerdamer {
          * @param outputType Pass in the string 'decimals' to always get back numers as decimals. Pass in the string
          *   'fractions' to always get back number as fractions. Defaults to decimals.
          */
-        text(outputType?: 'decimals' | 'fractions' | 'decimal' | 'recurring' | 'mixed' | 'scientific' | 'hash'): string;
+        text(
+            outputType?:
+                | 'decimals'
+                | 'fractions'
+                | 'decimal'
+                | 'recurring'
+                | 'mixed'
+                | 'scientific'
+                | 'hash'
+                | 'decimals_or_scientific'
+        ): string;
 
         /**
          * This method requires that the Solve, Calculus, and Algebra add-ons are loaded. It will attempt to solve an

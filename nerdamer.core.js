@@ -139,6 +139,8 @@ var nerdamer = (function (imports) {
         SCIENTIFIC_MAX_DECIMAL_PLACES: 14,
         //True if ints should not be converted to
         SCIENTIFIC_IGNORE_ZERO_EXPONENTS: true,
+        // exponent (absolute value) from which to switch from decimals to scientific in "decimals_or_scientific" mode
+        SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT: 7,
         // no simplify() or solveFor() should take more ms than this
         TIMEOUT: 800,
     };
@@ -2716,6 +2718,20 @@ var nerdamer = (function (imports) {
                             return false;
                         };
                     return new Scientific(obj.valueOf()).toString(Settings.SCIENTIFIC_MAX_DECIMAL_PLACES);
+                case 'decimals_or_scientific':
+                    wrapCondition =
+                        wrapCondition ||
+                        function (str) {
+                            return false;
+                        };
+                    const decimals = obj.valueOf();
+                    const scientific = new Scientific(decimals);
+                    if (Math.abs(scientific.exponent) >= Settings.SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT) {
+                        return scientific.toString(Settings.SCIENTIFIC_MAX_DECIMAL_PLACES);
+                    } else {
+                        return decimals;
+                    }
+
                 default:
                     wrapCondition =
                         wrapCondition ||
