@@ -285,7 +285,7 @@ declare namespace nerdamer {
          * @param outputType Pass in the string 'decimals' to always get back numers as decimals. Pass in the string
          *   'fractions' to always get back number as fractions. Defaults to decimals.
          */
-        text(outputType?: 'decimals' | 'fractions'): string;
+        text(outputType?: 'decimals' | 'fractions' | 'decimal' | 'recurring' | 'mixed' | 'scientific' | 'hash'): string;
 
         /**
          * This method requires that the Solve, Calculus, and Algebra add-ons are loaded. It will attempt to solve an
