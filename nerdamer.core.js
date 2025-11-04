@@ -3267,6 +3267,12 @@ var nerdamer = (function (imports) {
             var parts = String(num).toLowerCase().split('e');
             this.coeff = parts[0];
             this.exponent = parts[1];
+            if (this.exponent.startsWith("+")) {
+                this.exponent = this.exponent.slice(1);
+            }
+
+            var dec = this.coeff.split('.')[1] || ''; //if it's undefined or zero it's going to blank
+            this.decp = dec === '0' ? 0 : dec.length;
 
             return this;
         },
@@ -3336,7 +3342,7 @@ var nerdamer = (function (imports) {
             var retval;
 
             if (Settings.SCIENTIFIC_IGNORE_ZERO_EXPONENTS && this.exponent === 0 && this.decp < n) {
-                if (this.decp === 0) retval = this.wholes;
+                if (this.decp === 0 && this.wholes !== undefined) retval = this.wholes;
                 else retval = this.coeff;
             } else {
                 var coeff =
