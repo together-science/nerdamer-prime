@@ -2620,12 +2620,11 @@ var nerdamer = (function (imports) {
         var asHash = option === 'hash',
             //whether to wrap numbers in brackets
             wrapCondition = undefined,
-            opt = asHash ? undefined : option,
-            asDecimal = opt === 'decimal' || opt === 'decimals';
+            opt = asHash ? undefined : option;
 
-        if (asDecimal && typeof decp === 'undefined') decp = Settings.DEFAULT_DECP;
+        if ((opt === 'decimal' || opt === 'decimals' || opt === 'decimals_or_scientific') && typeof decp === 'undefined') decp = Settings.DEFAULT_DECP;
 
-        function toString(obj) {
+        function toString(obj, decp) {
             switch (option) {
                 case 'decimals':
                 case 'decimal':
@@ -2634,6 +2633,9 @@ var nerdamer = (function (imports) {
                         function (str) {
                             return false;
                         };
+                    if (decp) {
+                        return obj.toDecimal(decp)
+                    }
                     return obj.valueOf();
                 case 'recurring':
                     wrapCondition =
@@ -2729,6 +2731,9 @@ var nerdamer = (function (imports) {
                     if (Math.abs(scientific.exponent) >= Settings.SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT) {
                         return scientific.toString(Settings.SCIENTIFIC_MAX_DECIMAL_PLACES);
                     } else {
+                        if (decp) {
+                            return obj.toDecimal(decp)
+                        }
                         return decimals;
                     }
 
@@ -2754,7 +2759,7 @@ var nerdamer = (function (imports) {
             //if the value is to be used as a hash then the power and multiplier need to be suppressed
             if (!asHash) {
                 //use asDecimal to get the object back as a decimal
-                var om = toString(obj.multiplier);
+                var om = toString(obj.multiplier, decp);
                 if (om == '-1' && String(obj.multiplier) === '-1') {
                     sign = '-';
                     om = '1';
@@ -2778,7 +2783,7 @@ var nerdamer = (function (imports) {
                 case N:
                     multiplier = '';
                     //round if requested
-                    var m = decp && asDecimal ? obj.multiplier.toDecimal(decp) : toString(obj.multiplier);
+                    var m = toString(obj.multiplier, decp);
                     //if it's numerical then all we need is the multiplier
                     value = String(obj.multiplier) == '-1' ? '1' : m;
                     power = '';
@@ -2876,14 +2881,16 @@ var nerdamer = (function (imports) {
                 value = inBrackets(value);
             }
 
-            if (decp && (option === 'decimal' || (option === 'decimals' && multiplier))) {
+            if (decp && (option === 'decimal' || ((option === 'decimals' || option === 'decimals_or_scientific') && multiplier))) {
                 // scientific notation? regular rounding would be the wrong decision here
                 if (multiplier.toString().includes('e')) {
-                    // toPrecision can create extra digits, so we also
-                    // convert it to string straight up and pick the shorter version
-                    const m1 = multiplier.toExponential();
-                    const m2 = multiplier.toPrecision(decp);
-                    multiplier = m1.length < m2.length ? m1 : m2;
+                    if (option !== 'decimals_or_scientific') {
+                        // toPrecision can create extra digits, so we also
+                        // convert it to string straight up and pick the shorter version
+                        const m1 = multiplier.toExponential();
+                        const m2 = multiplier.toPrecision(decp);
+                        multiplier = m1.length < m2.length ? m1 : m2;
+                    }
                 } else {
                     multiplier = nround(multiplier, decp);
                 }
