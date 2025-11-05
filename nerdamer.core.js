@@ -2622,7 +2622,11 @@ var nerdamer = (function (imports) {
             wrapCondition = undefined,
             opt = asHash ? undefined : option;
 
-        if ((opt === 'decimal' || opt === 'decimals' || opt === 'decimals_or_scientific') && typeof decp === 'undefined') decp = Settings.DEFAULT_DECP;
+        if (
+            (opt === 'decimal' || opt === 'decimals' || opt === 'decimals_or_scientific') &&
+            typeof decp === 'undefined'
+        )
+            decp = Settings.DEFAULT_DECP;
 
         function toString(obj, decp) {
             switch (option) {
@@ -2634,7 +2638,7 @@ var nerdamer = (function (imports) {
                             return false;
                         };
                     if (decp) {
-                        return obj.toDecimal(decp)
+                        return obj.toDecimal(decp);
                     }
                     return obj.valueOf();
                 case 'recurring':
@@ -2732,7 +2736,7 @@ var nerdamer = (function (imports) {
                         return scientific.toString(Settings.SCIENTIFIC_MAX_DECIMAL_PLACES);
                     } else {
                         if (decp) {
-                            return obj.toDecimal(decp)
+                            return obj.toDecimal(decp);
                         }
                         return decimals;
                     }
@@ -2881,7 +2885,10 @@ var nerdamer = (function (imports) {
                 value = inBrackets(value);
             }
 
-            if (decp && (option === 'decimal' || ((option === 'decimals' || option === 'decimals_or_scientific') && multiplier))) {
+            if (
+                decp &&
+                (option === 'decimal' || ((option === 'decimals' || option === 'decimals_or_scientific') && multiplier))
+            ) {
                 // scientific notation? regular rounding would be the wrong decision here
                 if (multiplier.toString().includes('e')) {
                     if (option !== 'decimals_or_scientific') {
@@ -3274,7 +3281,7 @@ var nerdamer = (function (imports) {
             var parts = String(num).toLowerCase().split('e');
             this.coeff = parts[0];
             this.exponent = parts[1];
-            if (this.exponent.startsWith("+")) {
+            if (this.exponent.startsWith('+')) {
                 this.exponent = this.exponent.slice(1);
             }
 
@@ -3354,7 +3361,16 @@ var nerdamer = (function (imports) {
             } else {
                 var coeff =
                     typeof n === 'undefined' ? this.coeff : Scientific.round(this.coeff, Math.min(n, this.decp || 1));
-                retval = this.exponent === 0 ? coeff : coeff + 'e' + this.exponent;
+                var exp = this.exponent;
+                if (coeff.startsWith('10.')) {
+                    // edge case when coefficient is 9.999999 rounds to 10
+                    coeff =
+                        typeof n === 'undefined'
+                            ? coeff.replace(/^10./, '1.0')
+                            : Scientific.round(coeff.replace(/^10./, '1.0'), Math.min(n, this.decp || 1));
+                    exp = Number(exp) + 1;
+                }
+                retval = this.exponent === 0 ? coeff : coeff + 'e' + exp;
             }
 
             return (this.sign === -1 ? '-' : '') + retval;
