@@ -3202,3 +3202,39 @@ describe('misc and regression tests', function () {
         expect(nerdamer('arg(1/i)').text()).toEqual('-0.5*pi');
     });
 });
+
+describe('Known issues', function () {
+    /**
+     * GitHub Issue: together-science/nerdamer-prime#62
+     * Title: "Number of decimal places and rounding errors in text('decimals', n)"
+     * Opened: Sep 17, 2024 by WOZARDLOZARD
+     *
+     * Problem: The text() function in decimals mode with a specified number of
+     * decimal places has two bugs:
+     *
+     * 1. Wrong number of decimal places: Returns n-1 decimal places instead of n.
+     *    Example: text("decimals", 5) on 1/3 returns "0.3333" (4 places) not "0.33333" (5 places)
+     *
+     * 2. Wrong rounding: The value is truncated/rounded incorrectly.
+     *    Example: text("decimals", 5) on 5/41 returns "0.12110" instead of "0.12195"
+     *    (5/41 = 0.121951219512...)
+     *
+     * The pattern shows n decimal places requested returns n-1 decimal places,
+     * and the rounding appears to use incorrect digits.
+     */
+    describe('text("decimals", n) precision (issue #62)', function () {
+        xit('should return the correct number of decimal places', function () {
+            // Requesting 5 decimal places should give exactly 5 decimal places
+            expect(nerdamer('1/3').evaluate().text('decimals', 5)).toEqual('0.33333');
+            expect(nerdamer('1/7').evaluate().text('decimals', 5)).toEqual('0.14286');
+            expect(nerdamer('2/3').evaluate().text('decimals', 3)).toEqual('0.667');
+        });
+
+        xit('should round correctly to the specified decimal places', function () {
+            // 5/41 = 0.121951219512... should round to 0.12195 at 5 decimal places
+            expect(nerdamer('5/41').evaluate().text('decimals', 5)).toEqual('0.12195');
+            // 1/6 = 0.16666... should round to 0.17 at 2 decimal places
+            expect(nerdamer('1/6').evaluate().text('decimals', 2)).toEqual('0.17');
+        });
+    });
+});
