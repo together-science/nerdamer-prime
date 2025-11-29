@@ -193,6 +193,35 @@ describe('Solve', function () {
                 .join(',')
         ).toEqual('y');
     });
+
+    describe('Known issues', function () {
+        /**
+         * Problem: Solver returns rational approximation instead of exact symbolic answer.
+         *
+         * The equation sqrt(x) - 2x + x^2 = 0 has exact solutions:
+         *   Let u = sqrt(x), so x = u^2
+         *   Then: u - 2u^2 + u^4 = 0
+         *   u(1 - 2u + u^3) = 0
+         *   u(u - 1)(u^2 + u - 1) = 0
+         *
+         *   Solutions for u: 0, 1, (-1 + sqrt(5))/2
+         *   Solutions for x: 0, 1, (3 - sqrt(5))/2 = (-1/2)*sqrt(5) + 3/2
+         *
+         * Current behavior:
+         *   Returns [0, 832040/2178309, 1]
+         *   Note: 832040/2178309 is a Fibonacci-based rational approximation!
+         *   (832040 = F(30), 2178309 = F(32), their ratio approximates 1/phi^2)
+         *
+         * The solver falls back to numeric root-finding (proots) which uses
+         * Newton's method, producing a rational approximation instead of the
+         * exact symbolic answer (3-sqrt(5))/2.
+         *
+         * Expected: All three solutions in symbolic form.
+         */
+        xit('should return exact symbolic solutions for sqrt(x)-2x+x^2', function () {
+            expect(nerdamer('solve(sqrt(x)-2x+x^2,x)').toString()).toEqual('[(-1/2)*sqrt(5)+3/2,0,832040/2178309,1]');
+        });
+    });
 });
 
 // describe("profiler", () => {
