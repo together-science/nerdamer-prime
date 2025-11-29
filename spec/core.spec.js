@@ -3237,4 +3237,37 @@ describe('Known issues', function () {
             expect(nerdamer('1/6').evaluate().text('decimals', 2)).toEqual('0.17');
         });
     });
+
+    /**
+     * GitHub Issue: together-science/nerdamer-prime#64
+     * Title: "Draft Issue: Inconsistent handling of scientific notation"
+     * Opened: Sep 22, 2024 by da2ce7
+     *
+     * Problem: Scientific notation with negative exponents is handled inconsistently.
+     * There are issues in both parsing and toString()/text() output.
+     *
+     * Known issues:
+     *   1. 1e-15 -> "1/999999999999999" (should be "1/1000000000000000")
+     *      This appears to be a floating-point precision issue where
+     *      1e-15 in JavaScript is slightly imprecise.
+     *
+     *   2. Very small numbers (around 1e-20) may evaluate to 0 in text() output
+     *      even though they are stored correctly internally.
+     *
+     * Note: Many cases that were originally broken now work correctly,
+     * but the 1e-15 case still shows the precision issue.
+     */
+    describe('scientific notation handling (issue #64)', function () {
+        xit('should parse 1e-15 exactly', function () {
+            // 1e-15 should be exactly 1/1000000000000000, not 1/999999999999999
+            expect(nerdamer('1e-15').toString()).toEqual('1/1000000000000000');
+        });
+
+        xit('should preserve precision for very small numbers in evaluate', function () {
+            // Very small numbers should not evaluate to 0
+            const result = nerdamer('1e-20').evaluate().text();
+            expect(result).not.toEqual('0');
+            expect(result).not.toEqual('0.000000000000000000');
+        });
+    });
 });
