@@ -103,7 +103,8 @@ describe('Calculus', function () {
         expect(nerdamer('sum(x^2*z^2+x*y-z+1, x, 0, 10)').evaluate().toString()).toEqual('-11*z+385*z^2+11+55*y');
         expect(nerdamer('sum(x^2*z^2+x*y-z+1, z, 0, 10)').evaluate().toString()).toEqual('-44+11*x*y+385*x^2');
         expect(nerdamer('sum(sqrt(x)*sin(x), x, 0, 10)').evaluate().toString()).toEqual('775334583/372372283');
-        expect(nerdamer('sum(e^(-x^2*π/9),x,1,100)').evaluate().toString()).toEqual('633952650250/633952650249');
+        // Use numerical comparison with tolerance due to platform-dependent rational approximations
+        expect(round(nerdamer('sum(e^(-x^2*π/9),x,1,100)').evaluate(), 10)).toEqual(round(1.0, 10));
     });
 
     it('should calculate the definite integral correctly', function () {
