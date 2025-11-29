@@ -29,6 +29,8 @@ module.exports = {
             files: ['*.spec.js', '**/*.spec.js'],
             options: {
                 printWidth: 300,
+                // Preserve multi-line JSDoc comments in spec files for readability
+                jsdocCommentLineStrategy: 'keep',
             },
         },
     ],

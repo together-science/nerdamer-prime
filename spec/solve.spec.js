@@ -193,6 +193,70 @@ describe('Solve', function () {
                 .join(',')
         ).toEqual('y');
     });
+
+    describe('Known issues', function () {
+        /**
+         * Problem: Solver returns rational approximation instead of exact symbolic answer.
+         *
+         * The equation sqrt(x) - 2x + x^2 = 0 has exact solutions:
+         *   Let u = sqrt(x), so x = u^2
+         *   Then: u - 2u^2 + u^4 = 0
+         *   u(1 - 2u + u^3) = 0
+         *   u(u - 1)(u^2 + u - 1) = 0
+         *
+         *   Solutions for u: 0, 1, (-1 + sqrt(5))/2
+         *   Solutions for x: 0, 1, (3 - sqrt(5))/2 = (-1/2)*sqrt(5) + 3/2
+         *
+         * Current behavior:
+         *   Returns [0, 832040/2178309, 1]
+         *   Note: 832040/2178309 is a Fibonacci-based rational approximation!
+         *   (832040 = F(30), 2178309 = F(32), their ratio approximates 1/phi^2)
+         *
+         * The solver falls back to numeric root-finding (proots) which uses
+         * Newton's method, producing a rational approximation instead of the
+         * exact symbolic answer (3-sqrt(5))/2.
+         *
+         * Expected: All three solutions in symbolic form.
+         */
+        xit('should return exact symbolic solutions for sqrt(x)-2x+x^2', function () {
+            expect(nerdamer('solve(sqrt(x)-2x+x^2,x)').toString()).toEqual('[(-1/2)*sqrt(5)+3/2,0,832040/2178309,1]');
+        });
+
+        /**
+         * GitHub Issue: together-science/nerdamer-prime#58
+         * Title: "Solving quadratic equation times out"
+         * Opened: May 24, 2024 by gunnarmein-ts
+         * Labels: investigation
+         *
+         * Problem: Solving a simple quadratic equation with large coefficients
+         * causes a timeout with the default timeout setting. The solver attempts
+         * factoring instead of using the quadratic formula directly.
+         *
+         * The equation: 0 = (365152319648560825/8)*s*t + (981/200)*t^2
+         * This is a simple quadratic in t: t * ((365152319648560825/8)*s + (981/200)*t) = 0
+         * Solutions should be: t = 0 or t = -(365152319648560825/8)*s / (981/200)
+         *
+         * Performance comparison:
+         *   - With simple coefficients (5*s*t + 3*t^2): ~20ms
+         *   - With large coefficient: ~3000ms (and throws timeout with default 1500ms limit)
+         *
+         * With increased TIMEOUT (20000ms), it does complete and returns:
+         *   [(100/981)*((-365152319648560825/8)*s+(182576159824280415/4)*abs(s)),
+         *    (100/981)*((-182576159824280415/4)*abs(s)+(-365152319648560825/8)*s)]
+         *
+         * The issue is that the solver tries to factor the polynomial with the
+         * large integer coefficient, which is ~150x slower than simple coefficients.
+         * A simple quadratic should use the quadratic formula directly.
+         */
+        xit('should solve quadratic with large coefficients quickly (issue #58)', function () {
+            // This should complete in <100ms like simple quadratics, not ~3000ms
+            const start = Date.now();
+            const result = nerdamer('solve(0=(365152319648560825/8)*s*t+(981/200)*t^2,t)').toString();
+            const elapsed = Date.now() - start;
+            expect(elapsed).toBeLessThan(500); // Should be fast like simple quadratics
+            expect(result).toContain('0'); // t=0 is one solution
+        });
+    });
 });
 
 // describe("profiler", () => {

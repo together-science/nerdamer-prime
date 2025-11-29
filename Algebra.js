@@ -2019,14 +2019,27 @@ if (typeof module !== 'undefined') {
             });
         },
         coeffs: function (symbol, wrt, coeffs) {
-            wrt = String(wrt);
             symbol = _.expand(symbol);
             coeffs = coeffs || [new Symbol(0)];
             //we cannot get coeffs for group EX
+            var vars = variables(symbol);
+
+            // If wrt is not provided and there's only one variable, use it
+            if (wrt === undefined && vars.length === 1) {
+                wrt = vars[0];
+            }
+            wrt = String(wrt);
+
             if (symbol.group === EX && symbol.contains(wrt, true))
                 _.error('Unable to get coefficients using expression ' + symbol.toString());
             var vars = variables(symbol);
-            if (vars.length === 1 && vars[0] === wrt && !symbol.isImaginary()) {
+
+            // Check if symbol contains irrational constants that would be lost by Polynomial
+            // These include pi, e, and sqrt (which are treated as constants but aren't simple numbers)
+            var hasIrrationalConstants =
+                symbol.contains('pi') || symbol.contains('e') || symbol.containsFunction('sqrt');
+
+            if (vars.length === 1 && vars[0] === wrt && !symbol.isImaginary() && !hasIrrationalConstants) {
                 var a = new Polynomial(symbol).coeffs.map(function (x) {
                     return new Symbol(x);
                 });
@@ -2036,6 +2049,23 @@ if (typeof module !== 'undefined') {
                         e = coeffs[i];
                     if (e) coeff = _.add(e, coeff);
                     coeffs[i] = coeff; //transfer it all over
+                }
+            } else if (
+                vars.length === 1 &&
+                vars[0] === wrt &&
+                !symbol.isImaginary() &&
+                hasIrrationalConstants &&
+                symbol.group === CP
+            ) {
+                // Use getCoeffs which properly preserves symbolic constants
+                // Only for CP (sum) groups - CB (product) groups are handled in the else branch
+                var a = core.Utils.getCoeffs(symbol, wrt);
+
+                for (var i = 0, l = a.length; i < l; i++) {
+                    var coeff = a[i],
+                        e = coeffs[i];
+                    if (e) coeff = _.add(e, coeff);
+                    coeffs[i] = coeff;
                 }
             } else {
                 if (!wrt)
@@ -5097,6 +5127,30 @@ if (typeof module !== 'undefined') {
                 return f;
             },
         },
+    ]);
+
+    // Register coeffs with direct access to nerdamer that preserves symbolic constants
+    // The standard updateAPI wrapper uses PARSE2NUMBER which converts pi, e, sqrt(2) to rationals
+    // This version parses arguments without PARSE2NUMBER to preserve symbolic constants
+    nerdamer.coeffs = function () {
+        var args = [].slice.call(arguments);
+        var _ = core.PARSER;
+        // Parse arguments WITHOUT PARSE2NUMBER to preserve symbolic constants like pi, e, sqrt(2)
+        for (var i = 0; i < args.length; i++) {
+            if (typeof args[i] === 'string') {
+                args[i] = _.parse(args[i]);
+            } else if (args[i] && args[i].symbol) {
+                // It's an Expression, get the symbol
+                args[i] = args[i].symbol.clone();
+            } else if (core.Utils.isSymbol(args[i])) {
+                args[i] = args[i].clone();
+            }
+        }
+        var coeffs = __.coeffs.apply(__, args);
+        return new core.Expression(new core.Vector(coeffs));
+    };
+
+    nerdamer.register([
         {
             name: 'line',
             visible: true,

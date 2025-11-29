@@ -3202,3 +3202,118 @@ describe('misc and regression tests', function () {
         expect(nerdamer('arg(1/i)').text()).toEqual('-0.5*pi');
     });
 });
+
+describe('Known issues', function () {
+    /**
+     * GitHub Issue: together-science/nerdamer-prime#62
+     * Title: "Number of decimal places and rounding errors in text('decimals', n)"
+     * Opened: Sep 17, 2024 by WOZARDLOZARD
+     *
+     * Problem: The text() function in decimals mode with a specified number of
+     * decimal places has two bugs:
+     *
+     * 1. Wrong number of decimal places: Returns n-1 decimal places instead of n.
+     *    Example: text("decimals", 5) on 1/3 returns "0.3333" (4 places) not "0.33333" (5 places)
+     *
+     * 2. Wrong rounding: The value is truncated/rounded incorrectly.
+     *    Example: text("decimals", 5) on 5/41 returns "0.12110" instead of "0.12195"
+     *    (5/41 = 0.121951219512...)
+     *
+     * The pattern shows n decimal places requested returns n-1 decimal places,
+     * and the rounding appears to use incorrect digits.
+     */
+    describe('text("decimals", n) precision (issue #62)', function () {
+        xit('should return the correct number of decimal places', function () {
+            // Requesting 5 decimal places should give exactly 5 decimal places
+            expect(nerdamer('1/3').evaluate().text('decimals', 5)).toEqual('0.33333');
+            expect(nerdamer('1/7').evaluate().text('decimals', 5)).toEqual('0.14286');
+            expect(nerdamer('2/3').evaluate().text('decimals', 3)).toEqual('0.667');
+        });
+
+        xit('should round correctly to the specified decimal places', function () {
+            // 5/41 = 0.121951219512... should round to 0.12195 at 5 decimal places
+            expect(nerdamer('5/41').evaluate().text('decimals', 5)).toEqual('0.12195');
+            // 1/6 = 0.16666... should round to 0.17 at 2 decimal places
+            expect(nerdamer('1/6').evaluate().text('decimals', 2)).toEqual('0.17');
+        });
+    });
+
+    /**
+     * GitHub Issue: together-science/nerdamer-prime#64
+     * Title: "Draft Issue: Inconsistent handling of scientific notation"
+     * Opened: Sep 22, 2024 by da2ce7
+     *
+     * Problem: Scientific notation with negative exponents is handled inconsistently.
+     * There are issues in both parsing and toString()/text() output.
+     *
+     * Known issues:
+     *   1. 1e-15 -> "1/999999999999999" (should be "1/1000000000000000")
+     *      This appears to be a floating-point precision issue where
+     *      1e-15 in JavaScript is slightly imprecise.
+     *
+     *   2. Very small numbers (around 1e-20) may evaluate to 0 in text() output
+     *      even though they are stored correctly internally.
+     *
+     * Note: Many cases that were originally broken now work correctly,
+     * but the 1e-15 case still shows the precision issue.
+     */
+    describe('scientific notation handling (issue #64)', function () {
+        xit('should parse 1e-15 exactly', function () {
+            // 1e-15 should be exactly 1/1000000000000000, not 1/999999999999999
+            expect(nerdamer('1e-15').toString()).toEqual('1/1000000000000000');
+        });
+
+        xit('should preserve precision for very small numbers in evaluate', function () {
+            // Very small numbers should not evaluate to 0
+            const result = nerdamer('1e-20').evaluate().text();
+            expect(result).not.toEqual('0');
+            expect(result).not.toEqual('0.000000000000000000');
+        });
+    });
+
+    /**
+     * GitHub PR: together-science/nerdamer-prime#67
+     * Title: "Fix problems with and improve scientific notation"
+     * Author: yyon
+     *
+     * Problems fixed by PR #67:
+     *
+     * 1. Whole number coefficients missing decimal place in scientific output:
+     *    - nerdamer("1000").text("scientific") returns "100e3" instead of "1e+3"
+     *    - The decimal point is not inserted correctly for whole numbers
+     *
+     * 2. Scientific input loses decimal places:
+     *    - nerdamer("3.333333e50").text("scientific") returns "3.3e+50"
+     *    - Decimal precision is lost even when more places are requested
+     *
+     * 3. Edge case when rounding coefficient to 10:
+     *    - When SCIENTIFIC_MAX_DECIMAL_PLACES rounds 9.9999... to 10,
+     *      it displays as "10e50" instead of "1e51"
+     *
+     * PR #67 also adds:
+     *    - "decimals_or_scientific" option for automatic mode switching
+     *    - SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT setting
+     *    - Updated TypeScript bindings
+     */
+    describe('scientific notation output (PR #67)', function () {
+        xit('should include decimal point for whole number coefficients', function () {
+            // 1000 should be "1e+3" or "1.0e+3", not "100e3"
+            const result = nerdamer('1000').text('scientific');
+            expect(result).toMatch(/^1(\.0)?e\+?3$/);
+        });
+
+        xit('should preserve decimal places in scientific input', function () {
+            // Input with many decimal places should preserve them in output
+            const result = nerdamer('3.333333e50').text('scientific');
+            expect(result).toContain('3.333333');
+        });
+
+        xit('should handle rounding edge case when coefficient rounds to 10', function () {
+            // When 9.9999... rounds to 10, it should become 1e(n+1)
+            // This requires finding an input that triggers this edge case
+            const result = nerdamer('9.9999999999999').text('scientific');
+            // Should not contain "10e" - should be normalized to 1e(n+1)
+            expect(result).not.toMatch(/^10e/);
+        });
+    });
+});

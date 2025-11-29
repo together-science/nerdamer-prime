@@ -383,4 +383,31 @@ describe('Algebra', function () {
         // simplify issue unlogged 12/10/2023
         expect(nerdamer('(-1/2)*sqrt(5)+1/2').simplify().text()).toBe('-0.618033988749894960');
     });
+
+    describe('Known issues', function () {
+        /**
+         * GitHub Issue: together-science/nerdamer-prime#1
+         * Title: "evaluate fails on sqrt expression"
+         * Opened: Mar 22, 2023 by gunnarmein-ts
+         * Labels: bug
+         *
+         * Problem: When evaluating expressions with baseunit_* variables inside sqrt(),
+         * the unit should factor out and cancel with the baseunit_m^(-1) multiplier.
+         *
+         * Mathematically:
+         *   baseunit_m^(-1) * sqrt(baseunit_m^2*cos(3) + baseunit_m^2)
+         * = baseunit_m^(-1) * sqrt(baseunit_m^2 * (cos(3) + 1))
+         * = baseunit_m^(-1) * baseunit_m * sqrt(cos(3) + 1)
+         * = sqrt(1 + cos(3))
+         * ≈ 0.100037509962788179
+         *
+         * Current behavior: Returns '0.010007503399554583*baseunit_m^(-0.5)'
+         * The baseunit_m is not properly factored out of the sqrt before evaluation.
+         */
+        xit('should cancel out baseunit_m in sqrt expressions (issue #1)', function () {
+            expect(nerdamer('baseunit_m ^(-1)*sqrt(baseunit_m ^2*cos(3)+baseunit_m ^2)')
+                .evaluate().text())
+                .toEqual('0.100037509962788179');
+        });
+    });
 });

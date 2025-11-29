@@ -50,7 +50,7 @@
     },
     "scripts": {
         "test": "jasmine",
-        "test:types": "jest --passWithNoTests -c jest.config.types.js",
+        "test:types": "tsc --noEmit -p spec-dts/tsconfig.json && jest -c jest.config.types.js",
         "silent": "npm test --silent | cat",
         "build": "esbuild all.js --bundle --minify --outfile=all.min.js --format=iife --global-name=nerdamer",
         "watch": "esbuild all.js --bundle --minify --outfile=all.min.js --format=iife --global-name=nerdamer --watch",

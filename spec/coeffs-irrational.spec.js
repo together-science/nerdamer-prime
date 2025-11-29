@@ -1,0 +1,170 @@
+/* global expect */
+
+'use strict';
+
+/**
+ * Regression tests for coeffs() function with irrational constants.
+ *
+ * These tests verify that the coeffs() function correctly preserves symbolic irrational constants (pi, e, sqrt(2)) rather than converting them to rational approximations.
+ *
+ * Previously, the Algebra.coeffs() function would incorrectly convert:
+ *
+ * - Pi to 245850922/78256779 (≈ 3.14159265)
+ * - E to 325368125/119696244 (≈ 2.71828183)
+ * - Sqrt(2) to 131836323/93222358 (≈ 1.41421356)
+ *
+ * These issues have been fixed. The tests below serve as regression tests to ensure symbolic constants remain preserved in coefficient extraction.
+ */
+
+var nerdamer = require('../nerdamer.core.js');
+require('../Algebra.js');
+
+describe('Coefficients with irrational constants', function () {
+    describe('Single irrational constant preservation', function () {
+        it('should preserve pi in coefficients', function () {
+            var result = nerdamer.coeffs('pi*x+1', 'x').toString();
+            expect(result).toEqual('[1,pi]');
+        });
+
+        it('should preserve e in coefficients', function () {
+            var result = nerdamer.coeffs('e*y+1', 'y').toString();
+            expect(result).toEqual('[1,e]');
+        });
+
+        it('should preserve sqrt(2) in coefficients', function () {
+            var result = nerdamer.coeffs('sqrt(2)*z+1', 'z').toString();
+            expect(result).toEqual('[1,sqrt(2)]');
+        });
+    });
+
+    describe('Multiple irrational constants in expression', function () {
+        it('should preserve both pi and e in coefficient extraction', function () {
+            // For expression: pi*x + e*y - sqrt(2)
+            // Coefficients with respect to x should be: [e*y - sqrt(2), pi]
+            var coeffsX = nerdamer.coeffs('pi*x+e*y-sqrt(2)', 'x').toString();
+            expect(coeffsX).toEqual('[-sqrt(2)+e*y,pi]');
+
+            // Coefficients with respect to y should be: [pi*x - sqrt(2), e]
+            var coeffsY = nerdamer.coeffs('pi*x+e*y-sqrt(2)', 'y').toString();
+            expect(coeffsY).toEqual('[-sqrt(2)+pi*x,e]');
+        });
+
+        it('should preserve pi and e when both appear as coefficients', function () {
+            // Coefficients of pi*x + e with respect to x: [e, pi]
+            var result = nerdamer.coeffs('pi*x+e', 'x').toString();
+            expect(result).toEqual('[e,pi]');
+        });
+
+        it('should preserve pi and e*y in coefficient extraction', function () {
+            var coeffsX = nerdamer.coeffs('pi*x+e*y', 'x').toString();
+            expect(coeffsX).toEqual('[e*y,pi]');
+
+            var coeffsY = nerdamer.coeffs('pi*x+e*y', 'y').toString();
+            expect(coeffsY).toEqual('[pi*x,e]');
+        });
+    });
+
+    describe('Cross-products issue with irrational constants', function () {
+        it('should not create spurious cross-products', function () {
+            // A linear expression should have degree 1 in each variable
+            // When we extract coefficients, there should be no x*y term
+            var coeffsX = nerdamer.coeffs('pi*x+e*y-sqrt(2)', 'x');
+            var coeffsY = nerdamer.coeffs('pi*x+e*y-sqrt(2)', 'y');
+
+            // The coefficient arrays should have length 2 (constant term and linear term)
+            expect(coeffsX.symbol.elements.length).toEqual(2);
+            expect(coeffsY.symbol.elements.length).toEqual(2);
+
+            // Verify no variable appears in the wrong coefficient
+            // The constant term for x should not contain x
+            expect(coeffsX.symbol.elements[0].contains('x')).toBe(false);
+            // The linear coefficient should be exactly pi
+            expect(coeffsX.symbol.elements[1].text()).toEqual('pi');
+        });
+    });
+
+    describe('Utils.getCoeffs preserves irrationals correctly', function () {
+        it('should preserve pi in Utils.getCoeffs', function () {
+            var Utils = nerdamer.getCore().Utils;
+            var sym = nerdamer('pi*x+1').symbol;
+            var coeffs = Utils.getCoeffs(sym, 'x');
+
+            expect(coeffs[0].toString()).toEqual('1');
+            expect(coeffs[1].toString()).toEqual('pi');
+        });
+
+        it('should preserve e in Utils.getCoeffs', function () {
+            var Utils = nerdamer.getCore().Utils;
+            var sym = nerdamer('e*y+1').symbol;
+            var coeffs = Utils.getCoeffs(sym, 'y');
+
+            expect(coeffs[0].toString()).toEqual('1');
+            expect(coeffs[1].toString()).toEqual('e');
+        });
+
+        it('should preserve sqrt(2) in Utils.getCoeffs', function () {
+            var Utils = nerdamer.getCore().Utils;
+            var sym = nerdamer('sqrt(2)*z+1').symbol;
+            var coeffs = Utils.getCoeffs(sym, 'z');
+
+            expect(coeffs[0].toString()).toEqual('1');
+            expect(coeffs[1].toString()).toEqual('sqrt(2)');
+        });
+
+        it('should preserve multiple irrationals in Utils.getCoeffs', function () {
+            var Utils = nerdamer.getCore().Utils;
+            var sym = nerdamer('pi*x+e*y-sqrt(2)').symbol;
+
+            var coeffsX = Utils.getCoeffs(sym, 'x');
+            expect(coeffsX[0].toString()).toEqual('-sqrt(2)+e*y');
+            expect(coeffsX[1].toString()).toEqual('pi');
+
+            var coeffsY = Utils.getCoeffs(sym, 'y');
+            expect(coeffsY[0].toString()).toEqual('-sqrt(2)+pi*x');
+            expect(coeffsY[1].toString()).toEqual('e');
+        });
+    });
+
+    describe('String-based coeffs syntax with irrationals', function () {
+        it('should parse coeffs(pi*x+1, x) without error', function () {
+            expect(function () {
+                nerdamer('coeffs(pi*x+1, x)');
+            }).not.toThrow();
+        });
+
+        it('should parse coeffs(e*y+1, y) without error', function () {
+            expect(function () {
+                nerdamer('coeffs(e*y+1, y)');
+            }).not.toThrow();
+        });
+
+        it('should parse coeffs(sqrt(2)*z+1, z) correctly', function () {
+            var result = nerdamer('coeffs(sqrt(2)*z+1, z)').toString();
+            expect(result).toEqual('[1,sqrt(2)]');
+        });
+    });
+
+    describe('isPoly should handle expressions with irrational constants', function () {
+        // Note: isPoly returns false for expressions with transcendental constants
+        // like pi and e, which is arguably correct since they are not algebraic.
+        // sqrt(2) is algebraic, so isPoly returns true for it.
+
+        it('should recognize pi*x+1 as not a polynomial (pi is transcendental)', function () {
+            var sym = nerdamer('pi*x+1').symbol;
+            var isPoly = sym.isPoly();
+            expect(isPoly).toBe(false);
+        });
+
+        it('should recognize e*y+1 as not a polynomial (e is transcendental)', function () {
+            var sym = nerdamer('e*y+1').symbol;
+            var isPoly = sym.isPoly();
+            expect(isPoly).toBe(false);
+        });
+
+        it('should recognize sqrt(2)*z+1 as a polynomial (sqrt(2) is algebraic)', function () {
+            var sym = nerdamer('sqrt(2)*z+1').symbol;
+            var isPoly = sym.isPoly();
+            expect(isPoly).toBe(true);
+        });
+    });
+});
