@@ -38,7 +38,6 @@ describe('Extra Calculus', function () {
         expect(nerdamer('ilt(((s+1)*(s+2)*(s+3))^(-1), s, t)').toString()).toEqual('(1/2)*e^(-3*t)+(1/2)*e^(-t)-e^(-2*t)');
         expect(nerdamer('ilt(1/(s^2+s+1),s,t)').toString()).toEqual('2*e^((-1/2)*t)*sin((1/2)*sqrt(3)*t)*sqrt(3)^(-1)');
         expect(nerdamer('ilt(1/(s^2+2s+1),s,t)').toString()).toEqual('e^(-t)*t');
-        // expect(nerdamer('ilt(1/((s)(s^2+4s+1)),s,t)').toString()).toEqual('1+e^(-2*t)*i^(-1)*sin(i*sqrt(3)*t)*sqrt(3)^(-1)');
     });
 
     it('should calculate mode correctly', function () {
@@ -49,5 +48,35 @@ describe('Extra Calculus', function () {
         expect(nerdamer('mode(a,a,b,c,a,b,d)').toString()).toEqual('a');
         expect(nerdamer('mode(x, r+1, 21, tan(x), r+1)').toString()).toEqual('1+r');
         expect(nerdamer('mode(x, r+1, 21, tan(x), r+1, x)').toString()).toEqual('mode(1+r,x)');
+    });
+});
+
+describe('Known issues', function () {
+    /**
+     * GitHub Issue: together-science/nerdamer-prime#14
+     * Title: "Problems with ilt"
+     * Opened: May 8, 2023 by roy77
+     * Labels: bug
+     *
+     * Problem: The inverse Laplace transform (ilt) returns results containing
+     * imaginary unit 'i' for expressions that should have purely real results.
+     *
+     * For ilt(1/((s)(s^2+4s+1)),s,t):
+     *   - The quadratic s^2+4s+1 has real roots: -2+sqrt(3) and -2-sqrt(3)
+     *   - Therefore the inverse Laplace transform should be purely real
+     *   - Current result: 1+e^(-2*t)*i^(-1)*sin(i*sqrt(3)*t)*sqrt(3)^(-1)
+     *   - Note: sin(i*x)/i = sinh(x), so the result IS mathematically correct
+     *     but is expressed in an unsimplified form that appears complex
+     *   - Expected: A simplified real form like 1 + e^(-2*t)*sinh(sqrt(3)*t)/sqrt(3)
+     *
+     * Note: The first issue reported (ilt(1/(s^3+2*s^2+s),s,t) separated incorrectly)
+     * was fixed in commit 5839284 on Mar 30, 2024.
+     */
+    xit('should return real result for ilt with real roots (issue #14)', function () {
+        // The result should not contain 'i' since s^2+4s+1 has real roots
+        const result = nerdamer('ilt(1/((s)*(s^2+4*s+1)),s,t)').toString();
+        expect(result).not.toContain('i');
+        // Alternatively, verify the simplified real form:
+        // expect(result).toEqual('1+e^(-2*t)*sinh(sqrt(3)*t)*sqrt(3)^(-1)');
     });
 });
