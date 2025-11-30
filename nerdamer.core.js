@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*
  * Author : Martin Donk
  * Website : http://www.nerdamer.com
@@ -139,6 +140,8 @@ var nerdamer = (function (imports) {
         SCIENTIFIC_MAX_DECIMAL_PLACES: 14,
         //True if ints should not be converted to
         SCIENTIFIC_IGNORE_ZERO_EXPONENTS: true,
+        // exponent (absolute value) from which to switch from decimals to scientific in "decimals_or_scientific" mode
+        SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT: 7,
         // no simplify() or solveFor() should take more ms than this
         TIMEOUT: 800,
     };
@@ -2618,12 +2621,15 @@ var nerdamer = (function (imports) {
         var asHash = option === 'hash',
             //whether to wrap numbers in brackets
             wrapCondition = undefined,
-            opt = asHash ? undefined : option,
-            asDecimal = opt === 'decimal' || opt === 'decimals';
+            opt = asHash ? undefined : option;
 
-        if (asDecimal && typeof decp === 'undefined') decp = Settings.DEFAULT_DECP;
+        if (
+            (opt === 'decimal' || opt === 'decimals' || opt === 'decimals_or_scientific') &&
+            typeof decp === 'undefined'
+        )
+        decp = Settings.DEFAULT_DECP;
 
-        function toString(obj) {
+        function toString(obj, decp) {
             switch (option) {
                 case 'decimals':
                 case 'decimal':
@@ -2632,6 +2638,9 @@ var nerdamer = (function (imports) {
                         function (str) {
                             return false;
                         };
+                    if (decp) {
+                        return obj.toDecimal(decp);
+                    }
                     return obj.valueOf();
                 case 'recurring':
                     wrapCondition =
@@ -2716,6 +2725,22 @@ var nerdamer = (function (imports) {
                             return false;
                         };
                     return new Scientific(obj.valueOf()).toString(Settings.SCIENTIFIC_MAX_DECIMAL_PLACES);
+                case 'decimals_or_scientific':
+                    wrapCondition =
+                        wrapCondition ||
+                        function (str) {
+                            return false;
+                        };
+                    const decimals = obj.valueOf();
+                    const scientific = new Scientific(decimals);
+                    if (Math.abs(scientific.exponent) >= Settings.SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT) {
+                        return scientific.toString(Settings.SCIENTIFIC_MAX_DECIMAL_PLACES);
+                    } else {
+                        if (decp) {
+                            return obj.toDecimal(decp);
+                        }
+                        return decimals;
+                    }
                 default:
                     wrapCondition =
                         wrapCondition ||
@@ -2738,7 +2763,7 @@ var nerdamer = (function (imports) {
             //if the value is to be used as a hash then the power and multiplier need to be suppressed
             if (!asHash) {
                 //use asDecimal to get the object back as a decimal
-                var om = toString(obj.multiplier);
+                var om = toString(obj.multiplier, decp);
                 if (om == '-1' && String(obj.multiplier) === '-1') {
                     sign = '-';
                     om = '1';
@@ -2860,14 +2885,18 @@ var nerdamer = (function (imports) {
                 value = inBrackets(value);
             }
 
-            if (decp && (option === 'decimal' || (option === 'decimals' && multiplier))) {
-                // scientific notation? regular rounding would be the wrong decision here
+            if (
+                decp &&
+                (option === 'decimal' || ((option === 'decimals' || option === 'decimals_or_scientific') && multiplier))
+            ) {    // scientific notation? regular rounding would be the wrong decision here
                 if (multiplier.toString().includes('e')) {
-                    // toPrecision can create extra digits, so we also
-                    // convert it to string straight up and pick the shorter version
-                    const m1 = multiplier.toExponential();
-                    const m2 = multiplier.toPrecision(decp);
-                    multiplier = m1.length < m2.length ? m1 : m2;
+                    if (option !== 'decimals_or_scientific') {
+                        // toPrecision can create extra digits, so we also
+                        // convert it to string straight up and pick the shorter version
+                        const m1 = multiplier.toExponential();
+                        const m2 = multiplier.toPrecision(decp);
+                        multiplier = m1.length < m2.length ? m1 : m2;
+                    }
                 } else {
                     multiplier = nround(multiplier, decp);
                 }
@@ -3252,6 +3281,13 @@ var nerdamer = (function (imports) {
             this.coeff = parts[0];
             this.exponent = parts[1];
 
+            if (this.exponent.startsWith('+')) {
+                this.exponent = this.exponent.slice(1);
+            }
+
+            var dec = this.coeff.split('.')[1] || ''; //if it's undefined or zero it's going to blank
+            this.decp = dec === '0' ? 0 : dec.length;
+
             return this;
         },
         convert: function (num) {
@@ -3273,8 +3309,7 @@ var nerdamer = (function (imports) {
             this.exponent = dot_location - (zeroes + 1);
             //set the coeff but first remove leading zeroes
             var coeff = Scientific.removeLeadingZeroes(n);
-            this.coeff = coeff.charAt(0) + '.' + (coeff.substr(1, coeff.length) || '0');
-
+            this.coeff = coeff.charAt(0) + '.' + (Scientific.removeTrailingZeroes(coeff.substr(1, coeff.length)) || '0');
             //the coeff decimal places
             var dec = this.coeff.split('.')[1] || ''; //if it's undefined or zero it's going to blank
 
@@ -3319,12 +3354,20 @@ var nerdamer = (function (imports) {
             var retval;
 
             if (Settings.SCIENTIFIC_IGNORE_ZERO_EXPONENTS && this.exponent === 0 && this.decp < n) {
-                if (this.decp === 0) retval = this.wholes;
+                if (this.decp === 0 && this.wholes !== undefined) retval = this.wholes;
                 else retval = this.coeff;
             } else {
-                var coeff =
-                    typeof n === 'undefined' ? this.coeff : Scientific.round(this.coeff, Math.min(n, this.decp || 1));
-                retval = this.exponent === 0 ? coeff : coeff + 'e' + this.exponent;
+                var coeff = typeof n === 'undefined' ? this.coeff : Scientific.round(this.coeff, Math.min(n, this.decp || 1));
+                var exp = this.exponent;
+                if (coeff.startsWith('10.')) {
+                    // edge case when coefficient is 9.999999 rounds to 10
+                    coeff =
+                        typeof n === 'undefined'
+                            ? coeff.replace(/^10./, '1.0')
+                            : Scientific.round(coeff.replace(/^10./, '1.0'), Math.min(n, this.decp || 1));
+                    exp = Number(exp) + 1;
+                }
+                retval = this.exponent === 0 ? coeff : coeff + 'e' + exp;
             }
 
             return (this.sign === -1 ? '-' : '') + retval;
@@ -3349,11 +3392,14 @@ var nerdamer = (function (imports) {
     };
 
     Scientific.round = function (c, n) {
-        var coeff = nround(c, n);
-        var m = String(coeff).split('.').pop();
+        var coeff = String(nround(c, n));
+        var m = coeff.includes('.') ? coeff.split('.').pop() : '';
         var d = n - m.length;
         //if we're asking for more significant figures
         if (d > 0) {
+            if (!coeff.includes('.')) {
+                coeff += '.';
+            }
             coeff = coeff + new Array(d + 1).join(0);
         }
         return coeff;
@@ -12511,7 +12557,7 @@ var nerdamer = (function (imports) {
      * @param {string | Function} fnName The name of the function
      * @param {string[] | undefined} fnParams A list containing the parameter name of the functions
      * @param {string | undefined} body The body of the function
-     * @returns {nerdamer} Returns nerdamer if succeeded and falls on fail
+     * @returns {nerdamer} Returns nerdamer if succeeded and fails on fail
      */
     libExports.setFunction = function (fnName, fnParams, fnBody) {
         if (!setFunction(fnName, fnParams, fnBody)) {
