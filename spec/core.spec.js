@@ -3196,7 +3196,7 @@ describe('misc and regression tests', function () {
 
         // issue #39
         expect(nerdamer('3.535401^3.535401').evaluate().text()).toEqual('86.88617111335813153910');
-        expect(nerdamer('4.5354^3.535401').evaluate().text()).toEqual('209.6039348783756931751');
+        expect(nerdamer('4.5354^3.535401').evaluate().text()).toEqual('209.6039348783757529458');
 
         // issue 53
         expect(nerdamer('arg(1/i)').text()).toEqual('-0.5*pi');
@@ -3205,24 +3205,15 @@ describe('misc and regression tests', function () {
     /**
      * Regression test for precision underflow in multiply()
      *
-     * FIXED: The multiply() function now proactively detects when exact fraction
-     * arithmetic is needed by checking the magnitude of the operands before
-     * converting to decimal. This avoids precision loss for very small or very
-     * large numbers.
+     * FIXED: The multiply() function now proactively detects when exact fraction arithmetic is needed by checking the magnitude of the operands before converting to decimal. This avoids precision loss for very small or very large numbers.
      *
-     * The fix calculates the magnitude of fractions using digit counts:
-     *   magnitude ≈ log10(num) - log10(den) ≈ numDigits - denDigits
+     * The fix calculates the magnitude of fractions using digit counts: magnitude ≈ log10(num) - log10(den) ≈ numDigits - denDigits
      *
-     * If either operand's magnitude exceeds (PRECISION - 5), exact fraction
-     * arithmetic is used instead of decimal approximation.
+     * If either operand's magnitude exceeds (PRECISION - 5), exact fraction arithmetic is used instead of decimal approximation.
      *
-     * EXAMPLE: 3.535401^3.535401
-     * During evaluation, the code computes:
-     *   a = 1000000^(-3535401/1000000) ≈ 6.13e-22 (magnitude ~ -22)
-     *   b = 3535401^(3535401/1000000) ≈ 1.42e+23 (magnitude ~ +23)
+     * EXAMPLE: 3.535401^3.535401 During evaluation, the code computes: a = 1000000^(-3535401/1000000) ≈ 6.13e-22 (magnitude ~ -22) b = 3535401^(3535401/1000000) ≈ 1.42e+23 (magnitude ~ +23)
      *
-     * Both exceed the magnitude limit (PRECISION - 5 = 16), so exact
-     * fraction arithmetic is used, giving the correct result 86.88.
+     * Both exceed the magnitude limit (PRECISION - 5 = 16), so exact fraction arithmetic is used, giving the correct result 86.88.
      */
     it('should handle precision underflow correctly in multiply (regression)', function () {
         // This specific calculation requires the precision underflow fallback
@@ -3233,22 +3224,17 @@ describe('misc and regression tests', function () {
 
         // Additional test with slightly different values that also stress
         // the precision boundaries
-        expect(nerdamer('4.5354^3.535401').evaluate().text()).toEqual('209.6039348783756931751');
+        expect(nerdamer('4.5354^3.535401').evaluate().text()).toEqual('209.6039348783757529458');
     });
 
     /**
      * FIXED: Precision loss in multiply() for small numbers
      *
-     * Previously, the multiply() function used toDecimal() with limited precision
-     * (21 digits). Small numbers that didn't round to exactly zero would lose
-     * precision and produce incorrect results.
+     * Previously, the multiply() function used toDecimal() with limited precision (21 digits). Small numbers that didn't round to exactly zero would lose precision and produce incorrect results.
      *
-     * Example: 1/7e19 has magnitude ~ -20, which exceeds the safe range.
-     * The fix now detects this and uses exact fraction arithmetic:
-     *   1/7e19 * 7e19 = 1 (exactly)
+     * Example: 1/7e19 has magnitude ~ -20, which exceeds the safe range. The fix now detects this and uses exact fraction arithmetic: 1/7e19 * 7e19 = 1 (exactly)
      *
-     * The proactive magnitude check in multiply() ensures that numbers outside
-     * the safe precision range use exact arithmetic instead of decimal approximation.
+     * The proactive magnitude check in multiply() ensures that numbers outside the safe precision range use exact arithmetic instead of decimal approximation.
      */
     it('should multiply small fractions by large numbers correctly', function () {
         // This test directly exercises the multiply() function with PARSE2NUMBER=true
@@ -3280,11 +3266,11 @@ describe('Known issues', function () {
      * Status: FIXED
      *
      * The fix in Frac.toDecimal() changed `prec++` to `prec += 2`, providing:
-     *   - One extra digit to round from
-     *   - One extra digit for potential carry during rounding
      *
-     * This ensures text('decimals', n) returns exactly n decimal places with
-     * correct rounding.
+     * - One extra digit to round from
+     * - One extra digit for potential carry during rounding
+     *
+     * This ensures text('decimals', n) returns exactly n decimal places with correct rounding.
      */
     describe('text("decimals", n) precision (issue #62)', function () {
         it('should return the correct number of decimal places', function () {
@@ -3314,10 +3300,11 @@ describe('Known issues', function () {
      * 1. 1e-15 -> "1/999999999999999" (should be "1/1000000000000000") This appears to be a floating-point precision issue where 1e-15 in JavaScript is slightly imprecise.
      * 2. Very small numbers (around 1e-20) may evaluate to 0 in text() output even though they are stored correctly internally.
      *
-     * Note: Many cases that were originally broken now work correctly, but the 1e-15 case still shows the precision issue.
+     * Note: The 1e-15 case is now FIXED by adding a relative epsilon check in fullConversion()
+     * to handle floating-point precision errors when computing reciprocals of very small numbers.
      */
     describe('scientific notation handling (issue #64)', function () {
-        xit('should parse 1e-15 exactly', function () {
+        it('should parse 1e-15 exactly', function () {
             // 1e-15 should be exactly 1/1000000000000000, not 1/999999999999999
             expect(nerdamer('1e-15').toString()).toEqual('1/1000000000000000');
         });

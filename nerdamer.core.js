@@ -10404,9 +10404,22 @@ var nerdamer = (function (imports) {
                 d2 = 0,
                 n = 0,
                 q = dec;
+            // Relative epsilon for rounding large q values to nearest integer.
+            // This fixes floating-point precision errors in reciprocals (e.g., 1/1e-15 = 999999999999999.9).
+            // We use ~45x Number.EPSILON to allow for accumulated rounding errors.
+            // This is independent of Settings.PRECISION since we're dealing with IEEE 754 double limits.
+            var roundingEpsilon = 1e-14; // ~45 * Number.EPSILON (2.2e-16)
             while (!done) {
                 n++;
-                var a = Math.floor(q);
+                // For very large q values, round to nearest integer if within floating-point error
+                var a;
+                if (Math.abs(q) > 1e10) {
+                    var rounded = Math.round(q);
+                    var relDiff = Math.abs(q - rounded) / Math.abs(rounded);
+                    a = relDiff < roundingEpsilon ? rounded : Math.floor(q);
+                } else {
+                    a = Math.floor(q);
+                }
                 var num = n1 + a * n2;
                 var den = d1 + a * d2;
                 var e = q - a;
