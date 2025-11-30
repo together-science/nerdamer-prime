@@ -3304,12 +3304,12 @@ var nerdamer = (function (imports) {
         fromScientific: function (num) {
             var parts = String(num).toLowerCase().split('e');
             this.coeff = parts[0];
-            this.exponent = parts[1];
-            if (this.exponent.startsWith('+')) {
-                this.exponent = this.exponent.slice(1);
-            }
+            this.exponent = Number(parts[1]); // Convert to number for consistent === 0 checks in toString()
 
-            var dec = this.coeff.split('.')[1] || ''; //if it's undefined or zero it's going to blank
+            var coeffParts = this.coeff.split('.');
+            this.wholes = coeffParts[0] || '';
+            this.dec = coeffParts[1] || '';
+            var dec = this.dec; //if it's undefined or zero it's going to blank
             this.decp = dec === '0' ? 0 : dec.length;
 
             return this;
