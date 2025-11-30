@@ -2787,7 +2787,7 @@ var nerdamer = (function (imports) {
                 case N:
                     multiplier = '';
                     //round if requested
-                    var m = decp && asDecimal ? obj.multiplier.toDecimal(decp) : toString(obj.multiplier);
+                    var m = toString(obj.multiplier, decp);
                     //if it's numerical then all we need is the multiplier
                     value = String(obj.multiplier) == '-1' ? '1' : m;
                     power = '';
