@@ -3201,6 +3201,94 @@ describe('misc and regression tests', function () {
         // issue 53
         expect(nerdamer('arg(1/i)').text()).toEqual('-0.5*pi');
     });
+
+    /**
+     * Regression test for precision underflow in multiply()
+     *
+     * CRITICAL: This test documents a BRITTLE design pattern in multiply().
+     *
+     * The multiply function (line ~9378-9391) uses toDecimal() to convert fractions
+     * to decimals for multiplication. It has a fallback that detects "precision
+     * underflow" when toDecimal() returns zero, and switches to exact fraction
+     * arithmetic in that case.
+     *
+     * THE BRITTLENESS:
+     * The fallback ONLY triggers when the decimal representation is EXACTLY zero.
+     * If decimal precision is increased (e.g., changing `prec++` to `prec += 2`
+     * in Frac.decimal()), very small numbers may round to a non-zero value like
+     * 1e-21 instead of 0. This non-zero value:
+     *   1. Does NOT trigger the fallback (ad.isZero() is false)
+     *   2. Is still WRONG (1e-21 vs actual 6.13e-22 is 1.63x error)
+     *   3. Produces incorrect results when multiplied
+     *
+     * EXAMPLE: 3.535401^3.535401
+     * During evaluation, the code computes:
+     *   a = 1000000^(-3535401/1000000) ≈ 6.13e-22  (very small)
+     *   b = 3535401^(3535401/1000000)  ≈ 1.42e+23  (very large)
+     *
+     * With current precision (21 digits, prec++):
+     *   - 6.13e-22 rounds to 0.00000000000000000000 (zero)
+     *   - Fallback triggers → exact arithmetic → correct result 86.88
+     *
+     * If precision were increased (prec += 2):
+     *   - 6.13e-22 rounds to 0.000000000000000000001 (1e-21, NOT zero)
+     *   - Fallback does NOT trigger → uses 1e-21 instead of 6.13e-22
+     *   - Result: 86.88 * 1.63 ≈ 141.69 (WRONG!)
+     *
+     * TODO: The multiply() function should detect precision underflow more
+     * robustly, perhaps by comparing the decimal representation to the expected
+     * magnitude from the fraction's exponent, rather than just checking for zero.
+     */
+    it('should handle precision underflow correctly in multiply (regression)', function () {
+        // This specific calculation requires the precision underflow fallback
+        // in multiply() to work correctly
+        var result = nerdamer('3.535401^3.535401').evaluate().text();
+        // The result should be approximately 86.886, NOT 141.69
+        expect(result).toEqual('86.8861711133581315310');
+
+        // Additional test with slightly different values that also stress
+        // the precision boundaries
+        expect(nerdamer('4.5354^3.535401').evaluate().text()).toEqual('209.603932373756644162');
+    });
+
+    /**
+     * BUG: Precision loss in multiply() for small numbers that don't round to zero
+     *
+     * The multiply() function uses toDecimal() with limited precision (21 digits).
+     * When multiplying very small numbers by very large numbers, the small number
+     * loses precision but doesn't round to zero, so the fallback doesn't trigger.
+     *
+     * Example: 1/7e19 has toDecimal() = "0.00000000000000000001" (1e-20)
+     * but the true value is 1.4286e-20. When multiplied by 7e19:
+     *   - Expected: 1
+     *   - Actual (using wrong decimal): 1e-20 * 7e19 = 0.7
+     *   - Error: 30%!
+     *
+     * The fallback (isZero check) only triggers when the number is SO small it
+     * rounds to exactly zero. Numbers that round to a wrong non-zero value
+     * slip through and produce incorrect results.
+     */
+    xit('should multiply small fractions by large numbers correctly (BUG)', function () {
+        // This test directly exercises the multiply() function with PARSE2NUMBER=true
+        // which is the code path used during expression evaluation
+        var core = nerdamer.getCore();
+        var _ = core.PARSER;
+        var Settings = core.Settings;
+
+        // 1/7e19 * 7e19 = 1 (exactly)
+        // But toDecimal() truncates 1/7e19 to 1e-20 instead of 1.4286e-20
+        // So the multiply gives 1e-20 * 7e19 = 0.7 (WRONG!)
+        var small = _.parse('1/70000000000000000000');
+        var large = _.parse('70000000000000000000');
+
+        Settings.PARSE2NUMBER = true;
+        var result = _.multiply(small, large);
+        Settings.PARSE2NUMBER = false;
+
+        // The mathematically correct result is 1
+        // Currently this gives 0.7 due to precision loss
+        expect(result.toString()).toEqual('1');
+    });
 });
 
 describe('Known issues', function () {
