@@ -4264,6 +4264,8 @@ var nerdamer = (function (imports) {
         isLinear: function (wrt) {
             if (wrt) {
                 if (this.isConstant()) return true;
+                // If this symbol doesn't contain the variable (including in exponents), it's constant with respect to it
+                if (!this.contains(wrt, true)) return true;
                 if (this.group === S) {
                     if (this.value === wrt) return this.power.equals(1);
                     else return true;
@@ -4276,7 +4278,11 @@ var nerdamer = (function (imports) {
                     return true;
                 }
 
-                if (this.group === CB && this.symbols[wrt]) return this.symbols[wrt].isLinear(wrt);
+                if (this.group === CB) {
+                    // If the variable doesn't exist in this term, it's constant wrt that variable, hence linear
+                    if (!this.symbols[wrt]) return true;
+                    return this.symbols[wrt].isLinear(wrt);
+                }
                 return false;
             } else return this.power.equals(1);
         },
