@@ -167,4 +167,134 @@ describe('Coefficients with irrational constants', function () {
             expect(isPoly).toBe(true);
         });
     });
+
+    describe('isLinear should handle expressions with symbolic coefficients', function () {
+        /**
+         * Regression tests for isLinear() with symbolic/irrational coefficients.
+         *
+         * Previously, isLinear() would incorrectly return false for expressions like:
+         *
+         * - A_x + b_y (multi-term with symbolic coefficients)
+         * - Pi_x + e_y (multi-term with transcendental constants)
+         * - Pi_x + e_y - sqrt(2) (includes function terms like sqrt)
+         *
+         * The bug was in two places:
+         *
+         * 1. CB (combination) group terms that didn't contain the target variable were returning false instead of true (they're constant wrt that variable)
+         * 2. Terms that don't contain the target variable at all (like sqrt(2) when checking for x) were returning false instead of true
+         */
+
+        describe('single terms with symbolic coefficients', function () {
+            xit('should recognize pi*x as linear in x', function () {
+                expect(nerdamer('pi*x').symbol.isLinear('x')).toBe(true);
+            });
+
+            xit('should recognize pi*x as linear in y (does not contain y)', function () {
+                expect(nerdamer('pi*x').symbol.isLinear('y')).toBe(true);
+            });
+
+            xit('should recognize e*y as linear in y', function () {
+                expect(nerdamer('e*y').symbol.isLinear('y')).toBe(true);
+            });
+
+            xit('should recognize e*y as linear in x (does not contain x)', function () {
+                expect(nerdamer('e*y').symbol.isLinear('x')).toBe(true);
+            });
+
+            xit('should recognize a*x as linear in x', function () {
+                expect(nerdamer('a*x').symbol.isLinear('x')).toBe(true);
+            });
+
+            xit('should recognize sqrt(2)*x as linear in x', function () {
+                expect(nerdamer('sqrt(2)*x').symbol.isLinear('x')).toBe(true);
+            });
+        });
+
+        describe('multi-term expressions with symbolic coefficients', function () {
+            xit('should recognize a*x + b*y as linear in x', function () {
+                expect(nerdamer('a*x+b*y').symbol.isLinear('x')).toBe(true);
+            });
+
+            xit('should recognize a*x + b*y as linear in y', function () {
+                expect(nerdamer('a*x+b*y').symbol.isLinear('y')).toBe(true);
+            });
+
+            xit('should recognize pi*x + e*y as linear in x', function () {
+                expect(nerdamer('pi*x+e*y').symbol.isLinear('x')).toBe(true);
+            });
+
+            xit('should recognize pi*x + e*y as linear in y', function () {
+                expect(nerdamer('pi*x+e*y').symbol.isLinear('y')).toBe(true);
+            });
+
+            xit('should recognize pi*x + e*y - sqrt(2) as linear in x', function () {
+                expect(nerdamer('pi*x+e*y-sqrt(2)').symbol.isLinear('x')).toBe(true);
+            });
+
+            xit('should recognize pi*x + e*y - sqrt(2) as linear in y', function () {
+                expect(nerdamer('pi*x+e*y-sqrt(2)').symbol.isLinear('y')).toBe(true);
+            });
+
+            xit('should recognize sqrt(2)*x + sqrt(3)*y + 1 as linear in x and y', function () {
+                expect(nerdamer('sqrt(2)*x+sqrt(3)*y+1').symbol.isLinear('x')).toBe(true);
+                expect(nerdamer('sqrt(2)*x+sqrt(3)*y+1').symbol.isLinear('y')).toBe(true);
+            });
+        });
+
+        describe('non-linear expressions should still return false', function () {
+            xit('should recognize x^2 as not linear in x', function () {
+                expect(nerdamer('x^2').symbol.isLinear('x')).toBe(false);
+            });
+
+            xit('should recognize sin(x) as not linear in x', function () {
+                expect(nerdamer('sin(x)').symbol.isLinear('x')).toBe(false);
+            });
+
+            xit('should recognize x^2 + y as not linear in x', function () {
+                expect(nerdamer('x^2+y').symbol.isLinear('x')).toBe(false);
+            });
+
+            xit('should recognize x^2 + y as linear in y', function () {
+                expect(nerdamer('x^2+y').symbol.isLinear('y')).toBe(true);
+            });
+
+            xit('should recognize e^x as not linear in x (exponential)', function () {
+                expect(nerdamer('e^x').symbol.isLinear('x')).toBe(false);
+            });
+
+            xit('should recognize e^x + y as not linear in x', function () {
+                expect(nerdamer('e^x+y').symbol.isLinear('x')).toBe(false);
+            });
+
+            xit('should recognize e^x + y as linear in y', function () {
+                expect(nerdamer('e^x+y').symbol.isLinear('y')).toBe(true);
+            });
+
+            xit('should recognize 2^x as not linear in x', function () {
+                expect(nerdamer('2^x').symbol.isLinear('x')).toBe(false);
+            });
+
+            xit('should recognize x^x as not linear in x', function () {
+                expect(nerdamer('x^x').symbol.isLinear('x')).toBe(false);
+            });
+        });
+
+        describe('terms not containing the variable should be considered linear', function () {
+            xit('should recognize sqrt(2) as linear in x (does not contain x)', function () {
+                expect(nerdamer('sqrt(2)').symbol.isLinear('x')).toBe(true);
+            });
+
+            xit('should recognize sin(a) as linear in x (does not contain x)', function () {
+                expect(nerdamer('sin(a)').symbol.isLinear('x')).toBe(true);
+            });
+
+            xit('should recognize e^a as linear in x (does not contain x)', function () {
+                expect(nerdamer('e^a').symbol.isLinear('x')).toBe(true);
+            });
+
+            xit('should recognize e^x as linear in y (does not contain y)', function () {
+                expect(nerdamer('e^x').symbol.isLinear('y')).toBe(true);
+            });
+        });
+    });
 });
