@@ -1211,7 +1211,11 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                         bsqi = _.pow(b, new Symbol(symbol.power));
                                         uv = core.Utils.getU(symbol);
                                         u = _.multiply(aob, x.clone().toLinear());
-                                        v = _.parse(ATAN + inBrackets(u));
+                                        // Use symfunction instead of _.parse(ATAN + inBrackets(u)) to preserve
+                                        // exact fractions. String concatenation triggers valueOf() which converts
+                                        // fractions to decimals, and parsing them back loses precision.
+                                        // e.g., 1/3 → "0.333..." → 321685687669321/965057063007964
+                                        v = _.symfunction(ATAN, [u]);
                                         //the conversion will be 1+tan(x)^2 -> sec(x)^2
                                         //since the denominator is now (sec(x)^2)^n and the numerator is sec(x)^2
                                         //then the remaining sec will be (n-1)*2;

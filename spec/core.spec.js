@@ -3204,7 +3204,7 @@ describe('misc and regression tests', function () {
 });
 
 describe('Known issues', function () {
-    /**
+    /*
      * GitHub Issue: together-science/nerdamer-prime#62
      * Title: "Number of decimal places and rounding errors in text('decimals', n)"
      * Opened: Sep 17, 2024 by WOZARDLOZARD
@@ -3238,7 +3238,7 @@ describe('Known issues', function () {
         });
     });
 
-    /**
+    /*
      * GitHub Issue: together-science/nerdamer-prime#64
      * Title: "Draft Issue: Inconsistent handling of scientific notation"
      * Opened: Sep 22, 2024 by da2ce7
@@ -3271,44 +3271,45 @@ describe('Known issues', function () {
         });
     });
 
-    /**
+    /*
      * GitHub PR: together-science/nerdamer-prime#67
      * Title: "Fix problems with and improve scientific notation"
      * Author: yyon
+     * Status: FIXED - These tests now pass and serve as regression tests.
      *
-     * Problems fixed by PR #67:
+     * Problems that were fixed by PR #67:
      *
      * 1. Whole number coefficients missing decimal place in scientific output:
-     *    - nerdamer("1000").text("scientific") returns "100e3" instead of "1e+3"
-     *    - The decimal point is not inserted correctly for whole numbers
+     *    - nerdamer("1000").text("scientific") returned "100e3" instead of "1e+3"
+     *    - The decimal point was not inserted correctly for whole numbers
      *
      * 2. Scientific input loses decimal places:
-     *    - nerdamer("3.333333e50").text("scientific") returns "3.3e+50"
-     *    - Decimal precision is lost even when more places are requested
+     *    - nerdamer("3.333333e50").text("scientific") returned "3.3e+50"
+     *    - Decimal precision was lost even when more places were requested
      *
      * 3. Edge case when rounding coefficient to 10:
-     *    - When SCIENTIFIC_MAX_DECIMAL_PLACES rounds 9.9999... to 10,
-     *      it displays as "10e50" instead of "1e51"
+     *    - When SCIENTIFIC_MAX_DECIMAL_PLACES rounded 9.9999... to 10,
+     *      it displayed as "10e50" instead of "1e51"
      *
-     * PR #67 also adds:
+     * PR #67 also added:
      *    - "decimals_or_scientific" option for automatic mode switching
      *    - SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT setting
      *    - Updated TypeScript bindings
      */
     describe('scientific notation output (PR #67)', function () {
-        xit('should include decimal point for whole number coefficients', function () {
+        it('should include decimal point for whole number coefficients', function () {
             // 1000 should be "1e+3" or "1.0e+3", not "100e3"
             const result = nerdamer('1000').text('scientific');
             expect(result).toMatch(/^1(\.0)?e\+?3$/);
         });
 
-        xit('should preserve decimal places in scientific input', function () {
+        it('should preserve decimal places in scientific input', function () {
             // Input with many decimal places should preserve them in output
             const result = nerdamer('3.333333e50').text('scientific');
             expect(result).toContain('3.333333');
         });
 
-        xit('should handle rounding edge case when coefficient rounds to 10', function () {
+        it('should handle rounding edge case when coefficient rounds to 10', function () {
             // When 9.9999... rounds to 10, it should become 1e(n+1)
             // This requires finding an input that triggers this edge case
             const result = nerdamer('9.9999999999999').text('scientific');
