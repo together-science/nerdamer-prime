@@ -385,7 +385,7 @@ describe('Algebra', function () {
     });
 
     describe('Known issues', function () {
-        /**
+        /*
          * GitHub Issue: together-science/nerdamer-prime#1
          * Title: "evaluate fails on sqrt expression"
          * Opened: Mar 22, 2023 by gunnarmein-ts
@@ -405,9 +405,7 @@ describe('Algebra', function () {
          * The baseunit_m is not properly factored out of the sqrt before evaluation.
          */
         xit('should cancel out baseunit_m in sqrt expressions (issue #1)', function () {
-            expect(nerdamer('baseunit_m ^(-1)*sqrt(baseunit_m ^2*cos(3)+baseunit_m ^2)')
-                .evaluate().text())
-                .toEqual('0.100037509962788179');
+            expect(nerdamer('baseunit_m ^(-1)*sqrt(baseunit_m ^2*cos(3)+baseunit_m ^2)').evaluate().text()).toEqual('0.100037509962788179');
         });
     });
 });

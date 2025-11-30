@@ -195,7 +195,7 @@ describe('Solve', function () {
     });
 
     describe('Known issues', function () {
-        /**
+        /*
          * Problem: Solver returns rational approximation instead of exact symbolic answer.
          *
          * The equation sqrt(x) - 2x + x^2 = 0 has exact solutions:
@@ -222,7 +222,7 @@ describe('Solve', function () {
             expect(nerdamer('solve(sqrt(x)-2x+x^2,x)').toString()).toEqual('[(-1/2)*sqrt(5)+3/2,0,832040/2178309,1]');
         });
 
-        /**
+        /*
          * GitHub Issue: together-science/nerdamer-prime#58
          * Title: "Solving quadratic equation times out"
          * Opened: May 24, 2024 by gunnarmein-ts

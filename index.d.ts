@@ -89,7 +89,7 @@ export { NerdamerExpression, NerdamerEquation, SolveResult, ExpressionParam, Out
 // #region Core Type Definitions
 
 /** A type alias for strings representing number output formats. */
-type OutputType = 'decimals' | 'fractions' | 'scientific' | 'mixed' | 'recurring';
+type OutputType = 'decimals' | 'fractions' | 'scientific' | 'mixed' | 'recurring' | 'decimals_or_scientific';
 
 /** A type alias for common parsing and evaluation options. */
 type ParseOption = 'numer' | 'expand';
@@ -199,8 +199,8 @@ interface CoreExpressionBase {
      * }
      * ```
      *
-     * @param option Pass in the string 'decimals' to always get back numbers as decimals. Pass in the string 'fractions'
-     *   to always get back numbers as fractions. Defaults to decimals.
+     * @param option Pass in the string 'decimals' to always get back numbers as decimals. Pass in the string
+     *   'fractions' to always get back numbers as fractions. Defaults to decimals.
      */
     text(option?: OutputType): string;
     latex(option?: OutputType): string;
@@ -247,8 +247,8 @@ interface NerdamerExpression extends CoreExpressionBase {
     evaluate(substitutions?: Record<string, ExpressionParam>): NerdamerExpression;
 
     /**
-     * Checks to see if the expression's value equals a number. Compares the direct value returned. The function will not
-     * check for all possible cases. To avoid this call evaluate.
+     * Checks to see if the expression's value equals a number. Compares the direct value returned. The function will
+     * not check for all possible cases. To avoid this call evaluate.
      *
      * @example
      *     nerdamer('sqrt(5)').isNumber();
@@ -875,8 +875,8 @@ declare namespace nerdamerPrime {
     function getCore(): NerdamerCore.Core;
 
     /**
-     * Gets the list of reserved names. This is a list of names already in use by nerdamer excluding variable names. This
-     * is not a static list.
+     * Gets the list of reserved names. This is a list of names already in use by nerdamer excluding variable names.
+     * This is not a static list.
      *
      * @param asArray Pass in true to get the list back as an array instead of as an object.
      */
@@ -896,9 +896,9 @@ declare namespace nerdamerPrime {
     /**
      * Registers a module function with nerdamer. The object needs to contain at a minimum, a name property (text), a
      * numargs property (int), this is -1 for variable arguments or an array containing the min and max arguments, the
-     * visible property (bool) which allows use of this function through nerdamer, defaults to true, and a build property
-     * containing a function which returns the function to be used. This function is also handy for creating aliases to
-     * functions. See below how the alias D was created for the diff function).
+     * visible property (bool) which allows use of this function through nerdamer, defaults to true, and a build
+     * property containing a function which returns the function to be used. This function is also handy for creating
+     * aliases to functions. See below how the alias D was created for the diff function).
      *
      * @example
      *     var core = nerdamer.getCore();
@@ -936,8 +936,8 @@ declare namespace nerdamerPrime {
 
     /**
      * This method can be used to check that the variable meets variable name requirements for nerdamer. Variable names
-     * Must start with a letter or underscore and may contains any combination of numbers, letters, and underscores after
-     * that.
+     * Must start with a letter or underscore and may contains any combination of numbers, letters, and underscores
+     * after that.
      *
      * @example
      *     nerdamer.validVarName('cos'); // false
@@ -950,8 +950,8 @@ declare namespace nerdamerPrime {
     function validVarName(name: string): boolean;
 
     /**
-     * Sets a known value in nerdamer. This differs from setConstant as the value can be overridden trough the scope. See
-     * example.
+     * Sets a known value in nerdamer. This differs from setConstant as the value can be overridden trough the scope.
+     * See example.
      *
      * @example
      *     nerdamer.setVar('x', '11');
@@ -1204,8 +1204,8 @@ declare namespace nerdamerPrime {
     /**
      * Gets an element from a vector at the specified index.
      *
-     * **CRITICAL BEHAVIOR NOTE**: This function returns a NerdamerExpression wrapper, but for missing/invalid indices it
-     * returns an object with `symbol: undefined`:
+     * **CRITICAL BEHAVIOR NOTE**: This function returns a NerdamerExpression wrapper, but for missing/invalid indices
+     * it returns an object with `symbol: undefined`:
      *
      * ```typescript
      * // For valid coefficients:
@@ -1823,8 +1823,8 @@ declare namespace nerdamerPrime {
         /**
          * Represents a matrix of symbolic expressions.
          *
-         * Matrices in Nerdamer are NerdamerExpression objects with matrix semantics. They inherit all expression methods
-         * and can be manipulated using matrix-specific static functions.
+         * Matrices in Nerdamer are NerdamerExpression objects with matrix semantics. They inherit all expression
+         * methods and can be manipulated using matrix-specific static functions.
          *
          * **IMPORTANT**: For determinant calculations, use variable-based matrix creation:
          *
@@ -2206,16 +2206,16 @@ declare namespace nerdamerPrime {
             PARSE2NUMBER: boolean;
 
             /**
-             * If `true`, forces functions like `add`, `subtract` to return a new cloned object, ensuring the original object
-             * is not mutated.
+             * If `true`, forces functions like `add`, `subtract` to return a new cloned object, ensuring the original
+             * object is not mutated.
              *
              * @default false
              */
             SAFE: boolean;
 
             /**
-             * If `true`, suppresses the throwing of errors for issues like division by zero. This can have unintended side
-             * effects.
+             * If `true`, suppresses the throwing of errors for issues like division by zero. This can have unintended
+             * side effects.
              *
              * @default false
              */
@@ -2229,8 +2229,8 @@ declare namespace nerdamerPrime {
             SILENCE_WARNINGS: boolean;
 
             /**
-             * The maximum time in milliseconds for long-running calculations like `solveFor`. The calculation will throw a
-             * timeout error if it exceeds this duration.
+             * The maximum time in milliseconds for long-running calculations like `solveFor`. The calculation will
+             * throw a timeout error if it exceeds this duration.
              *
              * @default 800
              */
@@ -2284,8 +2284,8 @@ declare namespace nerdamerPrime {
             ALLOW_CHARS: string[];
 
             /**
-             * If `true`, allows for multi-character variable names (e.g., 'myVar'). If `false`, 'abc' would be parsed as
-             * `a*b*c`.
+             * If `true`, allows for multi-character variable names (e.g., 'myVar'). If `false`, 'abc' would be parsed
+             * as `a*b*c`.
              *
              * @default true
              */
@@ -2305,8 +2305,8 @@ declare namespace nerdamerPrime {
             FUNCTION_REGEX: RegExp;
 
             /**
-             * The regular expression used to insert multiplication symbols where they are implied (e.g., converting '2x' to
-             * '2*x').
+             * The regular expression used to insert multiplication symbols where they are implied (e.g., converting
+             * '2x' to '2*x').
              */
             IMPLIED_MULTIPLICATION_REGEX: RegExp;
 
@@ -2355,6 +2355,14 @@ declare namespace nerdamerPrime {
              * @default true
              */
             SCIENTIFIC_IGNORE_ZERO_EXPONENTS: boolean;
+
+            /**
+             * The exponent absolute value from which to switch from decimals to scientific in "decimals_or_scientific"
+             * mode.
+             *
+             * @default 7
+             */
+            SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT: number;
 
             // #endregion
 
@@ -2410,8 +2418,8 @@ declare namespace nerdamerPrime {
             NEWTON_EPSILON: number;
 
             /**
-             * When points are generated as starting points for Newton's method, they are sliced into smaller intervals to
-             * improve convergence. This defines the number of slices.
+             * When points are generated as starting points for Newton's method, they are sliced into smaller intervals
+             * to improve convergence. This defines the number of slices.
              *
              * @default 200
              */
@@ -2564,8 +2572,8 @@ declare namespace nerdamerPrime {
             /** The JavaScript `Math.E` value. */
             E: number;
             /**
-             * A threshold for exponents above which JavaScript's `Math.pow` may be used for performance, as big integer power
-             * calculations can be slow.
+             * A threshold for exponents above which JavaScript's `Math.pow` may be used for performance, as big integer
+             * power calculations can be slow.
              *
              * @default 200000
              */
