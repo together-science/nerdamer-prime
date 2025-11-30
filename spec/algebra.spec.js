@@ -304,8 +304,8 @@ describe('Algebra', function () {
         expect(nerdamer('(log((s))+log(2)) - (log((s*2)))').simplify().toString()).toEqual('0');
         expect(nerdamer('(log((s))-log(2)) - (log((s/2)))').simplify().toString()).toEqual('0');
         expect(nerdamer('1+sin(x)+1').simplify().toString()).toEqual('2+sin(x)');
-        expect(nerdamer('sqrt(55225+64)').simplify().evaluate().text()).toEqual('235.136130783850405119');
-        expect(nerdamer('(1/5)*sqrt(55225*sin(0)^2+55225*cos(0)^2+64)').simplify().evaluate().text()).toEqual('47.027226156770083846');
+        expect(nerdamer('sqrt(55225+64)').simplify().evaluate().text()).toEqual('235.1361307838504051194');
+        expect(nerdamer('(1/5)*sqrt(55225*sin(0)^2+55225*cos(0)^2+64)').simplify().evaluate().text()).toEqual('47.0272261567700838463');
         expect(nerdamer('log(2*((a+b)^7))').simplify().toString()).toEqual('49180508/70952475+7*log(a+b)');
         // should simplify twice in a row and not lose the minus!
         expect(nerdamer('-sqrt(h)*sqrt(m)^(-1)').simplify().simplify().text()).toEqual('-sqrt(h)*sqrt(m)^(-1)');
@@ -316,7 +316,7 @@ describe('Algebra', function () {
         // simplify must preserve signs of certain terms
         expect(nerdamer('(1-y)^2').simplify().text()).toBe('(-y+1)^2');
         expect(nerdamer('48-48*(x/100)').simplify().text()).toBe('0.48*(-x+100)');
-        expect(nerdamer('-sqrt(12/5)').simplify().evaluate().text()).toBe('-1.549193338482966525');
+        expect(nerdamer('-sqrt(12/5)').simplify().evaluate().text()).toBe('-1.5491933384829665247');
     });
     it('simplify should be pure', function () {
         const a = nerdamer('100*2^((1/2)*m)');
@@ -381,7 +381,7 @@ describe('Algebra', function () {
         // issue #7 - everything becomes 1
         expect(nerdamer('log(0.01s)/(-239263565+51955423log(s))-1').simplify().text()).not.toEqual('1');
         // simplify issue unlogged 12/10/2023
-        expect(nerdamer('(-1/2)*sqrt(5)+1/2').simplify().text()).toBe('-0.618033988749894960');
+        expect(nerdamer('(-1/2)*sqrt(5)+1/2').simplify().text()).toBe('-0.6180339887498949600');
     });
 
     describe('Known issues', function () {
@@ -391,18 +391,11 @@ describe('Algebra', function () {
          * Opened: Mar 22, 2023 by gunnarmein-ts
          * Labels: bug
          *
-         * Problem: When evaluating expressions with baseunit_* variables inside sqrt(),
-         * the unit should factor out and cancel with the baseunit_m^(-1) multiplier.
+         * Problem: When evaluating expressions with baseunit_* variables inside sqrt(), the unit should factor out and cancel with the baseunit_m^(-1) multiplier.
          *
-         * Mathematically:
-         *   baseunit_m^(-1) * sqrt(baseunit_m^2*cos(3) + baseunit_m^2)
-         * = baseunit_m^(-1) * sqrt(baseunit_m^2 * (cos(3) + 1))
-         * = baseunit_m^(-1) * baseunit_m * sqrt(cos(3) + 1)
-         * = sqrt(1 + cos(3))
-         * ≈ 0.100037509962788179
+         * Mathematically: baseunit_m^(-1) * sqrt(baseunit_m^2*cos(3) + baseunit_m^2) = baseunit_m^(-1) * sqrt(baseunit_m^2 * (cos(3) + 1)) = baseunit_m^(-1) * baseunit_m * sqrt(cos(3) + 1) = sqrt(1 + cos(3)) ≈ 0.100037509962788179
          *
-         * Current behavior: Returns '0.010007503399554583*baseunit_m^(-0.5)'
-         * The baseunit_m is not properly factored out of the sqrt before evaluation.
+         * Current behavior: Returns '0.010007503399554583*baseunit_m^(-0.5)' The baseunit_m is not properly factored out of the sqrt before evaluation.
          */
         xit('should cancel out baseunit_m in sqrt expressions (issue #1)', function () {
             expect(nerdamer('baseunit_m ^(-1)*sqrt(baseunit_m ^2*cos(3)+baseunit_m ^2)').evaluate().text()).toEqual('0.100037509962788179');

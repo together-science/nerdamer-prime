@@ -60,7 +60,7 @@ describe('TeX features', function () {
             {
                 given: '3*x^(2/3)/4',
                 TeX: '\\frac{3 \\cdot x^{\\frac{2}{3}}}{4}',
-                decimalTeX: '0.75 \\cdot x^{0.66666666666666666667}',
+                decimalTeX: '0.75 \\cdot x^{0.666666666666666666667}',
             },
             {
                 given: '4*cos(x)',
