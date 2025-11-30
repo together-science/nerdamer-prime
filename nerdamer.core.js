@@ -3555,9 +3555,9 @@ var nerdamer = (function (imports) {
             if (this.num.equals(this.den)) {
                 return '1';
             }
-            //go plus one for rounding
+            //go plus two for rounding (one extra digit to round from, one for the rounding result)
             prec = prec || Settings.PRECISION;
-            prec++;
+            prec += 2;
             var narr = [],
                 n = this.num.abs(),
                 d = this.den;
@@ -9452,18 +9452,44 @@ var nerdamer = (function (imports) {
                 // now we know that neither is 0
                 if (a.isConstant() && b.isConstant() && Settings.PARSE2NUMBER) {
                     let retval;
-                    const ad = new bigDec(a.multiplier.toDecimal());
-                    const bd = new bigDec(b.multiplier.toDecimal());
-                    if (ad.isZero() || bd.isZero()) {
-                        // we shouldn't be here - there was a precision underflow.
-                        // go the long way round to multiply these two (presumed) fractions
+
+                    // Check if either fraction has magnitude outside the precision range.
+                    // If so, toDecimal() would lose significant digits, so we must use
+                    // exact fraction arithmetic instead.
+                    //
+                    // The magnitude of a fraction num/den is approximately:
+                    //   log10(num) - log10(den) ≈ numDigits - denDigits
+                    //
+                    // With PRECISION decimal places, we can only represent numbers in
+                    // the range [10^(-PRECISION), 10^(+PRECISION)] accurately.
+                    // We use a buffer of 5 digits to ensure we have enough significant
+                    // digits for accurate multiplication.
+                    const aNumDigits = a.multiplier.num.abs().toString().length;
+                    const aDenDigits = a.multiplier.den.toString().length;
+                    const aMagnitude = aNumDigits - aDenDigits;
+
+                    const bNumDigits = b.multiplier.num.abs().toString().length;
+                    const bDenDigits = b.multiplier.den.toString().length;
+                    const bMagnitude = bNumDigits - bDenDigits;
+
+                    const magnitudeLimit = Settings.PRECISION - 5; // need at least 5 significant digits
+                    const needsExactArithmetic =
+                        aMagnitude < -magnitudeLimit ||
+                        aMagnitude > magnitudeLimit ||
+                        bMagnitude < -magnitudeLimit ||
+                        bMagnitude > magnitudeLimit;
+
+                    if (needsExactArithmetic) {
+                        // Use exact fraction arithmetic via bigDec to avoid precision loss
                         const anum = new bigDec(String(a.multiplier.num));
                         const aden = new bigDec(String(a.multiplier.den));
                         const bnum = new bigDec(String(b.multiplier.num));
                         const bden = new bigDec(String(b.multiplier.den));
-                        retval = new Symbol(anum.times(bnum).dividedBy(aden).dividedBy(bden));
+                        retval = new Symbol(anum.times(bnum).dividedBy(aden).dividedBy(bden).toFixed());
                     } else {
-                        // the original code. still don't know why toFixed()
+                        // Safe to use decimal approximation
+                        const ad = new bigDec(a.multiplier.toDecimal());
+                        const bd = new bigDec(b.multiplier.toDecimal());
                         var t = ad.times(bd).toFixed();
                         retval = new Symbol(t);
                     }

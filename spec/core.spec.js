@@ -551,15 +551,15 @@ describe('Nerdamer core', function () {
         var testCases = [
             {
                 given: 'log(5*i)',
-                expected: '1.5707963267948966*i+1.6094379124341003',
+                expected: '1.5707963267948966*i+1.60943791243410026',
             },
             {
                 given: 'log(8+5*i)',
-                expected: '0.5585993153435624*i+2.2443181848660699',
+                expected: '0.5585993153435624*i+2.24431818486606994',
             },
             {
                 given: 'log(123-2*i)',
-                expected: '-0.01625872980512959*i+4.8123165343435139',
+                expected: '-0.01625872980512959*i+4.81231653434351391',
             },
             {
                 given: 'log(123-2*i+a)',
@@ -708,7 +708,7 @@ describe('Nerdamer core', function () {
                 '000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' +
                 '00000000000000000000000000000000000000000000000000000000000000000000000000000000'
         );
-        expect(nerdamer('1000*(1+(0.06/365))^(365*3)').evaluate().text()).toEqual('1197.199652936753887236');
+        expect(nerdamer('1000*(1+(0.06/365))^(365*3)').evaluate().text()).toEqual('1197.1996529367538872360');
     });
     it('should compute factorials', function () {
         // given
@@ -1021,7 +1021,7 @@ describe('Nerdamer core', function () {
             {
                 given: '(256*i)^(1/8)',
                 expected: '2*(-1)^(1/16)',
-                expectedValue: '0.3901806440322565*i+1.9615705608064609',
+                expectedValue: '0.3901806440322565*i+1.96157056080646092',
             },
             {
                 given: 'i/i',
@@ -1062,7 +1062,7 @@ describe('Nerdamer core', function () {
             {
                 given: 'exp(i + x pi)',
                 expected: 'e^(i+pi*x)',
-                expectedValue: '396.1203590827245535+616.9209071285088*i',
+                expectedValue: '396.12035908272455345+616.9209071285088*i',
             },
         ];
 
@@ -1880,7 +1880,7 @@ describe('Nerdamer core', function () {
         expect(nerdamer('nthroot(-8, 3)').evaluate().text()).toEqual('-2');
         expect(nerdamer('nthroot(sqrt(64), sqrt(9))').evaluate().text()).toEqual('2');
         expect(nerdamer('nthroot(-1, 3)').evaluate().text()).toEqual('-1');
-        expect(nerdamer('nthroot(-7, 3)').evaluate().text()).toEqual('-1.912931182772388873');
+        expect(nerdamer('nthroot(-7, 3)').evaluate().text()).toEqual('-1.9129311827723888731');
         expect(nerdamer('nthroot(-x*8, 3)').evaluate().text()).toEqual('nthroot(-8*x,3)');
     });
     it('should calculate cube roots', function () {
@@ -1998,11 +1998,11 @@ describe('Nerdamer core', function () {
         });
         it('should clear nested functions', function () {
             nerdamer.setFunction('c(x)=2*x');
-            expect(nerdamer('sin(1)').evaluate().text()).toEqual('0.841470984807896479');
+            expect(nerdamer('sin(1)').evaluate().text()).toEqual('0.8414709848078964790');
             expect(nerdamer('c(t)').text()).toEqual('2*t');
 
             nerdamer.clearFunctions();
-            expect(nerdamer('sin(1)').evaluate().text()).toEqual('0.841470984807896479');
+            expect(nerdamer('sin(1)').evaluate().text()).toEqual('0.8414709848078964790');
             expect(nerdamer('c(t)').text()).toEqual('c*t');
         });
     });
@@ -2751,13 +2751,13 @@ describe('trigonometric functions', function () {
         }
     });
     it('should handle inverse trig in complex domain', function () {
-        expect(nerdamer('asin(2)').evaluate().text()).toEqual('-1.3169578969248164*i+1.570796326794896580');
-        expect(nerdamer('asin(2.19549352839451962743423602992)').evaluate().text()).toEqual('-1.423114269539483*i+1.570796326794896580');
+        expect(nerdamer('asin(2)').evaluate().text()).toEqual('-1.3169578969248164*i+1.5707963267948965801');
+        expect(nerdamer('asin(2.19549352839451962743423602992)').evaluate().text()).toEqual('-1.423114269539483*i+1.5707963267948965801');
         expect(nerdamer('acos(2)').evaluate().text()).toEqual('1.3169578969248164*i');
         expect(nerdamer('atan(i)').evaluate().text()).toEqual('Infinity*i');
 
-        expect(nerdamer('asec(0.89)').evaluate().text()).toEqual('0.000000000000000250+0.4921996534425184*i'); // Has rounding errors
-        expect(nerdamer('acsc(0.23)').evaluate().text()).toEqual('-2.1493278111894236*i+1.570796326794896068'); // Has rounding errors
+        expect(nerdamer('asec(0.89)').evaluate().text()).toEqual('0.0000000000000002505+0.4921996534425184*i'); // Has rounding errors
+        expect(nerdamer('acsc(0.23)').evaluate().text()).toEqual('-2.1493278111894236*i+1.5707963267948960677'); // Has rounding errors
     });
     it('should throw for wrong trigonometric arguments', function () {
         // given
@@ -3043,7 +3043,7 @@ describe('hyperbolic trigonometric functions', function () {
             {
                 given: 'sinh(x)',
                 expected: 'sinh(x)',
-                expectedValue: '4.021856742157334',
+                expectedValue: '4.021856742157335',
             },
             {
                 given: 'tanh(x)',
@@ -3078,7 +3078,7 @@ describe('hyperbolic trigonometric functions', function () {
             {
                 given: 'x^x*cosh(x)*sinh(x)/x',
                 expected: 'cosh(x)*sinh(x)*x^(-1+x)',
-                expectedValue: '37.69818030329012',
+                expectedValue: '37.698180303290117',
             },
             {
                 given: '2*cosh(x)+5*cosh(2*x)',
@@ -3195,8 +3195,8 @@ describe('misc and regression tests', function () {
         expect(nerdamer('f(2x)').expand().text()).toEqual('-6*x+5');
 
         // issue #39
-        expect(nerdamer('3.535401^3.535401').evaluate().text()).toEqual('86.8861711133581315310');
-        expect(nerdamer('4.5354^3.535401').evaluate().text()).toEqual('209.603932373756644162');
+        expect(nerdamer('3.535401^3.535401').evaluate().text()).toEqual('86.88617111335813153910');
+        expect(nerdamer('4.5354^3.535401').evaluate().text()).toEqual('209.6039348783756931751');
 
         // issue 53
         expect(nerdamer('arg(1/i)').text()).toEqual('-0.5*pi');
@@ -3205,70 +3205,52 @@ describe('misc and regression tests', function () {
     /**
      * Regression test for precision underflow in multiply()
      *
-     * CRITICAL: This test documents a BRITTLE design pattern in multiply().
+     * FIXED: The multiply() function now proactively detects when exact fraction
+     * arithmetic is needed by checking the magnitude of the operands before
+     * converting to decimal. This avoids precision loss for very small or very
+     * large numbers.
      *
-     * The multiply function (line ~9378-9391) uses toDecimal() to convert fractions
-     * to decimals for multiplication. It has a fallback that detects "precision
-     * underflow" when toDecimal() returns zero, and switches to exact fraction
-     * arithmetic in that case.
+     * The fix calculates the magnitude of fractions using digit counts:
+     *   magnitude ≈ log10(num) - log10(den) ≈ numDigits - denDigits
      *
-     * THE BRITTLENESS:
-     * The fallback ONLY triggers when the decimal representation is EXACTLY zero.
-     * If decimal precision is increased (e.g., changing `prec++` to `prec += 2`
-     * in Frac.decimal()), very small numbers may round to a non-zero value like
-     * 1e-21 instead of 0. This non-zero value:
-     *   1. Does NOT trigger the fallback (ad.isZero() is false)
-     *   2. Is still WRONG (1e-21 vs actual 6.13e-22 is 1.63x error)
-     *   3. Produces incorrect results when multiplied
+     * If either operand's magnitude exceeds (PRECISION - 5), exact fraction
+     * arithmetic is used instead of decimal approximation.
      *
      * EXAMPLE: 3.535401^3.535401
      * During evaluation, the code computes:
-     *   a = 1000000^(-3535401/1000000) ≈ 6.13e-22  (very small)
-     *   b = 3535401^(3535401/1000000)  ≈ 1.42e+23  (very large)
+     *   a = 1000000^(-3535401/1000000) ≈ 6.13e-22 (magnitude ~ -22)
+     *   b = 3535401^(3535401/1000000) ≈ 1.42e+23 (magnitude ~ +23)
      *
-     * With current precision (21 digits, prec++):
-     *   - 6.13e-22 rounds to 0.00000000000000000000 (zero)
-     *   - Fallback triggers → exact arithmetic → correct result 86.88
-     *
-     * If precision were increased (prec += 2):
-     *   - 6.13e-22 rounds to 0.000000000000000000001 (1e-21, NOT zero)
-     *   - Fallback does NOT trigger → uses 1e-21 instead of 6.13e-22
-     *   - Result: 86.88 * 1.63 ≈ 141.69 (WRONG!)
-     *
-     * TODO: The multiply() function should detect precision underflow more
-     * robustly, perhaps by comparing the decimal representation to the expected
-     * magnitude from the fraction's exponent, rather than just checking for zero.
+     * Both exceed the magnitude limit (PRECISION - 5 = 16), so exact
+     * fraction arithmetic is used, giving the correct result 86.88.
      */
     it('should handle precision underflow correctly in multiply (regression)', function () {
         // This specific calculation requires the precision underflow fallback
         // in multiply() to work correctly
         var result = nerdamer('3.535401^3.535401').evaluate().text();
         // The result should be approximately 86.886, NOT 141.69
-        expect(result).toEqual('86.8861711133581315310');
+        expect(result).toEqual('86.88617111335813153910');
 
         // Additional test with slightly different values that also stress
         // the precision boundaries
-        expect(nerdamer('4.5354^3.535401').evaluate().text()).toEqual('209.603932373756644162');
+        expect(nerdamer('4.5354^3.535401').evaluate().text()).toEqual('209.6039348783756931751');
     });
 
     /**
-     * BUG: Precision loss in multiply() for small numbers that don't round to zero
+     * FIXED: Precision loss in multiply() for small numbers
      *
-     * The multiply() function uses toDecimal() with limited precision (21 digits).
-     * When multiplying very small numbers by very large numbers, the small number
-     * loses precision but doesn't round to zero, so the fallback doesn't trigger.
+     * Previously, the multiply() function used toDecimal() with limited precision
+     * (21 digits). Small numbers that didn't round to exactly zero would lose
+     * precision and produce incorrect results.
      *
-     * Example: 1/7e19 has toDecimal() = "0.00000000000000000001" (1e-20)
-     * but the true value is 1.4286e-20. When multiplied by 7e19:
-     *   - Expected: 1
-     *   - Actual (using wrong decimal): 1e-20 * 7e19 = 0.7
-     *   - Error: 30%!
+     * Example: 1/7e19 has magnitude ~ -20, which exceeds the safe range.
+     * The fix now detects this and uses exact fraction arithmetic:
+     *   1/7e19 * 7e19 = 1 (exactly)
      *
-     * The fallback (isZero check) only triggers when the number is SO small it
-     * rounds to exactly zero. Numbers that round to a wrong non-zero value
-     * slip through and produce incorrect results.
+     * The proactive magnitude check in multiply() ensures that numbers outside
+     * the safe precision range use exact arithmetic instead of decimal approximation.
      */
-    xit('should multiply small fractions by large numbers correctly (BUG)', function () {
+    it('should multiply small fractions by large numbers correctly', function () {
         // This test directly exercises the multiply() function with PARSE2NUMBER=true
         // which is the code path used during expression evaluation
         var core = nerdamer.getCore();
@@ -3276,8 +3258,8 @@ describe('misc and regression tests', function () {
         var Settings = core.Settings;
 
         // 1/7e19 * 7e19 = 1 (exactly)
-        // But toDecimal() truncates 1/7e19 to 1e-20 instead of 1.4286e-20
-        // So the multiply gives 1e-20 * 7e19 = 0.7 (WRONG!)
+        // The magnitude check detects that 1/7e19 is outside the safe precision range
+        // and uses exact fraction arithmetic instead of decimal approximation
         var small = _.parse('1/70000000000000000000');
         var large = _.parse('70000000000000000000');
 
@@ -3286,7 +3268,6 @@ describe('misc and regression tests', function () {
         Settings.PARSE2NUMBER = false;
 
         // The mathematically correct result is 1
-        // Currently this gives 0.7 due to precision loss
         expect(result.toString()).toEqual('1');
     });
 });
@@ -3296,29 +3277,24 @@ describe('Known issues', function () {
      * GitHub Issue: together-science/nerdamer-prime#62
      * Title: "Number of decimal places and rounding errors in text('decimals', n)"
      * Opened: Sep 17, 2024 by WOZARDLOZARD
+     * Status: FIXED
      *
-     * Problem: The text() function in decimals mode with a specified number of
-     * decimal places has two bugs:
+     * The fix in Frac.toDecimal() changed `prec++` to `prec += 2`, providing:
+     *   - One extra digit to round from
+     *   - One extra digit for potential carry during rounding
      *
-     * 1. Wrong number of decimal places: Returns n-1 decimal places instead of n.
-     *    Example: text("decimals", 5) on 1/3 returns "0.3333" (4 places) not "0.33333" (5 places)
-     *
-     * 2. Wrong rounding: The value is truncated/rounded incorrectly.
-     *    Example: text("decimals", 5) on 5/41 returns "0.12110" instead of "0.12195"
-     *    (5/41 = 0.121951219512...)
-     *
-     * The pattern shows n decimal places requested returns n-1 decimal places,
-     * and the rounding appears to use incorrect digits.
+     * This ensures text('decimals', n) returns exactly n decimal places with
+     * correct rounding.
      */
     describe('text("decimals", n) precision (issue #62)', function () {
-        xit('should return the correct number of decimal places', function () {
+        it('should return the correct number of decimal places', function () {
             // Requesting 5 decimal places should give exactly 5 decimal places
             expect(nerdamer('1/3').evaluate().text('decimals', 5)).toEqual('0.33333');
             expect(nerdamer('1/7').evaluate().text('decimals', 5)).toEqual('0.14286');
             expect(nerdamer('2/3').evaluate().text('decimals', 3)).toEqual('0.667');
         });
 
-        xit('should round correctly to the specified decimal places', function () {
+        it('should round correctly to the specified decimal places', function () {
             // 5/41 = 0.121951219512... should round to 0.12195 at 5 decimal places
             expect(nerdamer('5/41').evaluate().text('decimals', 5)).toEqual('0.12195');
             // 1/6 = 0.16666... should round to 0.17 at 2 decimal places
@@ -3331,19 +3307,14 @@ describe('Known issues', function () {
      * Title: "Draft Issue: Inconsistent handling of scientific notation"
      * Opened: Sep 22, 2024 by da2ce7
      *
-     * Problem: Scientific notation with negative exponents is handled inconsistently.
-     * There are issues in both parsing and toString()/text() output.
+     * Problem: Scientific notation with negative exponents is handled inconsistently. There are issues in both parsing and toString()/text() output.
      *
      * Known issues:
-     *   1. 1e-15 -> "1/999999999999999" (should be "1/1000000000000000")
-     *      This appears to be a floating-point precision issue where
-     *      1e-15 in JavaScript is slightly imprecise.
      *
-     *   2. Very small numbers (around 1e-20) may evaluate to 0 in text() output
-     *      even though they are stored correctly internally.
+     * 1. 1e-15 -> "1/999999999999999" (should be "1/1000000000000000") This appears to be a floating-point precision issue where 1e-15 in JavaScript is slightly imprecise.
+     * 2. Very small numbers (around 1e-20) may evaluate to 0 in text() output even though they are stored correctly internally.
      *
-     * Note: Many cases that were originally broken now work correctly,
-     * but the 1e-15 case still shows the precision issue.
+     * Note: Many cases that were originally broken now work correctly, but the 1e-15 case still shows the precision issue.
      */
     describe('scientific notation handling (issue #64)', function () {
         xit('should parse 1e-15 exactly', function () {
@@ -3351,7 +3322,7 @@ describe('Known issues', function () {
             expect(nerdamer('1e-15').toString()).toEqual('1/1000000000000000');
         });
 
-        xit('should preserve precision for very small numbers in evaluate', function () {
+        it('should preserve precision for very small numbers in evaluate', function () {
             // Very small numbers should not evaluate to 0
             const result = nerdamer('1e-20').evaluate().text();
             expect(result).not.toEqual('0');
