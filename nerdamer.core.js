@@ -2620,12 +2620,25 @@ var nerdamer = (function (imports) {
         var asHash = option === 'hash',
             //whether to wrap numbers in brackets
             wrapCondition = undefined,
-            opt = asHash ? undefined : option;
+            opt = asHash ? undefined : option,
+            asDecimal = opt === 'decimal' || opt === 'decimals' || opt === 'decimals_or_scientific';
 
-        if (
-            (opt === 'decimal' || opt === 'decimals' || opt === 'decimals_or_scientific') &&
-            typeof decp === 'undefined'
-        )
+        // Only set default decp for decimals_or_scientific mode, not for plain decimals.
+        // This preserves full valueOf() precision for internal operations.
+        //
+        // Background: When a Symbol with a fractional multiplier (e.g., 1/3) is converted to
+        // a string via valueOf(), it becomes a decimal like "0.3333333333333333". If that
+        // decimal is then parsed back into a Symbol, nerdamer uses a continued fractions
+        // algorithm (Fraction.fullConversion) to reconstruct the fraction. This algorithm
+        // finds the simplest fraction within epsilon (1e-30) of the decimal value.
+        //
+        // The precision matters:
+        //   - 16 threes (0.3333333333333333): exactly equals JS's 1/3 in IEEE 754 → reconstructs to 1/3
+        //   - 15 threes (0.333333333333333): differs by ~3.3e-16 → becomes 321685687669321/965057063007964
+        //
+        // Setting decp here would trigger toDecimal(16) which can truncate precision.
+        // By not setting decp for plain decimals mode, we preserve full valueOf() precision.
+        if (opt === 'decimals_or_scientific' && typeof decp === 'undefined')
             decp = Settings.DEFAULT_DECP;
 
         function toString(obj, decp) {
@@ -2762,8 +2775,9 @@ var nerdamer = (function (imports) {
 
             //if the value is to be used as a hash then the power and multiplier need to be suppressed
             if (!asHash) {
-                //use asDecimal to get the object back as a decimal
-                var om = toString(obj.multiplier, decp);
+                // Get multiplier as string. Don't pass decp here to preserve precision
+                // for internal operations - decp is only applied in the N case below.
+                var om = toString(obj.multiplier);
                 if (om == '-1' && String(obj.multiplier) === '-1') {
                     sign = '-';
                     om = '1';
@@ -2786,8 +2800,18 @@ var nerdamer = (function (imports) {
             switch (group) {
                 case N:
                     multiplier = '';
-                    //round if requested
-                    var m = toString(obj.multiplier, decp);
+                    // Handle numeric output with appropriate precision:
+                    // - decimals_or_scientific: use toString with decp to trigger Scientific formatting
+                    // - decimals with explicit decp: round to requested decimal places
+                    // - otherwise: use default toString which preserves full precision via valueOf()
+                    var m;
+                    if (opt === 'decimals_or_scientific') {
+                        m = toString(obj.multiplier, decp);
+                    } else if (decp && asDecimal) {
+                        m = obj.multiplier.toDecimal(decp);
+                    } else {
+                        m = toString(obj.multiplier);
+                    }
                     //if it's numerical then all we need is the multiplier
                     value = String(obj.multiplier) == '-1' ? '1' : m;
                     power = '';
