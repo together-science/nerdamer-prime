@@ -282,7 +282,7 @@ var nerdamer = (function (imports) {
     /**
      * Use this when errors are suppressible
      *
-     * @param {String} msg
+     * @param {string} msg
      * @param {object} ErrorObj
      */
     var err = function (msg, ErrorObj) {
@@ -308,7 +308,7 @@ var nerdamer = (function (imports) {
     /**
      * Checks to see if value is one of nerdamer's reserved names
      *
-     * @param {String} value
+     * @param {string} value
      * @returns Boolean
      */
     var isReserved = function (value) {
@@ -319,7 +319,7 @@ var nerdamer = (function (imports) {
      * Checks to see that all symbols in array are the same
      *
      * @param {Symbol[]} arr
-     * @returns {bool}
+     * @returns {boolean}
      */
     var allSame = function (arr) {
         var last = arr[0];
@@ -344,7 +344,7 @@ var nerdamer = (function (imports) {
      * numbers thereafter."
      *
      * @param name The name of the symbol being checked
-     * @param {String} typ - The type of symbols that's being validated
+     * @param {string} typ - The type of symbols that's being validated
      * @throws {Exception} - Throws an exception on fail
      */
     var validateName = function (name, typ) {
@@ -359,7 +359,7 @@ var nerdamer = (function (imports) {
     /**
      * Convert number from scientific format to decimal format
      *
-     * @param {Number} num
+     * @param {number} num
      */
     var scientificToDecimal = function (num) {
         var nsign = Math.sign(num);
@@ -401,7 +401,7 @@ var nerdamer = (function (imports) {
     /**
      * Checks if number is a prime number
      *
-     * @param {Number} n - The number to be checked
+     * @param {number} n - The number to be checked
      */
     var isPrime = function (n) {
         if (n in PRIMES_SET) {
@@ -417,9 +417,9 @@ var nerdamer = (function (imports) {
     /**
      * Generates an object with known variable value for evaluation
      *
-     * @param {String} variable
+     * @param {string} variable
      * @param {any} value Any stringifyable object
-     * @returns {Object}
+     * @returns {object}
      */
     var knownVariable = function (variable, value) {
         var o = {};
@@ -448,7 +448,7 @@ var nerdamer = (function (imports) {
     /**
      * Checks to see if a number or Symbol is a fraction
      *
-     * @param {Number | Symbol} num
+     * @param {number | Symbol} num
      * @returns {boolean}
      */
     var isFraction = function (num) {
@@ -459,7 +459,7 @@ var nerdamer = (function (imports) {
     /**
      * Checks to see if the object provided is a Symbol
      *
-     * @param {Object} obj
+     * @param {object} obj
      */
     var isSymbol = function (obj) {
         return obj instanceof Symbol;
@@ -468,7 +468,7 @@ var nerdamer = (function (imports) {
     /**
      * Checks to see if the object provided is an Expression
      *
-     * @param {Object} obj
+     * @param {object} obj
      */
     var isExpression = function (obj) {
         return obj instanceof Expression;
@@ -479,10 +479,10 @@ var nerdamer = (function (imports) {
      * returned in alphabetical order.
      *
      * @param {Symbol} obj
-     * @param {Boolean} poly
-     * @param {Object} vars - An object containing the variables. Do not pass this in as it generated automatically. In
+     * @param {boolean} poly
+     * @param {object} vars - An object containing the variables. Do not pass this in as it generated automatically. In
      *   the future this will be a Collector object.
-     * @returns {String[]} - An array containing variable names
+     * @returns {string[]} - An array containing variable names
      */
     var variables = function (obj, poly, vars) {
         vars = vars || {
@@ -541,8 +541,8 @@ var nerdamer = (function (imports) {
      * Separates out the variables into terms of variabls. e.g. x+y+x_y+sqrt(2)+pi returns {x: x, y: y, x y: x_y,
      * constants: sqrt(2)+pi
      *
-     * @param {type} symbol
-     * @param {type} o
+     * @param {*} symbol
+     * @param {*} o
      * @returns {undefined}
      * @throws {Error} For exponentials
      */
@@ -575,7 +575,7 @@ var nerdamer = (function (imports) {
      * Fills holes in an array with zero symbol or generates one with n zeroes
      *
      * @param {Array} arr
-     * @param {Number} n
+     * @param {number} n
      */
     var fillHoles = function (arr, n) {
         n = n || arr.length;
@@ -589,7 +589,7 @@ var nerdamer = (function (imports) {
     /**
      * Checks to see if the object provided is a Vector
      *
-     * @param {Object} obj
+     * @param {object} obj
      */
     var isVector = function (obj) {
         return obj instanceof Vector;
@@ -602,7 +602,7 @@ var nerdamer = (function (imports) {
     /**
      * Checks to see if the object provided is a Matrix
      *
-     * @param {Object} obj
+     * @param {object} obj
      */
     var isMatrix = function (obj) {
         return obj instanceof Matrix;
@@ -633,7 +633,7 @@ var nerdamer = (function (imports) {
     /**
      * Checks to see if the object provided is an Array
      *
-     * @param {Object} arr
+     * @param {object} arr
      */
     var isArray = function (arr) {
         return Array.isArray(arr);
@@ -642,7 +642,7 @@ var nerdamer = (function (imports) {
     /**
      * Checks to see if a number is an integer
      *
-     * @param {Number} num
+     * @param {number} num
      */
     var isInt = function (num) {
         if (typeof num === 'number') {
@@ -652,7 +652,7 @@ var nerdamer = (function (imports) {
     };
 
     /**
-     * @param {Number | Symbol} obj
+     * @param {number | Symbol} obj
      * @returns {boolean}
      */
     var isNegative = function (obj) {
@@ -672,8 +672,8 @@ var nerdamer = (function (imports) {
     };
 
     /**
-     * @param {String} str
-     * @returns {String} - Returns a formatted string surrounded by brackets
+     * @param {string} str
+     * @returns {string} - Returns a formatted string surrounded by brackets
      */
     var inBrackets = function (str) {
         return '(' + str + ')';
@@ -682,11 +682,11 @@ var nerdamer = (function (imports) {
     /**
      * A helper function to replace parts of string
      *
-     * @param {String} str - The original string
-     * @param {Integer} from - The starting index
-     * @param {Integer} to - The ending index
-     * @param {String} with_str - The replacement string
-     * @returns {String} - A formatted string
+     * @param {string} str - The original string
+     * @param {number} from - The starting index
+     * @param {number} to - The ending index
+     * @param {string} with_str - The replacement string
+     * @returns {string} - A formatted string
      */
     var stringReplace = function (str, from, to, with_str) {
         return str.substr(0, from) + with_str + str.substr(to, str.length);
@@ -695,7 +695,7 @@ var nerdamer = (function (imports) {
     /**
      * The Parser uses this to check if it's allowed to convert the obj to type Symbol
      *
-     * @param {Object} obj
+     * @param {object} obj
      * @returns {boolean}
      */
     var customType = function (obj) {
@@ -705,8 +705,8 @@ var nerdamer = (function (imports) {
     /**
      * Checks to see if numbers are both negative or are both positive
      *
-     * @param {Number} a
-     * @param {Number} b
+     * @param {number} a
+     * @param {number} b
      * @returns {boolean}
      */
     var sameSign = function (a, b) {
@@ -734,9 +734,9 @@ var nerdamer = (function (imports) {
     /**
      * Generates an array with values within a range. Multiplies by a step if provided
      *
-     * @param {Number} start
-     * @param {Number} end
-     * @param {Number} step
+     * @param {number} start
+     * @param {number} end
+     * @param {number} step
      */
     var range = function (start, end, step) {
         var arr = [];
@@ -748,7 +748,7 @@ var nerdamer = (function (imports) {
     /**
      * Returns an array of all the keys in an array
      *
-     * @param {Object} obj
+     * @param {object} obj
      * @returns {Array}
      */
     var keys = Object.keys;
@@ -757,9 +757,9 @@ var nerdamer = (function (imports) {
      * Returns the first encountered item in an object. Items do not have a fixed order in objects so only use if you
      * need any first random or if there's only one item in the object
      *
-     * @param {Object} obj
-     * @param {String} key Return this key as first object
-     * @param {Boolean} both
+     * @param {object} obj
+     * @param {string} key Return this key as first object
+     * @param {boolean} both
      * @returns {any}
      */
     var firstObject = function (obj, key, both) {
@@ -778,8 +778,8 @@ var nerdamer = (function (imports) {
      *
      * @param {Symbol} sym1
      * @param {Symbol} sym2
-     * @param {String[]} vars - An optional array of variables to use
-     * @returns {bool}
+     * @param {string[]} vars - An optional array of variables to use
+     * @returns {boolean}
      */
     var compare = function (sym1, sym2, vars) {
         var n = 5; //a random number between 1 and 5 is good enough
@@ -881,7 +881,7 @@ var nerdamer = (function (imports) {
      * Returns the minimum number in an array
      *
      * @param {Array} arr
-     * @returns {Number}
+     * @returns {number}
      */
     var arrayMax = function (arr) {
         return Math.max.apply(undefined, arr);
@@ -891,7 +891,7 @@ var nerdamer = (function (imports) {
      * Returns the maximum number in an array
      *
      * @param {Array} arr
-     * @returns {Number}
+     * @returns {number}
      */
     var arrayMin = function (arr) {
         return Math.min.apply(undefined, arr);
@@ -938,8 +938,8 @@ var nerdamer = (function (imports) {
     /**
      * Fills numbers between array values
      *
-     * @param {Numbers[]} arr
-     * @param {Integer} slices
+     * @param {number[]} arr
+     * @param {number} slices
      */
     var arrayAddSlices = function (arr, slices) {
         slices = slices || 20;
@@ -1017,8 +1017,8 @@ var nerdamer = (function (imports) {
     /**
      * Sorts and array given 2 parameters
      *
-     * @param {String} a
-     * @param {String} b
+     * @param {string} a
+     * @param {string} b
      */
     var comboSort = function (a, b) {
         var l = a.length,
@@ -1046,8 +1046,8 @@ var nerdamer = (function (imports) {
      * variable, mainly coefficients Example a*x^2+b wrt x
      *
      * @param {Symbol} fn
-     * @param {String} wrt
-     * @param {bool} as_obj
+     * @param {string} wrt
+     * @param {boolean} as_obj
      */
     var decompose_fn = function (fn, wrt, as_obj) {
         wrt = String(wrt); //convert to string
@@ -1072,8 +1072,8 @@ var nerdamer = (function (imports) {
     /**
      * Rounds a number up to x decimal places
      *
-     * @param {Number} x
-     * @param {Number} s
+     * @param {number} x
+     * @param {number} s
      */
     var nround = function (x, s) {
         if (isInt(x)) {
@@ -1115,7 +1115,7 @@ var nerdamer = (function (imports) {
     /**
      * Clears the u variable so it's no longer reserved
      *
-     * @param {String} u
+     * @param {string} u
      */
     var clearU = function (u) {
         var indx = RESERVED.indexOf(u);
@@ -1140,7 +1140,7 @@ var nerdamer = (function (imports) {
     /**
      * Checks to see if a number is an even number
      *
-     * @param {Number} num
+     * @param {number} num
      * @returns {boolean}
      */
     var even = function (num) {
@@ -1150,7 +1150,7 @@ var nerdamer = (function (imports) {
     /**
      * Checks to see if a fraction is divisible by 2
      *
-     * @param {Number} num
+     * @param {number} num
      * @returns {boolean}
      */
     var evenFraction = function (num) {
@@ -1230,7 +1230,7 @@ var nerdamer = (function (imports) {
     /**
      * Reserves the names in an object so they cannot be used as function names
      *
-     * @param {Object} obj
+     * @param {object} obj
      */
     var reserveNames = function (obj) {
         var add = function (item) {
@@ -1271,10 +1271,10 @@ var nerdamer = (function (imports) {
      * @example
      *     block('PARSE2NUMBER', function(){//symbol being parsed to number}, true);
      *
-     * @param {String} setting - The setting being accessed
+     * @param {string} setting - The setting being accessed
      * @param {Function} f
      * @param {boolean} opt - The value of the setting in the block
-     * @param {String} obj - The obj of interest. Usually a Symbol but could be any object
+     * @param {string} obj - The obj of interest. Usually a Symbol but could be any object
      */
     var block = function (setting, f, opt, obj) {
         var current_setting = Settings[setting];
@@ -1354,7 +1354,7 @@ var nerdamer = (function (imports) {
     /**
      * Converts an array to a vector. Consider moving this to Vector.fromArray
      *
-     * @param {String[] | String | Symbol | Number | Number[]} x
+     * @param {string[] | string | Symbol | number | number[]} x
      */
     var convertToVector = function (x) {
         if (isArray(x)) {
@@ -1370,7 +1370,7 @@ var nerdamer = (function (imports) {
     /**
      * Generates prime numbers up to a specified number
      *
-     * @param {Number} upto
+     * @param {number} upto
      */
     var generatePrimes = function (upto) {
         //get the last prime in the array
@@ -1572,7 +1572,7 @@ var nerdamer = (function (imports) {
         /*
          * Reverses continued fraction calculation
          * @param {obj} contd
-         * @returns {Number}
+         * @returns {number}
          */
         fromContinued: function (contd) {
             var arr = contd.fractions.slice();
@@ -1584,9 +1584,9 @@ var nerdamer = (function (imports) {
         },
         /*
          * Calculates continued fractions
-         * @param {Number} n
-         * @param {Number} x The number of places
-         * @returns {Number}
+         * @param {number} n
+         * @param {number} x The number of places
+         * @returns {number}
          */
         continuedFraction: function (n, x) {
             x = x || 20;
@@ -1807,7 +1807,7 @@ var nerdamer = (function (imports) {
         /**
          * Uses trial division
          *
-         * @param {Integer} n - The number being factored
+         * @param {number} n - The number being factored
          * @param {object} factors - The factors object
          * @returns {object}
          */
@@ -1833,7 +1833,7 @@ var nerdamer = (function (imports) {
         /**
          * Pollard's rho
          *
-         * @param {Integer} n
+         * @param {number} n
          * @returns {object}
          */
         ifactor: function (n) {
@@ -2000,11 +2000,11 @@ var nerdamer = (function (imports) {
          * https://github.com/scijs/integrate-adaptive-simpson
          *
          * @param {Function} f - The function being integrated
-         * @param {Number} a - Lower bound
-         * @param {Number} b - Upper bound
-         * @param {Number} tol - Step width
-         * @param {Number} maxdepth
-         * @returns {Number}
+         * @param {number} a - Lower bound
+         * @param {number} b - Upper bound
+         * @param {number} tol - Step width
+         * @param {number} maxdepth
+         * @returns {number}
          */
         num_integrate: function (f, a, b, tol, maxdepth) {
             if (maxdepth < 0) throw new Error('max depth cannot be negative');
@@ -2388,10 +2388,10 @@ var nerdamer = (function (imports) {
      * This method will return a hash or a text representation of a Symbol, Matrix, or Vector. If all else fails it
      * _assumes_ the object has a toString method and will call that.
      *
-     * @param {Object} obj
-     * @param {String} option Get is as a hash
-     * @param {int} useGroup
-     * @returns {String}
+     * @param {object} obj
+     * @param {string} option Get is as a hash
+     * @param {number} useGroup
+     * @returns {string}
      */
     function text(obj, option, useGroup, decp) {
         var asHash = option === 'hash',
@@ -2750,7 +2750,7 @@ var nerdamer = (function (imports) {
      * Calculates prime factors for a number. It first checks if the number is a prime number. If it's not then it will
      * calculate all the primes for that number.
      *
-     * @param {int} num
+     * @param {number} num
      * @returns {Array}
      */
 
@@ -2829,9 +2829,9 @@ var nerdamer = (function (imports) {
         /**
          * Returns the text representation of the expression
          *
-         * @param {String} opt - Option of formatting numbers
-         * @param {Number} n The number of significant figures
-         * @returns {String}
+         * @param {string} opt - Option of formatting numbers
+         * @param {number} n The number of significant figures
+         * @returns {string}
          */
         text: function (opt, n) {
             n = n || Settings.EXPRESSION_DECP;
@@ -2843,8 +2843,8 @@ var nerdamer = (function (imports) {
         /**
          * Returns the latex representation of the expression
          *
-         * @param {String} option - Option for formatting numbers
-         * @returns {String}
+         * @param {string} option - Option for formatting numbers
+         * @returns {string}
          */
         latex: function (option) {
             if (this.symbol.latex) return this.symbol.latex(option);
@@ -3455,7 +3455,7 @@ var nerdamer = (function (imports) {
      * All symbols except for "numbers (group N)" have a power.
      *
      * @class Primary Data type for the Parser.
-     * @param {String} obj
+     * @param {string} obj
      * @returns {Symbol}
      */
     function Symbol(obj) {
@@ -3507,7 +3507,7 @@ var nerdamer = (function (imports) {
     /**
      * Return nerdamer's representation of Infinity
      *
-     * @param {int} negative -1 to return negative infinity
+     * @param {number} negative -1 to return negative infinity
      * @returns {Symbol}
      */
     Symbol.infinity = function (negative) {
@@ -3607,8 +3607,8 @@ var nerdamer = (function (imports) {
         /**
          * Gets nth root accounting for rounding errors
          *
-         * @param {Number} n
-         * @returns {Number}
+         * @param {number} n
+         * @returns {number}
          */
         getNth: function (n) {
             // First calculate the root
@@ -3627,7 +3627,7 @@ var nerdamer = (function (imports) {
         /**
          * Checks if symbol is to the nth power
          *
-         * @returns {Boolean}
+         * @returns {boolean}
          */
         isToNth: function (n) {
             // Start by check in the multiplier for squareness
@@ -3658,7 +3658,7 @@ var nerdamer = (function (imports) {
         /**
          * Checks if a symbol is square
          *
-         * @returns {Boolean}
+         * @returns {boolean}
          */
         isSquare: function () {
             return this.isToNth(2);
@@ -3666,7 +3666,7 @@ var nerdamer = (function (imports) {
         /**
          * Checks if a symbol is cube
          *
-         * @returns {Boolean}
+         * @returns {boolean}
          */
         isCube: function () {
             return this.isToNth(3);
@@ -3674,7 +3674,7 @@ var nerdamer = (function (imports) {
         /**
          * Checks if a symbol is a bare variable
          *
-         * @returns {Boolean}
+         * @returns {boolean}
          */
         isSimple: function () {
             return this.power.equals(1) && this.multiplier.equals(1);
@@ -3783,7 +3783,7 @@ var nerdamer = (function (imports) {
          * reinserted in order to make use of most algorithms. This function checks if the symbol meets the criteria of
          * a polynomial.
          *
-         * @param {bool} multivariate
+         * @param {boolean} multivariate
          * @returns {boolean}
          */
         isPoly: function (multivariate) {
@@ -4138,8 +4138,8 @@ var nerdamer = (function (imports) {
         /**
          * Checks to see if a symbol has a function by a specified name or within a specified list
          *
-         * @param {String | String[]} names
-         * @returns {Boolean}
+         * @param {string | string[]} names
+         * @returns {boolean}
          */
         containsFunction: function (names) {
             if (typeof names === 'string') names = [names];
@@ -4267,7 +4267,7 @@ var nerdamer = (function (imports) {
         /**
          * Converts a symbol multiplier to one.
          *
-         * @param {Boolean} keepSign Keep the multiplier as negative if the multiplier is negative and keepSign is true
+         * @param {boolean} keepSign Keep the multiplier as negative if the multiplier is negative and keepSign is true
          * @returns {Symbol}
          */
         toUnitMultiplier: function (keepSign) {
@@ -4312,7 +4312,7 @@ var nerdamer = (function (imports) {
          * A numeric value to be returned for Javascript. It will try to return a number as far a possible but in case
          * of a pure symbolic symbol it will just return its text representation
          *
-         * @returns {String | Number}
+         * @returns {string | number}
          */
         valueOf: function () {
             if (this.group === N) return this.multiplier.valueOf();
@@ -4444,7 +4444,7 @@ var nerdamer = (function (imports) {
          * This method will attempt to up-convert or down-convert one symbol from one group to another. Not all symbols
          * are convertible from one group to another however. In that case the symbol will remain unchanged.
          *
-         * @param {int} group
+         * @param {number} group
          * @param {string} imaginary
          */
         convert: function (group, imaginary) {
@@ -4515,7 +4515,7 @@ var nerdamer = (function (imports) {
          * by the 'attach' method for addition groups and the 'combine' method for multiplication groups.
          *
          * @param {Symbol} symbol
-         * @param {String} action
+         * @param {string} action
          */
         insert: function (symbol, action) {
             //this check can be removed but saves a lot of aggravation when trying to hunt down
@@ -4631,7 +4631,7 @@ var nerdamer = (function (imports) {
          * This function defines how every group in stored within a group of higher order think of it as the switchboard
          * for the library. It defines the hashes for symbols.
          *
-         * @param {int} group
+         * @param {number} group
          */
         keyForGroup: function (group) {
             var g = this.group;
@@ -4677,7 +4677,7 @@ var nerdamer = (function (imports) {
          * array. If a function is supplied then that function is called on every symbol contained within the object.
          *
          * @param {Function} fn
-         * @param {Object} opt
+         * @param {object} opt
          * @param {Function} sort_fn
          * @param {boolean} expand_symbol
          * @returns {Array}
@@ -4702,7 +4702,7 @@ var nerdamer = (function (imports) {
          * CollectSymbols but only for summands
          *
          * @param {Function} fn
-         * @param {Object} opt
+         * @param {object} opt
          * @param {Function} sort_fn
          * @param {boolean} expand_symbol
          * @returns {Array}
@@ -4725,8 +4725,8 @@ var nerdamer = (function (imports) {
         /**
          * Returns the latex representation of the symbol
          *
-         * @param {String} option
-         * @returns {String}
+         * @param {string} option
+         * @returns {string}
          */
         latex: function (option) {
             return LaTeX.latex(this, option);
@@ -4734,8 +4734,8 @@ var nerdamer = (function (imports) {
         /**
          * Returns the text representation of a symbol
          *
-         * @param {String} option
-         * @returns {String}
+         * @param {string} option
+         * @returns {string}
          */
         text: function (option) {
             return text(this, option);
@@ -6023,7 +6023,7 @@ var nerdamer = (function (imports) {
         /**
          * This method gives the ability to override operators with new methods.
          *
-         * @param {String} which
+         * @param {string} which
          * @param {Function} with_what
          */
         this.override = function (which, with_what) {
@@ -6035,7 +6035,7 @@ var nerdamer = (function (imports) {
         /**
          * Restores a previously overridden operator
          *
-         * @param {String} what
+         * @param {string} what
          */
         this.restore = function (what) {
             if (this[what]) this[what] = bin[what].pop();
@@ -6045,7 +6045,7 @@ var nerdamer = (function (imports) {
          * This method is supposed to behave similarly to the override method but it does not override the existing
          * function rather it only extends it
          *
-         * @param {String} what
+         * @param {string} what
          * @param {Function} with_what
          * @param {boolean} force_call
          */
@@ -6066,7 +6066,7 @@ var nerdamer = (function (imports) {
          * most important thing is that that it gives a fname and an args property to the symbols in addition to
          * changing its group to FN
          *
-         * @param {String} fn_name
+         * @param {string} fn_name
          * @param {Array} params
          * @returns {Symbol}
          */
@@ -6085,9 +6085,9 @@ var nerdamer = (function (imports) {
          * An internal function call for the Parser. This will either trigger a real function call if it can do so or
          * just return a symbolic representation of the function using symfunction.
          *
-         * @param {String} fn_name
+         * @param {string} fn_name
          * @param {Array} args
-         * @param {int} allowed_args
+         * @param {number} allowed_args
          * @returns {Symbol}
          */
         this.callfunction = function (fn_name, args, allowed_args) {
@@ -6166,7 +6166,7 @@ var nerdamer = (function (imports) {
         /**
          * Replaces nerdamer.setOperator
          *
-         * @param {Object} operator
+         * @param {object} operator
          * @param {Function} action
          * @param {boolean} shift
          */
@@ -6195,8 +6195,8 @@ var nerdamer = (function (imports) {
         /**
          * Gets an opererator by its symbol
          *
-         * @param {String} operator
-         * @returns {Object}
+         * @param {string} operator
+         * @returns {object}
          */
         this.getOperator = function (operator) {
             return operators[operator];
@@ -6231,7 +6231,7 @@ var nerdamer = (function (imports) {
         /*
          * Preforms preprocessing on the string. Useful for making early modification before
          * sending to the parser
-         * @param {String} e
+         * @param {string} e
          */
         var prepare_expression = function (e) {
             /*
@@ -6310,7 +6310,7 @@ var nerdamer = (function (imports) {
         /*
          * Debugging method used to better visualize vector and arrays
          * @param {object} o
-         * @returns {String}
+         * @returns {string}
          */
         this.pretty_print = function (o) {
             if (Array.isArray(o)) {
@@ -6340,7 +6340,7 @@ var nerdamer = (function (imports) {
         };
         /*
          * Tokenizes the string
-         * @param {String} e
+         * @param {string} e
          * @returns {Token[]}
          */
         this.tokenize = function (e) {
@@ -6383,8 +6383,8 @@ var nerdamer = (function (imports) {
             /**
              * Adds a scope to tokens
              *
-             * @param {String} scope_type
-             * @param {int} column
+             * @param {string} scope_type
+             * @param {number} column
              * @returns {undefined}
              */
             var addScope = function (scope_type, column) {
@@ -6410,8 +6410,8 @@ var nerdamer = (function (imports) {
             /**
              * Extracts all the operators from the expression string starting at postion start_at
              *
-             * @param {int} start_at
-             * @returns {String}
+             * @param {number} start_at
+             * @returns {string}
              */
             var get_operator_str = function (start_at) {
                 start_at = start_at !== undefined ? start_at : col;
@@ -6431,8 +6431,8 @@ var nerdamer = (function (imports) {
             /**
              * Breaks operator up in to several different operators as defined in operators
              *
-             * @param {String} operator_str
-             * @returns {String[]}
+             * @param {string} operator_str
+             * @returns {string[]}
              */
             var chunkify = function (operator_str) {
                 var start = col - operator_str.length; //start of operator
@@ -6459,8 +6459,8 @@ var nerdamer = (function (imports) {
             /**
              * Is used to add a token to the tokens array. Makes sure that no empty token is added
              *
-             * @param {int} at
-             * @param {String} token
+             * @param {number} at
+             * @param {string} token
              * @returns {undefined}
              */
             var add_token = function (at, token) {
@@ -6473,7 +6473,7 @@ var nerdamer = (function (imports) {
             /**
              * Adds a function to the output
              *
-             * @param {String} f
+             * @param {string} f
              * @returns {undefined}
              */
             var add_function = function (f) {
@@ -6482,7 +6482,7 @@ var nerdamer = (function (imports) {
             /**
              * Tokens are found between operators so this marks the location of where the last token was found
              *
-             * @param {int} position
+             * @param {number} position
              * @returns {undefined}
              */
             var set_last_position = function (position) {
@@ -6958,7 +6958,7 @@ var nerdamer = (function (imports) {
          *   having a lower order than the last is reached then the stack is processed from the last operator on the
          *   stack.
          *
-         * @param {String} token
+         * @param {string} token
          */
 
         function Node(token) {
@@ -7064,7 +7064,7 @@ var nerdamer = (function (imports) {
         /**
          * TODO: Switch to Parser.tokenize for this method Reads a string into an array of Symbols and operators
          *
-         * @param {String} expression_string
+         * @param {string} expression_string
          * @returns {Array}
          */
         this.toObject = function (expression_string) {
@@ -7184,9 +7184,9 @@ var nerdamer = (function (imports) {
         };
         /*
          * Convert expression or object to LaTeX
-         * @param {String} expression_or_obj
+         * @param {string} expression_or_obj
          * @param {object} opt
-         * @returns {String}
+         * @returns {string}
          */
         this.toTeX = function (expression_or_obj, opt) {
             opt = opt || {};
@@ -7499,7 +7499,7 @@ var nerdamer = (function (imports) {
         /**
          * A branghing function
          *
-         * @param {Boolean} condition
+         * @param {boolean} condition
          * @param {Symbol} a
          * @param {Symbol} b
          * @returns {Symbol}
@@ -7512,7 +7512,7 @@ var nerdamer = (function (imports) {
         /**
          * @param {Matrix | Vector | Set | Collection} obj
          * @param {Symbol} item
-         * @returns {Boolean}
+         * @returns {boolean}
          */
         function is_in(obj, item) {
             if (isMatrix(obj)) {
@@ -7844,8 +7844,8 @@ var nerdamer = (function (imports) {
         /**
          * @param {Symbol} num - The number being raised
          * @param {Symbol} p - The exponent
-         * @param {type} prec - The precision wanted
-         * @param {bool} asbig - True if a bigDecimal is wanted
+         * @param {*} prec - The precision wanted
+         * @param {boolean} asbig - True if a bigDecimal is wanted
          * @returns {Symbol}
          */
         function nthroot(num, p, prec, asbig) {
@@ -8230,8 +8230,8 @@ var nerdamer = (function (imports) {
         /**
          * Round a number up to s decimal places
          *
-         * @param {Number} x
-         * @param {int} s - The number of decimal places
+         * @param {number} x
+         * @param {number} s - The number of decimal places
          * @returns {undefined}
          */
         function round(x, s) {
@@ -8263,7 +8263,7 @@ var nerdamer = (function (imports) {
          * Gets the quadrant of the trig function
          *
          * @param {Frac} m
-         * @returns {Int}
+         * @returns {number}
          */
         function getQuadrant(m) {
             var v = m % 2,
@@ -8280,7 +8280,7 @@ var nerdamer = (function (imports) {
 
         /*
          * Serves as a bridge between numbers and bigNumbers
-         * @param {Frac|Number} n
+         * @param {Frac|number} n
          * @returns {Symbol}
          */
         function bigConvert(n) {
@@ -8526,7 +8526,7 @@ var nerdamer = (function (imports) {
         /**
          * Returns an identity matrix of nxn
          *
-         * @param {Number} n
+         * @param {number} n
          * @returns {Matrix}
          */
         function imatrix(n) {
@@ -8537,7 +8537,7 @@ var nerdamer = (function (imports) {
          * Retrieves and item from a vector
          *
          * @param {Vector} vector
-         * @param {Number} index
+         * @param {number} index
          * @returns {Vector | Symbol}
          */
         function vecget(vector, index) {
@@ -8549,7 +8549,7 @@ var nerdamer = (function (imports) {
          * Removes duplicates from a vector
          *
          * @param {Vector} vector
-         * @param {Number} tolerance
+         * @param {number} tolerance
          * @returns {Vector}
          */
         function vectrim(vector, tolerance) {
@@ -8576,7 +8576,7 @@ var nerdamer = (function (imports) {
          * Set a value for a vector at a given index
          *
          * @param {Vector} vector
-         * @param {Number} index
+         * @param {number} index
          * @param {Symbol} value
          * @returns {Vector}
          */
@@ -10704,8 +10704,8 @@ var nerdamer = (function (imports) {
         /**
          * Places subscripts in braces for proper formatting
          *
-         * @param {String} v
-         * @returns {String}
+         * @param {string} v
+         * @returns {string}
          */
         formatSubscripts: function (v) {
             // Split it at the underscore
@@ -10734,7 +10734,7 @@ var nerdamer = (function (imports) {
          * Formats the fractions accordingly.
          *
          * @param {Frac} f
-         * @param {bool} is_pow
+         * @param {boolean} is_pow
          */
         formatFrac: function (f, is_pow) {
             var n = f.num.toString(),
@@ -10795,7 +10795,7 @@ var nerdamer = (function (imports) {
         /*
          * Parses tokens from LaTeX string. Does not do any error checking
          * @param {Tokens[]} rpn
-         * @returns {String}
+         * @returns {string}
          */
         parse: function (raw_tokens) {
             var i, l;
@@ -10981,9 +10981,9 @@ var nerdamer = (function (imports) {
     }
     /*
      * Generates a pre-filled array
-     * @param {type} n
-     * @param {type} val
-     * @returns {unresolved}
+     * @param {*} n
+     * @param {*} val
+     * @returns {*}
      */
     Vector.arrayPrefill = function (n, val) {
         var a = [];
@@ -10994,8 +10994,8 @@ var nerdamer = (function (imports) {
     /**
      * Generate a vector from and array
      *
-     * @param {type} a
-     * @returns {unresolved}
+     * @param {*} a
+     * @returns {*}
      */
     Vector.fromArray = function (a) {
         var v = new Vector();
@@ -12212,7 +12212,7 @@ var nerdamer = (function (imports) {
     //libExports ===================================================================
     /**
      * @param {string} expression The expression to be evaluated
-     * @param {Object} subs The object containing the variable values
+     * @param {object} subs The object containing the variable values
      * @param {string} option Additional options
      * @param {number} location A specific location in the equation list to insert the evaluated expression
      * @returns {Expression}
@@ -12277,7 +12277,7 @@ var nerdamer = (function (imports) {
     /**
      * Converts expression into rpn form
      *
-     * @param {String} expression
+     * @param {string} expression
      * @returns {Token[]}
      */
     libExports.rpn = function (expression) {
@@ -12287,9 +12287,9 @@ var nerdamer = (function (imports) {
     /**
      * Generates LaTeX from expression string
      *
-     * @param {String} e
+     * @param {string} e
      * @param {object} opt
-     * @returns {String}
+     * @returns {string}
      */
     libExports.convertToLaTeX = function (e, opt) {
         return _.toTeX(e, opt);
@@ -12298,8 +12298,8 @@ var nerdamer = (function (imports) {
     /**
      * Converts latex to text - Very very very basic at the moment
      *
-     * @param {String} e
-     * @returns {String}
+     * @param {string} e
+     * @returns {string}
      */
     libExports.convertFromLaTeX = function (e) {
         // convert x_2a => x_2 a
@@ -12325,8 +12325,8 @@ var nerdamer = (function (imports) {
     /**
      * Get the version of nerdamer or a loaded add-on
      *
-     * @param {String} add_on - The add-on being checked
-     * @returns {String} Returns the version of nerdamer
+     * @param {string} add_on - The add-on being checked
+     * @returns {string} Returns the version of nerdamer
      */
     libExports.version = function (add_on) {
         if (add_on) {
@@ -12343,16 +12343,16 @@ var nerdamer = (function (imports) {
     /**
      * Get nerdamer generated warnings
      *
-     * @returns {String[]}
+     * @returns {string[]}
      */
     libExports.getWarnings = function () {
         return WARNINGS;
     };
 
     /**
-     * @param {String} constant The name of the constant to be set
-     * @param {mixed} value The value of the constant
-     * @returns {Object} Returns the nerdamer object
+     * @param {string} constant The name of the constant to be set
+     * @param {*} value The value of the constant
+     * @returns {object} Returns the nerdamer object
      */
     libExports.setConstant = function (constant, value) {
         validateName(constant);
@@ -12371,8 +12371,8 @@ var nerdamer = (function (imports) {
     /**
      * Returns the value of a previously set constant
      *
-     * @param {type} constant
-     * @returns {String}
+     * @param {*} constant
+     * @returns {string}
      */
     libExports.getConstant = function (constant) {
         return String(_.CONSTANTS[constant]);
@@ -12381,7 +12381,7 @@ var nerdamer = (function (imports) {
     /**
      * Clear added constants from the CONSTANTS object
      *
-     * @returns {Object} Returns the nerdamer object
+     * @returns {object} Returns the nerdamer object
      */
     libExports.clearConstants = function () {
         _.initConstants.bind(_);
@@ -12427,8 +12427,8 @@ var nerdamer = (function (imports) {
     libExports.getExpression = libExports.getEquation = Expression.getExpression;
 
     /**
-     * @param {Boolean} asArray The returned names are returned as an array if this is set to true;
-     * @returns {String | Array}
+     * @param {boolean} asArray The returned names are returned as an array if this is set to true;
+     * @returns {string | Array}
      */
     libExports.reserved = function (asArray) {
         if (asArray) {
@@ -12438,10 +12438,10 @@ var nerdamer = (function (imports) {
     };
 
     /**
-     * @param {Integer} equation_number The number of the equation to clear. If 'all' is supplied then all equations are
+     * @param {number} equation_number The number of the equation to clear. If 'all' is supplied then all equations are
      *   cleared
-     * @param {Boolean} keep_EXPRESSIONS_fixed Use true if you don't want to keep EXPRESSIONS length fixed
-     * @returns {Object} Returns the nerdamer object
+     * @param {boolean} keep_EXPRESSIONS_fixed Use true if you don't want to keep EXPRESSIONS length fixed
+     * @returns {object} Returns the nerdamer object
      */
     libExports.clear = function (equation_number, keep_EXPRESSIONS_fixed) {
         if (equation_number === 'all') {
@@ -12464,9 +12464,9 @@ var nerdamer = (function (imports) {
     };
 
     /**
-     * @param {Boolean} asObject
-     * @param {Boolean} asLaTeX
-     * @param {String | String[]} option
+     * @param {boolean} asObject
+     * @param {boolean} asLaTeX
+     * @param {string | string[]} option
      * @returns {Array}
      */
     libExports.expressions = function (asObject, asLaTeX, option) {
@@ -12479,8 +12479,8 @@ var nerdamer = (function (imports) {
     };
 
     /**
-     * @param {Boolean} asObject
-     * @param {String | String[]} option
+     * @param {boolean} asObject
+     * @param {string | string[]} option
      * @returns {Array}
      */
     libExports.functions = function (asObject, option) {
@@ -12534,13 +12534,13 @@ var nerdamer = (function (imports) {
     };
 
     /**
-     * @param {String} name Variable name
+     * @param {string} name Variable name
      * @returns {boolean} Validates if the profided string is a valid variable name
      */
     libExports.validateName = validateName;
 
     /**
-     * @param {String} varname Variable name
+     * @param {string} varname Variable name
      * @returns {boolean} Validates if the profided string is a valid variable name
      */
     libExports.validVarName = function (varname) {
@@ -12558,16 +12558,16 @@ var nerdamer = (function (imports) {
         return keys(_.functions);
     };
 
-    /** @returns {Number} The number equations/expressions currently loaded */
+    /** @returns {number} The number equations/expressions currently loaded */
     libExports.numEquations = libExports.numExpressions = function () {
         return EXPRESSIONS.length;
     };
     /* END EXPORTS */
 
     /**
-     * @param {String} v Variable to be set
-     * @param {String} val Value of variable. This can be a variable expression or number
-     * @returns {Object} Returns the nerdamer object
+     * @param {string} v Variable to be set
+     * @param {string} val Value of variable. This can be a variable expression or number
+     * @returns {object} Returns the nerdamer object
      */
     libExports.setVar = function (v, val) {
         validateName(v);
@@ -12583,8 +12583,8 @@ var nerdamer = (function (imports) {
     /**
      * Returns the value of a set variable
      *
-     * @param {type} v
-     * @returns {varies}
+     * @param {*} v
+     * @returns {*}
      */
     libExports.getVar = function (v) {
         return VARS[v];
@@ -12592,7 +12592,7 @@ var nerdamer = (function (imports) {
     /**
      * Clear the variables from the VARS object
      *
-     * @returns {Object} Returns the nerdamer object
+     * @returns {object} Returns the nerdamer object
      */
     libExports.clearVars = function () {
         VARS = {};
@@ -12609,10 +12609,10 @@ var nerdamer = (function (imports) {
     };
 
     /**
-     * @param {String} output - Output format. Can be 'object' (just returns the VARS object), 'text' or 'latex'.
+     * @param {string} output - Output format. Can be 'object' (just returns the VARS object), 'text' or 'latex'.
      *   Default: 'text'
-     * @param {String | String[]} option
-     * @returns {Object} Returns an object with the variables
+     * @param {string | string[]} option
+     * @returns {object} Returns an object with the variables
      */
     libExports.getVars = function (output, option) {
         output = output || 'text';
@@ -12633,7 +12633,7 @@ var nerdamer = (function (imports) {
     /**
      * Set the value of a setting
      *
-     * @param {String} setting The setting to be changed
+     * @param {string} setting The setting to be changed
      * @param {boolean} value
      */
     libExports.set = function (setting, value) {
@@ -12677,7 +12677,7 @@ var nerdamer = (function (imports) {
     /**
      * Get the value of a setting
      *
-     * @param {type} setting
+     * @param {*} setting
      * @returns {undefined}
      */
     libExports.get = function (setting) {
@@ -12687,7 +12687,7 @@ var nerdamer = (function (imports) {
     /**
      * This functions makes internal functions available externally
      *
-     * @param {bool} override Override the functions when calling updateAPI if it exists
+     * @param {boolean} override Override the functions when calling updateAPI if it exists
      */
     libExports.updateAPI = function (override) {
         //Map internal functions to external ones

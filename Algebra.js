@@ -53,9 +53,9 @@ if (typeof module !== 'undefined') {
      * Converts a symbol into an equivalent polynomial arrays of the form [[coefficient_1, power_1],[coefficient_2,
      * power_2], ... ] Univariate polymials only.
      *
-     * @param {Symbol | Number} symbol
-     * @param {String} variable The variable name of the polynomial
-     * @param {int} order
+     * @param {Symbol | number} symbol
+     * @param {string} variable The variable name of the polynomial
+     * @param {number} order
      */
     function Polynomial(symbol, variable, order) {
         if (core.Utils.isSymbol(symbol)) {
@@ -77,8 +77,8 @@ if (typeof module !== 'undefined') {
     /**
      * Creates a Polynomial given an array of coefficients
      *
-     * @param {int[]} arr
-     * @param {String} variable
+     * @param {number[]} arr
+     * @param {string} variable
      * @returns {Polynomial}
      */
     Polynomial.fromArray = function (arr, variable) {
@@ -156,7 +156,7 @@ if (typeof module !== 'undefined') {
         /**
          * Fills in the holes in a polynomial with zeroes
          *
-         * @param {Number} x - The number to fill the holes with
+         * @param {number} x - The number to fill the holes with
          */
         fill: function (x) {
             x = Number(x) || 0;
@@ -188,7 +188,7 @@ if (typeof module !== 'undefined') {
         },
         /*
          * Returns polynomial mod p **currently fails**
-         * @param {Number} p
+         * @param {number} p
          * @returns {Polynomial}
          */
         modP: function (p) {
@@ -308,7 +308,7 @@ if (typeof module !== 'undefined') {
         /**
          * Checks if a polynomial is zero
          *
-         * @returns {Boolean}
+         * @returns {boolean}
          */
         isZero: function () {
             var l = this.coeffs.length;
@@ -321,7 +321,7 @@ if (typeof module !== 'undefined') {
         /**
          * Substitutes in a number n into the polynomial p(n)
          *
-         * @param {Number} n
+         * @param {number} n
          * @returns {Frac}
          */
         sub: function (n) {
@@ -347,7 +347,7 @@ if (typeof module !== 'undefined') {
         /**
          * Gets the degree of the polynomial
          *
-         * @returns {Number}
+         * @returns {number}
          */
         deg: function () {
             this.trim();
@@ -436,7 +436,7 @@ if (typeof module !== 'undefined') {
         /**
          * Returns the Greatest common factor of the polynomial
          *
-         * @param {bool} toPolynomial - True if a polynomial is wanted
+         * @param {boolean} toPolynomial - True if a polynomial is wanted
          * @returns {Frac | Polynomial}
          */
         gcf: function (toPolynomial) {
@@ -462,7 +462,7 @@ if (typeof module !== 'undefined') {
         /**
          * Raises a polynomial P to a power p -> P^p. e.g. (x+1)^2
          *
-         * @param {bool} incl_img - Include imaginary numbers
+         * @param {boolean} incl_img - Include imaginary numbers
          */
         quad: function (incl_img) {
             var roots = [];
@@ -533,8 +533,8 @@ if (typeof module !== 'undefined') {
         /**
          * Checks if polynomial is equal to a number
          *
-         * @param {Number} x
-         * @returns {Boolean}
+         * @param {number} x
+         * @returns {boolean}
          */
         equalsNumber: function (x) {
             this.trim();
@@ -629,7 +629,7 @@ if (typeof module !== 'undefined') {
      * Checks to see if the symbols contain the same variables
      *
      * @param {Symbol} symbol
-     * @returns {Boolean}
+     * @returns {boolean}
      */
     Symbol.prototype.sameVars = function (symbol) {
         if (!(this.symbols || this.group === symbol.group)) return false;
@@ -700,7 +700,7 @@ if (typeof module !== 'undefined') {
     /**
      * Adds the factors to the factor object
      *
-     * @param {Symbo} s
+     * @param {Symbol} s
      * @returns {Factors}
      */
     Factors.prototype.add = function (s) {
@@ -803,7 +803,7 @@ if (typeof module !== 'undefined') {
     /**
      * Return the number of factors contained in the factor object
      *
-     * @returns {int}
+     * @returns {number}
      */
     Factors.prototype.count = function () {
         return keys(this.factors).length;
@@ -967,7 +967,7 @@ if (typeof module !== 'undefined') {
      *
      * @param {Array} a
      * @param {Array} b
-     * @returns {Boolean} True if a and b have intersecting elements.
+     * @returns {boolean} True if a and b have intersecting elements.
      */
     core.Utils.haveIntersection = function (a, b) {
         var t;
@@ -980,8 +980,8 @@ if (typeof module !== 'undefined') {
      * Substitutes out functions as variables so they can be used in regular algorithms
      *
      * @param {Symbol} symbol
-     * @param {Object} map
-     * @returns {String} The expression string
+     * @param {object} map
+     * @returns {string} The expression string
      */
     core.Utils.subFunctions = function (symbol, map) {
         map = map || {};
@@ -2105,7 +2105,7 @@ if (typeof module !== 'undefined') {
          * polyPowers(x^2+1/x+y+t) will return [ '-1', 0, '2' ]
          *
          * @param {Symbol} e
-         * @param {String} for_variable
+         * @param {string} for_variable
          * @param {Array} powers
          * @returns {Array} An array of the powers
          */
@@ -2965,10 +2965,10 @@ if (typeof module !== 'undefined') {
                  * Attempt to remove a root by division given a number by first creating a polynomial fromt he given
                  * information
                  *
-                 * @param {int} c1 - Coeffient for the constant
-                 * @param {int} c2 - Coefficient for the LT
-                 * @param {int} n - The number to be used to construct the polynomial
-                 * @param {int} p - The power at which to create the polynomial
+                 * @param {number} c1 - Coeffient for the constant
+                 * @param {number} c2 - Coefficient for the LT
+                 * @param {number} n - The number to be used to construct the polynomial
+                 * @param {number} p - The power at which to create the polynomial
                  * @returns {null | Polynomial} - Returns polynomial if successful otherwise null
                  */
                 var check = function (c1, c2, n, p) {

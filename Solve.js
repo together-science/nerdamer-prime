@@ -314,7 +314,7 @@ if (typeof module !== 'undefined') {
         /**
          * Brings the equation to LHS. A string can be supplied which will be converted to an Equation
          *
-         * @param {Equation | String} eqn
+         * @param {Equation | string} eqn
          * @returns {Symbol}
          */
         toLHS: function (eqn, expand) {
@@ -923,7 +923,7 @@ if (typeof module !== 'undefined') {
          * Breaks the equation up in its factors and tries to solve the smaller parts
          *
          * @param {Symbol} symbol
-         * @param {String} solve_for
+         * @param {string} solve_for
          * @returns {Array}
          */
         divideAndConquer: function (symbol, solve_for) {
@@ -942,7 +942,7 @@ if (typeof module !== 'undefined') {
          * Attempts to solve the equation assuming it's a polynomial with numeric coefficients
          *
          * @param {Symbol} eq
-         * @param {String} solve_for
+         * @param {string} solve_for
          * @returns {Array}
          */
         csolve: function (eq, solve_for) {
@@ -1346,11 +1346,11 @@ if (typeof module !== 'undefined') {
     };
     /*
      *
-     * @param {String[]|String|Equation} eqns
-     * @param {String} solve_for
+     * @param {string[]|string|Equation} eqns
+     * @param {string} solve_for
      * @param {Array} solutions
-     * @param {Number} depth
-     * @param {String|Equation} fn
+     * @param {number} depth
+     * @param {string|Equation} fn
      * @returns {Array}
      */
     // var solve = function (eqns, solve_for, solutions, depth, fn) {

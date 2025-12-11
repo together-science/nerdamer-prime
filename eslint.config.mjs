@@ -32,60 +32,23 @@ const NERDAMER_TYPES = [
 ];
 
 /**
- * Common type aliases found in JSDoc that should be allowed. Some are technically incorrect but are allowed for
- * progressive adoption.
+ * Common type aliases found in JSDoc that should be allowed. NOTE: Prefer standard types (number, boolean, string) in
+ * new code.
  */
 const ALLOWED_TYPE_ALIASES = [
     // Exception types
     'Exception',
     'Error',
-    // Common type aliases (some are wrong but we'll fix progressively)
-    'int',
-    'integer',
-    'Integer',
-    'Int',
-    'bool',
-    'Boolean',
-    'Number',
-    'String',
-    'Object',
-    'Array',
-    'Function',
+    // TypeScript/JSDoc type keywords
     'any',
     'void',
     'null',
     'undefined',
     'never',
-    'BigInt',
     'bigint',
-    // Placeholder types used in docs
-    'mixed',
-    'varies',
-    'unresolved',
-    // Other types found in codebase
+    // Nerdamer-specific result types
     'error',
     'divergent',
-    'type',
-    'n',
-    'Symbo',
-    'Numbers',
-];
-
-/**
- * Types to exempt from check-types lowercase conversion. These are class names that should not be converted to
- * lowercase.
- */
-const EXEMPT_CLASS_TYPES = [
-    'Symbol',
-    'Frac',
-    'Vector',
-    'Matrix',
-    'Polynomial',
-    'Factors',
-    'Equation',
-    'Collection',
-    'Expression',
-    'Object',
 ];
 
 /** Legacy nerdamer core source files. These files have relaxed linting rules for progressive adoption. */
@@ -150,16 +113,13 @@ const jsdocRules = {
     'jsdoc/check-tag-names': 'warn',
     'jsdoc/valid-types': 'warn',
 
-    // Type checking with exemptions for nerdamer class names
+    // Type checking - disable defaults to prevent Symbol->symbol conversion (Symbol is our class)
+    // The defaults would convert String->string, Number->number etc which we handle via sed
     'jsdoc/check-types': [
         'warn',
         {
             noDefaults: true,
             unifyParentAndChildTypeChecks: true,
-            exemptTagContexts: ['param', 'returns', 'type'].map(tag => ({
-                tag,
-                types: EXEMPT_CLASS_TYPES,
-            })),
         },
     ],
 
@@ -466,19 +426,6 @@ export default defineConfig([
             globals: {
                 ...globals.jest,
                 ...globals.jasmine,
-                describe: 'readonly',
-                it: 'readonly',
-                expect: 'readonly',
-                beforeEach: 'readonly',
-                afterEach: 'readonly',
-                beforeAll: 'readonly',
-                afterAll: 'readonly',
-                jasmine: 'readonly',
-                spyOn: 'readonly',
-                xit: 'readonly',
-                xdescribe: 'readonly',
-                fdescribe: 'readonly',
-                fit: 'readonly',
             },
         },
         rules: {
