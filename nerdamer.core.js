@@ -1125,7 +1125,7 @@ var nerdamer = (function (imports) {
     /**
      * Loops through each item in object and calls function with item as param
      *
-     * @param {Object | Array} obj
+     * @param {object | Array} obj
      * @param {Function} fn
      */
     var each = function (obj, fn) {
@@ -1249,8 +1249,8 @@ var nerdamer = (function (imports) {
      * Removes an item from either an array or an object. If the object is an array, the index must be specified after
      * the array. If it's an object then the key must be specified
      *
-     * @param {Object | Array} obj
-     * @param {Integer} indexOrKey
+     * @param {object | Array} obj
+     * @param {number | string} indexOrKey
      */
     var remove = function (obj, indexOrKey) {
         var result;
@@ -2814,8 +2814,8 @@ var nerdamer = (function (imports) {
     /**
      * Returns stored expression at index. For first index use 1 not 0.
      *
-     * @param {bool} asType
-     * @param {Integer} expression_number
+     * @param {number | string} expression_number
+     * @param {boolean} asType
      */
     Expression.getExpression = function (expression_number, asType) {
         if (expression_number === 'last' || !expression_number) expression_number = EXPRESSIONS.length;
@@ -4292,7 +4292,7 @@ var nerdamer = (function (imports) {
          * Iterates over all the sub-symbols. If no sub-symbols exist then it's called on itself
          *
          * @param {Function} fn
-         * @@param {Boolean} deep If true it will itterate over the sub-symbols their symbols as well
+         * @param {boolean} deep If true it will itterate over the sub-symbols their symbols as well
          */
         each: function (fn, deep) {
             if (!this.symbols) {
@@ -4679,8 +4679,8 @@ var nerdamer = (function (imports) {
          * @param {Function} fn
          * @param {Object} opt
          * @param {Function} sort_fn
+         * @param {boolean} expand_symbol
          * @returns {Array}
-         * @@param {Boolean} expand_symbol
          */
         collectSymbols: function (fn, opt, sort_fn, expand_symbol) {
             var collected = [];
@@ -4704,8 +4704,8 @@ var nerdamer = (function (imports) {
          * @param {Function} fn
          * @param {Object} opt
          * @param {Function} sort_fn
+         * @param {boolean} expand_symbol
          * @returns {Array}
-         * @@param {Boolean} expand_symbol
          */
         collectSummandSymbols: function (fn, opt, sort_fn, expand_symbol) {
             var collected = [];
@@ -4743,7 +4743,7 @@ var nerdamer = (function (imports) {
         /**
          * Checks if the function evaluates to 1. e.g. x^0 or 1 :)
          *
-         * @@param {bool} abs Compares the absolute value
+         * @param {boolean} abs Compares the absolute value
          */
         isOne: function (abs) {
             var f = abs ? 'absEquals' : 'equals';
@@ -6166,7 +6166,8 @@ var nerdamer = (function (imports) {
         /**
          * Replaces nerdamer.setOperator
          *
-         * @param {object} operator
+         * @param {Object} operator
+         * @param {Function} action
          * @param {boolean} shift
          */
         this.setOperator = function (operator, action, shift) {
@@ -6418,7 +6419,9 @@ var nerdamer = (function (imports) {
                 //to be walking along the string
                 var end = start_at + 1;
                 //just keep moving along
-                while (e.charAt(end++) in operators) {}
+                while (e.charAt(end++) in operators) {
+                    // Intentionally empty - just advancing end pointer
+                }
                 //remember that we started at one position ahead. The beginning operator is what triggered
                 //this function to be called in the first place. String.CharAt is zero based so we now
                 //have to correct two places. The initial increment + the extra++ at the end of end during
@@ -8518,8 +8521,6 @@ var nerdamer = (function (imports) {
                 if (e.message === 'timeout') throw e;
                 return original;
             }
-
-            return original;
         }
 
         /**
@@ -10100,7 +10101,7 @@ var nerdamer = (function (imports) {
         /**
          * If the fraction is too small or too large this gets called instead of fullConversion method
          *
-         * @param {number} dec
+         * @param {number} value
          * @returns {Array} - An array containing the denominator and the numerator
          */
         quickConversion: function (value) {
@@ -12210,10 +12211,10 @@ var nerdamer = (function (imports) {
 
     //libExports ===================================================================
     /**
-     * @param {String} expression The expression to be evaluated
+     * @param {string} expression The expression to be evaluated
      * @param {Object} subs The object containing the variable values
-     * @param {Integer} location A specific location in the equation list to insert the evaluated expression
-     * @param {String} option Additional options
+     * @param {string} option Additional options
+     * @param {number} location A specific location in the equation list to insert the evaluated expression
      * @returns {Expression}
      */
     var libExports = function (expression, subs, option, location) {
@@ -12398,7 +12399,7 @@ var nerdamer = (function (imports) {
      *
      * @param {string | Function} fnName The name of the function
      * @param {string[] | undefined} fnParams A list containing the parameter name of the functions
-     * @param {string | undefined} body The body of the function
+     * @param {string | undefined} fnBody The body of the function
      * @returns {nerdamer} Returns nerdamer if succeeded and falls on fail
      */
     libExports.setFunction = function (fnName, fnParams, fnBody) {

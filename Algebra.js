@@ -2777,8 +2777,8 @@ if (typeof module !== 'undefined') {
              *
              * @param {Symbol} symbol
              * @param {Factors} factors
+             * @param {string} variable The variable which is being factored
              * @returns {[Symbol, Factor]}
-             * @@param {String} variable The variable which is being factored
              */
             squareFree: function (symbol, factors, variable) {
                 if (symbol.isConstant() || symbol.group === S) return symbol;
@@ -2899,8 +2899,8 @@ if (typeof module !== 'undefined') {
              *
              * @param {Symbol} symbol
              * @param {Factor} factors
+             * @param {string} variable
              * @returns {Symbol}
-             * @@param {String} variable
              */
             trialAndError: function (symbol, factors, variable) {
                 var untouched = symbol.clone();
@@ -3018,9 +3018,9 @@ if (typeof module !== 'undefined') {
             /**
              * Equivalent of square free factor for multivariate polynomials
              *
-             * @param {type} symbol
-             * @param {type} factors
-             * @returns {AlgebraL#18.Factor.mSqfrFactor.symbol|Array|AlgebraL#18.__.Factor.mSqfrFactor.d}
+             * @param {Symbol} symbol
+             * @param {Factors} factors
+             * @returns {Symbol | Array}
              */
             mSqfrFactor: function (symbol, factors) {
                 if (symbol.group !== FN) {
@@ -3333,8 +3333,8 @@ if (typeof module !== 'undefined') {
         /**
          * Checks to see if a set of "equations" is linear.
          *
-         * @param {type} set
-         * @returns {Boolean}
+         * @param {Array} s - The set of equations to check
+         * @returns {boolean}
          */
         allLinear: function (s) {
             var l = s.length;
@@ -4220,10 +4220,10 @@ if (typeof module !== 'undefined') {
         /**
          * Attempts to complete the square of a polynomial
          *
-         * @param {type} symbol
-         * @param {type} v
-         * @param {type} raw
-         * @returns {Object | Symbol[]}
+         * @param {Symbol} symbol
+         * @param {Symbol | string} v
+         * @param {boolean} raw
+         * @returns {object | Symbol[]}
          * @throws {Error}
          */
         sqComplete: function (symbol, v, raw) {
@@ -4457,8 +4457,9 @@ if (typeof module !== 'undefined') {
 
                     retval = __.Simplify.unstrip(sym_array, retval).distributeMultiplier();
                     symbol = retval;
+                    // Safety check: prevent infinite loops
                     if (iterations > 10) {
-                        debugger;
+                        break;
                     }
                 }
 

@@ -51,7 +51,7 @@ describe('Nerdamer AST Introspection Tests', () => {
         }
 
         // Helper function to validate runtime type against declared type
-        function validateReturnType(actualValue: any, declaredType: string, methodName: string): boolean {
+        function validateReturnType(actualValue: any, declaredType: string, _methodName: string): boolean {
             const actualType = typeof actualValue;
 
             // Handle specific type mappings
@@ -916,8 +916,8 @@ describe('Nerdamer AST Introspection Tests', () => {
                 number: v => typeof v === 'number',
                 boolean: v => typeof v === 'boolean',
                 void: v => v === undefined,
-                any: v => true,
-                unknown: v => true,
+                any: _v => true,
+                unknown: _v => true,
                 'string[]': v => Array.isArray(v) && v.every(item => typeof item === 'string'),
                 'number[]': v => Array.isArray(v) && v.every(item => typeof item === 'number'),
                 NerdamerExpression: isProperNerdamerExpression,

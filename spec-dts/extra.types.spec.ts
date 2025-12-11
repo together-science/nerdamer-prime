@@ -3,7 +3,7 @@ import { NerdamerExpression } from '../index';
 // Import complete nerdamer with all modules for runtime
 const nerdamer = require('../all');
 
-function expectType<T>(value: T): void {}
+function expectType<T>(_value: T): void {}
 
 describe('Nerdamer Extra Module Type Definitions', () => {
     it('should compile when using matrix functions correctly', () => {

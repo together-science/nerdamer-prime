@@ -3,7 +3,7 @@ import { NerdamerExpression, SolveResult } from '../index';
 // Import complete nerdamer with all modules for runtime
 const nerdamer = require('../all');
 
-function expectType<T>(value: T): void {}
+function expectType<T>(_value: T): void {}
 
 describe('Nerdamer Algebra & Solve Addon Type Definitions', () => {
     it('should compile when using algebra functions correctly', () => {

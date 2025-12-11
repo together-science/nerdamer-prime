@@ -478,8 +478,8 @@ if (typeof module !== 'undefined') {
             do {
                 //if we've reached the max iterations then exit
                 if (iters > max_iter) {
-                    break;
                     found = false;
+                    break;
                 }
 
                 //set the substitution object
@@ -980,8 +980,8 @@ if (typeof module !== 'undefined') {
          * an interval then a zero must exist on that interval
          *
          * @param {Symbol} symbol
-         * @param {Number} step
-         * @param {Array} points
+         * @param {number} step
+         * @param {boolean} extended
          * @returns {Array}
          */
         getPoints: function (symbol, step, extended) {
@@ -1054,7 +1054,7 @@ if (typeof module !== 'undefined') {
          * Implements the bisection method. Returns undefined in no solution is found
          *
          * @param {number} point
-         * @param {function} f
+         * @param {Function} f
          * @returns {undefined | number}
          */
         bisection: function (point, f) {
@@ -1140,8 +1140,8 @@ if (typeof module !== 'undefined') {
          * Implements Newton's iterations. Returns undefined if no solutions if found
          *
          * @param {number} point
-         * @param {function} f
-         * @param {function} fp
+         * @param {Function} f
+         * @param {Function} fp
          * @returns {undefined | number}
          */
         Newton: function (point, f, fp, point2) {

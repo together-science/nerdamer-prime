@@ -54,6 +54,7 @@
         "silent": "npm test --silent | cat",
         "build": "esbuild all.js --bundle --minify --outfile=all.min.js --format=iife --global-name=nerdamer",
         "watch": "esbuild all.js --bundle --minify --outfile=all.min.js --format=iife --global-name=nerdamer --watch",
+        "lint": "eslint .",
         "format": "prettier --write \"**/*.{ts,js,json,jml,md,html}\"",
         "format:check": "prettier --check \"**/*.{ts,js,json,jml,md,html}\""
     },
@@ -64,13 +65,19 @@
     "devDependencies": {
         "@trivago/prettier-plugin-sort-imports": "^6.0.0",
         "@types/jest": "^30.0.0",
+        "@typescript-eslint/eslint-plugin": "^8.49.0",
+        "@typescript-eslint/parser": "^8.49.0",
         "esbuild": "^0.27.1",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-jsdoc": "^61.5.0",
+        "eslint-plugin-prettier": "^5.5.4",
         "jasmine": "^5.13.0",
         "jest": "^30.2.0",
         "prettier": "^3.7.4",
         "prettier-plugin-jsdoc": "^1.8.0",
         "ts-jest": "^29.4.6",
         "ts-morph": "^27.0.2",
-        "typescript": "^5.9.3"
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.49.0"
     }
 }
