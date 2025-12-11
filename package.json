@@ -57,6 +57,10 @@
         "format": "prettier --write \"**/*.{ts,js,json,jml,md,html}\"",
         "format:check": "prettier --check \"**/*.{ts,js,json,jml,md,html}\""
     },
+    "dependencies": {
+        "big-integer": "1.6.28",
+        "decimal.js": "^10.2.1"
+    },
     "devDependencies": {
         "@trivago/prettier-plugin-sort-imports": "^5.2.2",
         "@types/jest": "^30.0.0",
