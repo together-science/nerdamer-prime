@@ -4395,7 +4395,7 @@ if (typeof module !== 'undefined') {
                             c = __.Simplify._simplify(c);
                             c = core.Utils.evaluate(c);
                             if (isInt(c)) {
-                                count += c.multiplier.num.value;
+                                count += c.multiplier.num.toJSNumber();
                             } else {
                                 newArg = _.add(newArg, x);
                             }

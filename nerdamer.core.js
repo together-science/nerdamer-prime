@@ -2066,7 +2066,7 @@ var nerdamer = (function (imports) {
 
             if (n === '0') return { 0: 1 };
             n = new bigInt(n); /*convert to bigInt for safety*/
-            var sign = n.sign ? -1 : 1;
+            var sign = n.isNegative() ? -1 : 1;
             n = n.abs();
             var factors = {}; /*factor object being returned.*/
             if (n.lt('65536')) {
@@ -2638,8 +2638,7 @@ var nerdamer = (function (imports) {
         //
         // Setting decp here would trigger toDecimal(16) which can truncate precision.
         // By not setting decp for plain decimals mode, we preserve full valueOf() precision.
-        if (opt === 'decimals_or_scientific' && typeof decp === 'undefined')
-            decp = Settings.DEFAULT_DECP;
+        if (opt === 'decimals_or_scientific' && typeof decp === 'undefined') decp = Settings.DEFAULT_DECP;
 
         function toString(obj, decp) {
             switch (option) {
