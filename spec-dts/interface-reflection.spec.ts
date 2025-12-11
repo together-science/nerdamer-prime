@@ -5,15 +5,15 @@ import tsMorph from 'ts-morph';
 describe('Nerdamer TypeScript Interface Reflection', () => {
     let project: tsMorph.Project;
     let sourceFile: tsMorph.SourceFile;
-    let typeChecker: tsMorph.TypeChecker;
+    let _typeChecker: tsMorph.TypeChecker;
 
     beforeAll(() => {
         project = new tsMorph.Project({
-            tsConfigFilePath: 'spec-dts/tsconfig.json',
+            tsConfigFilePath: 'tsconfig.json',
         });
 
         sourceFile = project.getSourceFileOrThrow('index.d.ts');
-        typeChecker = project.getTypeChecker();
+        _typeChecker = project.getTypeChecker();
     });
 
     describe('Core Type Aliases', () => {

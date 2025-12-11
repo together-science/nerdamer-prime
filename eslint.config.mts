@@ -1,5 +1,5 @@
-// @ts-check
 import js from '@eslint/js';
+import type { Linter } from 'eslint';
 import prettier from 'eslint-config-prettier';
 import jsdoc from 'eslint-plugin-jsdoc';
 import prettierPlugin from 'eslint-plugin-prettier';
@@ -63,7 +63,7 @@ const LEGACY_CORE_FILES = [
 ];
 
 /** Rules disabled for legacy JavaScript code. These are turned off to allow gradual modernization. */
-const LEGACY_JS_DISABLED_RULES = {
+const LEGACY_JS_DISABLED_RULES: Linter.RulesRecord = {
     'no-var': 'off',
     'prefer-const': 'off',
     curly: 'off',
@@ -92,7 +92,7 @@ const LEGACY_JS_DISABLED_RULES = {
 // =============================================================================
 
 /** JSDoc rules configuration. Set to 'warn' for progressive adoption; noisy rules are disabled. */
-const jsdocRules = {
+const jsdocRules: Linter.RulesRecord = {
     // Disable overly noisy rules
     'jsdoc/require-jsdoc': 'off',
     'jsdoc/require-param-description': 'off',
@@ -137,7 +137,7 @@ const jsdocRules = {
 // =============================================================================
 
 /** Core JavaScript rules applied to all files. */
-const baseJsRules = {
+const baseJsRules: Linter.RulesRecord = {
     // Prettier integration
     'prettier/prettier': 'error',
 
@@ -203,7 +203,7 @@ const baseJsRules = {
  * TypeScript-specific rules applied to .ts/.tsx files. These extend/override the base rules with TypeScript
  * equivalents.
  */
-const typescriptRules = {
+const typescriptRules: Linter.RulesRecord = {
     // Disable base rules that have TypeScript equivalents
     'no-unused-vars': 'off',
     'no-shadow': 'off',
@@ -212,7 +212,9 @@ const typescriptRules = {
     'no-dupe-class-members': 'off',
     'no-return-await': 'off',
 
-    // TypeScript equivalents
+    // TypeScript equivalents (rules that replace base ESLint rules)
+    '@typescript-eslint/no-redeclare': 'error',
+    '@typescript-eslint/no-dupe-class-members': 'error',
     '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -344,7 +346,7 @@ const typescriptRules = {
 // =============================================================================
 
 /** Relaxed TypeScript rules for test files. */
-const testFileTypescriptOverrides = {
+const testFileTypescriptOverrides: Linter.RulesRecord = {
     '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/no-non-null-assertion': 'off',
     '@typescript-eslint/no-unsafe-assignment': 'off',
@@ -404,7 +406,7 @@ export default defineConfig([
         languageOptions: {
             parser: tseslint.parser,
             parserOptions: {
-                project: ['./tsconfig.json', './spec-dts/tsconfig.json'],
+                project: './tsconfig.json',
                 tsconfigRootDir: import.meta.dirname,
                 ecmaVersion: 2024,
                 sourceType: 'module',
@@ -417,11 +419,11 @@ export default defineConfig([
     },
 
     // -------------------------------------------------------------------------
-    // Test Files Configuration
+    // Test Files Configuration (globals for all test files)
     // -------------------------------------------------------------------------
     {
-        name: 'tests/all',
-        files: ['**/*.spec.js', '**/*.spec.ts', '**/spec/**', '**/spec-dts/**'],
+        name: 'tests/globals',
+        files: ['**/*.spec.js', '**/*.spec.ts', 'spec/**', 'spec-dts/**'],
         languageOptions: {
             globals: {
                 ...globals.jest,
@@ -430,7 +432,6 @@ export default defineConfig([
         },
         rules: {
             'no-console': 'off',
-            ...testFileTypescriptOverrides,
         },
     },
 
@@ -439,7 +440,7 @@ export default defineConfig([
     // -------------------------------------------------------------------------
     {
         name: 'config-files',
-        files: ['*.config.js', '*.config.cjs', '*.config.mjs', '.prettierrc.cjs'],
+        files: ['*.config.js', '*.config.cjs', '*.config.mjs', '*.config.mts', '.prettierrc.cjs'],
         languageOptions: {
             globals: {
                 ...globals.node,
@@ -511,6 +512,31 @@ export default defineConfig([
     },
 
     // -------------------------------------------------------------------------
+    // Type Definition File (index.d.ts)
+    // -------------------------------------------------------------------------
+    {
+        name: 'type-definitions',
+        files: ['index.d.ts'],
+        rules: {
+            // Disable strict TypeScript rules for legacy type definitions
+            '@typescript-eslint/method-signature-style': 'off',
+            '@typescript-eslint/naming-convention': 'off',
+            '@typescript-eslint/no-use-before-define': 'off',
+            '@typescript-eslint/array-type': 'off',
+            '@typescript-eslint/no-explicit-any': 'off',
+            '@typescript-eslint/no-redundant-type-constituents': 'off',
+            '@typescript-eslint/member-ordering': 'off',
+            '@typescript-eslint/no-unnecessary-condition': 'off',
+            '@typescript-eslint/prefer-nullish-coalescing': 'off',
+            '@typescript-eslint/strict-boolean-expressions': 'off',
+            'jsdoc/check-param-names': 'off',
+            'jsdoc/require-throws-type': 'off',
+            'jsdoc/no-undefined-types': 'off',
+            'prettier/prettier': 'off',
+        },
+    },
+
+    // -------------------------------------------------------------------------
     // Ignored Files and Directories
     // -------------------------------------------------------------------------
     {
@@ -526,9 +552,8 @@ export default defineConfig([
             // Dependencies
             'node_modules/',
 
-            // Type declarations (generated)
-            'types/',
-            '**/*.d.ts',
+            // Type declarations (generated, in types/ folder)
+            'types/**/*.d.ts',
 
             // Temporary files
             'temp/',

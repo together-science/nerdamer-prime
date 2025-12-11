@@ -1496,7 +1496,10 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                             w = _.parse(parse_str);
                                         r.power = r.power.subtract(new Frac(2));
                                         if (r.power.equals(0)) r = _.parse(r);
-                                        retval = _.add(w, _.multiply(new NerdamerSymbol(n2 / n1), __.integrate(r, dx, depth)));
+                                        retval = _.add(
+                                            w,
+                                            _.multiply(new NerdamerSymbol(n2 / n1), __.integrate(r, dx, depth))
+                                        );
                                     } else if ((fname === COSH || fname === SINH) && symbol.power.equals(2)) {
                                         retval = __.integrate(symbol.fnTransform(), dx, depth);
                                     } else __.integration.stop();
@@ -1985,7 +1988,10 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                         var bksub = _.parse(
                                                             ASIN + '(' + SQRT + '(' + a + '/' + b + ')*' + dx + ')'
                                                         );
-                                                        retval = _.multiply(c, integral.sub(new NerdamerSymbol('u'), bksub));
+                                                        retval = _.multiply(
+                                                            c,
+                                                            integral.sub(new NerdamerSymbol('u'), bksub)
+                                                        );
                                                     } else if (p1 === -1 / 2) {
                                                         var u_transform = function (f, u) {
                                                             var integral = _.parse(
@@ -2011,8 +2017,14 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                                 _.sqrt(
                                                                     _.expand(
                                                                         _.divide(
-                                                                            _.pow(symbol, new NerdamerSymbol(2)).invert(),
-                                                                            _.pow(new NerdamerSymbol(dx), new NerdamerSymbol(2))
+                                                                            _.pow(
+                                                                                symbol,
+                                                                                new NerdamerSymbol(2)
+                                                                            ).invert(),
+                                                                            _.pow(
+                                                                                new NerdamerSymbol(dx),
+                                                                                new NerdamerSymbol(2)
+                                                                            )
                                                                         ).negate()
                                                                     )
                                                                 ).invert(),
@@ -2116,11 +2128,17 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                             if (!a.equals(1)) {
                                                                 //divide a out of everything
                                                                 //move a to the coeff
-                                                                coeff = _.multiply(coeff, _.pow(a, new NerdamerSymbol(2)));
+                                                                coeff = _.multiply(
+                                                                    coeff,
+                                                                    _.pow(a, new NerdamerSymbol(2))
+                                                                );
                                                             }
                                                             var u = dx;
                                                             var c = _.divide(
-                                                                    _.pow(b.clone().negate(), new NerdamerSymbol(1 / 2)),
+                                                                    _.pow(
+                                                                        b.clone().negate(),
+                                                                        new NerdamerSymbol(1 / 2)
+                                                                    ),
                                                                     _.pow(a, new NerdamerSymbol(1 / 2))
                                                                 ),
                                                                 du = _.symfunction(COS, [new NerdamerSymbol(u)]),
@@ -2137,7 +2155,9 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                             //but remember that u = asin(sqrt(b)*a*x)
                                                             retval = integral.sub(
                                                                 u,
-                                                                _.symfunction(ASIN, [_.multiply(new NerdamerSymbol(dx), c)])
+                                                                _.symfunction(ASIN, [
+                                                                    _.multiply(new NerdamerSymbol(dx), c),
+                                                                ])
                                                             );
                                                         } else {
                                                             retval = __.integration.partial_fraction(

@@ -138,7 +138,8 @@ if (typeof module !== 'undefined') {
                 for (var x in symbol.symbols) {
                     var sub = symbol.symbols[x],
                         p = sub.power;
-                    if (core.Utils.isSymbol(p)) throw new core.exceptions.NerdamerTypeError('power cannot be a NerdamerSymbol');
+                    if (core.Utils.isSymbol(p))
+                        throw new core.exceptions.NerdamerTypeError('power cannot be a NerdamerSymbol');
 
                     p = sub.group === N ? 0 : p.toDecimal();
                     if (sub.symbols) {
@@ -1096,7 +1097,9 @@ if (typeof module !== 'undefined') {
 
                 return get_roots(rarr, powers, max);
             } else {
-                throw new core.exceptions.NerdamerTypeError('Cannot calculate roots. NerdamerSymbol must be a polynomial!');
+                throw new core.exceptions.NerdamerTypeError(
+                    'Cannot calculate roots. NerdamerSymbol must be a polynomial!'
+                );
             }
 
             function calcroots(rarr, powers, max) {
@@ -2203,7 +2206,10 @@ if (typeof module !== 'undefined') {
                             //matching variable terms matches the number of original terms
                             if (map[x][1].length === symbols.length) {
                                 //generate a symbol and multiply into the factor
-                                factor = _.multiply(factor, _.pow(new NerdamerSymbol(x), new NerdamerSymbol(map[x][0])));
+                                factor = _.multiply(
+                                    factor,
+                                    _.pow(new NerdamerSymbol(x), new NerdamerSymbol(map[x][0]))
+                                );
                             }
                         }
                         //get coefficient factor
@@ -4318,7 +4324,10 @@ if (typeof module !== 'undefined') {
                         }, true);
 
                         //put back the power and multiplier and return
-                        retval = _.pow(_.multiply(new NerdamerSymbol(symbol.multiplier), sym), new NerdamerSymbol(symbol.power));
+                        retval = _.pow(
+                            _.multiply(new NerdamerSymbol(symbol.multiplier), sym),
+                            new NerdamerSymbol(symbol.power)
+                        );
                         workDone = retval.text() !== symbol.text();
                     } else if (symbol.group === CB) {
                         var n = symbol.getNum();

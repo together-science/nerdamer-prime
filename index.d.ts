@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /**
  * Nerdamer-Prime TypeScript Declaration File
  *
@@ -112,7 +111,12 @@ type int = number;
  *         nerdamer.add(equation, 'x')        // NerdamerEquation objects
  *         ```;
  */
-type ExpressionParam = string | number | NerdamerExpression | NerdamerEquation | nerdamerPrime.NerdamerCore.NerdamerSymbol;
+type ExpressionParam =
+    | string
+    | number
+    | NerdamerExpression
+    | NerdamerEquation
+    | nerdamerPrime.NerdamerCore.NerdamerSymbol;
 
 /**
  * Represents the result of solving a system of equations.
@@ -165,8 +169,8 @@ type SolveResult =
  * An internal base interface for core symbolic objects to share common methods.
  *
  * INCONSISTENCY NOTE: The `clone()` method was removed from this interface because it doesn't exist in the JavaScript
- * runtime. While NerdamerSymbol has a clone() method, Expression does not expose it, causing the Expression Method Coverage to
- * be 97% instead of 100%.
+ * runtime. While NerdamerSymbol has a clone() method, Expression does not expose it, causing the Expression Method
+ * Coverage to be 97% instead of 100%.
  *
  * @internal
  */
@@ -208,8 +212,8 @@ interface CoreExpressionBase {
 }
 
 /**
- * The main expression object returned by nerdamer(), wrapping a symbolic NerdamerSymbol object. Provides a developer-friendly
- * API for manipulating mathematical expressions.
+ * The main expression object returned by nerdamer(), wrapping a symbolic NerdamerSymbol object. Provides a
+ * developer-friendly API for manipulating mathematical expressions.
  *
  * All mathematical objects in Nerdamer (including vectors and matrices) are ultimately NerdamerExpression instances,
  * making the API consistent and predictable.
@@ -2962,8 +2966,16 @@ declare namespace nerdamerPrime {
              * @param wrt The variable to decompose with respect to.
              * @param as_obj If true, returns an object; otherwise, returns an array.
              */
-            decompose_fn(fn: NerdamerSymbol, wrt: string, as_obj?: false): [NerdamerSymbol, NerdamerSymbol, NerdamerSymbol, NerdamerSymbol];
-            decompose_fn(fn: NerdamerSymbol, wrt: string, as_obj: true): { a: NerdamerSymbol; x: NerdamerSymbol; ax: NerdamerSymbol; b: NerdamerSymbol };
+            decompose_fn(
+                fn: NerdamerSymbol,
+                wrt: string,
+                as_obj?: false
+            ): [NerdamerSymbol, NerdamerSymbol, NerdamerSymbol, NerdamerSymbol];
+            decompose_fn(
+                fn: NerdamerSymbol,
+                wrt: string,
+                as_obj: true
+            ): { a: NerdamerSymbol; x: NerdamerSymbol; ax: NerdamerSymbol; b: NerdamerSymbol };
 
             /**
              * Disarms the timeout timer.

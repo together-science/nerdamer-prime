@@ -11,7 +11,7 @@ describe('Nerdamer AST Introspection Tests', () => {
         nerdamerRuntime = nerdamerRuntime.default || nerdamerRuntime;
 
         project = new tsMorph.Project({
-            tsConfigFilePath: 'spec-dts/tsconfig.json',
+            tsConfigFilePath: 'tsconfig.json',
         });
 
         sourceFile = project.getSourceFileOrThrow('index.d.ts');

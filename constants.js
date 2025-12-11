@@ -29,6 +29,7 @@ var PRIMES = [
 ];
 
 /** Set representation of PRIMES for O(1) lookup This object is used as a cache and can be extended at runtime */
+/** @type {Record<number, boolean>} */
 var PRIMES_SET = {};
 for (const p of PRIMES) {
     PRIMES_SET[p] = true;
