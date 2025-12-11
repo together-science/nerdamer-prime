@@ -13,7 +13,7 @@ import tseslint from 'typescript-eslint';
 
 /** Nerdamer internal types used in JSDoc annotations. These are class names defined within the nerdamer codebase. */
 const NERDAMER_TYPES = [
-    'Symbol',
+    'NerdamerSymbol',
     'Frac',
     'Vector',
     'Matrix',
@@ -113,12 +113,12 @@ const jsdocRules = {
     'jsdoc/check-tag-names': 'warn',
     'jsdoc/valid-types': 'warn',
 
-    // Type checking - disable defaults to prevent Symbol->symbol conversion (Symbol is our class)
-    // The defaults would convert String->string, Number->number etc which we handle via sed
+    // Type checking - enable defaults now that we've renamed Symbol to NerdamerSymbol
+    // This will flag String->string, Number->number, Boolean->boolean conversions
     'jsdoc/check-types': [
         'warn',
         {
-            noDefaults: true,
+            noDefaults: false,
             unifyParentAndChildTypeChecks: true,
         },
     ],

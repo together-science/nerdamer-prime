@@ -345,13 +345,13 @@ describe('Nerdamer core', function () {
     it('should set postfix operators correctly', function () {
         var core = nerdamer.getCore();
         var _ = core.PARSER;
-        var Symbol = core.Symbol;
+        var NerdamerSymbol = core.NerdamerSymbol;
         nerdamer.setOperator({
             precedence: 4,
             operator: '°',
             postfix: true,
             operation: function (x) {
-                return _.divide(_.multiply(x, new Symbol('pi')), new Symbol(180));
+                return _.divide(_.multiply(x, new NerdamerSymbol('pi')), new NerdamerSymbol(180));
             },
         });
 

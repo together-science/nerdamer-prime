@@ -5,7 +5,7 @@ import tsMorph from 'ts-morph';
 describe('Nerdamer TypeScript Interface Reflection', () => {
     let project: tsMorph.Project;
     let sourceFile: tsMorph.SourceFile;
-    let _typeChecker: tsMorph.TypeChecker;
+    let typeChecker: tsMorph.TypeChecker;
 
     beforeAll(() => {
         project = new tsMorph.Project({
@@ -298,7 +298,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
         });
 
         it('should have core data structure interfaces', () => {
-            const expectedInterfaces = ['Frac', 'Symbol', 'Vector', 'Matrix', 'Set', 'Collection'];
+            const expectedInterfaces = ['Frac', 'NerdamerSymbol', 'Vector', 'Matrix', 'Set', 'Collection'];
 
             for (const ifaceName of expectedInterfaces) {
                 const iface = nerdamerCoreNamespace?.getInterface(ifaceName);

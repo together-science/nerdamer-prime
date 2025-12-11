@@ -293,9 +293,9 @@ describe('Nerdamer AST Introspection Tests', () => {
                     return false;
                 }
 
-                // The symbol should be a proper Symbol object with expected properties
+                // The symbol should be a proper NerdamerSymbol object with expected properties
                 if (v.symbol && typeof v.symbol === 'object') {
-                    // A proper Symbol should have these core properties according to the type definitions
+                    // A proper NerdamerSymbol should have these core properties according to the type definitions
                     const hasSymbolProps =
                         'group' in v.symbol && 'value' in v.symbol && 'multiplier' in v.symbol && 'power' in v.symbol;
                     if (!hasSymbolProps) {
@@ -862,12 +862,12 @@ describe('Nerdamer AST Introspection Tests', () => {
                     return false;
                 }
 
-                // The symbol should be a proper Symbol object with expected properties
+                // The symbol should be a proper NerdamerSymbol object with expected properties
                 if (v.symbol && typeof v.symbol === 'object') {
                     const hasSymbolProps =
                         'group' in v.symbol && 'value' in v.symbol && 'multiplier' in v.symbol && 'power' in v.symbol;
                     if (!hasSymbolProps) {
-                        console.log(`  🔍 Symbol object missing required properties for ${functionName}`);
+                        console.log(`  🔍 NerdamerSymbol object missing required properties for ${functionName}`);
                         return false;
                     }
                 }
@@ -888,17 +888,17 @@ describe('Nerdamer AST Introspection Tests', () => {
                     }
 
                     // Check if undefined is allowed in the symbol type
-                    if (declaredType.includes('Symbol | undefined')) {
-                        // Allow symbol to be either a proper Symbol object or undefined
+                    if (declaredType.includes('NerdamerSymbol | undefined')) {
+                        // Allow symbol to be either a proper NerdamerSymbol object or undefined
                         return (
                             actualValue.symbol === undefined ||
                             (actualValue.symbol && typeof actualValue.symbol === 'object')
                         );
-                    } else if (declaredType.includes('Symbol')) {
-                        // Symbol is required, undefined is NOT allowed
+                    } else if (declaredType.includes('NerdamerSymbol')) {
+                        // NerdamerSymbol is required, undefined is NOT allowed
                         if (actualValue.symbol === undefined) {
                             console.log(
-                                `  🚨 Symbol property is undefined but type requires Symbol (no undefined allowed)`
+                                `  🚨 NerdamerSymbol property is undefined but type requires NerdamerSymbol (no undefined allowed)`
                             );
                             return false;
                         }

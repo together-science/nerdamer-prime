@@ -44,7 +44,7 @@ if (typeof module !== 'undefined') {
         round = core.Utils.round,
         Frac = core.Frac,
         isInt = core.Utils.isInt,
-        Symbol = core.Symbol,
+        NerdamerSymbol = core.NerdamerSymbol,
         CONST_HASH = core.Settings.CONST_HASH,
         math = core.Utils.importFunctions(),
         evaluate = core.Utils.evaluate;
@@ -53,7 +53,7 @@ if (typeof module !== 'undefined') {
      * Converts a symbol into an equivalent polynomial arrays of the form [[coefficient_1, power_1],[coefficient_2,
      * power_2], ... ] Univariate polymials only.
      *
-     * @param {Symbol | number} symbol
+     * @param {NerdamerSymbol | number} symbol
      * @param {string} variable The variable name of the polynomial
      * @param {number} order
      */
@@ -117,9 +117,9 @@ if (typeof module !== 'undefined') {
 
     Polynomial.prototype = {
         /**
-         * Converts Symbol to Polynomial
+         * Converts NerdamerSymbol to Polynomial
          *
-         * @param {Symbol} symbol
+         * @param {NerdamerSymbol} symbol
          * @param {Array} c - A collector array
          * @returns {Polynomial}
          */
@@ -138,7 +138,7 @@ if (typeof module !== 'undefined') {
                 for (var x in symbol.symbols) {
                     var sub = symbol.symbols[x],
                         p = sub.power;
-                    if (core.Utils.isSymbol(p)) throw new core.exceptions.NerdamerTypeError('power cannot be a Symbol');
+                    if (core.Utils.isSymbol(p)) throw new core.exceptions.NerdamerTypeError('power cannot be a NerdamerSymbol');
 
                     p = sub.group === N ? 0 : p.toDecimal();
                     if (sub.symbols) {
@@ -511,14 +511,14 @@ if (typeof module !== 'undefined') {
             return [output, w, i];
         },
         /**
-         * Converts polynomial to Symbol
+         * Converts polynomial to NerdamerSymbol
          *
-         * @returns {Symbol}
+         * @returns {NerdamerSymbol}
          */
         toSymbol: function () {
             var l = this.coeffs.length,
                 variable = this.variable;
-            if (l === 0) return new core.Symbol(0);
+            if (l === 0) return new core.NerdamerSymbol(0);
             var end = l - 1,
                 str = '';
 
@@ -562,7 +562,7 @@ if (typeof module !== 'undefined') {
      * @param {boolean} with_order
      * @returns {Array}
      */
-    Symbol.prototype.coeffs = function (c, with_order) {
+    NerdamerSymbol.prototype.coeffs = function (c, with_order) {
         if (with_order && !this.isPoly(true)) _.error('Polynomial expected when requesting coefficients with order');
         c = c || [];
         var s = this.clone().distributeMultiplier();
@@ -582,7 +582,7 @@ if (typeof module !== 'undefined') {
             if (with_order) c[s.isConstant(true) ? 0 : s.power.toDecimal()] = s.multiplier;
             else {
                 if (s.group === CB && s.isImaginary()) {
-                    var m = new Symbol(s.multiplier);
+                    var m = new NerdamerSymbol(s.multiplier);
                     s.each(function (x) {
                         //add the imaginary part
                         if (x.isConstant(true) || x.imaginary) m = _.multiply(m, x);
@@ -593,12 +593,12 @@ if (typeof module !== 'undefined') {
         }
         //fill the holes
         if (with_order) {
-            for (var i = 0; i < c.length; i++) if (c[i] === undefined) c[i] = new Symbol(0);
+            for (var i = 0; i < c.length; i++) if (c[i] === undefined) c[i] = new NerdamerSymbol(0);
         }
         return c;
     };
-    Symbol.prototype.tBase = function (map) {
-        if (typeof map === 'undefined') throw new Error('Symbol.tBase requires a map object!');
+    NerdamerSymbol.prototype.tBase = function (map) {
+        if (typeof map === 'undefined') throw new Error('NerdamerSymbol.tBase requires a map object!');
         var terms = [];
         var symbols = this.collectSymbols(null, null, null, true),
             l = symbols.length;
@@ -620,7 +620,7 @@ if (typeof module !== 'undefined') {
         }
         return terms;
     };
-    Symbol.prototype.altVar = function (x) {
+    NerdamerSymbol.prototype.altVar = function (x) {
         var m = this.multiplier.toString(),
             p = this.power.toString();
         return (m === '1' ? '' : m + '*') + x + (p === '1' ? '' : '^' + p);
@@ -628,10 +628,10 @@ if (typeof module !== 'undefined') {
     /**
      * Checks to see if the symbols contain the same variables
      *
-     * @param {Symbol} symbol
+     * @param {NerdamerSymbol} symbol
      * @returns {boolean}
      */
-    Symbol.prototype.sameVars = function (symbol) {
+    NerdamerSymbol.prototype.sameVars = function (symbol) {
         if (!(this.symbols || this.group === symbol.group)) return false;
         for (var x in this.symbols) {
             var a = this.symbols[x],
@@ -647,7 +647,7 @@ if (typeof module !== 'undefined') {
      *
      * @returns {Factors}
      */
-    Symbol.prototype.groupTerms = function (x) {
+    NerdamerSymbol.prototype.groupTerms = function (x) {
         x = String(x);
         var f, p, egrouped;
         var grouped = [];
@@ -662,7 +662,7 @@ if (typeof module !== 'undefined') {
                 f = core.Utils.decompose_fn(e, x, true);
                 p = f.x.value === x ? Number(f.x.power) : 0;
                 //check if there's an existing value
-                grouped[p] = _.add(grouped[p] || new Symbol(0), f.a);
+                grouped[p] = _.add(grouped[p] || new NerdamerSymbol(0), f.a);
             }
         });
         return grouped;
@@ -670,9 +670,9 @@ if (typeof module !== 'undefined') {
     /**
      * Use this to collect Factors
      *
-     * @returns {Symbol[]}
+     * @returns {NerdamerSymbol[]}
      */
-    Symbol.prototype.collectFactors = function () {
+    NerdamerSymbol.prototype.collectFactors = function () {
         var factors = [];
         if (this.group === CB)
             this.each(function (x) {
@@ -700,7 +700,7 @@ if (typeof module !== 'undefined') {
     /**
      * Adds the factors to the factor object
      *
-     * @param {Symbol} s
+     * @param {NerdamerSymbol} s
      * @returns {Factors}
      */
     Factors.prototype.add = function (s) {
@@ -719,7 +719,7 @@ if (typeof module !== 'undefined') {
 
         if (s.group === CB) {
             var factors = this;
-            if (!s.multiplier.equals(1)) factors.add(new Symbol(s.multiplier));
+            if (!s.multiplier.equals(1)) factors.add(new NerdamerSymbol(s.multiplier));
             s.each(function (x) {
                 factors.add(x);
             });
@@ -729,7 +729,7 @@ if (typeof module !== 'undefined') {
                 s = this.preAdd(s);
             if (this.pFactor)
                 //if the symbol isn't linear add back the power
-                s = _.pow(s, new Symbol(this.pFactor));
+                s = _.pow(s, new NerdamerSymbol(this.pFactor));
 
             var is_constant = s.isConstant();
             if (is_constant && s.equals(1)) return this; //don't add 1
@@ -749,12 +749,12 @@ if (typeof module !== 'undefined') {
         return this;
     };
     /**
-     * Converts the factor object to a Symbol
+     * Converts the factor object to a NerdamerSymbol
      *
-     * @returns {Symbol}
+     * @returns {NerdamerSymbol}
      */
     Factors.prototype.toSymbol = function () {
-        var factored = new Symbol(1);
+        var factored = new NerdamerSymbol(1);
         var factors = Object.values(this.factors).sort(function (a, b) {
             return a.group > b.group;
         });
@@ -770,7 +770,7 @@ if (typeof module !== 'undefined') {
 
             factored = _.multiply(factored, factor);
         }
-        if (factored.fname === '') factored = Symbol.unwrapPARENS(factored);
+        if (factored.fname === '') factored = NerdamerSymbol.unwrapPARENS(factored);
         return factored;
     };
     /**
@@ -863,12 +863,12 @@ if (typeof module !== 'undefined') {
     };
     MVTerm.prototype.toSymbol = function (rev_map) {
         rev_map = rev_map || this.getRevMap();
-        var symbol = new Symbol(this.coeff);
+        var symbol = new NerdamerSymbol(this.coeff);
         for (var i = 0; i < this.terms.length; i++) {
             var v = rev_map[i],
                 t = this.terms[i];
             if (t.equals(0) || v === CONST_HASH) continue;
-            var mapped = new Symbol(v);
+            var mapped = new NerdamerSymbol(v);
             mapped.power = t;
             symbol = _.multiply(symbol, mapped);
         }
@@ -979,7 +979,7 @@ if (typeof module !== 'undefined') {
     /**
      * Substitutes out functions as variables so they can be used in regular algorithms
      *
-     * @param {Symbol} symbol
+     * @param {NerdamerSymbol} symbol
      * @param {object} map
      * @returns {string} The expression string
      */
@@ -1033,7 +1033,7 @@ if (typeof module !== 'undefined') {
                 return roots;
             };
 
-            if (symbol instanceof Symbol && symbol.isPoly()) {
+            if (symbol instanceof NerdamerSymbol && symbol.isPoly()) {
                 symbol.distributeMultiplier();
                 //make it so the symbol has a constants as the lowest term
                 if (symbol.group === PL) {
@@ -1096,7 +1096,7 @@ if (typeof module !== 'undefined') {
 
                 return get_roots(rarr, powers, max);
             } else {
-                throw new core.exceptions.NerdamerTypeError('Cannot calculate roots. Symbol must be a polynomial!');
+                throw new core.exceptions.NerdamerTypeError('Cannot calculate roots. NerdamerSymbol must be a polynomial!');
             }
 
             function calcroots(rarr, powers, max) {
@@ -2021,7 +2021,7 @@ if (typeof module !== 'undefined') {
         },
         coeffs: function (symbol, wrt, coeffs) {
             symbol = _.expand(symbol);
-            coeffs = coeffs || [new Symbol(0)];
+            coeffs = coeffs || [new NerdamerSymbol(0)];
             //we cannot get coeffs for group EX
             var vars = variables(symbol);
 
@@ -2042,7 +2042,7 @@ if (typeof module !== 'undefined') {
 
             if (vars.length === 1 && vars[0] === wrt && !symbol.isImaginary() && !hasIrrationalConstants) {
                 var a = new Polynomial(symbol).coeffs.map(function (x) {
-                    return new Symbol(x);
+                    return new NerdamerSymbol(x);
                 });
 
                 for (var i = 0, l = a.length; i < l; i++) {
@@ -2076,7 +2076,7 @@ if (typeof module !== 'undefined') {
                 if (vars.indexOf(wrt) === -1) {
                     coeffs[0] = _.add(symbol, coeffs[0]);
                 } else {
-                    coeffs = coeffs || [new Symbol(0)];
+                    coeffs = coeffs || [new NerdamerSymbol(0)];
                     if (symbol.group === CB) {
                         var s = symbol.symbols[wrt];
                         if (!s) _.error('Expression is not a polynomial!');
@@ -2095,7 +2095,7 @@ if (typeof module !== 'undefined') {
             }
             //fill holes
             for (var i = 0, l = coeffs.length; i < l; i++)
-                if (typeof coeffs[i] === 'undefined') coeffs[i] = new Symbol(0);
+                if (typeof coeffs[i] === 'undefined') coeffs[i] = new NerdamerSymbol(0);
 
             return coeffs;
         },
@@ -2104,7 +2104,7 @@ if (typeof module !== 'undefined') {
          * returned as negative. All remaining polynomials are returned as zero order polynomials. for example
          * polyPowers(x^2+1/x+y+t) will return [ '-1', 0, '2' ]
          *
-         * @param {Symbol} e
+         * @param {NerdamerSymbol} e
          * @param {string} for_variable
          * @param {Array} powers
          * @returns {Array} An array of the powers
@@ -2136,8 +2136,8 @@ if (typeof module !== 'undefined') {
         Factor: {
             //splits the symbol in symbol and constant
             split: function (symbol) {
-                var c = new Symbol(1); //the constants part
-                var s = new Symbol(1); //the symbolic part
+                var c = new NerdamerSymbol(1); //the constants part
+                var s = new NerdamerSymbol(1); //the symbolic part
                 __.Factor.factorInner(symbol, new Factors()).each(function (x) {
                     var t = _.parse(x);
                     if (x.isConstant(true)) {
@@ -2197,20 +2197,20 @@ if (typeof module !== 'undefined') {
                             });
                         }
                         //the factor
-                        var factor = new Symbol(1);
+                        var factor = new NerdamerSymbol(1);
                         for (var x in map) {
                             //if this factor is found in all terms since the length of
                             //matching variable terms matches the number of original terms
                             if (map[x][1].length === symbols.length) {
                                 //generate a symbol and multiply into the factor
-                                factor = _.multiply(factor, _.pow(new Symbol(x), new Symbol(map[x][0])));
+                                factor = _.multiply(factor, _.pow(new NerdamerSymbol(x), new NerdamerSymbol(map[x][0])));
                             }
                         }
                         //get coefficient factor
                         var c = core.Math2.QGCD.apply(null, coeffs);
 
                         if (!c.equals(1)) {
-                            factors.add(new Symbol(c));
+                            factors.add(new NerdamerSymbol(c));
                             for (var i = 0; i < symbols.length; i++) {
                                 symbols[i].multiplier = symbols[i].multiplier.divide(c);
                             }
@@ -2219,7 +2219,7 @@ if (typeof module !== 'undefined') {
                         //if we actuall found any factors
                         if (!factor.equals(1)) {
                             factors.add(factor);
-                            symbol = new Symbol(0);
+                            symbol = new NerdamerSymbol(0);
                             for (var i = 0; i < symbols.length; i++) {
                                 symbol = _.add(symbol, _.divide(symbols[i], factor.clone()));
                             }
@@ -2241,7 +2241,7 @@ if (typeof module !== 'undefined') {
                     e = symbol.toString();
                     vars = variables(symbol);
 
-                    sum = new Symbol(0);
+                    sum = new NerdamerSymbol(0);
 
                     var terms = [];
                     var powers = [];
@@ -2393,7 +2393,7 @@ if (typeof module !== 'undefined') {
                 }
 
                 if (retval.group === CB) {
-                    var t = new Symbol(1);
+                    var t = new NerdamerSymbol(1);
                     var p = _.parse(retval.power);
                     //store the multiplier and strip it
                     var m = _.parse(retval.multiplier);
@@ -2415,20 +2415,20 @@ if (typeof module !== 'undefined') {
                         // do the update for us.
 
                         var factored = _.parse(__.Factor._factor(x));
-                        m = _.multiply(m, Symbol.create(factored.multiplier));
+                        m = _.multiply(m, NerdamerSymbol.create(factored.multiplier));
                         factored.toUnitMultiplier();
 
                         if (factored.group === CB) {
-                            let _t = new Symbol(1);
+                            let _t = new NerdamerSymbol(1);
                             factored.each(function (y) {
                                 var _factored = _.parse(__.Factor._factor(y));
                                 if (_factored.group === CB) {
-                                    m = _.multiply(m, Symbol.create(_factored.multiplier));
+                                    m = _.multiply(m, NerdamerSymbol.create(_factored.multiplier));
                                     _factored.toUnitMultiplier();
                                 }
                                 _t = _.multiply(_t, _factored);
                             });
-                            _t = _.pow(_t, new Symbol(factored.power));
+                            _t = _.pow(_t, new NerdamerSymbol(factored.power));
                             t = _.multiply(t, _t);
                         } else {
                             t = _.multiply(t, factored);
@@ -2478,7 +2478,7 @@ if (typeof module !== 'undefined') {
                                 //we found them both
                                 factors.add(_.parse(format('({0})*({1})+({2})', symbols[1], v, root2)));
                                 factors.add(_.parse(format('({0})*({1})+({2})', symbols[0], v, root1)));
-                                symbol = new Symbol(1);
+                                symbol = new NerdamerSymbol(1);
                             }
                         }
                     }
@@ -2528,12 +2528,12 @@ if (typeof module !== 'undefined') {
                                 // Apply difference of cubes rule
                                 factors.add(_.parse(format('(({0})-({1}))', x, y)));
                                 factors.add(_.parse(format('(({0})^2+({0})*({1})+({1})^2)', x, y)));
-                                symbol = Symbol(1);
+                                symbol = NerdamerSymbol(1);
                             } else if (sign_a === 1 && sign_b === 1) {
                                 // Apply sum of cubes rule
                                 factors.add(_.parse(format('(({0})+({1}))', x, y)));
                                 factors.add(_.parse(format('(({0})^2-({0})*({1})+({1})^2)', x, y)));
-                                symbol = Symbol(1);
+                                symbol = NerdamerSymbol(1);
                             }
                         }
                     }
@@ -2559,7 +2559,7 @@ if (typeof module !== 'undefined') {
                 //if(symbol.group === CP && !(even(symbol.power) && symbol.multiplier.lessThan(0))) {
                 if (symbol.group === CP) {
                     symbol.distributeMultiplier(true);
-                    var t = new Symbol(0);
+                    var t = new NerdamerSymbol(0);
                     symbol.each(function (x) {
                         if ((x.group === CP && x.power.greaterThan(1)) || x.group === CB) x = _.expand(x);
                         t = _.add(t, x);
@@ -2761,10 +2761,10 @@ if (typeof module !== 'undefined') {
                         //turn n into a number
                         var nn = Number(n);
                         //the remainder
-                        var result = new Symbol(0);
+                        var result = new NerdamerSymbol(0);
                         for (var i = 1; i <= nn; i++) {
-                            var aa = _.pow(a.clone(), _.subtract(n.clone(), new Symbol(i))),
-                                bb = _.pow(b.clone(), _.subtract(new Symbol(i), new Symbol(1)));
+                            var aa = _.pow(a.clone(), _.subtract(n.clone(), new NerdamerSymbol(i))),
+                                bb = _.pow(b.clone(), _.subtract(new NerdamerSymbol(i), new NerdamerSymbol(1)));
                             result = _.add(result, _.multiply(aa, bb));
                         }
                         return result;
@@ -2773,12 +2773,12 @@ if (typeof module !== 'undefined') {
                 return symbol;
             },
             /**
-             * Makes Symbol square free
+             * Makes NerdamerSymbol square free
              *
-             * @param {Symbol} symbol
+             * @param {NerdamerSymbol} symbol
              * @param {Factors} factors
              * @param {string} variable The variable which is being factored
-             * @returns {[Symbol, Factor]}
+             * @returns {[NerdamerSymbol, Factor]}
              */
             squareFree: function (symbol, factors, variable) {
                 if (symbol.isConstant() || symbol.group === S) return symbol;
@@ -2808,9 +2808,9 @@ if (typeof module !== 'undefined') {
             /**
              * Factors the powers such that the lowest power is a constant
              *
-             * @param {Symbol} symbol
+             * @param {NerdamerSymbol} symbol
              * @param {Factors} factors
-             * @returns {[Symbol, Factor]}
+             * @returns {[NerdamerSymbol, Factor]}
              */
             powerFactor: function (symbol, factors) {
                 //only PL need apply
@@ -2820,7 +2820,7 @@ if (typeof module !== 'undefined') {
                 if (!core.Utils.allNumeric(k)) return symbol;
 
                 var d = core.Utils.arrayMin(k);
-                var retval = new Symbol(0);
+                var retval = new NerdamerSymbol(0);
                 var q = _.parse(symbol.value + '^' + d);
                 symbol.each(function (x) {
                     x = _.divide(x, q.clone());
@@ -2833,9 +2833,9 @@ if (typeof module !== 'undefined') {
             /**
              * Removes GCD from coefficients
              *
-             * @param {Symbol} symbol
+             * @param {NerdamerSymbol} symbol
              * @param {Factor} factors
-             * @returns {Symbol}
+             * @returns {NerdamerSymbol}
              */
             coeffFactor: function (symbol, factors) {
                 if (symbol.isComposite()) {
@@ -2878,7 +2878,7 @@ if (typeof module !== 'undefined') {
                             if (LT.multiplier.lessThan(0)) {
                                 // Although the symbol should always be linear at this point, remove the negative for squares
                                 // to be safe.
-                                factors.add(new Symbol(-1));
+                                factors.add(new NerdamerSymbol(-1));
 
                                 symbol.each(function (x) {
                                     x.negate();
@@ -2888,7 +2888,7 @@ if (typeof module !== 'undefined') {
                     }
 
                     if (factors) {
-                        factors.add(new Symbol(gcd));
+                        factors.add(new NerdamerSymbol(gcd));
                     }
                 }
 
@@ -2897,10 +2897,10 @@ if (typeof module !== 'undefined') {
             /**
              * The name says it all :)
              *
-             * @param {Symbol} symbol
+             * @param {NerdamerSymbol} symbol
              * @param {Factor} factors
              * @param {string} variable
-             * @returns {Symbol}
+             * @returns {NerdamerSymbol}
              */
             trialAndError: function (symbol, factors, variable) {
                 var untouched = symbol.clone();
@@ -3018,9 +3018,9 @@ if (typeof module !== 'undefined') {
             /**
              * Equivalent of square free factor for multivariate polynomials
              *
-             * @param {Symbol} symbol
+             * @param {NerdamerSymbol} symbol
              * @param {Factors} factors
-             * @returns {Symbol | Array}
+             * @returns {NerdamerSymbol | Array}
              */
             mSqfrFactor: function (symbol, factors) {
                 if (symbol.group !== FN) {
@@ -3033,7 +3033,7 @@ if (typeof module !== 'undefined') {
                             if (vars[i] === symbol.value) {
                                 //the derivative tells us nothing since this symbol is already the factor
                                 factors.add(symbol);
-                                symbol = new Symbol(1);
+                                symbol = new NerdamerSymbol(1);
                                 continue;
                             }
 
@@ -3101,7 +3101,7 @@ if (typeof module !== 'undefined') {
                         return core.Utils.block(
                             'POSITIVE_MULTIPLIERS',
                             function () {
-                                return Symbol.unwrapPARENS(math.sqrt(math.abs(x)));
+                                return NerdamerSymbol.unwrapPARENS(math.sqrt(math.abs(x)));
                             },
                             true
                         );
@@ -3140,7 +3140,7 @@ if (typeof module !== 'undefined') {
                                 f.toLinear();
                                 factors.add(_.subtract(f.clone(), b.clone()));
                                 factors.add(_.add(f, b));
-                                symbol = new Symbol(1);
+                                symbol = new NerdamerSymbol(1);
                             }
                         } else {
                             a = a.powSimp();
@@ -3165,7 +3165,7 @@ if (typeof module !== 'undefined') {
 
                                 factors.add(_.subtract(a.clone(), b.clone()));
                                 factors.add(_.add(a, b));
-                                symbol = new Symbol(1);
+                                symbol = new NerdamerSymbol(1);
                             }
                         }
                     }
@@ -3188,7 +3188,7 @@ if (typeof module !== 'undefined') {
                         });
                     } else {
                         factors.add(symbol);
-                        symbol = new Symbol(1);
+                        symbol = new NerdamerSymbol(1);
                     }
                 } else {
                     //square free factorization
@@ -3199,7 +3199,7 @@ if (typeof module !== 'undefined') {
 
                     var vars = variables(symbol),
                         symbols = symbol.collectSymbols().map(function (x) {
-                            return Symbol.unwrapSQRT(x);
+                            return NerdamerSymbol.unwrapSQRT(x);
                         }),
                         sorted = {},
                         maxes = {},
@@ -3210,7 +3210,7 @@ if (typeof module !== 'undefined') {
 
                     for (var i = 0; i < l; i++) {
                         var v = vars[i];
-                        sorted[v] = new Symbol(0);
+                        sorted[v] = new NerdamerSymbol(0);
                         for (var j = 0; j < n; j++) {
                             var s = symbols[j];
                             if (s.contains(v)) {
@@ -3345,7 +3345,7 @@ if (typeof module !== 'undefined') {
         },
         /*
          * Checks to see if the "equation" is linear
-         * @param {Symbol} e
+         * @param {NerdamerSymbol} e
          * @returns {boolean}
          */
         isLinear: function (e) {
@@ -3381,7 +3381,7 @@ if (typeof module !== 'undefined') {
             else args = core.Utils.arguments2Array(arguments);
 
             //short-circuit early
-            if (args.length === 0) return new Symbol(1);
+            if (args.length === 0) return new NerdamerSymbol(1);
             else if (args.length === 1) return args[0];
 
             var appeared = [],
@@ -3450,10 +3450,10 @@ if (typeof module !== 'undefined') {
 
             if (a.isConstant() && b.isConstant()) {
                 // return core.Math2.QGCD(new Frac(+a), new Frac(+b));
-                return new Symbol(core.Math2.QGCD(new Frac(+a), new Frac(+b)));
+                return new NerdamerSymbol(core.Math2.QGCD(new Frac(+a), new Frac(+b)));
             }
 
-            var den = _.multiply(a.getDenom() || new Symbol(1), b.getDenom() || new Symbol(1)).invert();
+            var den = _.multiply(a.getDenom() || new NerdamerSymbol(1), b.getDenom() || new NerdamerSymbol(1)).invert();
             a = _.multiply(a.clone(), den.clone());
             b = _.multiply(b.clone(), den.clone());
 
@@ -3470,10 +3470,10 @@ if (typeof module !== 'undefined') {
 
             //just take the gcd of each component when either of them is in group EX
             if (a.group === EX || b.group === EX) {
-                var gcd_m = new Symbol(core.Math2.GCD(a.multiplier, b.multiplier));
+                var gcd_m = new NerdamerSymbol(core.Math2.GCD(a.multiplier, b.multiplier));
                 var gcd_v = __.gcd_(
-                    a.value === CONST_HASH ? new Symbol(1) : _.parse(a.value),
-                    b.value === CONST_HASH ? new Symbol(1) : _.parse(b.value)
+                    a.value === CONST_HASH ? new NerdamerSymbol(1) : _.parse(a.value),
+                    b.value === CONST_HASH ? new NerdamerSymbol(1) : _.parse(b.value)
                 );
                 var gcd_p = __.gcd_(_.parse(a.power), _.parse(b.power));
                 return _.multiply(gcd_m, _.pow(gcd_v, gcd_p));
@@ -3514,8 +3514,8 @@ if (typeof module !== 'undefined') {
 
                     b = T[1];
                     if (T[0].equals(0)) {
-                        //return _.multiply(new Symbol(core.Math2.QGCD(a.multiplier, b.multiplier)), b);
-                        return _.divide(new Symbol(core.Math2.QGCD(a.multiplier, b.multiplier)), den);
+                        //return _.multiply(new NerdamerSymbol(core.Math2.QGCD(a.multiplier, b.multiplier)), b);
+                        return _.divide(new NerdamerSymbol(core.Math2.QGCD(a.multiplier, b.multiplier)), den);
                     }
                     a = t;
                 }
@@ -3546,10 +3546,10 @@ if (typeof module !== 'undefined') {
             else args = core.Utils.arguments2Array(arguments);
 
             //product of all arguments
-            //start with new Symbol(1) so that prev.clone() which makes unnessesary clones can be avoided
+            //start with new NerdamerSymbol(1) so that prev.clone() which makes unnessesary clones can be avoided
             var numer = args.reduce(function (prev, curr) {
                 return _.multiply(prev, curr.clone());
-            }, new Symbol(1));
+            }, new NerdamerSymbol(1));
 
             //gcd of complementary terms
             var denom_args =
@@ -3579,11 +3579,11 @@ if (typeof module !== 'undefined') {
                         }
                     }
                     return results;
-                    //start with new Symbol(1) so that prev.clone() which makes unnessesary clones can be avoided
+                    //start with new NerdamerSymbol(1) so that prev.clone() which makes unnessesary clones can be avoided
                 })(arguments, arguments.length - 1).map(function (x) {
                     return x.reduce(function (prev, curr) {
                         return _.multiply(prev, curr.clone());
-                    }, new Symbol(1));
+                    }, new NerdamerSymbol(1));
                 });
 
             var denom;
@@ -3602,8 +3602,8 @@ if (typeof module !== 'undefined') {
         /**
          * Divides one expression by another
          *
-         * @param {Symbol} symbol1
-         * @param {Symbol} symbol2
+         * @param {NerdamerSymbol} symbol1
+         * @param {NerdamerSymbol} symbol2
          * @returns {Array}
          */
         divide: function (symbol1, symbol2) {
@@ -3611,16 +3611,16 @@ if (typeof module !== 'undefined') {
             factored = core.Algebra.Factor.factorInner(symbol1.clone());
             den = factored.getDenom();
             if (!den.isConstant('all')) {
-                symbol1 = _.expand(Symbol.unwrapPARENS(_.multiply(factored, den.clone())));
+                symbol1 = _.expand(NerdamerSymbol.unwrapPARENS(_.multiply(factored, den.clone())));
             } else
                 //reset the denominator since we're not dividing by it anymore
-                den = new Symbol(1);
+                den = new NerdamerSymbol(1);
             result = __.div(symbol1, symbol2);
             remainder = _.divide(result[1], symbol2);
             return _.divide(_.add(result[0], remainder), den);
         },
         divWithCheck: function (symbol1, symbol2) {
-            const fail = [new Symbol(0), symbol1.clone()];
+            const fail = [new NerdamerSymbol(0), symbol1.clone()];
             let div = __.div(symbol1, symbol2);
             // GM safety check because __.div() produces b.s. sometimes
             // see whether multiplication comes out clean
@@ -3643,7 +3643,7 @@ if (typeof module !== 'undefined') {
         div: function (symbol1, symbol2) {
             // If all else fails then assume that division failed with
             // a remainder of zero and the original quotient
-            var fail = [new Symbol(0), symbol1.clone()];
+            var fail = [new NerdamerSymbol(0), symbol1.clone()];
 
             try {
                 // Division by constants
@@ -3651,7 +3651,7 @@ if (typeof module !== 'undefined') {
                     symbol1.each(function (x) {
                         x.multiplier = x.multiplier.divide(symbol2.multiplier);
                     });
-                    return [symbol1, new Symbol(0)];
+                    return [symbol1, new NerdamerSymbol(0)];
                 }
                 // So that factorized symbols don't affect the result
                 symbol1 = _.expand(symbol1);
@@ -3661,7 +3661,7 @@ if (typeof module !== 'undefined') {
                     var x = symbol1.value;
                     var f = core.Utils.decompose_fn(symbol2.clone(), x, true);
                     if (symbol1.isLinear() && f.x && f.x.isLinear() && symbol2.isLinear()) {
-                        var k = Symbol.create(symbol1.multiplier);
+                        var k = NerdamerSymbol.create(symbol1.multiplier);
                         return [_.divide(k.clone(), f.a.clone()), _.divide(_.multiply(k, f.b), f.a).negate()];
                     }
                 }
@@ -3669,8 +3669,8 @@ if (typeof module !== 'undefined') {
                     var r = _.divide(symbol1.clone(), symbol2.clone());
                     if (r.isConstant())
                         //we have a whole
-                        return [r, new Symbol(0)];
-                    return [new Symbol(0), symbol1.clone()];
+                        return [r, new NerdamerSymbol(0)];
+                    return [new NerdamerSymbol(0), symbol1.clone()];
                 }
                 var symbol1_has_func = symbol1.hasFunc(),
                     symbol2_has_func = symbol2.hasFunc(),
@@ -3701,7 +3701,7 @@ if (typeof module !== 'undefined') {
                 } else {
                     vars.push(CONST_HASH); //this is for the numbers
                     var reconvert = function (arr) {
-                        var symbol = new Symbol(0);
+                        var symbol = new NerdamerSymbol(0);
                         for (var i = 0; i < arr.length; i++) {
                             var x = arr[i].toSymbol();
                             symbol = _.add(symbol, x);
@@ -3994,11 +3994,11 @@ if (typeof module !== 'undefined') {
                 factors = denom_factors.collectFactors();
                 factors_vec = []; //a vector for the template
                 degrees = [];
-                m = new Symbol(1);
+                m = new NerdamerSymbol(1);
 
                 for (var i = 0; i < factors.length; i++) {
                     //loop through the factors
-                    var factor = Symbol.unwrapPARENS(factors[i]);
+                    var factor = NerdamerSymbol.unwrapPARENS(factors[i]);
                     //if in he for P^n where P is polynomial and n = integer
                     if (factor.power.greaterThan(1)) {
                         p = Number(factor.power);
@@ -4006,7 +4006,7 @@ if (typeof module !== 'undefined') {
                         deg = Number(__.degree(f, v)); //get the degree of f
                         //expand the factor
                         for (var j = 0; j < p; j++) {
-                            var efactor = _.pow(f.clone(), new Symbol(j + 1));
+                            var efactor = _.pow(f.clone(), new NerdamerSymbol(j + 1));
                             f_array.push(efactor.clone());
                             var d = _.divide(den.clone(), efactor.clone());
                             degrees.push(deg);
@@ -4025,7 +4025,7 @@ if (typeof module !== 'undefined') {
                         deg = Number(__.degree(factor, v));
                         f_array.push(factor);
                         var d = _.divide(den.clone(), factor.clone());
-                        d = _.expand(Symbol.unwrapPARENS(d));
+                        d = _.expand(NerdamerSymbol.unwrapPARENS(d));
                         degrees.push(deg);
                         factors_vec.push(d);
                     }
@@ -4073,7 +4073,7 @@ if (typeof module !== 'undefined') {
                         r = div[0]; //remove the wholes
                         num = div[1]; //work with the remainder
                         nterms = num.groupTerms(v); //recalculate the nterms
-                    } else r = new Symbol(0);
+                    } else r = new NerdamerSymbol(0);
 
                     if (Number(__.degree(den, v)) === 1) {
                         var q = _.divide(num, den);
@@ -4101,7 +4101,7 @@ if (typeof module !== 'undefined') {
                         deg = degrees[idx];
                         for (var i = 0; i < deg; i++) {
                             factors.push(factor.clone());
-                            var k = Symbol.create(v, i);
+                            var k = NerdamerSymbol.create(v, i);
                             var t = _.expand(_.multiply(x, k.clone())).groupTerms(v);
                             //make a note of the power which corresponds to the length of the array
                             var p = t.length;
@@ -4150,7 +4150,7 @@ if (typeof module !== 'undefined') {
                                 denominators[d] = e ? _.add(e, n) : n;
                             });
 
-                            var t = new Symbol(0);
+                            var t = new NerdamerSymbol(0);
 
                             for (var x in denominators) {
                                 t = _.add(t, _.divide(denominators[x], _.parse(x)));
@@ -4177,7 +4177,7 @@ if (typeof module !== 'undefined') {
                 //The user must specify the variable for multivariate
                 if (vars.length > 1) throw new Error('You must specify the variable for multivariate polynomials!');
                 //if it's empty then we're dealing with a constant
-                if (vars.length === 0) return new Symbol(0);
+                if (vars.length === 0) return new NerdamerSymbol(0);
                 //assume the variable for univariate
                 v = _.parse(vars[0]);
             }
@@ -4204,7 +4204,7 @@ if (typeof module !== 'undefined') {
                 o.sd.push(symbol.power.clone());
             } else if (g === S && symbol.value === v.value) {
                 o.nd.push(_.parse(symbol.power));
-            } else o.nd.push(new Symbol(0));
+            } else o.nd.push(new NerdamerSymbol(0));
 
             //get the max out of the array
             var deg = o.nd.length > 0 ? core.Utils.arrayMax(o.nd) : undefined;
@@ -4220,10 +4220,10 @@ if (typeof module !== 'undefined') {
         /**
          * Attempts to complete the square of a polynomial
          *
-         * @param {Symbol} symbol
-         * @param {Symbol | string} v
+         * @param {NerdamerSymbol} symbol
+         * @param {NerdamerSymbol | string} v
          * @param {boolean} raw
-         * @returns {object | Symbol[]}
+         * @returns {object | NerdamerSymbol[]}
          * @throws {Error}
          */
         sqComplete: function (symbol, v, raw) {
@@ -4250,20 +4250,20 @@ if (typeof module !== 'undefined') {
             //store the sign
             sign = coeffs[1].sign();
             //divide the linear term by two and square it
-            b = _.divide(coeffs[1], new Symbol(2));
+            b = _.divide(coeffs[1], new NerdamerSymbol(2));
             //add the difference to the constant
-            c = _.pow(b.clone(), new Symbol(2));
+            c = _.pow(b.clone(), new NerdamerSymbol(2));
             if (raw) return [a, b, d];
             sqrt_a = math.sqrt(a);
             e = _.divide(math.sqrt(c), sqrt_a.clone());
             //calculate d which is the constant
-            d = _.subtract(coeffs[0], _.pow(e.clone(), new Symbol(2)));
+            d = _.subtract(coeffs[0], _.pow(e.clone(), new NerdamerSymbol(2)));
             //compute the square part
             sym = _.parse(br(sqrt_a.clone() + '*' + v + (sign < 0 ? '-' : '+') + e));
             return {
                 a: sym,
                 c: d,
-                f: _.add(_.pow(sym.clone(), new Symbol(2)), d.clone()),
+                f: _.add(_.pow(sym.clone(), new NerdamerSymbol(2)), d.clone()),
             };
         },
         Simplify: {
@@ -4291,9 +4291,9 @@ if (typeof module !== 'undefined') {
                 bd = _.multiply(i1.clone(), i2.clone());
                 bc = _.multiply(r2.clone(), i1);
                 ad = _.multiply(r1, i2.clone());
-                cd = _.add(_.pow(r2, new Symbol(2)), _.pow(i2, new Symbol(2)));
+                cd = _.add(_.pow(r2, new NerdamerSymbol(2)), _.pow(i2, new NerdamerSymbol(2)));
 
-                return _.divide(_.add(_.add(ac, bd), _.multiply(_.subtract(bc, ad), Symbol.imaginary())), cd);
+                return _.divide(_.add(_.add(ac, bd), _.multiply(_.subtract(bc, ad), NerdamerSymbol.imaginary())), cd);
             },
             trigSimp: function (symbol) {
                 let workDone = true;
@@ -4310,7 +4310,7 @@ if (typeof module !== 'undefined') {
 
                     //rewrite the symbol
                     if (symbol.group === CP) {
-                        var sym = new Symbol(0);
+                        var sym = new NerdamerSymbol(0);
                         symbol.each(function (x) {
                             //rewrite the function
                             var tr = __.Simplify.trigSimp(x.fnTransform());
@@ -4318,7 +4318,7 @@ if (typeof module !== 'undefined') {
                         }, true);
 
                         //put back the power and multiplier and return
-                        retval = _.pow(_.multiply(new Symbol(symbol.multiplier), sym), new Symbol(symbol.power));
+                        retval = _.pow(_.multiply(new NerdamerSymbol(symbol.multiplier), sym), new NerdamerSymbol(symbol.power));
                         workDone = retval.text() !== symbol.text();
                     } else if (symbol.group === CB) {
                         var n = symbol.getNum();
@@ -4358,7 +4358,7 @@ if (typeof module !== 'undefined') {
                             );
                             workDone = true;
                         } else {
-                            var t = new Symbol(1);
+                            var t = new NerdamerSymbol(1);
                             retval.each(function (x) {
                                 if (x.fname === 'tan') {
                                     x = _.parse(
@@ -4389,7 +4389,7 @@ if (typeof module !== 'undefined') {
                         // but generalized
                         // test the sum for presence of a "n*pi/2" summands
                         let count = 0;
-                        let newArg = new Symbol(0);
+                        let newArg = new NerdamerSymbol(0);
                         let piOverTwo = _.parse('pi/2');
                         symbol.args[0].each(x => {
                             let c = _.divide(x.clone(), piOverTwo.clone());
@@ -4469,11 +4469,11 @@ if (typeof module !== 'undefined') {
                 // console.log("----- log term: "+ term.text());
                 // note: use symbol.equals
                 if (term.value === '1' || term.value === 1) {
-                    return new Symbol(0);
+                    return new NerdamerSymbol(0);
                 }
                 // work on all factors of the arg term
                 // inintialize the sum
-                let r = new Symbol(0);
+                let r = new NerdamerSymbol(0);
                 // first up: the numerator's multiplier
                 let m = term.multiplier.clone();
                 // console.log("----  multiplier: "+m);
@@ -4579,11 +4579,11 @@ if (typeof module !== 'undefined') {
                     // n*sqrt(a):d*sqrt(x) => (n/d)*sqrt(a/x)
                     // if (a.isSQRT()) {
                     //     let newArg = getArg(a);
-                    //     let m = new Symbol(a.multiplier);
+                    //     let m = new NerdamerSymbol(a.multiplier);
                     //     m = _.divide(m, sqrt.multiplier);
                     //     newArg = _.divide(newArg, sqrtArg);
                     //     const combinedSqrt = core.Utils.format('sqrt({0})', newArg);
-                    //     const result = _.multiply(new Symbol(m), _.parse(combinedSqrt));
+                    //     const result = _.multiply(new NerdamerSymbol(m), _.parse(combinedSqrt));
                     //     return [result, null];
                     // }
 
@@ -4638,7 +4638,7 @@ if (typeof module !== 'undefined') {
 
                 if (totalWorkDone) {
                     // reassemble the fraction symbol
-                    symbol = numSymbols.reduce((acc, s) => (acc = _.multiply(acc, s)), new Symbol(1));
+                    symbol = numSymbols.reduce((acc, s) => (acc = _.multiply(acc, s)), new NerdamerSymbol(1));
                     symbol = denSymbols.reduce((acc, s) => (acc = _.divide(acc, s)), symbol);
                 }
 
@@ -4753,12 +4753,12 @@ if (typeof module !== 'undefined') {
                         let sign = m.sign();
 
                         // make an initial return value
-                        retval = new Symbol(1);
+                        retval = new NerdamerSymbol(1);
                         let arg;
 
                         if (factored.group === CB) {
                             // monomial arg
-                            var rem = new Symbol(1);
+                            var rem = new NerdamerSymbol(1);
 
                             factored.each(function (x) {
                                 x = _.parse(x);
@@ -4786,7 +4786,7 @@ if (typeof module !== 'undefined') {
                             // put together the argument with the sign
                             // but without the multiplier
                             arg = factored.clone().toUnitMultiplier();
-                            arg = _.multiply(arg, new Symbol(sign));
+                            arg = _.multiply(arg, new NerdamerSymbol(sign));
                             arg = _.sqrt(arg);
                         }
 
@@ -4799,7 +4799,7 @@ if (typeof module !== 'undefined') {
                         workDone = true;
                     } else if (symbol.isComposite() && symbol.isLinear()) {
                         // polynomial or CP => sum of things
-                        retval = new Symbol(0);
+                        retval = new NerdamerSymbol(0);
                         symbol.each(function (x) {
                             retval = _.add(retval, __.Simplify.sqrtSimp(x));
                         }, true);
@@ -4809,7 +4809,7 @@ if (typeof module !== 'undefined') {
                         workDone = true;
                     } else if (symbol.group === CB) {
                         // monomial
-                        retval = new Symbol(1);
+                        retval = new NerdamerSymbol(1);
                         symbol.each(function (x) {
                             var simp = __.Simplify.sqrtSimp(x);
                             retval = _.multiply(retval, simp);
@@ -4845,7 +4845,7 @@ if (typeof module !== 'undefined') {
             /**
              * Unused. The goal is to substitute out patterns but it currently doesn't work.
              *
-             * @param {Symbol} symbol
+             * @param {NerdamerSymbol} symbol
              * @returns {Array} The symbol and the matched patterns
              */
             patternSub: function (symbol) {
@@ -4953,7 +4953,7 @@ if (typeof module !== 'undefined') {
                 if (simplified.group === core.groups.CP && simplified.isLinear()) {
                     let m = simplified.multiplier.clone();
                     simplified.toUnitMultiplier(); //strip the multiplier
-                    var r = new Symbol(0);
+                    var r = new NerdamerSymbol(0);
                     //return the sum of simplifications
                     simplified.each(function (x) {
                         var s = __.Simplify._simplify(x);
@@ -4961,7 +4961,7 @@ if (typeof module !== 'undefined') {
                     });
                     simplified = r;
                     //mult on back the multiplier we saved here
-                    simplified = _.multiply(simplified, new Symbol(m));
+                    simplified = _.multiply(simplified, new NerdamerSymbol(m));
                     if (simplified.multiplier.equals(-1)) {
                         simplified.distributeMultiplier();
                     }
