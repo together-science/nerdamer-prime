@@ -232,8 +232,19 @@ interface NerdamerExpression extends CoreExpressionBase {
     /** Checks if the expression contains an integral */
     hasIntegral(): boolean;
 
-    /** Gets the main operation of the expression */
-    operation(): string;
+    /**
+     * Performs an arithmetic operation on this expression.
+     *
+     * This is an internal helper method used by add, subtract, multiply, divide, and pow.
+     *
+     * @param operationType The type of operation: 'add', 'subtract', 'multiply', 'divide', or 'pow'
+     * @param other The other operand
+     * @returns A new expression with the result of the operation
+     */
+    operation(
+        operationType: 'add' | 'subtract' | 'multiply' | 'divide' | 'pow',
+        other: ExpressionParam
+    ): NerdamerExpression;
     /**
      * Forces evaluation of the expression.
      *
@@ -289,6 +300,28 @@ interface NerdamerExpression extends CoreExpressionBase {
      * @throws An Error if the computation exceeds the configured TIMEOUT duration.
      */
     simplify(): NerdamerExpression;
+
+    /**
+     * Sets this expression equal to another expression, creating an equation.
+     *
+     * This method is added by the Solve module and creates a NerdamerEquation object with this expression as the
+     * left-hand side (LHS) and the provided expression as the right-hand side (RHS).
+     *
+     * @example
+     *     ```typescript
+     *         const x = nerdamer('x^2');
+     *         const equation = x.equals('4');  // Creates: x^2 = 4
+     *         console.log(equation.LHS.toString());  // 'x^2'
+     *         console.log(equation.RHS.toString());  // '4'
+     *
+     *         // Can then be solved
+     *         const solutions = equation.solveFor('x');  // [-2, 2]
+     *         ```;
+     *
+     * @param other The expression to set equal to (becomes the RHS)
+     * @returns A NerdamerEquation with this expression as LHS and other as RHS
+     */
+    equals(other: ExpressionParam): NerdamerEquation;
 
     /**
      * Attempts to solve an equation.
@@ -356,10 +389,10 @@ interface NerdamerExpression extends CoreExpressionBase {
 
     // Comparison operations
     /**
-     * Checks if two expressions are equal.
+     * Checks if two expressions are mathematically equal (returns boolean).
      *
-     * **IMPORTANT**: This is the ONLY public equality comparison method available on NerdamerExpression. The `equals()`
-     * method does NOT exist on wrapper objects - it's an internal method on Symbol objects.
+     * **Note**: This differs from `equals()` which creates an equation. Use `eq()` for boolean comparison, `equals()`
+     * for creating equations.
      *
      * **Implementation Details**:
      *
@@ -371,7 +404,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      * **Usage Examples**:
      *
      * ```typescript
-     * // Basic equality
+     * // Basic equality check (returns boolean)
      * nerdamer('sqrt(9)').eq(3); // true
      * nerdamer('x').eq('y'); // false
      *
@@ -383,6 +416,10 @@ interface NerdamerExpression extends CoreExpressionBase {
      * nerdamer('sqrt(7)').eq('0'); // false
      * nerdamer('pi - pi').eq('0'); // true
      * nerdamer('2*x').eq('2*x'); // true
+     *
+     * // Compare with equals() which creates an equation:
+     * nerdamer('x').equals('4'); // Creates equation: x = 4 (NerdamerEquation)
+     * nerdamer('x').eq('4'); // Returns false (boolean)
      * ```
      *
      * @param other The expression to compare with
@@ -810,8 +847,13 @@ declare namespace nerdamer {
 // #region Namespace for Static Methods and API
 
 declare namespace nerdamerPrime {
-    /** Returns the current version of nerdamer. */
-    function version(): string;
+    /**
+     * Returns the version of nerdamer or a specific add-on module.
+     *
+     * @param add_on Optional module name to get the version of (e.g., 'Algebra', 'Calculus', 'Solve')
+     * @returns The version string, or an error message if the add_on module is not found
+     */
+    function version(add_on?: string): string;
 
     // #region Core Functions
 
@@ -976,12 +1018,19 @@ declare namespace nerdamerPrime {
     /**
      * Gets all previously set variables.
      *
-     * @param format Use "LaTeX" to get as LaTeX. Defaults to text.
+     * @param format Output format: 'text' (default), 'latex', or 'object' (returns raw expressions)
+     * @param option Additional formatting options passed to text() or latex() conversion
      */
-    function getVars(format?: 'text' | 'latex' | 'object'): Record<string, NerdamerExpression | string>;
+    function getVars(format?: 'text' | 'latex' | 'object', option?: any): Record<string, NerdamerExpression | string>;
 
-    /** Clears an item or all items from the expression history. */
-    function clear(item: 'all' | ExpressionHistoryIndex): typeof nerdamer;
+    /**
+     * Clears an item or all items from the expression history.
+     *
+     * @param item The expression to clear: 'all', 'last', 'first', or an index number
+     * @param keepFixed If true, replaces the expression with undefined instead of removing it (keeps EXPRESSIONS length
+     *   fixed)
+     */
+    function clear(item?: 'all' | 'last' | 'first' | ExpressionHistoryIndex, keepFixed?: boolean): typeof nerdamer;
 
     /**
      * Sets the value of a nerdamer setting. Currently PARSE2NUMBER and IMAGINARY. Setting PARSE2NUMBER to true will let
@@ -1005,8 +1054,13 @@ declare namespace nerdamerPrime {
     /** Generates an abstract syntax tree of the expression. */
     function tree(expression: ExpressionParam): unknown;
 
-    /** Generates an HTML representation of the expression tree. */
-    function htmlTree(expression: ExpressionParam): string;
+    /**
+     * Generates an HTML representation of the expression tree.
+     *
+     * @param expression The expression to generate the tree for
+     * @param indent Optional indentation level for the HTML output
+     */
+    function htmlTree(expression: ExpressionParam, indent?: number): string;
 
     /**
      * Clears all stored expressions.
@@ -1594,30 +1648,155 @@ declare namespace nerdamerPrime {
         trueValue: ExpressionParam,
         falseValue: ExpressionParam
     ): NerdamerExpression;
-    function supported(functionName: string): boolean;
+
+    /**
+     * Returns an array of all supported function names in nerdamer.
+     *
+     * @example
+     *     ```typescript
+     *         const functions = nerdamer.supported();
+     *         console.log(functions);  // ['cos', 'sin', 'tan', 'expand', 'factor', ...]
+     *         ```;
+     *
+     * @returns Array of supported function names
+     */
+    function supported(): string[];
     function sort(expression: ExpressionParam): NerdamerExpression;
-    function print(expression: ExpressionParam): string;
-    function scientific(expression: ExpressionParam): string;
+    /**
+     * Prints the expression to the console and returns an Expression.
+     *
+     * @param expression The expression to print
+     * @returns An Expression object (with symbol possibly undefined)
+     */
+    function print(expression: ExpressionParam): NerdamerExpression;
+
+    /**
+     * Converts a number to scientific notation.
+     *
+     * @param expression The number to convert
+     * @returns The expression in scientific notation form
+     */
+    function scientific(expression: ExpressionParam): NerdamerExpression;
     function primes(n: number): number[];
     function vectrim(vector: ExpressionParam): NerdamerExpression;
-    function updateAPI(): void;
-    function validateName(name: string): boolean;
-    function load(module: string): void;
+
+    /**
+     * Maps internal functions to the external API. This is called automatically on initialization. Call with
+     * `override=true` to re-map functions that have been added or modified.
+     *
+     * @param override If true, overrides existing function mappings
+     */
+    function updateAPI(override?: boolean): void;
+    /**
+     * Validates that a name is valid for use as a variable or function name. Throws an error if the name is invalid.
+     *
+     * @example
+     *     ```typescript
+     *         nerdamer.validateName('x');     // OK, no error
+     *         nerdamer.validateName('myVar'); // OK, no error
+     *         nerdamer.validateName('123');   // throws Error: "123 is not a valid variable name"
+     *         ```;
+     *
+     * @param name The name to validate
+     * @throws Error if the name is invalid
+     */
+    function validateName(name: string): void;
+
+    /**
+     * Loads a custom module/extension by calling the loader function with nerdamer as context.
+     *
+     * @example
+     *     ```typescript
+     *         nerdamer.load(function() {
+     *             // 'this' is the nerdamer object
+     *             this.register({
+     *                 name: 'myFunc',
+     *                 numargs: 1,
+     *                 visible: true,
+     *                 build: () => (x) => x * 2
+     *             });
+     *         });
+     *         ```;
+     *
+     * @param loader A function that will be called with nerdamer as 'this' context
+     * @returns The nerdamer object for chaining
+     */
+    function load(loader: (this: typeof nerdamer) => void): typeof nerdamer;
 
     // #endregion
 
     // #region Parser Functions
 
-    function parse(expression: string, substitutions?: Record<string, ExpressionParam>): NerdamerCore.Symbol;
+    /**
+     * Parses an expression string into Symbol objects.
+     *
+     * Multiple expressions can be separated by semicolons.
+     *
+     * @example
+     *     ```typescript
+     *         nerdamer.parse('x+1');           // [Symbol]
+     *         nerdamer.parse('x+1;y+2');       // [Symbol, Symbol]
+     *         ```;
+     *
+     * @param expression The expression string (can contain multiple expressions separated by semicolons)
+     * @returns Array of parsed Symbol objects
+     */
+    function parse(expression: string): NerdamerCore.Symbol[];
     function rpn(expression: string): any[];
-    function functions(): string[];
+
+    /**
+     * Returns the list of user-defined functions.
+     *
+     * @example
+     *     ```typescript
+     *         nerdamer.setFunction('f', ['x'], 'x^2');
+     *         nerdamer.functions();       // ['f(x)=x^2']
+     *         nerdamer.functions(true);   // { '1': 'f(x)=x^2' }
+     *         ```;
+     *
+     * @param asObject If true, returns an object with 1-based indices as keys
+     * @param option Optional formatting option
+     * @returns Array of function definitions, or object if asObject is true
+     */
+    function functions(asObject?: false, option?: any): string[];
+    function functions(asObject: true, option?: any): Record<string, string>;
     function addPeeker(name: string, fn: Function): void;
-    function removePeeker(name: string): void;
+
+    /**
+     * Removes a peeker function by name and function reference.
+     *
+     * @param name The name/type of peeker to remove from
+     * @param fn The specific function to remove
+     */
+    function removePeeker(name: string, fn: Function): void;
     function aliasOperator(original: string, alias: string): void;
     function setOperator(operator: any, action?: Function, shift?: 'over' | 'under'): void;
     function getOperator(operator: string): any;
     function getWarnings(): string[];
-    function replaceFunction(oldName: string, newName: string): void;
+
+    /**
+     * Replaces an existing function with a new implementation.
+     *
+     * @example
+     *     ```typescript
+     *         // Replace the 'sin' function with a custom implementation
+     *         nerdamer.replaceFunction('sin', (originalFn, core) => {
+     *             return (x) => {
+     *                 // Custom implementation using original
+     *                 return originalFn(x);
+     *             };
+     *         });
+     *         ```;
+     *
+     * @param name The name of the function to replace
+     * @param fn A factory function that receives the original function and core, and returns the new implementation
+     * @param numArgs Optional: override the number of arguments
+     */
+    function replaceFunction(
+        name: string,
+        fn: (originalFn: Function, core: NerdamerCore.Core) => Function,
+        numArgs?: number | [number, number]
+    ): void;
 
     // #endregion
 
@@ -2578,6 +2757,32 @@ declare namespace nerdamerPrime {
              * @default 200000
              */
             MAX_EXP: number;
+
+            /**
+             * Small epsilon value used for floating-point comparisons.
+             *
+             * @default undefined
+             * @internal
+             */
+            EPSILON?: number;
+
+            /**
+             * Internal storage for the original log and log10 function definitions. Used for swapping log behavior.
+             *
+             * @internal
+             */
+            LOG_FNS: {
+                log: any;
+                log10: any;
+            };
+
+            /**
+             * If `true`, peeker functions will be called during parsing operations.
+             *
+             * @default false
+             * @internal
+             */
+            callPeekers: boolean;
 
             // #endregion
         }
