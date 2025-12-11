@@ -345,13 +345,13 @@ describe('Nerdamer core', function () {
     it('should set postfix operators correctly', function () {
         var core = nerdamer.getCore();
         var _ = core.PARSER;
-        var Symbol = core.Symbol;
+        var NerdamerSymbol = core.NerdamerSymbol;
         nerdamer.setOperator({
             precedence: 4,
             operator: '°',
             postfix: true,
             operation: function (x) {
-                return _.divide(_.multiply(x, new Symbol('pi')), new Symbol(180));
+                return _.divide(_.multiply(x, new NerdamerSymbol('pi')), new NerdamerSymbol(180));
             },
         });
 
@@ -2756,7 +2756,7 @@ describe('trigonometric functions', function () {
         expect(nerdamer('acos(2)').evaluate().text()).toEqual('1.3169578969248164*i');
         expect(nerdamer('atan(i)').evaluate().text()).toEqual('Infinity*i');
 
-        expect(nerdamer('asec(0.89)').evaluate().text()).toEqual('0.0000000000000002505+0.4921996534425184*i'); // Has rounding errors
+        expect(nerdamer('asec(0.89)').evaluate().text()).toEqual('0.0000000000000002505+0.4921996534425183*i'); // Has rounding errors
         expect(nerdamer('acsc(0.23)').evaluate().text()).toEqual('-2.1493278111894236*i+1.5707963267948960677'); // Has rounding errors
     });
     it('should throw for wrong trigonometric arguments', function () {

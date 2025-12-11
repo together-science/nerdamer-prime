@@ -5,15 +5,15 @@ import tsMorph from 'ts-morph';
 describe('Nerdamer TypeScript Interface Reflection', () => {
     let project: tsMorph.Project;
     let sourceFile: tsMorph.SourceFile;
-    let typeChecker: tsMorph.TypeChecker;
+    let _typeChecker: tsMorph.TypeChecker;
 
     beforeAll(() => {
         project = new tsMorph.Project({
-            tsConfigFilePath: 'spec-dts/tsconfig.json',
+            tsConfigFilePath: 'tsconfig.json',
         });
 
         sourceFile = project.getSourceFileOrThrow('index.d.ts');
-        typeChecker = project.getTypeChecker();
+        _typeChecker = project.getTypeChecker();
     });
 
     describe('Core Type Aliases', () => {
@@ -205,7 +205,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
         it('should validate comparison operations work as TypeScript suggests', () => {
             const expr1 = (nerdamerRuntime as any)('5');
-            const expr2 = (nerdamerRuntime as any)('3');
+            const _expr2 = (nerdamerRuntime as any)('3');
 
             // Test comparison methods if they exist
             if (typeof expr1.eq === 'function') {
@@ -298,7 +298,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
         });
 
         it('should have core data structure interfaces', () => {
-            const expectedInterfaces = ['Frac', 'Symbol', 'Vector', 'Matrix', 'Set', 'Collection'];
+            const expectedInterfaces = ['Frac', 'NerdamerSymbol', 'Vector', 'Matrix', 'Set', 'Collection'];
 
             for (const ifaceName of expectedInterfaces) {
                 const iface = nerdamerCoreNamespace?.getInterface(ifaceName);
@@ -406,7 +406,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const exportDeclarations = nerdamerNamespace?.getExportedDeclarations();
             const importDeclarations: any[] = [];
             if (exportDeclarations) {
-                for (const [key, declarations] of exportDeclarations) {
+                for (const [_key, declarations] of exportDeclarations) {
                     for (const decl of declarations) {
                         if (
                             (decl as any).getKind &&
@@ -540,7 +540,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const exportDeclarations = nerdamerNamespace?.getExportedDeclarations();
             const importEqualsDeclarations: any[] = [];
             if (exportDeclarations) {
-                for (const [key, declarations] of exportDeclarations) {
+                for (const [_key, declarations] of exportDeclarations) {
                     for (const decl of declarations) {
                         if (
                             (decl as any).getKind &&

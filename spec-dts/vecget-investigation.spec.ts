@@ -40,8 +40,8 @@ describe('vecget Return Type Investigation', () => {
         console.log('Has text method:', typeof validResult.text === 'function');
 
         if ('symbol' in validResult) {
-            console.log('Symbol property type:', typeof validResult.symbol);
-            console.log('Symbol value:', validResult.symbol);
+            console.log('NerdamerSymbol property type:', typeof validResult.symbol);
+            console.log('NerdamerSymbol value:', validResult.symbol);
         }
 
         // Test 2: Another valid coefficient access (index 1)
@@ -64,9 +64,9 @@ describe('vecget Return Type Investigation', () => {
         console.log('Has text method:', typeof invalidResult?.text === 'function');
 
         if ('symbol' in invalidResult) {
-            console.log('Symbol property type:', typeof invalidResult.symbol);
-            console.log('Symbol value:', invalidResult.symbol);
-            console.log('Symbol is undefined:', invalidResult.symbol === undefined);
+            console.log('NerdamerSymbol property type:', typeof invalidResult.symbol);
+            console.log('NerdamerSymbol value:', invalidResult.symbol);
+            console.log('NerdamerSymbol is undefined:', invalidResult.symbol === undefined);
         }
 
         // Test 4: Check what a proper NerdamerExpression looks like

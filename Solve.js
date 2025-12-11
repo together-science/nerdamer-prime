@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*
  * Author : Martin Donk
  * Website : http://www.nerdamer.com
@@ -24,7 +25,7 @@ if (typeof module !== 'undefined') {
         format = core.Utils.format,
         build = core.Utils.build,
         knownVariable = core.Utils.knownVariable,
-        Symbol = core.Symbol,
+        NerdamerSymbol = core.NerdamerSymbol,
         isSymbol = core.Utils.isSymbol,
         variables = core.Utils.variables,
         S = core.groups.S,
@@ -78,11 +79,11 @@ if (typeof module !== 'undefined') {
     // The tolerance for the bisection method
     core.Settings.BI_SECTION_EPSILON = 1e-12;
 
-    core.Symbol.prototype.hasTrig = function () {
+    core.NerdamerSymbol.prototype.hasTrig = function () {
         return this.containsFunction(['cos', 'sin', 'tan', 'cot', 'csc', 'sec']);
     };
 
-    core.Symbol.prototype.hasNegativeTerms = function () {
+    core.NerdamerSymbol.prototype.hasNegativeTerms = function () {
         if (this.isComposite()) {
             for (var x in this.symbols) {
                 var sym = this.symbols[x];
@@ -141,7 +142,7 @@ if (typeof module !== 'undefined') {
             // Quick workaround for issue #636
             // This basically borrows the removeDenom method from the Equation class.
             // TODO: Make this function a stand-alone function
-            retval = new Equation(retval, new Symbol(0)).removeDenom().LHS;
+            retval = new Equation(retval, new NerdamerSymbol(0)).removeDenom().LHS;
 
             return retval;
         },
@@ -161,7 +162,7 @@ if (typeof module !== 'undefined') {
 
             //scan to eliminate denominators
             if (a.group === CB) {
-                var t = new Symbol(a.multiplier),
+                var t = new NerdamerSymbol(a.multiplier),
                     newRHS = b.clone();
                 a.each(function (y) {
                     if (y.power.lessThan(0)) newRHS = _.divide(newRHS, y);
@@ -229,7 +230,7 @@ if (typeof module !== 'undefined') {
     /**
      * Sets two expressions equal
      *
-     * @param {Symbol} symbol
+     * @param {NerdamerSymbol} symbol
      * @returns {Expression}
      */
     core.Expression.prototype.equals = function (symbol) {
@@ -313,8 +314,8 @@ if (typeof module !== 'undefined') {
         /**
          * Brings the equation to LHS. A string can be supplied which will be converted to an Equation
          *
-         * @param {Equation | String} eqn
-         * @returns {Symbol}
+         * @param {Equation | string} eqn
+         * @returns {NerdamerSymbol}
          */
         toLHS: function (eqn, expand) {
             if (isSymbol(eqn)) return eqn;
@@ -342,7 +343,7 @@ if (typeof module !== 'undefined') {
         /**
          * Solve a set of circle equations.
          *
-         * @param {Symbol[]} eqns
+         * @param {NerdamerSymbol[]} eqns
          * @returns {Array}
          */
         solveCircle: function (eqns, vars) {
@@ -408,7 +409,7 @@ if (typeof module !== 'undefined') {
         /**
          * Solve a system of nonlinear equations
          *
-         * @param {Symbol[]} eqns The array of equations
+         * @param {NerdamerSymbol[]} eqns The array of equations
          * @param {number} tries The maximum number of tries
          * @param {number} start The starting point where to start looking for solutions
          * @returns {Array}
@@ -477,8 +478,8 @@ if (typeof module !== 'undefined') {
             do {
                 //if we've reached the max iterations then exit
                 if (iters > max_iter) {
-                    break;
                     found = false;
+                    break;
                 }
 
                 //set the substitution object
@@ -732,11 +733,11 @@ if (typeof module !== 'undefined') {
                 expand_result = true;
                 for (i = 0; i < l; i++) {
                     //prefill
-                    c.set(i, 0, new Symbol(0));
+                    c.set(i, 0, new NerdamerSymbol(0));
                     var e = _.expand(eqns[i]).collectSummandSymbols(); //expand and store
                     //go trough each of the variables
                     for (var j = 0; j < var_array.length; j++) {
-                        m.set(i, j, new Symbol(0));
+                        m.set(i, j, new NerdamerSymbol(0));
                         var v = var_array[j];
                         //go through the terms and sort the variables
                         for (var k = 0; k < e.length; k++) {
@@ -787,20 +788,20 @@ if (typeof module !== 'undefined') {
         /**
          * The quadratic function but only one side.
          *
-         * @param {Symbol} c
-         * @param {Symbol} b
-         * @param {Symbol} a
-         * @returns {Symbol}
+         * @param {NerdamerSymbol} c
+         * @param {NerdamerSymbol} b
+         * @param {NerdamerSymbol} a
+         * @returns {NerdamerSymbol}
          */
         quad: function (c, b, a) {
             var discriminant = _.subtract(
-                _.pow(b.clone(), Symbol(2)),
-                _.multiply(_.multiply(a.clone(), c.clone()), Symbol(4))
+                _.pow(b.clone(), NerdamerSymbol(2)),
+                _.multiply(_.multiply(a.clone(), c.clone()), NerdamerSymbol(4))
             ); /*b^2 - 4ac*/
             // Fix for #608
             discriminant = _.expand(discriminant);
-            var det = _.pow(discriminant, Symbol(0.5));
-            var den = _.parse(_.multiply(new Symbol(2), a.clone()));
+            var det = _.pow(discriminant, NerdamerSymbol(0.5));
+            var den = _.parse(_.multiply(new NerdamerSymbol(2), a.clone()));
             var retval = [
                 _.parse(format('(-({0})+({1}))/({2})', b, det, den)),
                 _.parse(format('(-({0})-({1}))/({2})', b, det, den)),
@@ -812,10 +813,10 @@ if (typeof module !== 'undefined') {
          * The cubic equation
          * http://math.stackexchange.com/questions/61725/is-there-a-systematic-way-of-solving-cubic-equations
          *
-         * @param {Symbol} d_o
-         * @param {Symbol} c_o
-         * @param {Symbol} b_o
-         * @param {Symbol} a_o
+         * @param {NerdamerSymbol} d_o
+         * @param {NerdamerSymbol} c_o
+         * @param {NerdamerSymbol} b_o
+         * @param {NerdamerSymbol} a_o
          * @returns {Array}
          */
         cubic: function (d_o, c_o, b_o, a_o) {
@@ -860,11 +861,11 @@ if (typeof module !== 'undefined') {
         /**
          * The quartic equation
          *
-         * @param {Symbol} e
-         * @param {Symbol} d
-         * @param {Symbol} c
-         * @param {Symbol} b
-         * @param {Symbol} a
+         * @param {NerdamerSymbol} e
+         * @param {NerdamerSymbol} d
+         * @param {NerdamerSymbol} c
+         * @param {NerdamerSymbol} b
+         * @param {NerdamerSymbol} a
          * @returns {Array}
          */
         quartic: function (e, d, c, b, a) {
@@ -921,8 +922,8 @@ if (typeof module !== 'undefined') {
         /**
          * Breaks the equation up in its factors and tries to solve the smaller parts
          *
-         * @param {Symbol} symbol
-         * @param {String} solve_for
+         * @param {NerdamerSymbol} symbol
+         * @param {string} solve_for
          * @returns {Array}
          */
         divideAndConquer: function (symbol, solve_for) {
@@ -931,7 +932,7 @@ if (typeof module !== 'undefined') {
             var factors = core.Algebra.Factor.factorInner(symbol);
             if (factors.group === CB) {
                 factors.each(function (x) {
-                    x = Symbol.unwrapPARENS(x);
+                    x = NerdamerSymbol.unwrapPARENS(x);
                     sols = sols.concat(solve(x, solve_for));
                 });
             }
@@ -940,8 +941,8 @@ if (typeof module !== 'undefined') {
         /**
          * Attempts to solve the equation assuming it's a polynomial with numeric coefficients
          *
-         * @param {Symbol} eq
-         * @param {String} solve_for
+         * @param {NerdamerSymbol} eq
+         * @param {string} solve_for
          * @returns {Array}
          */
         csolve: function (eq, solve_for) {
@@ -955,7 +956,7 @@ if (typeof module !== 'undefined') {
                         p = _.parse(f.x.power);
                         pn = Number(p);
                         n = _.pow(_.divide(f.b.negate(), f.a), p.invert());
-                        pf = Symbol.toPolarFormArray(n);
+                        pf = NerdamerSymbol.toPolarFormArray(n);
                         r = pf[0];
                         theta = pf[1];
                         sr = r.toString();
@@ -978,9 +979,9 @@ if (typeof module !== 'undefined') {
          * a good point and starts expanding by a provided step size. Builds on the fact that if the sign changes over
          * an interval then a zero must exist on that interval
          *
-         * @param {Symbol} symbol
-         * @param {Number} step
-         * @param {Array} points
+         * @param {NerdamerSymbol} symbol
+         * @param {number} step
+         * @param {boolean} extended
          * @returns {Array}
          */
         getPoints: function (symbol, step, extended) {
@@ -1053,7 +1054,7 @@ if (typeof module !== 'undefined') {
          * Implements the bisection method. Returns undefined in no solution is found
          *
          * @param {number} point
-         * @param {function} f
+         * @param {Function} f
          * @returns {undefined | number}
          */
         bisection: function (point, f) {
@@ -1139,8 +1140,8 @@ if (typeof module !== 'undefined') {
          * Implements Newton's iterations. Returns undefined if no solutions if found
          *
          * @param {number} point
-         * @param {function} f
-         * @param {function} fp
+         * @param {Function} f
+         * @param {Function} fp
          * @returns {undefined | number}
          */
         Newton: function (point, f, fp, point2) {
@@ -1214,7 +1215,7 @@ if (typeof module !== 'undefined') {
             return x;
         },
         rewrite: function (rhs, lhs, for_variable) {
-            lhs = lhs || new Symbol(0);
+            lhs = lhs || new NerdamerSymbol(0);
             if (rhs.isComposite() && rhs.isLinear()) {
                 //try to isolate the square root
                 //container for the square roots
@@ -1232,12 +1233,12 @@ if (typeof module !== 'undefined') {
 
                 if (sqrts.length === 1) {
                     //move the remainder to the RHS
-                    lhs = _.expand(_.pow(_.subtract(lhs, core.Utils.arraySum(rem)), new Symbol(2)));
+                    lhs = _.expand(_.pow(_.subtract(lhs, core.Utils.arraySum(rem)), new NerdamerSymbol(2)));
                     //square both sides
-                    rhs = _.expand(_.pow(Symbol.unwrapSQRT(sqrts[0]), new Symbol(2)));
+                    rhs = _.expand(_.pow(NerdamerSymbol.unwrapSQRT(sqrts[0]), new NerdamerSymbol(2)));
                 }
             } else {
-                rhs = Symbol.unwrapSQRT(_.expand(rhs)); //expand the term expression go get rid of quotients when possible
+                rhs = NerdamerSymbol.unwrapSQRT(_.expand(rhs)); //expand the term expression go get rid of quotients when possible
             }
 
             var c = 0, //a counter to see if we have all terms with the variable
@@ -1245,7 +1246,7 @@ if (typeof module !== 'undefined') {
             //try to rewrite the whole thing
             if (rhs.group === CP && rhs.contains(for_variable) && rhs.isLinear()) {
                 rhs.distributeMultiplier();
-                var t = new Symbol(0);
+                var t = new NerdamerSymbol(0);
                 //first bring all the terms containing the variable to the lhs
                 rhs.each(function (x) {
                     if (x.contains(for_variable)) {
@@ -1267,9 +1268,9 @@ if (typeof module !== 'undefined') {
                     rhs.multiplier = rhs.multiplier.multiply(new core.Frac(-1));
                     lhs.multiplier = lhs.multiplier.multiply(new core.Frac(-1));
                 }
-                if (lhs.equals(0)) return new Symbol(0);
+                if (lhs.equals(0)) return new NerdamerSymbol(0);
                 else {
-                    var t = new Symbol(1);
+                    var t = new NerdamerSymbol(1);
                     rhs.each(function (x) {
                         if (x.contains(for_variable)) t = _.multiply(t, x.clone());
                         else lhs = _.divide(lhs, x.clone());
@@ -1288,8 +1289,8 @@ if (typeof module !== 'undefined') {
             return [rhs, lhs];
         },
         sqrtSolve: function (symbol, v) {
-            var sqrts = new Symbol(0);
-            var rem = new Symbol(0);
+            var sqrts = new NerdamerSymbol(0);
+            var rem = new NerdamerSymbol(0);
             if (symbol.isComposite()) {
                 symbol.each(function (x) {
                     if (x.fname === 'sqrt' && x.contains(v)) {
@@ -1303,7 +1304,7 @@ if (typeof module !== 'undefined') {
                     var t = _.expand(
                         _.multiply(
                             _.parse(symbol.multiplier),
-                            _.subtract(_.pow(rem, new Symbol(2)), _.pow(sqrts, new Symbol(2)))
+                            _.subtract(_.pow(rem, new NerdamerSymbol(2)), _.pow(sqrts, new NerdamerSymbol(2)))
                         )
                     );
                     //square both sides
@@ -1345,11 +1346,11 @@ if (typeof module !== 'undefined') {
     };
     /*
      *
-     * @param {String[]|String|Equation} eqns
-     * @param {String} solve_for
+     * @param {string[]|string|Equation} eqns
+     * @param {string} solve_for
      * @param {Array} solutions
-     * @param {Number} depth
-     * @param {String|Equation} fn
+     * @param {number} depth
+     * @param {string|Equation} fn
      * @returns {Array}
      */
     // var solve = function (eqns, solve_for, solutions, depth, fn) {
@@ -1402,11 +1403,11 @@ if (typeof module !== 'undefined') {
                     }
                     // try to convert the number to multiples of pi
                     if (core.Settings.make_pi_conversions && has_trig) {
-                        var temp = _.divide(r.clone(), new Symbol(Math.PI)),
+                        var temp = _.divide(r.clone(), new NerdamerSymbol(Math.PI)),
                             m = temp.multiplier,
                             a = Math.abs(m.num),
                             b = Math.abs(m.den);
-                        if (a < 10 && b < 10) r = _.multiply(temp, new Symbol('pi'));
+                        if (a < 10 && b < 10) r = _.multiply(temp, new NerdamerSymbol('pi'));
                     }
 
                     // And check if we get a number otherwise we might be throwing out symbolic solutions.
@@ -1434,7 +1435,7 @@ if (typeof module !== 'undefined') {
 
             //if it's zero then we're done
             if (eqns.isZero()) {
-                return [new Symbol(0)];
+                return [new NerdamerSymbol(0)];
             }
             //if the lhs = x then we're done
             if (eqns.LHS.equals(solve_for) && !eqns.RHS.contains(solve_for, true)) {
@@ -1465,7 +1466,7 @@ if (typeof module !== 'undefined') {
                 var o = {};
                 o[solve_for] = 0;
                 evaluate(fn, o, 'numer');
-                add_to_result(new Symbol(0));
+                add_to_result(new NerdamerSymbol(0));
             } catch (e) {
                 if (e.message === 'timeout') throw e;
                 // Do nothing;
@@ -1491,7 +1492,7 @@ if (typeof module !== 'undefined') {
         }
 
         if (eqns.group === FN && eqns.fname === 'sqrt') {
-            eqns = _.pow(Symbol.unwrapSQRT(eqns), new Symbol(2));
+            eqns = _.pow(NerdamerSymbol.unwrapSQRT(eqns), new NerdamerSymbol(2));
         }
         //pass in false to not expand equations such as (x+y)^5.
         //It suffices to solve for the numerator since there's no value in the denominator which yields a zero for the function
@@ -1508,7 +1509,7 @@ if (typeof module !== 'undefined') {
         //polynomial (including rationals).If it is then we use the Jenkins-Traubb algorithm.
         //Don't waste time
         if ((eq.group === S || eq.group === CB) && eq.contains(solve_for)) {
-            return [new Symbol(0)];
+            return [new NerdamerSymbol(0)];
         }
         //force to polynomial. We go through each and then we look at what it would
         //take for its power to be an integer
@@ -1531,7 +1532,7 @@ if (typeof module !== 'undefined') {
                     var den = sym.getDenom();
 
                     if (!den.isConstant(true) && symbol.isComposite()) {
-                        var t = new Symbol(0);
+                        var t = new NerdamerSymbol(0);
                         symbol.each(function (e) {
                             t = _.add(t, _.multiply(e, den.clone()));
                         });
@@ -1541,7 +1542,7 @@ if (typeof module !== 'undefined') {
 
                     var parts = explode(sym, solve_for);
                     var is_sqrt = parts[1].fname === core.Settings.SQRT;
-                    var v = Symbol.unwrapSQRT(parts[1]);
+                    var v = NerdamerSymbol.unwrapSQRT(parts[1]);
                     var p = v.power.clone();
                     //circular logic with sqrt. Since sqrt(x) becomes x^(1/2) which then becomes sqrt(x), this continues forever
                     //this needs to be terminated if p = 1/2
@@ -1568,7 +1569,7 @@ if (typeof module !== 'undefined') {
                             var min_p = core.Utils.arrayMin(core.Utils.keys(sym.symbols));
                             if (min_p < 0) {
                                 var factor = _.parse(solve_for + '^' + Math.abs(min_p));
-                                var corrected = new Symbol(0);
+                                var corrected = new NerdamerSymbol(0);
                                 original.each(function (x) {
                                     corrected = _.add(corrected, _.multiply(x.clone(), factor.clone()));
                                 }, true);
@@ -1584,8 +1585,8 @@ if (typeof module !== 'undefined') {
 
         //separate the equation
         var separate = function (eq) {
-            var lhs = new Symbol(0),
-                rhs = new Symbol(0);
+            var lhs = new NerdamerSymbol(0),
+                rhs = new NerdamerSymbol(0);
             eq.each(function (x) {
                 if (x.contains(solve_for, true)) lhs = _.add(lhs, x.clone());
                 else rhs = _.subtract(rhs, x.clone());
@@ -1662,7 +1663,7 @@ if (typeof module !== 'undefined') {
                                 //roots have been calculates
                                 was_calculated = true;
                                 roots.map(function (x) {
-                                    add_to_result(new Symbol(x));
+                                    add_to_result(new NerdamerSymbol(x));
                                 });
                             }
                         }
@@ -1769,7 +1770,7 @@ if (typeof module !== 'undefined') {
 
                     // round to 15 digits
                     solutions = solutions.map(a =>
-                        !a.isConstant() ? a : new Symbol(Number(Number(a).toPrecision(15)))
+                        !a.isConstant() ? a : new NerdamerSymbol(Number(Number(a).toPrecision(15)))
                     );
 
                     // uniquefy to epsilon
@@ -1897,7 +1898,7 @@ if (typeof module !== 'undefined') {
                                 rhs = _.divide(
                                     _.subtract(
                                         _.pow(
-                                            lhs.args.length > 1 ? lhs.args[1] : new Symbol('e'),
+                                            lhs.args.length > 1 ? lhs.args[1] : new NerdamerSymbol('e'),
                                             _.divide(rhs, _.parse(lhs.multiplier))
                                         ),
                                         parts[3]
@@ -1943,7 +1944,7 @@ if (typeof module !== 'undefined') {
 
         if (cfact) {
             solutions = solutions.map(function (x) {
-                return _.pow(x, new Symbol(cfact));
+                return _.pow(x, new NerdamerSymbol(cfact));
             });
         }
 

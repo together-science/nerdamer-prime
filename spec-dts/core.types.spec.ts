@@ -4,7 +4,7 @@ import { NerdamerExpression, NerdamerEquation } from '../index';
 const nerdamer = require('../all');
 
 // A helper function to make intent clear. It does nothing at runtime.
-function expectType<T>(value: T): void {
+function expectType<T>(_value: T): void {
     // This space intentionally left blank.
 }
 

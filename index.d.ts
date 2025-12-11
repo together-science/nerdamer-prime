@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /**
  * Nerdamer-Prime TypeScript Declaration File
  *
@@ -112,7 +111,12 @@ type int = number;
  *         nerdamer.add(equation, 'x')        // NerdamerEquation objects
  *         ```;
  */
-type ExpressionParam = string | number | NerdamerExpression | NerdamerEquation | nerdamerPrime.NerdamerCore.Symbol;
+type ExpressionParam =
+    | string
+    | number
+    | NerdamerExpression
+    | NerdamerEquation
+    | nerdamerPrime.NerdamerCore.NerdamerSymbol;
 
 /**
  * Represents the result of solving a system of equations.
@@ -165,8 +169,8 @@ type SolveResult =
  * An internal base interface for core symbolic objects to share common methods.
  *
  * INCONSISTENCY NOTE: The `clone()` method was removed from this interface because it doesn't exist in the JavaScript
- * runtime. While Symbol has a clone() method, Expression does not expose it, causing the Expression Method Coverage to
- * be 97% instead of 100%.
+ * runtime. While NerdamerSymbol has a clone() method, Expression does not expose it, causing the Expression Method
+ * Coverage to be 97% instead of 100%.
  *
  * @internal
  */
@@ -208,8 +212,8 @@ interface CoreExpressionBase {
 }
 
 /**
- * The main expression object returned by nerdamer(), wrapping a symbolic Symbol object. Provides a developer-friendly
- * API for manipulating mathematical expressions.
+ * The main expression object returned by nerdamer(), wrapping a symbolic NerdamerSymbol object. Provides a
+ * developer-friendly API for manipulating mathematical expressions.
  *
  * All mathematical objects in Nerdamer (including vectors and matrices) are ultimately NerdamerExpression instances,
  * making the API consistent and predictable.
@@ -223,8 +227,8 @@ interface CoreExpressionBase {
  *         ```;
  */
 interface NerdamerExpression extends CoreExpressionBase {
-    /** The underlying Symbol object. */
-    symbol: nerdamerPrime.NerdamerCore.Symbol;
+    /** The underlying NerdamerSymbol object. */
+    symbol: nerdamerPrime.NerdamerCore.NerdamerSymbol;
 
     // Basic methods
     variables(): string[];
@@ -232,8 +236,19 @@ interface NerdamerExpression extends CoreExpressionBase {
     /** Checks if the expression contains an integral */
     hasIntegral(): boolean;
 
-    /** Gets the main operation of the expression */
-    operation(): string;
+    /**
+     * Performs an arithmetic operation on this expression.
+     *
+     * This is an internal helper method used by add, subtract, multiply, divide, and pow.
+     *
+     * @param operationType The type of operation: 'add', 'subtract', 'multiply', 'divide', or 'pow'
+     * @param other The other operand
+     * @returns A new expression with the result of the operation
+     */
+    operation(
+        operationType: 'add' | 'subtract' | 'multiply' | 'divide' | 'pow',
+        other: ExpressionParam
+    ): NerdamerExpression;
     /**
      * Forces evaluation of the expression.
      *
@@ -291,6 +306,28 @@ interface NerdamerExpression extends CoreExpressionBase {
     simplify(): NerdamerExpression;
 
     /**
+     * Sets this expression equal to another expression, creating an equation.
+     *
+     * This method is added by the Solve module and creates a NerdamerEquation object with this expression as the
+     * left-hand side (LHS) and the provided expression as the right-hand side (RHS).
+     *
+     * @example
+     *     ```typescript
+     *         const x = nerdamer('x^2');
+     *         const equation = x.equals('4');  // Creates: x^2 = 4
+     *         console.log(equation.LHS.toString());  // 'x^2'
+     *         console.log(equation.RHS.toString());  // '4'
+     *
+     *         // Can then be solved
+     *         const solutions = equation.solveFor('x');  // [-2, 2]
+     *         ```;
+     *
+     * @param other The expression to set equal to (becomes the RHS)
+     * @returns A NerdamerEquation with this expression as LHS and other as RHS
+     */
+    equals(other: ExpressionParam): NerdamerEquation;
+
+    /**
      * Attempts to solve an equation.
      *
      * @example
@@ -309,7 +346,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      * @param value The value to substitute for.
      */
     sub(variable: string, value: ExpressionParam): NerdamerExpression;
-    each(callback: (symbol: nerdamerPrime.NerdamerCore.Symbol, index?: number | string) => void): void;
+    each(callback: (symbol: nerdamerPrime.NerdamerCore.NerdamerSymbol, index?: number | string) => void): void;
     contains(variable: string): boolean;
     hasFunction(name: string): boolean;
 
@@ -356,14 +393,14 @@ interface NerdamerExpression extends CoreExpressionBase {
 
     // Comparison operations
     /**
-     * Checks if two expressions are equal.
+     * Checks if two expressions are mathematically equal (returns boolean).
      *
-     * **IMPORTANT**: This is the ONLY public equality comparison method available on NerdamerExpression. The `equals()`
-     * method does NOT exist on wrapper objects - it's an internal method on Symbol objects.
+     * **Note**: This differs from `equals()` which creates an equation. Use `eq()` for boolean comparison, `equals()`
+     * for creating equations.
      *
      * **Implementation Details**:
      *
-     * - Internally calls `(this - other).equals(0)` on the underlying Symbol
+     * - Internally calls `(this - other).equals(0)` on the underlying NerdamerSymbol
      * - Returns `true` if expressions are mathematically equal
      * - Returns `false` if expressions are not equal OR if comparison fails
      * - Catches errors gracefully and returns `false` instead of throwing
@@ -371,7 +408,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      * **Usage Examples**:
      *
      * ```typescript
-     * // Basic equality
+     * // Basic equality check (returns boolean)
      * nerdamer('sqrt(9)').eq(3); // true
      * nerdamer('x').eq('y'); // false
      *
@@ -383,6 +420,10 @@ interface NerdamerExpression extends CoreExpressionBase {
      * nerdamer('sqrt(7)').eq('0'); // false
      * nerdamer('pi - pi').eq('0'); // true
      * nerdamer('2*x').eq('2*x'); // true
+     *
+     * // Compare with equals() which creates an equation:
+     * nerdamer('x').equals('4'); // Creates equation: x = 4 (NerdamerEquation)
+     * nerdamer('x').eq('4'); // Returns false (boolean)
      * ```
      *
      * @param other The expression to compare with
@@ -810,8 +851,13 @@ declare namespace nerdamer {
 // #region Namespace for Static Methods and API
 
 declare namespace nerdamerPrime {
-    /** Returns the current version of nerdamer. */
-    function version(): string;
+    /**
+     * Returns the version of nerdamer or a specific add-on module.
+     *
+     * @param add_on Optional module name to get the version of (e.g., 'Algebra', 'Calculus', 'Solve')
+     * @returns The version string, or an error message if the add_on module is not found
+     */
+    function version(add_on?: string): string;
 
     // #region Core Functions
 
@@ -976,12 +1022,19 @@ declare namespace nerdamerPrime {
     /**
      * Gets all previously set variables.
      *
-     * @param format Use "LaTeX" to get as LaTeX. Defaults to text.
+     * @param format Output format: 'text' (default), 'latex', or 'object' (returns raw expressions)
+     * @param option Additional formatting options passed to text() or latex() conversion
      */
-    function getVars(format?: 'text' | 'latex' | 'object'): Record<string, NerdamerExpression | string>;
+    function getVars(format?: 'text' | 'latex' | 'object', option?: any): Record<string, NerdamerExpression | string>;
 
-    /** Clears an item or all items from the expression history. */
-    function clear(item: 'all' | ExpressionHistoryIndex): typeof nerdamer;
+    /**
+     * Clears an item or all items from the expression history.
+     *
+     * @param item The expression to clear: 'all', 'last', 'first', or an index number
+     * @param keepFixed If true, replaces the expression with undefined instead of removing it (keeps EXPRESSIONS length
+     *   fixed)
+     */
+    function clear(item?: 'all' | 'last' | 'first' | ExpressionHistoryIndex, keepFixed?: boolean): typeof nerdamer;
 
     /**
      * Sets the value of a nerdamer setting. Currently PARSE2NUMBER and IMAGINARY. Setting PARSE2NUMBER to true will let
@@ -1005,8 +1058,13 @@ declare namespace nerdamerPrime {
     /** Generates an abstract syntax tree of the expression. */
     function tree(expression: ExpressionParam): unknown;
 
-    /** Generates an HTML representation of the expression tree. */
-    function htmlTree(expression: ExpressionParam): string;
+    /**
+     * Generates an HTML representation of the expression tree.
+     *
+     * @param expression The expression to generate the tree for
+     * @param indent Optional indentation level for the HTML output
+     */
+    function htmlTree(expression: ExpressionParam, indent?: number): string;
 
     /**
      * Clears all stored expressions.
@@ -1594,30 +1652,155 @@ declare namespace nerdamerPrime {
         trueValue: ExpressionParam,
         falseValue: ExpressionParam
     ): NerdamerExpression;
-    function supported(functionName: string): boolean;
+
+    /**
+     * Returns an array of all supported function names in nerdamer.
+     *
+     * @example
+     *     ```typescript
+     *         const functions = nerdamer.supported();
+     *         console.log(functions);  // ['cos', 'sin', 'tan', 'expand', 'factor', ...]
+     *         ```;
+     *
+     * @returns Array of supported function names
+     */
+    function supported(): string[];
     function sort(expression: ExpressionParam): NerdamerExpression;
-    function print(expression: ExpressionParam): string;
-    function scientific(expression: ExpressionParam): string;
+    /**
+     * Prints the expression to the console and returns an Expression.
+     *
+     * @param expression The expression to print
+     * @returns An Expression object (with symbol possibly undefined)
+     */
+    function print(expression: ExpressionParam): NerdamerExpression;
+
+    /**
+     * Converts a number to scientific notation.
+     *
+     * @param expression The number to convert
+     * @returns The expression in scientific notation form
+     */
+    function scientific(expression: ExpressionParam): NerdamerExpression;
     function primes(n: number): number[];
     function vectrim(vector: ExpressionParam): NerdamerExpression;
-    function updateAPI(): void;
-    function validateName(name: string): boolean;
-    function load(module: string): void;
+
+    /**
+     * Maps internal functions to the external API. This is called automatically on initialization. Call with
+     * `override=true` to re-map functions that have been added or modified.
+     *
+     * @param override If true, overrides existing function mappings
+     */
+    function updateAPI(override?: boolean): void;
+    /**
+     * Validates that a name is valid for use as a variable or function name. Throws an error if the name is invalid.
+     *
+     * @example
+     *     ```typescript
+     *         nerdamer.validateName('x');     // OK, no error
+     *         nerdamer.validateName('myVar'); // OK, no error
+     *         nerdamer.validateName('123');   // throws Error: "123 is not a valid variable name"
+     *         ```;
+     *
+     * @param name The name to validate
+     * @throws Error if the name is invalid
+     */
+    function validateName(name: string): void;
+
+    /**
+     * Loads a custom module/extension by calling the loader function with nerdamer as context.
+     *
+     * @example
+     *     ```typescript
+     *         nerdamer.load(function() {
+     *             // 'this' is the nerdamer object
+     *             this.register({
+     *                 name: 'myFunc',
+     *                 numargs: 1,
+     *                 visible: true,
+     *                 build: () => (x) => x * 2
+     *             });
+     *         });
+     *         ```;
+     *
+     * @param loader A function that will be called with nerdamer as 'this' context
+     * @returns The nerdamer object for chaining
+     */
+    function load(loader: (this: typeof nerdamer) => void): typeof nerdamer;
 
     // #endregion
 
     // #region Parser Functions
 
-    function parse(expression: string, substitutions?: Record<string, ExpressionParam>): NerdamerCore.Symbol;
+    /**
+     * Parses an expression string into NerdamerSymbol objects.
+     *
+     * Multiple expressions can be separated by semicolons.
+     *
+     * @example
+     *     ```typescript
+     *         nerdamer.parse('x+1');           // [NerdamerSymbol]
+     *         nerdamer.parse('x+1;y+2');       // [NerdamerSymbol, NerdamerSymbol]
+     *         ```;
+     *
+     * @param expression The expression string (can contain multiple expressions separated by semicolons)
+     * @returns Array of parsed NerdamerSymbol objects
+     */
+    function parse(expression: string): NerdamerCore.NerdamerSymbol[];
     function rpn(expression: string): any[];
-    function functions(): string[];
+
+    /**
+     * Returns the list of user-defined functions.
+     *
+     * @example
+     *     ```typescript
+     *         nerdamer.setFunction('f', ['x'], 'x^2');
+     *         nerdamer.functions();       // ['f(x)=x^2']
+     *         nerdamer.functions(true);   // { '1': 'f(x)=x^2' }
+     *         ```;
+     *
+     * @param asObject If true, returns an object with 1-based indices as keys
+     * @param option Optional formatting option
+     * @returns Array of function definitions, or object if asObject is true
+     */
+    function functions(asObject?: false, option?: any): string[];
+    function functions(asObject: true, option?: any): Record<string, string>;
     function addPeeker(name: string, fn: Function): void;
-    function removePeeker(name: string): void;
+
+    /**
+     * Removes a peeker function by name and function reference.
+     *
+     * @param name The name/type of peeker to remove from
+     * @param fn The specific function to remove
+     */
+    function removePeeker(name: string, fn: Function): void;
     function aliasOperator(original: string, alias: string): void;
     function setOperator(operator: any, action?: Function, shift?: 'over' | 'under'): void;
     function getOperator(operator: string): any;
     function getWarnings(): string[];
-    function replaceFunction(oldName: string, newName: string): void;
+
+    /**
+     * Replaces an existing function with a new implementation.
+     *
+     * @example
+     *     ```typescript
+     *         // Replace the 'sin' function with a custom implementation
+     *         nerdamer.replaceFunction('sin', (originalFn, core) => {
+     *             return (x) => {
+     *                 // Custom implementation using original
+     *                 return originalFn(x);
+     *             };
+     *         });
+     *         ```;
+     *
+     * @param name The name of the function to replace
+     * @param fn A factory function that receives the original function and core, and returns the new implementation
+     * @param numArgs Optional: override the number of arguments
+     */
+    function replaceFunction(
+        name: string,
+        fn: (originalFn: Function, core: NerdamerCore.Core) => Function,
+        numArgs?: number | [number, number]
+    ): void;
 
     // #endregion
 
@@ -1678,31 +1861,31 @@ declare namespace nerdamerPrime {
             clone(): Frac;
         }
 
-        /** Constructor for creating Symbol instances. */
+        /** Constructor for creating NerdamerSymbol instances. */
         interface SymbolConstructor {
-            new (value: any): Symbol;
-            imaginary(): Symbol;
-            infinity(negative?: -1): Symbol;
-            shell(group: number, value?: string): Symbol;
-            create(value: string | number, power?: string | number): Symbol;
-            unwrapSQRT(symbol: Symbol, all?: boolean): Symbol;
-            unwrapPARENS(symbol: Symbol): Symbol;
-            hyp(a: Symbol, b: Symbol): Symbol;
-            toPolarFormArray(symbol: Symbol): [Symbol, Symbol];
+            new (value: any): NerdamerSymbol;
+            imaginary(): NerdamerSymbol;
+            infinity(negative?: -1): NerdamerSymbol;
+            shell(group: number, value?: string): NerdamerSymbol;
+            create(value: string | number, power?: string | number): NerdamerSymbol;
+            unwrapSQRT(symbol: NerdamerSymbol, all?: boolean): NerdamerSymbol;
+            unwrapPARENS(symbol: NerdamerSymbol): NerdamerSymbol;
+            hyp(a: NerdamerSymbol, b: NerdamerSymbol): NerdamerSymbol;
+            toPolarFormArray(symbol: NerdamerSymbol): [NerdamerSymbol, NerdamerSymbol];
         }
 
         /**
          * The core symbolic object in Nerdamer. Everything from a variable to a complex expression is ultimately
-         * represented as a Symbol.
+         * represented as a NerdamerSymbol.
          */
-        interface Symbol extends CoreExpressionBase {
+        interface NerdamerSymbol extends CoreExpressionBase {
             // Properties
             group: number;
             value: string | number;
             multiplier: Frac;
             power: Frac;
-            symbols?: Record<string, Symbol>;
-            args?: Symbol[];
+            symbols?: Record<string, NerdamerSymbol>;
+            args?: NerdamerSymbol[];
             fname?: string;
             imaginary?: boolean;
             isInfinity?: boolean;
@@ -1726,23 +1909,23 @@ declare namespace nerdamerPrime {
             isComposite(): boolean;
 
             // Manipulation Methods
-            negate(): Symbol;
-            invert(): Symbol;
-            toLinear(): Symbol;
-            toUnitMultiplier(keepSign?: boolean): Symbol;
-            abs(): Symbol;
-            stripVar(x: string, exclude_x?: boolean): Symbol;
-            distributeMultiplier(): Symbol;
-            distributeExponent(): Symbol;
-            powSimp(): Symbol;
-            getNth(n: number): Symbol;
-            setPower(p: number | Frac | Symbol, retainSign?: boolean): Symbol;
+            negate(): NerdamerSymbol;
+            invert(): NerdamerSymbol;
+            toLinear(): NerdamerSymbol;
+            toUnitMultiplier(keepSign?: boolean): NerdamerSymbol;
+            abs(): NerdamerSymbol;
+            stripVar(x: string, exclude_x?: boolean): NerdamerSymbol;
+            distributeMultiplier(): NerdamerSymbol;
+            distributeExponent(): NerdamerSymbol;
+            powSimp(): NerdamerSymbol;
+            getNth(n: number): NerdamerSymbol;
+            setPower(p: number | Frac | NerdamerSymbol, retainSign?: boolean): NerdamerSymbol;
 
             // Part Extraction
-            realpart(): Symbol;
-            imagpart(): Symbol;
-            getNum(): Symbol;
-            getDenom(): Symbol;
+            realpart(): NerdamerSymbol;
+            imagpart(): NerdamerSymbol;
+            getNum(): NerdamerSymbol;
+            getDenom(): NerdamerSymbol;
 
             // Content & Comparison
             contains(variable: string, all?: boolean): boolean;
@@ -1755,20 +1938,20 @@ declare namespace nerdamerPrime {
             sign(): -1 | 1;
 
             // Iteration & Output
-            each(fn: (symbol: Symbol, key: string) => void, deep?: boolean): void;
+            each(fn: (symbol: NerdamerSymbol, key: string) => void, deep?: boolean): void;
             collectSymbols(
-                fn?: (symbol: Symbol) => any,
+                fn?: (symbol: NerdamerSymbol) => any,
                 opt?: any,
                 sort_fn?: (a: any, b: any) => number,
                 expand_symbol?: boolean
             ): any[];
-            sub(a: ExpressionParam, b: ExpressionParam): Symbol;
+            sub(a: ExpressionParam, b: ExpressionParam): NerdamerSymbol;
 
             // Methods from Modules
-            coeffs(c?: Symbol[], with_order?: boolean): Symbol[];
-            groupTerms(x: string): Symbol[];
-            fnTransform(): Symbol;
-            simplify(): Symbol;
+            coeffs(c?: NerdamerSymbol[], with_order?: boolean): NerdamerSymbol[];
+            groupTerms(x: string): NerdamerSymbol[];
+            fnTransform(): NerdamerSymbol;
+            simplify(): NerdamerSymbol;
             hasTrig(): boolean;
             hasIntegral(): boolean;
         }
@@ -1865,14 +2048,14 @@ declare namespace nerdamerPrime {
 
         /** Represents a mathematical set. */
         interface Set extends CoreExpressionBase {
-            elements: Symbol[];
-            add(element: Symbol): void;
-            contains(element: Symbol): boolean;
+            elements: NerdamerSymbol[];
+            add(element: NerdamerSymbol): void;
+            contains(element: NerdamerSymbol): boolean;
             union(other: Set): Set;
             intersection(other: Set): Set;
             difference(other: Set): Set;
-            size(): Symbol;
-            each(fn: (e: Symbol, newSet: Set, i: number) => void): Set;
+            size(): NerdamerSymbol;
+            each(fn: (e: NerdamerSymbol, newSet: Set, i: number) => void): Set;
         }
 
         /** Constructor for Collection */
@@ -1882,11 +2065,11 @@ declare namespace nerdamerPrime {
 
         /** Internal-use collection for function arguments. */
         interface Collection extends CoreExpressionBase {
-            items: Symbol[];
-            add(item: Symbol): void;
+            items: NerdamerSymbol[];
+            add(item: NerdamerSymbol): void;
             length(): number;
-            each(fn: (item: Symbol, index: number) => void): void;
-            get(index: number): Symbol;
+            each(fn: (item: NerdamerSymbol, index: number) => void): void;
+            get(index: number): NerdamerSymbol;
         }
 
         // #endregion
@@ -1900,16 +2083,16 @@ declare namespace nerdamerPrime {
              *
              * @param expression The expression string to parse.
              * @param substitutions An object containing variable substitutions.
-             * @returns The resulting Symbol object.
+             * @returns The resulting NerdamerSymbol object.
              */
-            parse(expression: string, substitutions?: Record<string, ExpressionParam>): Symbol;
+            parse(expression: string, substitutions?: Record<string, ExpressionParam>): NerdamerSymbol;
 
             /**
              * Adds two symbols or data structures (Vector, Matrix).
              *
              * @param a The first operand.
              * @param b The second operand.
-             * @returns The resulting Symbol, Vector, or Matrix.
+             * @returns The resulting NerdamerSymbol, Vector, or Matrix.
              */
             add(a: any, b: any): any;
 
@@ -1918,7 +2101,7 @@ declare namespace nerdamerPrime {
              *
              * @param a The first operand.
              * @param b The second operand.
-             * @returns The resulting Symbol, Vector, or Matrix.
+             * @returns The resulting NerdamerSymbol, Vector, or Matrix.
              */
             subtract(a: any, b: any): any;
 
@@ -1927,7 +2110,7 @@ declare namespace nerdamerPrime {
              *
              * @param a The first operand.
              * @param b The second operand.
-             * @returns The resulting Symbol, Vector, or Matrix.
+             * @returns The resulting NerdamerSymbol, Vector, or Matrix.
              */
             multiply(a: any, b: any): any;
 
@@ -1936,7 +2119,7 @@ declare namespace nerdamerPrime {
              *
              * @param a The dividend.
              * @param b The divisor.
-             * @returns The resulting Symbol, Vector, or Matrix.
+             * @returns The resulting NerdamerSymbol, Vector, or Matrix.
              */
             divide(a: any, b: any): any;
 
@@ -1945,7 +2128,7 @@ declare namespace nerdamerPrime {
              *
              * @param a The base.
              * @param b The exponent.
-             * @returns The resulting Symbol, Vector, or Matrix.
+             * @returns The resulting NerdamerSymbol, Vector, or Matrix.
              */
             pow(a: any, b: any): any;
 
@@ -1954,27 +2137,27 @@ declare namespace nerdamerPrime {
              *
              * @param symbol The symbol to expand.
              * @param options Expansion options.
-             * @returns The expanded Symbol.
+             * @returns The expanded NerdamerSymbol.
              */
-            expand(symbol: Symbol, options?: any): Symbol;
+            expand(symbol: NerdamerSymbol, options?: any): NerdamerSymbol;
 
             /**
              * Creates a symbolic function representation.
              *
              * @param name The name of the function.
-             * @param args An array of Symbol or Collection arguments.
-             * @returns A new Symbol representing the function.
+             * @param args An array of NerdamerSymbol or Collection arguments.
+             * @returns A new NerdamerSymbol representing the function.
              */
-            symfunction(name: string, args: (Symbol | Collection)[]): Symbol;
+            symfunction(name: string, args: (NerdamerSymbol | Collection)[]): NerdamerSymbol;
 
             /**
              * Calls a registered function, either symbolic or numeric.
              *
              * @param name The name of the function to call.
-             * @param args An array of Symbol or Collection arguments.
+             * @param args An array of NerdamerSymbol or Collection arguments.
              * @returns The result of the function call.
              */
-            callfunction(name: string, args: (Symbol | Collection)[]): Symbol;
+            callfunction(name: string, args: (NerdamerSymbol | Collection)[]): NerdamerSymbol;
 
             /**
              * Tokenizes an expression string into an array of tokens and scopes.
@@ -1993,13 +2176,13 @@ declare namespace nerdamerPrime {
             toRPN(tokens: any[]): any[];
 
             /**
-             * Parses an RPN token array into a final Symbol object.
+             * Parses an RPN token array into a final NerdamerSymbol object.
              *
              * @param rpn The RPN array from `toRPN`.
              * @param substitutions An object of substitutions.
-             * @returns The final Symbol object.
+             * @returns The final NerdamerSymbol object.
              */
-            parseRPN(rpn: any[], substitutions?: Record<string, ExpressionParam>): Symbol;
+            parseRPN(rpn: any[], substitutions?: Record<string, ExpressionParam>): NerdamerSymbol;
 
             /**
              * Generates an abstract syntax tree from an expression string.
@@ -2017,10 +2200,10 @@ declare namespace nerdamerPrime {
             };
 
             /** Object containing trigonometric function handlers. */
-            trig: Record<string, (symbol: Symbol) => Symbol>;
+            trig: Record<string, (symbol: NerdamerSymbol) => NerdamerSymbol>;
 
             /** Object containing hyperbolic trigonometric function handlers. */
-            trigh: Record<string, (symbol: Symbol) => Symbol>;
+            trigh: Record<string, (symbol: NerdamerSymbol) => NerdamerSymbol>;
 
             /** Object to hold unit definitions. */
             units: Record<string, any>;
@@ -2042,7 +2225,7 @@ declare namespace nerdamerPrime {
              * @param fn_name The name of the function.
              * @param params The parameters for the function.
              */
-            symfunction(fn_name: string, params: any[]): Symbol;
+            symfunction(fn_name: string, params: any[]): NerdamerSymbol;
 
             // Additional parser methods for operators and functionality
 
@@ -2129,7 +2312,7 @@ declare namespace nerdamerPrime {
             removePreprocessor(name: string, shift_cells?: boolean): void;
 
             /** The generic handler for user-defined symbolic functions. */
-            mapped_function(...args: any[]): Symbol;
+            mapped_function(...args: any[]): NerdamerSymbol;
 
             // Operator handlers
             /**
@@ -2138,14 +2321,14 @@ declare namespace nerdamerPrime {
              * @param a The left operand.
              * @param b The right operand.
              */
-            comma(a: Symbol | Collection, b: Symbol): Collection;
+            comma(a: NerdamerSymbol | Collection, b: NerdamerSymbol): Collection;
             /**
              * Handles the modulo operator '%'.
              *
              * @param a The dividend.
              * @param b The divisor.
              */
-            mod(a: Symbol, b: Symbol): Symbol;
+            mod(a: NerdamerSymbol, b: NerdamerSymbol): NerdamerSymbol;
             /**
              * Handles slicing operations ':' for vectors.
              *
@@ -2156,37 +2339,37 @@ declare namespace nerdamerPrime {
             /**
              * Handles the assignment operator '='.
              *
-             * @param a The variable Symbol.
-             * @param b The value Symbol.
+             * @param a The variable NerdamerSymbol.
+             * @param b The value NerdamerSymbol.
              */
-            equals(a: Symbol | Collection, b: Symbol | Collection): Symbol | Vector;
+            equals(a: NerdamerSymbol | Collection, b: NerdamerSymbol | Collection): NerdamerSymbol | Vector;
             /**
              * Handles the percent operator '%'.
              *
              * @param a The operand.
              */
-            percent(a: Symbol): Symbol;
+            percent(a: NerdamerSymbol): NerdamerSymbol;
             /**
              * Handles the function/variable assignment operator ':='.
              *
              * @param a The function name and parameter Collection.
-             * @param b The function body Symbol.
+             * @param b The function body NerdamerSymbol.
              */
-            function_assign(a: Collection, b: Symbol): boolean;
+            function_assign(a: Collection, b: NerdamerSymbol): boolean;
             /** Handles the equality comparison operator '=='. */
-            eq(a: Symbol, b: Symbol): Symbol;
+            eq(a: NerdamerSymbol, b: NerdamerSymbol): NerdamerSymbol;
             /** Handles the greater-than comparison operator '>'. */
-            gt(a: Symbol, b: Symbol): Symbol;
+            gt(a: NerdamerSymbol, b: NerdamerSymbol): NerdamerSymbol;
             /** Handles the greater-than-or-equal-to comparison operator '>='. */
-            gte(a: Symbol, b: Symbol): Symbol;
+            gte(a: NerdamerSymbol, b: NerdamerSymbol): NerdamerSymbol;
             /** Handles the less-than comparison operator '<'. */
-            lt(a: Symbol, b: Symbol): Symbol;
+            lt(a: NerdamerSymbol, b: NerdamerSymbol): NerdamerSymbol;
             /** Handles the less-than-or-equal-to comparison operator '<='. */
-            lte(a: Symbol, b: Symbol): Symbol;
+            lte(a: NerdamerSymbol, b: NerdamerSymbol): NerdamerSymbol;
             /** Handles the factorial operator '!'. */
-            factorial(a: Symbol): Symbol;
+            factorial(a: NerdamerSymbol): NerdamerSymbol;
             /** Handles the double-factorial operator '!!'. */
-            dfactorial(a: Symbol): Symbol;
+            dfactorial(a: NerdamerSymbol): NerdamerSymbol;
         }
 
         // #endregion
@@ -2579,6 +2762,32 @@ declare namespace nerdamerPrime {
              */
             MAX_EXP: number;
 
+            /**
+             * Small epsilon value used for floating-point comparisons.
+             *
+             * @default undefined
+             * @internal
+             */
+            EPSILON?: number;
+
+            /**
+             * Internal storage for the original log and log10 function definitions. Used for swapping log behavior.
+             *
+             * @internal
+             */
+            LOG_FNS: {
+                log: any;
+                log10: any;
+            };
+
+            /**
+             * If `true`, peeker functions will be called during parsing operations.
+             *
+             * @default false
+             * @internal
+             */
+            callPeekers: boolean;
+
             // #endregion
         }
 
@@ -2594,7 +2803,7 @@ declare namespace nerdamerPrime {
              * @param arr An array of Symbols.
              * @returns `true` if all symbols are equal, `false` otherwise.
              */
-            allSame(arr: Symbol[]): boolean;
+            allSame(arr: NerdamerSymbol[]): boolean;
 
             /**
              * Checks if all elements in an array are numeric strings.
@@ -2669,15 +2878,15 @@ declare namespace nerdamerPrime {
              * @param arr An array of Symbols.
              * @returns A sorted array of unique variable names.
              */
-            arrayGetVariables(arr: Symbol[]): string[];
+            arrayGetVariables(arr: NerdamerSymbol[]): string[];
 
             /**
              * Calculates the sum of all elements in an array.
              *
              * @param arr An array of numbers or Symbols.
-             * @param toNumber If true, returns a JavaScript number instead of a Symbol.
+             * @param toNumber If true, returns a JavaScript number instead of a NerdamerSymbol.
              */
-            arraySum(arr: (number | Symbol)[], toNumber?: boolean): number | Symbol;
+            arraySum(arr: (number | NerdamerSymbol)[], toNumber?: boolean): number | NerdamerSymbol;
 
             /**
              * Temporarily changes a Nerdamer setting, executes a function, and then restores the original setting.
@@ -2690,12 +2899,12 @@ declare namespace nerdamerPrime {
             block<T>(setting: keyof Settings, f: () => T, opt?: boolean, obj?: any): T;
 
             /**
-             * Compiles a Symbol into a callable JavaScript function.
+             * Compiles a NerdamerSymbol into a callable JavaScript function.
              *
-             * @param symbol The Symbol to compile.
+             * @param symbol The NerdamerSymbol to compile.
              * @param arg_array Optional array to define the order of the function's arguments.
              */
-            build(symbol: Symbol, arg_array?: string[]): Function;
+            build(symbol: NerdamerSymbol, arg_array?: string[]): Function;
 
             /**
              * A function that must be called periodically in long-running loops to check for timeouts.
@@ -2723,18 +2932,18 @@ declare namespace nerdamerPrime {
             /**
              * Numerically compares two symbols by substituting random numbers for their variables.
              *
-             * @param sym1 The first Symbol.
-             * @param sym2 The second Symbol.
+             * @param sym1 The first NerdamerSymbol.
+             * @param sym2 The second NerdamerSymbol.
              * @param vars An optional array of variables to use for substitution.
              */
-            compare(sym1: Symbol, sym2: Symbol, vars: string[]): boolean;
+            compare(sym1: NerdamerSymbol, sym2: NerdamerSymbol, vars: string[]): boolean;
 
             /**
-             * Converts an array or other value into a Nerdamer Vector or Symbol.
+             * Converts an array or other value into a Nerdamer Vector or NerdamerSymbol.
              *
              * @param x The item to convert.
              */
-            convertToVector(x: ExpressionParam | any[]): Vector | Symbol;
+            convertToVector(x: ExpressionParam | any[]): Vector | NerdamerSymbol;
 
             /**
              * Creates a custom Error constructor.
@@ -2753,12 +2962,20 @@ declare namespace nerdamerPrime {
             /**
              * Decomposes a function into its parts with respect to a variable (ax+b).
              *
-             * @param fn The function Symbol.
+             * @param fn The function NerdamerSymbol.
              * @param wrt The variable to decompose with respect to.
              * @param as_obj If true, returns an object; otherwise, returns an array.
              */
-            decompose_fn(fn: Symbol, wrt: string, as_obj?: false): [Symbol, Symbol, Symbol, Symbol];
-            decompose_fn(fn: Symbol, wrt: string, as_obj: true): { a: Symbol; x: Symbol; ax: Symbol; b: Symbol };
+            decompose_fn(
+                fn: NerdamerSymbol,
+                wrt: string,
+                as_obj?: false
+            ): [NerdamerSymbol, NerdamerSymbol, NerdamerSymbol, NerdamerSymbol];
+            decompose_fn(
+                fn: NerdamerSymbol,
+                wrt: string,
+                as_obj: true
+            ): { a: NerdamerSymbol; x: NerdamerSymbol; ax: NerdamerSymbol; b: NerdamerSymbol };
 
             /**
              * Disarms the timeout timer.
@@ -2778,10 +2995,10 @@ declare namespace nerdamerPrime {
             /**
              * Forces the evaluation of a symbol, parsing it to a number if possible.
              *
-             * @param symbol The Symbol to evaluate.
+             * @param symbol The NerdamerSymbol to evaluate.
              * @param subs An object of substitutions.
              */
-            evaluate(symbol: Symbol, subs?: Record<string, ExpressionParam>): Symbol;
+            evaluate(symbol: NerdamerSymbol, subs?: Record<string, ExpressionParam>): NerdamerSymbol;
 
             /**
              * Checks if a number or the numerator of a fraction is even.
@@ -2798,7 +3015,7 @@ declare namespace nerdamerPrime {
             evenFraction(num: number): boolean;
 
             /**
-             * Fills empty indices in an array with a Symbol representing zero.
+             * Fills empty indices in an array with a NerdamerSymbol representing zero.
              *
              * @param arr The array to fill.
              * @param n The desired length of the array.
@@ -2841,20 +3058,20 @@ declare namespace nerdamerPrime {
             generatePrimes(upto: number): void;
 
             /**
-             * Extracts the coefficients of a polynomial Symbol with respect to a variable.
+             * Extracts the coefficients of a polynomial NerdamerSymbol with respect to a variable.
              *
-             * @param symbol The polynomial Symbol.
+             * @param symbol The polynomial NerdamerSymbol.
              * @param wrt The variable name.
              * @returns An array of coefficient Symbols.
              */
-            getCoeffs(symbol: Symbol, wrt: string): Symbol[];
+            getCoeffs(symbol: NerdamerSymbol, wrt: string): NerdamerSymbol[];
 
             /**
              * Generates a unique temporary variable name (usually 'u') for substitutions.
              *
              * @param symbol The symbol in whose context the variable must be unique.
              */
-            getU(symbol: Symbol): string;
+            getU(symbol: NerdamerSymbol): string;
 
             /** Imports all registered parser functions into a single object. */
             importFunctions(): Record<string, Function>;
@@ -2910,11 +3127,11 @@ declare namespace nerdamerPrime {
             isExpression(obj: any): obj is NerdamerExpression;
 
             /**
-             * Checks if a number or Symbol represents a fraction.
+             * Checks if a number or NerdamerSymbol represents a fraction.
              *
-             * @param num The number or Symbol.
+             * @param num The number or NerdamerSymbol.
              */
-            isFraction(num: number | Symbol): boolean;
+            isFraction(num: number | NerdamerSymbol): boolean;
 
             /**
              * Checks if a value can be parsed as an integer.
@@ -2931,18 +3148,18 @@ declare namespace nerdamerPrime {
             isMatrix(obj: any): obj is Matrix;
 
             /**
-             * Checks if a number or Symbol is negative.
+             * Checks if a number or NerdamerSymbol is negative.
              *
-             * @param obj The number or Symbol.
+             * @param obj The number or NerdamerSymbol.
              */
-            isNegative(obj: number | Symbol): boolean;
+            isNegative(obj: number | NerdamerSymbol): boolean;
 
             /**
-             * Checks if a Symbol is purely numeric (group N or P).
+             * Checks if a NerdamerSymbol is purely numeric (group N or P).
              *
-             * @param symbol The Symbol to check.
+             * @param symbol The NerdamerSymbol to check.
              */
-            isNumericSymbol(symbol: Symbol): boolean;
+            isNumericSymbol(symbol: NerdamerSymbol): boolean;
 
             /**
              * Checks if a number is prime.
@@ -2959,18 +3176,18 @@ declare namespace nerdamerPrime {
             isReserved(value: string): boolean;
 
             /**
-             * A type guard to check if an object is a Symbol.
+             * A type guard to check if an object is a NerdamerSymbol.
              *
              * @param obj The object to check.
              */
-            isSymbol(obj: any): obj is Symbol;
+            isSymbol(obj: any): obj is NerdamerSymbol;
 
             /**
-             * Checks if a Symbol is a simple variable (e.g., 'x', not '2*x' or 'x^2').
+             * Checks if a NerdamerSymbol is a simple variable (e.g., 'x', not '2*x' or 'x^2').
              *
-             * @param symbol The Symbol to check.
+             * @param symbol The NerdamerSymbol to check.
              */
-            isVariableSymbol(symbol: Symbol): boolean;
+            isVariableSymbol(symbol: NerdamerSymbol): boolean;
 
             /**
              * A type guard to check if an object is a Vector.
@@ -3013,7 +3230,7 @@ declare namespace nerdamerPrime {
              *
              * @param symbol The symbol to find the roots of.
              */
-            nroots(symbol: Symbol): Vector;
+            nroots(symbol: NerdamerSymbol): Vector;
 
             /**
              * Removes an item from an array by index or from an object by key.
@@ -3068,7 +3285,7 @@ declare namespace nerdamerPrime {
              * @param symbol The sum to separate.
              * @returns An object mapping variable groups to their sub-expressions.
              */
-            separate(symbol: Symbol): Record<string, Symbol>;
+            separate(symbol: NerdamerSymbol): Record<string, NerdamerSymbol>;
 
             /**
              * Replaces a substring within a larger string.
@@ -3087,22 +3304,22 @@ declare namespace nerdamerPrime {
              * @param map An object to store the function-to-variable mappings.
              * @returns The expression string with functions substituted.
              */
-            subFunctions(symbol: Symbol, map?: Record<string, string>): string;
+            subFunctions(symbol: NerdamerSymbol, map?: Record<string, string>): string;
 
             /**
              * Creates a substitution object to revert temporary variables back to their original function calls.
              *
              * @param map The map generated by `subFunctions`.
              */
-            getFunctionsSubs(map: Record<string, string>): Record<string, Symbol>;
+            getFunctionsSubs(map: Record<string, string>): Record<string, NerdamerSymbol>;
 
             /**
-             * Extract cluster of all variable names from a Symbol.
+             * Extract cluster of all variable names from a NerdamerSymbol.
              *
-             * @param obj The Symbol to analyze.
+             * @param obj The NerdamerSymbol to analyze.
              * @returns A sorted array of unique variable names.
              */
-            variables(obj: Symbol): string[];
+            variables(obj: NerdamerSymbol): string[];
 
             /**
              * Logs a warning to the console and adds it to Nerdamer's internal warning list.
@@ -3125,21 +3342,21 @@ declare namespace nerdamerPrime {
              *
              * @param symbol The symbol to rewrite.
              */
-            toCommonDenominator(symbol: Symbol): Symbol;
+            toCommonDenominator(symbol: NerdamerSymbol): NerdamerSymbol;
 
             /**
              * Checks if all symbols in an array are function calls.
              *
              * @param arr The array of symbols.
              */
-            all_functions(arr: Symbol[]): boolean;
+            all_functions(arr: NerdamerSymbol[]): boolean;
 
             /**
              * Applies trigonometric product-to-sum identities.
              *
              * @param arr An array of trigonometric function Symbols.
              */
-            trigTransform(arr: Symbol[]): Symbol;
+            trigTransform(arr: NerdamerSymbol[]): NerdamerSymbol;
 
             /**
              * Creates an object mapping array elements to their indices.
@@ -3198,7 +3415,7 @@ declare namespace nerdamerPrime {
 
         /** The object returned by `nerdamer.getCore()`. */
         interface Core {
-            Symbol: SymbolConstructor;
+            NerdamerSymbol: SymbolConstructor;
             Expression: ExpressionConstructor;
             Vector: VectorConstructor;
             Matrix: MatrixConstructor;

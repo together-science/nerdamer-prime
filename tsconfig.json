@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
-        "declaration": true,
+        // Output settings
+        "declaration": false,
         "emitDeclarationOnly": false,
-        "allowJs": true,
-        "checkJs": true,
+        "noEmit": true,
         "outDir": "./dist",
 
         // Modern ES target and libraries
@@ -12,7 +12,7 @@
         "module": "ESNext",
         "moduleResolution": "bundler",
 
-        // Strict type checking (modern best practices)
+        // Strict type checking - enabled for TypeScript files
         "strict": true,
         "exactOptionalPropertyTypes": true,
         "noUncheckedIndexedAccess": true,
@@ -28,12 +28,31 @@
         "verbatimModuleSyntax": false,
         "allowImportingTsExtensions": false,
 
-        // Output settings
-        "skipLibCheck": true,
+        // JavaScript handling - allow but don't strictly check legacy JS
+        "allowJs": true,
+        "checkJs": true,
 
-        // Relaxed settings for JS compilation
-        "noImplicitAny": false
+        // Advanced options
+        "skipLibCheck": true,
+        "isolatedModules": true,
+
+        // Type resolution
+        "typeRoots": ["./node_modules/@types"],
+        "types": ["jest", "node"]
     },
-    "include": ["index.d.ts", "nerdamer.core.js"],
-    "exclude": ["node_modules", "spec", "spec-dts"]
+    "include": [
+        // TypeScript files (strict checking)
+        "index.d.ts",
+        "eslint.config.mts",
+        "spec-dts/**/*.ts",
+        // JavaScript files (included but not strictly checked due to checkJs: false)
+        "all.js",
+        "nerdamer.core.js",
+        "Algebra.js",
+        "Calculus.js",
+        "Solve.js",
+        "Extra.js",
+        "constants.js"
+    ],
+    "exclude": ["node_modules", "spec", "all.min.js", "dist"]
 }

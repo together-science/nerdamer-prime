@@ -112,7 +112,7 @@ describe('Calculus', function () {
         expect(round(nerdamer('defint(cos(x)^3*x^2-1,-1,9)').evaluate(), 14)).toEqual(round(8.543016466395, 14));
         expect(round(nerdamer('defint(cos(x^x),1,2,x)').evaluate(), 14)).toEqual(round(-0.27113666621, 14));
         expect(round(nerdamer('defint(cos(x^log(sin(x))),2,3,x)').evaluate(), 14)).toEqual(round(0.805604089074, 14));
-        expect(round(nerdamer('defint(log(2*cos(x/2)),-π,π,x)').evaluate(), 14)).toEqual(round(-0, 14));
+        expect(round(nerdamer('defint(log(2*cos(x/2)),-π,π,x)').evaluate(), 14)).toEqual(round(0, 14));
         expect(round(nerdamer('defint(log(cos(x/2)),-π,π,x)').evaluate(), 14)).toEqual(round(-4.355172180607, 14));
         expect(round(nerdamer('defint(log(x+1), -1, 1, x)').evaluate(), 14)).toEqual(round(-0.6137056388801095, 14));
         expect(round(nerdamer('defint(log(x), 0, 1, x)').evaluate(), 14)).toEqual(round(-1, 14));

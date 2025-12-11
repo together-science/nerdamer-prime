@@ -11,7 +11,7 @@ module.exports = {
             'ts-jest',
             {
                 useESM: true,
-                tsconfig: '<rootDir>/spec-dts/tsconfig.json',
+                tsconfig: '<rootDir>/tsconfig.json',
             },
         ],
     },
