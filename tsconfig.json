@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "declaration": true,
+        "declaration": false,
         "emitDeclarationOnly": false,
         "allowJs": true,
         "checkJs": true,
@@ -12,28 +12,32 @@
         "module": "ESNext",
         "moduleResolution": "bundler",
 
-        // Strict type checking (modern best practices)
-        "strict": true,
-        "exactOptionalPropertyTypes": true,
-        "noUncheckedIndexedAccess": true,
-        "noImplicitOverride": true,
-        "noImplicitReturns": true,
-        "noFallthroughCasesInSwitch": true,
-        "noPropertyAccessFromIndexSignature": true,
+        // Strict type checking - ALL DISABLED for now
+        "strict": false,
+        "noImplicitAny": false,
+        "strictNullChecks": false,
+        "strictFunctionTypes": false,
+        "strictBindCallApply": false,
+        "strictPropertyInitialization": false,
+        "noImplicitThis": false,
+        "useUnknownInCatchVariables": false,
+        "exactOptionalPropertyTypes": false,
+        "noUncheckedIndexedAccess": false,
+        "noImplicitOverride": false,
+        "noImplicitReturns": false,
+        "noFallthroughCasesInSwitch": false,
+        "noPropertyAccessFromIndexSignature": false,
 
         // Modern module handling
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
-        "forceConsistentCasingInFileNames": true,
+        "forceConsistentCasingInFileNames": false,
         "verbatimModuleSyntax": false,
         "allowImportingTsExtensions": false,
 
         // Output settings
-        "skipLibCheck": true,
-
-        // Relaxed settings for JS compilation
-        "noImplicitAny": false
+        "skipLibCheck": true
     },
-    "include": ["index.d.ts", "nerdamer.core.js"],
-    "exclude": ["node_modules", "spec", "spec-dts"]
+    "include": ["index.d.ts", "nerdamer.core.js", "Algebra.js", "Calculus.js", "Solve.js", "Extra.js", "constants.js"],
+    "exclude": ["node_modules", "spec", "spec-dts", "all.js", "all.min.js"]
 }

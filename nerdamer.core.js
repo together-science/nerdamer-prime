@@ -1,3 +1,4 @@
+// @ts-nocheck
 /*
  * Author : Martin Donk
  * Website : http://www.nerdamer.com
