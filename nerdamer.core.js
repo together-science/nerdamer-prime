@@ -7993,6 +7993,66 @@ var nerdamer = (function (imports) {
                     m = _.divide(_.multiply(r[0], sq[0]), _.multiply(r[1], sq[1]));
                 }
 
+                // Attempt to factor out common together.math baseunits from sums inside the sqrt.
+                // If every term in a composite sum contains the same baseunit_X^k factor we can
+                // factor it out: sqrt(u^k*(...)) -> u^(k/2)*sqrt(...). This addresses issue #1
+                // where baseunit_m^2 should cancel with an outer baseunit_m^(-1).
+                try {
+                    if (symbol.isComposite && symbol.isComposite()) {
+                        var common = null;
+                        // iterate terms in the sum
+                        symbol.each(function (term) {
+                            var units = {};
+                            // inspect multiplicative factors of the term
+                            term.each(function (sub) {
+                                if (typeof sub.value === 'string' && sub.value.indexOf('baseunit_') === 0) {
+                                    // Numeric power (may be Frac or number) - coerce to Number
+                                    var p = Number(sub.power);
+                                    if (isNaN(p)) p = 1;
+                                    units[sub.value] = (units[sub.value] || 0) + p;
+                                }
+                            });
+
+                            if (common === null) {
+                                common = units;
+                            } else {
+                                // intersect keys and pick minimal powers
+                                var next = {};
+                                for (var k in common) {
+                                    if (common.hasOwnProperty(k) && units.hasOwnProperty(k)) {
+                                        next[k] = Math.min(common[k], units[k]);
+                                    }
+                                }
+                                common = next;
+                            }
+                        }, true);
+
+                        if (common && Object.keys(common).length > 0) {
+                            var factor = new Symbol(1);
+                            var added = 0;
+                            for (var name in common) {
+                                if (common.hasOwnProperty(name)) {
+                                    var pw = common[name];
+                                    if (pw && pw !== 0) {
+                                        var usym = new Symbol(name).setPower(new Frac(pw));
+                                        factor = _.multiply(factor, usym);
+                                        added++;
+                                    }
+                                }
+                            }
+                            if (added) {
+                                // divide symbol by the factored units
+                                symbol = _.divide(symbol, factor.clone());
+                                // incorporate sqrt(factor) into the numeric multiplier m
+                                var fp = _.pow(factor, new Symbol(0.5));
+                                m = m ? _.multiply(m, fp) : fp;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // be conservative: if anything goes wrong, don't break sqrt behavior
+                }
+
                 //strip the multiplier since we already took the sqrt
                 symbol = symbol.toUnitMultiplier(true);
                 //if the symbol is one just return one and not the sqrt function
