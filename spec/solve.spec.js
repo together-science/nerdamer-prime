@@ -196,7 +196,8 @@ describe('Solve', function () {
 
     describe('Known issues', function () {
         /*
-         * Problem: Solver returns rational approximation instead of exact symbolic answer.
+         *  GitHub issue #77
+         *  Problem: Solver returns rational approximation instead of exact symbolic answer.
          *
          * The equation sqrt(x) - 2x + x^2 = 0 has exact solutions:
          *   Let u = sqrt(x), so x = u^2
@@ -218,8 +219,8 @@ describe('Solve', function () {
          *
          * Expected: All three solutions in symbolic form.
          */
-        xit('should return exact symbolic solutions for sqrt(x)-2x+x^2', function () {
-            expect(nerdamer('solve(sqrt(x)-2x+x^2,x)').toString()).toEqual('[(-1/2)*sqrt(5)+3/2,0,832040/2178309,1]');
+        it('should return exact symbolic solutions for sqrt(x)-2x+x^2', function () {
+            expect(nerdamer('solve(sqrt(x)-2x+x^2,x)').toString()).toEqual('[(-1/2)*sqrt(5)+3/2,0,1]');
         });
 
         /*
