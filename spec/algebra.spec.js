@@ -397,8 +397,10 @@ describe('Algebra', function () {
          *
          * Current behavior: Returns '0.010007503399554583*baseunit_m^(-0.5)' The baseunit_m is not properly factored out of the sqrt before evaluation.
          */
-        xit('should cancel out baseunit_m in sqrt expressions (issue #1)', function () {
-            expect(nerdamer('baseunit_m ^(-1)*sqrt(baseunit_m ^2*cos(3)+baseunit_m ^2)').evaluate().text()).toEqual('0.100037509962788179');
+        it('should cancel out baseunit_m in sqrt expressions (issue #1)', function () {
+            // Use numeric comparison with tolerance to avoid flakiness from tiny FP differences
+            var val = Number(nerdamer('baseunit_m^(-1)*sqrt(baseunit_m^2*cos(3)+baseunit_m^2)').evaluate().text());
+            expect(val).toBeCloseTo(0.100037509962788179, 12);
         });
     });
 });
