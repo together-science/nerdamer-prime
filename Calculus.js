@@ -1088,7 +1088,6 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                 var //below we consider the form ax+b
                                     fn = symbol.clone().toLinear(), //get just the pure function without the power
                                     decomp = __.integration.decompose_arg(fn, dx),
-                                    //I have no idea why I used bx+a and not ax+b. TODO change this to something that makes sense
                                     b = decomp[3],
                                     ax = decomp[2],
                                     a = decomp[0],
@@ -1195,9 +1194,30 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                         __.integration.stop();
                                     }
                                 } else if (p === 1 / 2 && x.power.equals(2) && a.greaterThan(0)) {
-                                    // TODO: Revisit
-                                    // should become (sinh(2*acosh(x))/4-acosh(x)/2))
-                                    __.integration.stop();
+                                    // Issue #61: integral of sqrt(a*x^2 + b)
+                                    // Build: (1/2) * ( x*sqrt(a*x^2 + b) + (b*atanh((sqrt(a)*x)/sqrt(a*x^2 + b)))/sqrt(a) )
+                                    // Use existing helpers to keep exact fractions and symbolic form
+                                    try {
+                                        var sqrt_fn = _.symfunction(SQRT, [fn.clone()]);
+                                        var sqrt_a = _.symfunction(SQRT, [a.clone()]);
+                                        var xlin = x.clone().toLinear();
+
+                                        // term1: x * sqrt(a*x^2 + b)
+                                        var term1 = _.multiply(xlin.clone(), sqrt_fn.clone());
+
+                                        // atanh argument: (sqrt(a) * x) / sqrt(a*x^2 + b)
+                                        var atanh_arg = _.divide(_.multiply(sqrt_a.clone(), xlin.clone()), sqrt_fn.clone());
+                                        var atanh_fn = _.symfunction('atanh', [atanh_arg]);
+
+                                        // term2: (b * atanh(...)) / sqrt(a)
+                                        var term2 = _.divide(_.multiply(b.clone(), atanh_fn), sqrt_a.clone());
+
+                                        // sum and multiply by 1/2
+                                        retval = _.multiply(_.parse('1/2'), _.add(term1, term2));
+                                    } catch (e) {
+                                        // fallback to stopping integration if anything unexpected occurs
+                                        __.integration.stop();
+                                    }
                                 } else {
                                     if (x.isLinear() && x.group !== PL)
                                         retval = _.divide(__.integration.poly_integrate(symbol), a);

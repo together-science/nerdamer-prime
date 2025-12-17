@@ -5,6 +5,7 @@
 /node_modules/
 /package-lock.json
 /.vscode
+spec/test.js
 
 # Temporary Files
 **/report*
@@ -17,3 +18,4 @@ dist/
 build/
 coverage/
 .nyc_output/
+
