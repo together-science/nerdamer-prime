@@ -233,8 +233,7 @@ describe('Calculus', function () {
         expect(nerdamer('integrate(exp(2*log(x)),x)').toString()).toEqual('(1/3)*x^3');
     });
 
-    it('should handle integrals of sqrt(a*x^2+b)', function () {
-        // At minimum, the integrator should not throw when asked to integrate sqrt(a*x^2+b)
+    it('should handle integrals of sqrt(a*x^2+b) (issue #61)', function () {
         expect(nerdamer('integrate(sqrt(a*x^2+b), x)').text("fractions")).toBe('(a*x^2+b)^(1/2)*x-((-1/2)*cos(asin(i*sqrt(a)*sqrt(b)^(-1)*x))*sin(asin(i*sqrt(a)*sqrt(b)^(-1)*x))+(1/2)*asin(i*sqrt(a)*sqrt(b)^(-1)*x))*a^(-1)*b^2*sqrt(-a^(-1)*b)*sqrt(b)^(-1)');
     });
 });
