@@ -1391,7 +1391,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                         ) {
                                             __.integration.stop();
                                         }
-                                        /** TODO* */ //ASIN, ACOS, ATAN
+                                        /** TODO */ //ASIN, ACOS, ATAN
                                         switch (fname) {
                                             case COS:
                                                 retval = _.symfunction(SIN, [arg]);

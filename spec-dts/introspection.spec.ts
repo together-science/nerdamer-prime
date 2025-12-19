@@ -329,7 +329,8 @@ describe('Nerdamer AST Introspection Tests', () => {
                 // supported() with no args returns string[], with string arg returns boolean
                 if (Array.isArray(actualValue)) {
                     return declaredType === 'string[]' || (typeMap['string[]']?.(actualValue) ?? false);
-                } else if (typeof actualValue === 'boolean') {
+                }
+                if (typeof actualValue === 'boolean') {
                     return declaredType === 'boolean' || (typeMap['boolean']?.(actualValue) ?? false);
                 }
                 return false;
@@ -894,7 +895,8 @@ describe('Nerdamer AST Introspection Tests', () => {
                             actualValue.symbol === undefined ||
                             (actualValue.symbol && typeof actualValue.symbol === 'object')
                         );
-                    } else if (declaredType.includes('NerdamerSymbol')) {
+                    }
+                    if (declaredType.includes('NerdamerSymbol')) {
                         // NerdamerSymbol is required, undefined is NOT allowed
                         if (actualValue.symbol === undefined) {
                             console.log(
