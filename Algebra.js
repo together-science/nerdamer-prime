@@ -1304,7 +1304,7 @@ if (typeof module !== 'undefined') {
                     // Computes the next K polynomials using the scalars computed in calcSC_ak1
                     // iPar is a dummy variable for passing in three parameters--a1, a3, and a7
                     let temp;
-                    if (tFlag == 3) {
+                    if (tFlag === 3) {
                         // Use unscaled form of the recurrence
                         K[1] = K[0] = 0.0;
                         for (var i = 2; i < N; i++) {
@@ -1313,7 +1313,7 @@ if (typeof module !== 'undefined') {
                         return;
                     }
 
-                    temp = tFlag == 1 ? b : a;
+                    temp = tFlag === 1 ? b : a;
                     if (Math.abs(iPar.a1) > 10.0 * DBL_EPSILON * Math.abs(temp)) {
                         // Use scaled form of the recurrence
                         iPar.a7 /= iPar.a1;
@@ -1342,8 +1342,8 @@ if (typeof module !== 'undefined') {
                     let a4, a5, b1, b2, c1, c2, c3, c4, temp;
                     iPar.b = iPar.a = 0.0; // The quadratic is zeroed
 
-                    if (tFlag != 3) {
-                        if (tFlag != 2) {
+                    if (tFlag !== 3) {
+                        if (tFlag !== 2) {
                             a4 = a + u * b + h * f;
                             a5 = c + (u + v * f) * d;
                         } else {
@@ -1359,7 +1359,7 @@ if (typeof module !== 'undefined') {
                         c3 = b1 * b1 * a3;
                         c4 = -(c2 + c3) + c1;
                         temp = -c4 + a5 + b1 * a4;
-                        if (temp != 0.0) {
+                        if (temp !== 0.0) {
                             iPar.a = -((u * (c3 + c2) + v * (b1 * a1 + b2 * a7)) / temp) + u;
                             iPar.b = v * (1.0 + c4 / temp);
                         }
@@ -1378,11 +1378,11 @@ if (typeof module !== 'undefined') {
                     let b, d, e;
                     iPar.sr = iPar.si = iPar.lr = iPar.li = 0.0;
 
-                    if (a == 0) {
-                        iPar.sr = b1 != 0 ? -(c / b1) : iPar.sr;
+                    if (a === 0) {
+                        iPar.sr = b1 !== 0 ? -(c / b1) : iPar.sr;
                         return;
                     }
-                    if (c == 0) {
+                    if (c === 0) {
                         iPar.lr = -(b1 / a);
                         return;
                     }
@@ -1402,7 +1402,7 @@ if (typeof module !== 'undefined') {
                         // Real zeros
                         d = b >= 0 ? -d : d;
                         iPar.lr = (-b + d) / a;
-                        iPar.sr = iPar.lr != 0 ? c / iPar.lr / a : iPar.sr;
+                        iPar.sr = iPar.lr !== 0 ? c / iPar.lr / a : iPar.sr;
                     } else {
                         // Complex conjugate zeros
                         iPar.lr = iPar.sr = -(b / a);
@@ -1533,12 +1533,12 @@ if (typeof module !== 'undefined') {
                         vi = sdPar.b;
 
                         // If vi is zero, the iteration is not converging
-                        if (vi != 0) {
+                        if (vi !== 0) {
                             relstp = Math.abs((-v + vi) / vi);
                             u = ui;
                             v = vi;
                         }
-                    } while (vi != 0);
+                    } while (vi !== 0);
                     return;
                 }
 
@@ -1733,13 +1733,13 @@ if (typeof module !== 'undefined') {
                         vv = vi = sdPar.b;
 
                         // Estimate s
-                        ss = K[N - 1] != 0.0 ? -(p[N] / K[N - 1]) : 0.0;
+                        ss = K[N - 1] !== 0.0 ? -(p[N] / K[N - 1]) : 0.0;
                         ts = tv = 1.0;
 
-                        if (j != 0 && tFlag != 3) {
+                        if (j !== 0 && tFlag !== 3) {
                             // Compute relative measures of convergence of s and v sequences
-                            tv = vv != 0.0 ? Math.abs((vv - ovv) / vv) : tv;
-                            ts = ss != 0.0 ? Math.abs((ss - oss) / ss) : ts;
+                            tv = vv !== 0.0 ? Math.abs((vv - ovv) / vv) : tv;
+                            ts = ss !== 0.0 ? Math.abs((ss - oss) / ss) : ts;
 
                             // If decreasing, multiply the two most recent convergence measures
                             tvv = tv < otv ? tv * otv : 1.0;
@@ -1763,7 +1763,7 @@ if (typeof module !== 'undefined') {
                                 stry = vtry = 0;
 
                                 for (;;) {
-                                    if (fflag && (fflag = 0) == 0 && spass && (!vpass || tss < tvv)) {
+                                    if (fflag && (fflag = 0) === 0 && spass && (!vpass || tss < tvv)) {
                                         // Do nothing. Provides a quick "short circuit".
                                     } else {
                                         QuadIT_ak1(DBL_EPSILON, N, iPar, ui, vi, qp, NN, sdPar, p, qk, calcPar, K);
@@ -1789,7 +1789,7 @@ if (typeof module !== 'undefined') {
                                         }
                                     }
                                     //fflag = 0;
-                                    if (iFlag != 0) {
+                                    if (iFlag !== 0) {
                                         // Use sdPar for passing in s instead of defining a brand-new variable.
                                         // sdPar.a = s
                                         sdPar.a = s;
@@ -1805,7 +1805,7 @@ if (typeof module !== 'undefined') {
                                         stry = 1;
                                         betas *= 0.25;
 
-                                        if (iFlag != 0) {
+                                        if (iFlag !== 0) {
                                             // If linear iteration signals an almost double real zero, attempt quadratic iteration
                                             ui = -(s + s);
                                             vi = s * s;
@@ -1898,7 +1898,7 @@ if (typeof module !== 'undefined') {
                     Fxshfr_Par.szr = Fxshfr_Par.szi = Fxshfr_Par.lzr = Fxshfr_Par.lzi = 0.0;
 
                     // Remove zeros at the origin, if any
-                    while (p[N] == 0) {
+                    while (p[N] === 0) {
                         zeror[j] = zeroi[j] = 0;
                         N--;
                         j++;
@@ -1934,7 +1934,7 @@ if (typeof module !== 'undefined') {
                             if (x > moduli_max) {
                                 moduli_max = x;
                             }
-                            if (x != 0 && x < moduli_min) {
+                            if (x !== 0 && x < moduli_min) {
                                 moduli_min = x;
                             }
                         }
@@ -1947,10 +1947,10 @@ if (typeof module !== 'undefined') {
                         sc = LO / moduli_min;
 
                         if ((sc <= 1.0 && moduli_max >= 10) || (sc > 1.0 && Number.MAX_VALUE / sc >= moduli_max)) {
-                            sc = sc == 0 ? Number.MIN_VALUE : sc;
+                            sc = sc === 0 ? Number.MIN_VALUE : sc;
                             l = Math.floor(Math.log(sc) / LB2 + 0.5);
                             factor = Math.pow(2.0, l);
-                            if (factor != 1.0) {
+                            if (factor !== 1.0) {
                                 for (i = 0; i < NN; i++) {
                                     p[i] *= factor;
                                 }
@@ -1967,7 +1967,7 @@ if (typeof module !== 'undefined') {
                         // Compute upper estimate of bound
                         x = Math.exp((Math.log(-pt[N]) - Math.log(pt[0])) / N);
 
-                        if (pt[NM1] != 0) {
+                        if (pt[NM1] !== 0) {
                             // If Newton step at the origin is better, use it
                             xm = -pt[N] / pt[NM1];
                             x = xm < x ? xm : x;
@@ -2007,7 +2007,7 @@ if (typeof module !== 'undefined') {
                         K[0] = p[0];
                         aa = p[N];
                         bb = p[NM1];
-                        zerok = K[NM1] == 0 ? 1 : 0;
+                        zerok = K[NM1] === 0 ? 1 : 0;
 
                         for (jj = 0; jj < 5; jj++) {
                             cc = K[NM1];
@@ -2018,7 +2018,7 @@ if (typeof module !== 'undefined') {
                                     K[j] = K[j - 1];
                                 } // End for i
                                 K[0] = 0;
-                                zerok = K[NM1] == 0 ? 1 : 0;
+                                zerok = K[NM1] === 0 ? 1 : 0;
                             } else {
                                 // Used scaled form of recurrence if value of K at 0 is nonzero
                                 t = -aa / cc;
@@ -2051,7 +2051,7 @@ if (typeof module !== 'undefined') {
                             // Second stage calculation, fixed quadratic
                             Fxshfr_ak1(DBL_EPSILON, MDP1, 20 * jj, sr, bnd, K, N, p, NN, qp, u, Fxshfr_Par);
 
-                            if (Fxshfr_Par.NZ != 0) {
+                            if (Fxshfr_Par.NZ !== 0) {
                                 // The second stage jumps directly to one of the third stage iterations and
                                 // returns here if successful. Deflate the polynomial, store the zero or
                                 // zeros, and return to the main algorithm.
@@ -2063,7 +2063,7 @@ if (typeof module !== 'undefined') {
                                 for (var i = 0; i < NN; i++) {
                                     p[i] = qp[i];
                                 }
-                                if (Fxshfr_Par.NZ != 1) {
+                                if (Fxshfr_Par.NZ !== 1) {
                                     zeror[j + 1] = Fxshfr_Par.lzr;
                                     zeroi[j + 1] = Fxshfr_Par.lzi;
                                 }
@@ -4721,7 +4721,7 @@ if (typeof module !== 'undefined') {
                             });
                             retval = t;
                         }
-                    } else if ((symbol.fname === 'cos' || symbol.fname === 'sin') && symbol.args[0].group == CP) {
+                    } else if ((symbol.fname === 'cos' || symbol.fname === 'sin') && symbol.args[0].group === CP) {
                         // capture cos(x-pi/2) => sin(x) and sin(x+pi/2) = cos(x)
                         // but generalized
                         // test the sum for presence of a "n*pi/2" summands
@@ -4767,7 +4767,7 @@ if (typeof module !== 'undefined') {
                         }
                     } else if (
                         (symbol.fname === 'cos' || symbol.fname === 'sin') &&
-                        symbol.args[0].multiplier.sign() == -1
+                        symbol.args[0].multiplier.sign() === -1
                     ) {
                         // sin(-x) => -sin(x), cos(-x) => cos(x)
                         // remove the minus from the argument

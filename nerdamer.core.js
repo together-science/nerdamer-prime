@@ -2716,18 +2716,18 @@ var nerdamer = (function (imports) {
                 // Get multiplier as string. Don't pass decp here to preserve precision
                 // for internal operations - decp is only applied in the N case below.
                 let om = toString(obj.multiplier);
-                if (om == '-1' && String(obj.multiplier) === '-1') {
+                if (String(om) === '-1' && String(obj.multiplier) === '-1') {
                     sign = '-';
                     om = '1';
                 }
                 //only add the multiplier if it's not 1
-                if (om != '1') {
+                if (String(om) !== '1') {
                     multiplier = om;
                 }
                 //use asDecimal to get the object back as a decimal
                 const p = obj.power ? toString(obj.power) : '';
                 //only add the multiplier
-                if (p != '1') {
+                if (String(p) !== '1') {
                     //is it a symbol
                     if (isSymbol(p)) {
                         power = text(p, opt);
@@ -2753,7 +2753,7 @@ var nerdamer = (function (imports) {
                         m = toString(obj.multiplier);
                     }
                     //if it's numerical then all we need is the multiplier
-                    value = String(obj.multiplier) == '-1' ? '1' : m;
+                    value = String(obj.multiplier) === '-1' ? '1' : m;
                     power = '';
                     break;
                 case PL:
@@ -2761,7 +2761,7 @@ var nerdamer = (function (imports) {
                         .collectSymbols()
                         .map(x => {
                             let txt = text(x, opt, useGroup, decp);
-                            if (txt == '0') {
+                            if (txt === '0') {
                                 txt = '';
                             }
                             return txt;
@@ -2775,7 +2775,7 @@ var nerdamer = (function (imports) {
                         .collectSymbols()
                         .map(x => {
                             let txt = text(x, opt, useGroup, decp);
-                            if (txt == '0') {
+                            if (txt === '0') {
                                 txt = '';
                             }
                             return txt;
@@ -2809,7 +2809,7 @@ var nerdamer = (function (imports) {
                         value = inBrackets(value);
                     }
 
-                    if ((pwg === CP || pwg === CB || pwg === PL || obj.power.multiplier.toString() != '1') && power) {
+                    if ((pwg === CP || pwg === CB || pwg === PL || obj.power.multiplier.toString() !== '1') && power) {
                         power = inBrackets(power);
                     }
                     break;
@@ -2841,9 +2841,9 @@ var nerdamer = (function (imports) {
             //the following groups are held together by plus or minus. They can be raised to a power or multiplied
             //by a multiplier and have to be in brackets to preserve the order of precedence
             if (
-                ((group === CP || group === PL) && ((multiplier && multiplier != '1') || sign === '-')) ||
-                ((group === CB || group === CP || group === PL) && power && power != '1') ||
-                (!asHash && group === P && value == -1) ||
+                ((group === CP || group === PL) && ((multiplier && String(multiplier) !== '1') || sign === '-')) ||
+                ((group === CB || group === CP || group === PL) && power && String(power) !== '1') ||
+                (!asHash && group === P && String(value) === '-1') ||
                 obj.fname === PARENTHESIS
             ) {
                 value = inBrackets(value);
@@ -5658,16 +5658,16 @@ var nerdamer = (function (imports) {
                     } else {
                         const n = m.num,
                             d = m.den;
-                        if (d == 2) {
+                        if (d.equals(2)) {
                             retval = new NerdamerSymbol(1);
                             c = true;
-                        } else if (d == 3) {
+                        } else if (d.equals(3)) {
                             retval = _.parse('sqrt(3)/2');
                             c = true;
-                        } else if (d == 4) {
+                        } else if (d.equals(4)) {
                             retval = _.parse('1/sqrt(2)');
                             c = true;
-                        } else if (d == 6) {
+                        } else if (d.equals(6)) {
                             retval = _.parse('1/2');
                             c = true;
                         } else {
@@ -5716,15 +5716,15 @@ var nerdamer = (function (imports) {
                     } else {
                         const n = m.num,
                             d = m.den;
-                        if (d == 2) {
+                        if (d.equals(2)) {
                             throw new UndefinedError(`tan is undefined for ${symbol.toString()}`);
-                        } else if (d == 3) {
+                        } else if (d.equals(3)) {
                             retval = _.parse('sqrt(3)');
                             c = true;
-                        } else if (d == 4) {
+                        } else if (d.equals(4)) {
                             retval = new NerdamerSymbol(1);
                             c = true;
-                        } else if (d == 6) {
+                        } else if (d.equals(6)) {
                             retval = _.parse('1/sqrt(3)');
                             c = true;
                         } else {
@@ -5773,15 +5773,15 @@ var nerdamer = (function (imports) {
                     } else {
                         const n = m.num,
                             d = m.den;
-                        if (d == 2) {
+                        if (d.equals(2)) {
                             throw new UndefinedError(`sec is undefined for ${symbol.toString()}`);
-                        } else if (d == 3) {
+                        } else if (d.equals(3)) {
                             retval = new NerdamerSymbol(2);
                             c = true;
-                        } else if (d == 4) {
+                        } else if (d.equals(4)) {
                             retval = _.parse('sqrt(2)');
                             c = true;
-                        } else if (d == 6) {
+                        } else if (d.equals(6)) {
                             retval = _.parse('2/sqrt(3)');
                             c = true;
                         } else {
@@ -5832,16 +5832,16 @@ var nerdamer = (function (imports) {
                     } else {
                         const n = m.num,
                             d = m.den;
-                        if (d == 2) {
+                        if (d.equals(2)) {
                             retval = new NerdamerSymbol(1);
                             c = true;
-                        } else if (d == 3) {
+                        } else if (d.equals(3)) {
                             retval = _.parse('2/sqrt(3)');
                             c = true;
-                        } else if (d == 4) {
+                        } else if (d.equals(4)) {
                             retval = _.parse('sqrt(2)');
                             c = true;
-                        } else if (d == 6) {
+                        } else if (d.equals(6)) {
                             retval = new NerdamerSymbol(2);
                             c = true;
                         } else {
@@ -5893,15 +5893,15 @@ var nerdamer = (function (imports) {
                     } else {
                         const n = m.num,
                             d = m.den;
-                        if (d == 2) {
+                        if (d.equals(2)) {
                             retval = new NerdamerSymbol(0);
-                        } else if (d == 3) {
+                        } else if (d.equals(3)) {
                             retval = _.parse('1/sqrt(3)');
                             c = true;
-                        } else if (d == 4) {
+                        } else if (d.equals(4)) {
                             retval = new NerdamerSymbol(1);
                             c = true;
-                        } else if (d == 6) {
+                        } else if (d.equals(6)) {
                             retval = _.parse('sqrt(3)');
                             c = true;
                         } else {
@@ -11458,7 +11458,7 @@ var nerdamer = (function (imports) {
                         laTex = LaTeX.latex(x.invert(), option);
                         den_c++;
                         if (x.isComposite()) {
-                            if (symbol.multiplier.den != 1 && Math.abs(x.power) == 1) {
+                            if (!symbol.multiplier.den.equals(1) && Math.abs(x.power) === 1) {
                                 laTex = LaTeX.brackets(laTex, 'parens');
                             }
                             den_map.push(denominator.length); // make a note of where the composite was found
@@ -11469,7 +11469,7 @@ var nerdamer = (function (imports) {
                         laTex = LaTeX.latex(x, option);
                         num_c++;
                         if (x.isComposite()) {
-                            if (symbol.multiplier.num != 1 && Math.abs(x.power) == 1) {
+                            if (!symbol.multiplier.num.equals(1) && Math.abs(x.power) === 1) {
                                 laTex = LaTeX.brackets(laTex, 'parens');
                             }
                             num_map.push(numerator.length); // make a note of where the composite was found

@@ -69,7 +69,6 @@ const LEGACY_JS_DISABLED_RULES: Linter.RulesRecord = {
     'no-redeclare': 'off',
     'no-use-before-define': 'off',
     'no-shadow': 'off',
-    eqeqeq: 'off',
     'no-unused-vars': 'off',
     'no-useless-escape': 'off',
     'no-sparse-arrays': 'off',
