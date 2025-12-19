@@ -24,9 +24,9 @@ if (typeof module !== 'undefined') {
         format = core.Utils.format,
         isVector = core.Utils.isVector,
         isArray = core.Utils.isArray,
-        Vector = core.Vector,
+        _Vector = core.Vector,
         S = core.groups.S,
-        EX = core.groups.EX,
+        _EX = core.groups.EX,
         CP = core.groups.CP,
         PL = core.groups.PL,
         CB = core.groups.CB,
@@ -166,7 +166,7 @@ if (typeof module !== 'undefined') {
                                 //put back a
                                 retval = _.divide(retval, f.a);
                             };
-                            var num, den, s, retval, f, p, m, den_p, fe;
+                            var num, den, s, retval, f, p, m, den_p, _fe;
                             //remove the multiplier
                             m = symbol.multiplier.clone();
                             symbol.toUnitMultiplier();
@@ -190,7 +190,7 @@ if (typeof module !== 'undefined') {
                             //split up the denominator if in the form ax+b
                             f = core.Utils.decompose_fn(den, s, true);
                             //move the multiplier to the numerator
-                            fe = core.Utils.decompose_fn(_.expand(num.clone()), s, true);
+                            _fe = core.Utils.decompose_fn(_.expand(num.clone()), s, true);
                             num.multiplier = num.multiplier.multiply(m);
                             //store the parts in variables for easy recognition
                             //check if in the form t^n where n = integer

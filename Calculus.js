@@ -955,10 +955,10 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                 return [u, dv];
             },
 
-            trig_sub(symbol, dx, depth, opt, parts, symbols) {
+            trig_sub(symbol, dx, depth, opt, parts, _symbols) {
                 parts = parts || __.integration.decompose_arg(symbol.clone().toLinear(), dx);
-                const b = parts[3],
-                    ax = parts[2],
+                const _b = parts[3],
+                    _ax = parts[2],
                     a = parts[0],
                     x = parts[1];
                 if (x.power.equals(2) && a.greaterThan(0)) {
@@ -1204,7 +1204,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                         //1/(x^4+1)
                                         if (x.power.equals(4)) {
                                             //https://www.freemathhelp.com/forum/threads/55678-difficult-integration-int-1-(1-x-4)-dx
-                                            var A, B, C, D, E, F, f1, f2, f3, f4, L1, L2;
+                                            var A, B, C, D, E, F, _f1, _f2, _f3, _f4, L1, L2;
                                             const br = inBrackets;
                                             //apply rule: ax^4+b = (√ax^2+√2∜a∜bx+√b)(√ax^2-√2∜a∜bx+√b)
                                             //get quadratic factors
@@ -2479,7 +2479,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                     return;
                 }
 
-                const fin = f.clone(),
+                const _fin = f.clone(),
                     gin = g.clone();
 
                 //But first a little "cheating". x/|x| ends up in an infinite loop since the d/dx |x| -> x/|x|
@@ -2668,7 +2668,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                     //https://en.wikipedia.org/wiki/List_of_limits
                                     //Speed boost for exponentials by detecting patterns
                                     var f = symbol.clone().toLinear();
-                                    const p = symbol.power.clone();
+                                    const _p = symbol.power.clone();
                                     const _num = f.getNum();
                                     const _den = f.getDenom();
                                     const fn = core.Utils.decompose_fn(_den, x, true);

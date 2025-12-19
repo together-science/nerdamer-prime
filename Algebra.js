@@ -18,7 +18,7 @@ if (typeof module !== 'undefined') {
     'use strict';
 
     let _debuglevel = 0;
-    const debuglevel = function (n) {
+    const _debuglevel_fn = function (n) {
         _debuglevel += n;
     };
     const debugout = function (s) {
@@ -48,7 +48,7 @@ if (typeof module !== 'undefined') {
         NerdamerSymbol = core.NerdamerSymbol,
         CONST_HASH = core.Settings.CONST_HASH,
         math = core.Utils.importFunctions(),
-        evaluate = core.Utils.evaluate;
+        _evaluate = core.Utils.evaluate;
     //*************** CLASSES ***************//
     /**
      * Converts a symbol into an equivalent polynomial arrays of the form [[coefficient_1, power_1],[coefficient_2,
@@ -938,7 +938,7 @@ if (typeof module !== 'undefined') {
         const vars = [];
         for (let i = 0; i < this.terms.length; i++) {
             const term = this.terms[i],
-                rev_map = this.getRevMap();
+                _rev_map = this.getRevMap();
             if (!term.equals(0)) {
                 vars.push(this.rev_map[i]);
             }
@@ -1131,7 +1131,7 @@ if (typeof module !== 'undefined') {
             const zeros = 0;
             const known_roots = [];
             const get_roots = function (rarr, powers, max) {
-                let roots = calcroots(rarr, powers, max).concat(known_roots);
+                const roots = calcroots(rarr, powers, max).concat(known_roots);
                 for (let i = 0; i < zeros; i++) {
                     roots.unshift(0);
                 }
@@ -2114,7 +2114,7 @@ if (typeof module !== 'undefined') {
                     img = Math.abs(img) === 1 ? `${sign}i` : img ? `${img}*i` : '';
 
                     const num = real && img ? `${real}+${img}` : real + img;
-                    zeror[i] = num.replace(/\+\-/g, '-');
+                    zeror[i] = num.replace(/\+-/g, '-');
                 }
                 return zeror;
             }
@@ -2137,9 +2137,9 @@ if (typeof module !== 'undefined') {
                     done = false,
                     safety = 0;
                 while (!done) {
-                    let x = xn - fn(xn) / df(xn);
+                    const x = xn - fn(xn) / df(xn);
                     //absolute values for both x & xn ensures that we indeed have the radius
-                    let r = Math.abs(x) - Math.abs(xn),
+                    const r = Math.abs(x) - Math.abs(xn),
                         delta = Math.abs(r);
                     xn = x;
 
@@ -2748,7 +2748,7 @@ if (typeof module !== 'undefined') {
             },
             _factor(symbol, factors) {
                 core.Utils.checkTimeout();
-                const g = symbol.group;
+                const _g = symbol.group;
                 //some items cannot be factored any further so return those right away
                 if (symbol.group === FN) {
                     const arg = symbol.args[0];
@@ -3203,9 +3203,9 @@ if (typeof module !== 'undefined') {
                  * @returns {null | Polynomial} - Returns polynomial if successful otherwise null
                  */
                 const check = function (c1, c2, n, p) {
-                    let candidate = Polynomial.fit(c1, c2, n, base, p, v);
+                    const candidate = Polynomial.fit(c1, c2, n, base, p, v);
                     if (candidate && candidate.coeffs.length > 1) {
-                        let t = poly.divide(candidate);
+                        const t = poly.divide(candidate);
                         if (t[1].equalsNumber(0)) {
                             factors.add(candidate.toSymbol());
                             return [t[0], candidate];
@@ -3964,7 +3964,7 @@ if (typeof module !== 'undefined') {
                     const reconvert = function (arr) {
                         let symbol = new NerdamerSymbol(0);
                         for (let i = 0; i < arr.length; i++) {
-                            let x = arr[i].toSymbol();
+                            const x = arr[i].toSymbol();
                             symbol = _.add(symbol, x);
                         }
                         return symbol;
@@ -4001,7 +4001,7 @@ if (typeof module !== 'undefined') {
                     // Tries to find an LT in the dividend that will satisfy division
                     const get_det = function (s, lookat) {
                         lookat = lookat || 0;
-                        let det = s[lookat],
+                        const det = s[lookat],
                             l = s.length;
                         if (!det) {
                             return;
@@ -4009,7 +4009,7 @@ if (typeof module !== 'undefined') {
                         //eliminate the first term if it doesn't apply
                         let umax = get_unique_max(det);
                         for (var i = lookat + 1; i < l; i++) {
-                            let term = s[i],
+                            const term = s[i],
                                 is_equal = det.sum.equals(term.sum);
                             if (!is_equal && umax) {
                                 break;
@@ -4023,7 +4023,7 @@ if (typeof module !== 'undefined') {
                                     idx2,
                                     l2 = det.terms.length;
                                 for (let j = 0; j < l2; j++) {
-                                    let item1 = det.terms[j],
+                                    const item1 = det.terms[j],
                                         item2 = term.terms[j];
                                     if (typeof max1 === 'undefined' || item1.greaterThan(max1)) {
                                         max1 = item1;
@@ -4035,7 +4035,7 @@ if (typeof module !== 'undefined') {
                                     }
                                 }
                                 //check their differences
-                                let d1 = max1.subtract(term.terms[idx1]),
+                                const d1 = max1.subtract(term.terms[idx1]),
                                     d2 = max2.subtract(det.terms[idx2]);
                                 if (d2 > d1) {
                                     umax = [max2, idx2, term];
@@ -4062,7 +4062,7 @@ if (typeof module !== 'undefined') {
                         }
                         let e, idx;
                         for (var i = 0; i < s2.length; i++) {
-                            let cterm = s2[i].terms;
+                            const cterm = s2[i].terms;
                             //confirm that this is a good match for the denominator
                             idx = umax[1];
                             if (idx === cterm.length - 1) {
@@ -4111,11 +4111,11 @@ if (typeof module !== 'undefined') {
                         };
 
                         const try_better_lead_var = function (s1, s2, lead_var) {
-                            let checked = [];
+                            const checked = [];
                             for (var i = 0; i < s1.length; i++) {
                                 var t = s1[i];
                                 for (let j = 0; j < t.terms.length; j++) {
-                                    let cf = checked[j],
+                                    const cf = checked[j],
                                         tt = t.terms[j];
                                     if (i === 0) {
                                         checked[j] = tt;
@@ -4134,9 +4134,9 @@ if (typeof module !== 'undefined') {
                             return lead_var;
                         };
                         const sf = function (a, b) {
-                            let l1 = a.len(),
+                            const l1 = a.len(),
                                 l2 = b.len();
-                            let blv = b.terms[lead_var],
+                            const blv = b.terms[lead_var],
                                 alv = a.terms[lead_var];
                             if (l2 > l1 && blv.greaterThan(alv)) {
                                 return l2 - l1;
@@ -4851,7 +4851,7 @@ if (typeof module !== 'undefined') {
                     // console.log();
                     // console.log("Initial: "+symbol.text());
                     // remove power and multiplier
-                    const original = symbol.clone();
+                    const _original = symbol.clone();
                     const sym_array = __.Simplify.strip(symbol);
                     symbol = sym_array.pop();
 
@@ -5059,7 +5059,7 @@ if (typeof module !== 'undefined') {
                 }
                 return symbol;
             },
-            sqrtSimp(symbol, sym_array) {
+            sqrtSimp(symbol, _sym_array) {
                 let retval;
                 let workDone = false;
 
@@ -5211,7 +5211,7 @@ if (typeof module !== 'undefined') {
                             collect(x);
                         } else {
                             if (!patterns[x.value]) {
-                                let u = core.Utils.getU(symbol);
+                                const u = core.Utils.getU(symbol);
                                 // Get a u value and mark it for subsitution
                                 patterns[x.value] = u;
                                 symbol = symbol.sub(x.value, u);
@@ -5460,7 +5460,7 @@ if (typeof module !== 'undefined') {
             numargs: [1, 2],
             build() {
                 const f = function () {
-                    let coeffs = __.coeffs.apply(__, arguments);
+                    const coeffs = __.coeffs.apply(__, arguments);
                     return new core.Vector(coeffs);
                 };
                 return f;
@@ -5506,7 +5506,7 @@ if (typeof module !== 'undefined') {
                 const f = function (x, v) {
                     try {
                         v = v || variables(x)[0];
-                        let sq = __.sqComplete(x.clone(), v);
+                        const sq = __.sqComplete(x.clone(), v);
                         return sq.f;
                     } catch (e) {
                         if (e.message === 'timeout') {

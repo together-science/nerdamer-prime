@@ -892,7 +892,7 @@ if (typeof module !== 'undefined') {
             c = c.toString();
             d = d.toString();
             e = e.toString();
-            let p, q, D, D0, D1, Q, x1, x2, x3, x4;
+            let p, q, _D, D0, D1, Q, x1, x2, x3, x4;
             /*var D = core.Utils.block('PARSE2NUMBER', function() {
              return _.parse(format("256*({0})^3*({4})^3-192*({0})^2*({1})*({3})*({4})^2-128*({0})^2*({2})^2*({4})^2+144*({0})^2*({2})*({3})^2*({4})"+
              "-27*({0})^2*({3})^4+144*({0})*({1})^2*({2})*({4})^2-6*({0})*({1})^2*({3})^2*({4})-80*({0})*({1})*({2})^2*({3})*({4})+18*({0})*({1})*({2})*({3})^3"+
@@ -961,7 +961,7 @@ if (typeof module !== 'undefined') {
             return core.Utils.block(
                 'IGNORE_E',
                 () => {
-                    let f, p, pn, n, pf, r, theta, sr, sp, roots;
+                    let f, p, pn, n, pf, r, _theta, sr, _sp, roots;
                     roots = [];
                     f = core.Utils.decompose_fn(eq, solve_for, true);
                     if (f.x.group === S) {
@@ -970,9 +970,9 @@ if (typeof module !== 'undefined') {
                         n = _.pow(_.divide(f.b.negate(), f.a), p.invert());
                         pf = NerdamerSymbol.toPolarFormArray(n);
                         r = pf[0];
-                        theta = pf[1];
+                        _theta = pf[1];
                         sr = r.toString();
-                        sp = p.toString();
+                        _sp = p.toString();
                         let k, root, str;
                         for (let i = 0; i < pn; i++) {
                             k = i;
@@ -1003,7 +1003,7 @@ if (typeof module !== 'undefined') {
             const x0 = 0;
 
             const start = Math.round(x0),
-                last = f(start),
+                _last = f(start),
                 rside = core.Settings.ROOTS_PER_SIDE, // the max number of roots on right side
                 lside = rside; // the max number of roots on left side
             // check around the starting point

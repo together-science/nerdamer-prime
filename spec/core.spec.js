@@ -6,7 +6,7 @@ const nerdamer = require('../nerdamer.core.js');
 
 const utils = require('./support/utils');
 const _ = utils.toFixed;
-const run = utils.run;
+const _run = utils.run;
 const core = nerdamer.getCore();
 const round = core.Utils.round;
 const block = core.Utils.block;

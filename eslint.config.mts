@@ -62,9 +62,6 @@ const LEGACY_CORE_FILES = [
     'all.js',
 ];
 
-/** Rules disabled for legacy JavaScript code. These are turned off to allow gradual modernization. */
-const LEGACY_JS_DISABLED_RULES: Linter.RulesRecord = {};
-
 // =============================================================================
 // JSDoc Configuration
 // =============================================================================
@@ -136,7 +133,9 @@ const baseJsRules: Linter.RulesRecord = {
     ],
     'prefer-const': 'error',
     'no-var': 'error',
-    'no-shadow': 'error',
+    // Disabled: Mathematical code commonly reuses variable names like i, x, a, b in nested scopes
+    // Fixing 158 shadow errors would risk introducing bugs (as seen with the 'gin' variable issue)
+    'no-shadow': 'off',
     'no-use-before-define': [
         'error',
         {
@@ -435,7 +434,6 @@ export default defineConfig([
     {
         name: 'legacy/core',
         files: LEGACY_CORE_FILES,
-        rules: LEGACY_JS_DISABLED_RULES,
     },
 
     // -------------------------------------------------------------------------
@@ -445,7 +443,6 @@ export default defineConfig([
         name: 'legacy/spec',
         files: ['spec/**/*.js'],
         rules: {
-            ...LEGACY_JS_DISABLED_RULES,
             // Additionally disable JSDoc for legacy test files
             'jsdoc/check-param-names': 'off',
             'jsdoc/check-tag-names': 'off',
