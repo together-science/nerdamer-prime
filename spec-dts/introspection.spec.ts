@@ -938,23 +938,23 @@ describe('Nerdamer AST Introspection Tests', () => {
 
             // Check for complex types containing known patterns
             if (declaredType.includes('NerdamerExpression')) {
-                const validator = typeValidators['NerdamerExpression'];
-                return validator ? validator(actualValue) : false;
+                const exprValidator = typeValidators['NerdamerExpression'];
+                return exprValidator ? exprValidator(actualValue) : false;
             }
 
             if (declaredType.includes('Vector')) {
-                const validator = typeValidators['NerdamerCore.Vector'];
-                return validator ? validator(actualValue) : false;
+                const vecValidator = typeValidators['NerdamerCore.Vector'];
+                return vecValidator ? vecValidator(actualValue) : false;
             }
 
             if (declaredType.includes('Matrix')) {
-                const validator = typeValidators['NerdamerCore.Matrix'];
-                return validator ? validator(actualValue) : false;
+                const matValidator = typeValidators['NerdamerCore.Matrix'];
+                return matValidator ? matValidator(actualValue) : false;
             }
 
             if (declaredType.includes('nerdamer')) {
-                const validator = typeValidators['typeof nerdamer'];
-                return validator ? validator(actualValue) : false;
+                const nerdValidator = typeValidators['typeof nerdamer'];
+                return nerdValidator ? nerdValidator(actualValue) : false;
             }
 
             // For unknown types, be conservative but log it

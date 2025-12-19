@@ -342,15 +342,15 @@ describe('Nerdamer core', () => {
         }
     });
     it('should set postfix operators correctly', () => {
-        const core = nerdamer.getCore();
-        const _ = core.PARSER;
-        const { NerdamerSymbol } = core;
+        const nerdamerCore = nerdamer.getCore();
+        const parser = nerdamerCore.PARSER;
+        const { NerdamerSymbol } = nerdamerCore;
         nerdamer.setOperator({
             precedence: 4,
             operator: '°',
             postfix: true,
             operation(x) {
-                return _.divide(_.multiply(x, new NerdamerSymbol('pi')), new NerdamerSymbol(180));
+                return parser.divide(parser.multiply(x, new NerdamerSymbol('pi')), new NerdamerSymbol(180));
             },
         });
 
@@ -1441,10 +1441,10 @@ describe('Nerdamer core', () => {
         }
     });
     it('should ignore constants and special values', () => {
-        const core = nerdamer.getCore();
+        const nerdamerCore = nerdamer.getCore();
         expect(nerdamer('e').variables()).toEqual([]);
         expect(nerdamer('pi').variables()).toEqual([]);
-        expect(nerdamer(core.Settings.IMAGINARY).variables()).toEqual([]);
+        expect(nerdamer(nerdamerCore.Settings.IMAGINARY).variables()).toEqual([]);
     });
     /** #44: a+b - (a+b) not evaluated as 0 */
     it('should perform subtraction of terms', () => {
@@ -3235,18 +3235,18 @@ describe('misc and regression tests', () => {
     it('should multiply small fractions by large numbers correctly', () => {
         // This test directly exercises the multiply() function with PARSE2NUMBER=true
         // which is the code path used during expression evaluation
-        const core = nerdamer.getCore();
-        const _ = core.PARSER;
-        const { Settings } = core;
+        const nerdamerCore = nerdamer.getCore();
+        const parser = nerdamerCore.PARSER;
+        const { Settings } = nerdamerCore;
 
         // 1/7e19 * 7e19 = 1 (exactly)
         // The magnitude check detects that 1/7e19 is outside the safe precision range
         // and uses exact fraction arithmetic instead of decimal approximation
-        const small = _.parse('1/70000000000000000000');
-        const large = _.parse('70000000000000000000');
+        const small = parser.parse('1/70000000000000000000');
+        const large = parser.parse('70000000000000000000');
 
         Settings.PARSE2NUMBER = true;
-        const result = _.multiply(small, large);
+        const result = parser.multiply(small, large);
         Settings.PARSE2NUMBER = false;
 
         // The mathematically correct result is 1

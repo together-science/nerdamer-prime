@@ -8,9 +8,8 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
     let _typeChecker: tsMorph.TypeChecker;
 
     /**
-     * Helper to get method-like members from an interface.
-     * The index.d.ts uses property signatures with function types (e.g., `add: (x: T) => R`)
-     * instead of method signatures (e.g., `add(x: T): R`), so we need to check properties
+     * Helper to get method-like members from an interface. The index.d.ts uses property signatures with function types
+     * (e.g., `add: (x: T) => R`) instead of method signatures (e.g., `add(x: T): R`), so we need to check properties
      * whose type is a function type.
      */
     const getMethodLikeMembers = (iface: tsMorph.InterfaceDeclaration | undefined): string[] => {
@@ -28,20 +27,23 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
         return methodNames;
     };
 
-    /**
-     * Helper to get a method-like member by name (either method signature or property with function type)
-     */
-    const getMethodLikeMember = (iface: tsMorph.InterfaceDeclaration | undefined, name: string): {
-        getReturnTypeNode: () => tsMorph.TypeNode | undefined;
-        getParameters: () => { getTypeNode: () => tsMorph.TypeNode | undefined }[];
-    } | undefined => {
+    /** Helper to get a method-like member by name (either method signature or property with function type) */
+    const getMethodLikeMember = (
+        iface: tsMorph.InterfaceDeclaration | undefined,
+        name: string
+    ):
+        | {
+              getReturnTypeNode: () => tsMorph.TypeNode | undefined;
+              getParameters: () => { getTypeNode: () => tsMorph.TypeNode | undefined }[];
+          }
+        | undefined => {
         if (!iface) return undefined;
         // Try method signature first
         const method = iface.getMethod(name);
         if (method) {
             return {
                 getReturnTypeNode: () => method.getReturnTypeNode(),
-                getParameters: () => method.getParameters()
+                getParameters: () => method.getParameters(),
             };
         }
         // Try property with function type
@@ -52,9 +54,10 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
                 const funcType = typeNode as tsMorph.FunctionTypeNode;
                 return {
                     getReturnTypeNode: () => funcType.getReturnTypeNode(),
-                    getParameters: () => funcType.getParameters().map(p => ({
-                        getTypeNode: () => p.getTypeNode()
-                    }))
+                    getParameters: () =>
+                        funcType.getParameters().map(p => ({
+                            getTypeNode: () => p.getTypeNode(),
+                        })),
                 };
             }
         }
@@ -335,14 +338,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
         it('should have core data structure interfaces', () => {
             // These are the main data structure interfaces (not constructors)
-            const expectedInterfaces = [
-                'Frac',
-                'NerdamerSymbol',
-                'Vector',
-                'Matrix',
-                'Set',
-                'Collection',
-            ];
+            const expectedInterfaces = ['Frac', 'NerdamerSymbol', 'Vector', 'Matrix', 'Set', 'Collection'];
 
             for (const ifaceName of expectedInterfaces) {
                 const iface = nerdamerCoreNamespace?.getInterface(ifaceName);
@@ -353,7 +349,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
         it('should have Core interface with essential properties', () => {
             const coreInterface = nerdamerCoreNamespace?.getInterface('Core');
             expect(coreInterface).toBeDefined();
-            
+
             // Core should have essential types like PARSER, NerdamerSymbol constructor, etc.
             const memberNames = coreInterface?.getMembers().map(m => (m as any).getName?.()) || [];
             expect(memberNames.length).toBeGreaterThan(0);

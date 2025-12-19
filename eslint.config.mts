@@ -133,9 +133,7 @@ const baseJsRules: Linter.RulesRecord = {
     ],
     'prefer-const': 'error',
     'no-var': 'error',
-    // Disabled: Mathematical code commonly reuses variable names like i, x, a, b in nested scopes
-    // Fixing 158 shadow errors would risk introducing bugs (as seen with the 'gin' variable issue)
-    'no-shadow': 'off',
+    'no-shadow': 'error',
     'no-use-before-define': [
         'error',
         {
