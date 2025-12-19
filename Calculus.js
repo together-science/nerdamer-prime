@@ -497,7 +497,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
 
             function derive(symbol) {
                 let g = symbol.group,
-                    a,
+                    _a,
                     b,
                     cp;
 
@@ -688,7 +688,6 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                     } else {
                         value = symbol.value + inBrackets(text(symbol.args[0]));
                     }
-                    a = _.multiply(_.parse(LOG + inBrackets(value)), symbol.power.clone());
                     b = __.diff(_.multiply(_.parse(LOG + inBrackets(value)), symbol.power.clone()), d);
                     symbol = _.multiply(symbol, b);
                 } else if (g === FN && !symbol.power.equals(1)) {

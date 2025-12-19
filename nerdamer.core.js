@@ -2989,7 +2989,7 @@ var nerdamer = (function (imports) {
      * Returns stored expression at index. For first index use 1 not 0.
      *
      * @param {number | string} expression_number
-     * @param {boolean} asType
+     * @param {boolean} _asType
      */
     Expression.getExpression = function (expression_number, _asType) {
         if (expression_number === 'last' || !expression_number) {
@@ -10902,7 +10902,7 @@ var nerdamer = (function (imports) {
          * Converts a decimal to a fraction
          *
          * @param {number} value
-         * @param {object} opts
+         * @param {object} _opts
          * @returns {Array} - An array containing the denominator and the numerator
          */
         convert(value, _opts) {

@@ -434,6 +434,16 @@ export default defineConfig([
     {
         name: 'legacy/core',
         files: LEGACY_CORE_FILES,
+        rules: {
+            // These files use var extensively and rely on hoisting behavior
+            // Converting to let/const would require careful refactoring to avoid breaking changes
+            'no-var': 'off',
+            'prefer-const': 'off',
+            // Variables are often used before defined due to var hoisting patterns
+            'no-use-before-define': 'off',
+            // Many intentional redeclarations (module, Function, loop variables, etc.)
+            'no-redeclare': 'off',
+        },
     },
 
     // -------------------------------------------------------------------------
@@ -443,6 +453,8 @@ export default defineConfig([
         name: 'legacy/spec',
         files: ['spec/**/*.js'],
         rules: {
+            // Disable no-redeclare since files use /* global expect */ alongside jest/jasmine globals
+            'no-redeclare': 'off',
             // Additionally disable JSDoc for legacy test files
             'jsdoc/check-param-names': 'off',
             'jsdoc/check-tag-names': 'off',

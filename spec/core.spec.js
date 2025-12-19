@@ -337,7 +337,7 @@ describe('Nerdamer core', () => {
     it('should handle errors', () => {
         const formulas = ['0/0', '0^0', '-Infinity+Infinity', 'Infinity/Infinity', 'Infinity^Infinity', '1^Infinity', 'Infinity^0', '(-Infinity)^0', 'Infinity*0'];
 
-        for (var i = 0; i < formulas.length; i++) {
+        for (let i = 0; i < formulas.length; i++) {
             expect(() => {
                 nerdamer(formulas[i]);
             }).toThrowError();
@@ -1136,14 +1136,13 @@ describe('Nerdamer core', () => {
         expect(nerdamer('log(2*(a+b)^7)').toString()).toEqual('log(2*(a+b)^7)');
     });
     it('should check for equality', () => {
-        let a, b, c, d, e, f, g;
-        a = nerdamer('2sqrt(5)');
-        b = nerdamer('2sqrt(5)');
-        c = nerdamer('sqrt(13)');
-        d = nerdamer('sqrt(21)');
-        e = nerdamer('sqrt(20)');
-        f = nerdamer('sqrt(5) + sqrt(3)');
-        g = nerdamer('sqrt(5) + sqrt(7)');
+        const a = nerdamer('2sqrt(5)');
+        const b = nerdamer('2sqrt(5)');
+        const c = nerdamer('sqrt(13)');
+        const d = nerdamer('sqrt(21)');
+        const e = nerdamer('sqrt(20)');
+        const f = nerdamer('sqrt(5) + sqrt(3)');
+        const g = nerdamer('sqrt(5) + sqrt(7)');
         expect(a.lt(g)).toBe(true);
         expect(a.lt(f)).toBe(false);
         expect(a.gt(c)).toBe(true);
@@ -1431,7 +1430,7 @@ describe('Nerdamer core', () => {
         for (let i = 0; i < testCases.length; ++i) {
             const testCase = testCases[i];
 
-            var parsed;
+            let parsed;
             // when
             try {
                 parsed = nerdamer(testCase.given).sub(testCase.sub, testCase.sub_with).toString();
