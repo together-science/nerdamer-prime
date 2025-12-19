@@ -73,9 +73,7 @@ describe('Arity Mismatch Investigation', () => {
             const usesArguments = functionSource.includes('arguments');
             const argMatches = functionSource.match(/arguments\[(\d+)\]/g) || [];
             const maxArgIndex =
-                argMatches.length > 0
-                    ? Math.max(...argMatches.map((m: string) => parseInt(m.match(/\d+/)![0]))) + 1
-                    : 0;
+                argMatches.length > 0 ? Math.max(...argMatches.map((m: string) => parseInt(/\d+/.exec(m)![0]))) + 1 : 0;
             console.log(`   Uses arguments object: ${usesArguments}`);
             if (usesArguments) {
                 console.log(`   Max argument index used: ${maxArgIndex}`);
@@ -260,12 +258,12 @@ describe('Arity Mismatch Investigation', () => {
         console.log('\n=== Investigation of 6 Remaining Genuine Issues ===');
 
         const remainingIssues = [
-            'getVars', // return type mismatch
-            'supported', // return type mismatch
-            'matset', // complex function that may not handle 4+ parameters correctly
-            'sum', // complex function that may not handle 4+ parameters correctly
-            'product', // complex function that may not handle 4+ parameters correctly
-            'solveEquations', // genuine arity mismatch (declares 5 but needs 1)
+            'getVars', // Return type mismatch
+            'supported', // Return type mismatch
+            'matset', // Complex function that may not handle 4+ parameters correctly
+            'sum', // Complex function that may not handle 4+ parameters correctly
+            'product', // Complex function that may not handle 4+ parameters correctly
+            'solveEquations', // Genuine arity mismatch (declares 5 but needs 1)
         ];
 
         for (const funcName of remainingIssues) {
@@ -371,7 +369,7 @@ describe('Arity Mismatch Investigation', () => {
                 const argMatches = functionSource.match(/arguments\[(\d+)\]/g) || [];
                 const maxArgIndex =
                     argMatches.length > 0
-                        ? Math.max(...argMatches.map((m: string) => parseInt(m.match(/\d+/)![0]))) + 1
+                        ? Math.max(...argMatches.map((m: string) => parseInt(/\d+/.exec(m)![0]))) + 1
                         : 0;
                 console.log(`   Arguments pattern: max index ${maxArgIndex}, ${argMatches.length} references`);
             }
