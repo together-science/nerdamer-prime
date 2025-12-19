@@ -2,27 +2,27 @@
 
 'use strict';
 
-var nerdamer = require('../nerdamer.core.js');
+const nerdamer = require('../nerdamer.core.js');
 
-var utils = require('./support/utils');
-var _ = utils.toFixed;
-var run = utils.run;
-var core = nerdamer.getCore();
-var round = core.Utils.round;
-var block = core.Utils.block;
+const utils = require('./support/utils');
+const _ = utils.toFixed;
+const run = utils.run;
+const core = nerdamer.getCore();
+const round = core.Utils.round;
+const block = core.Utils.block;
 
 //, x=2.1, y=3.3, z=1, a=7.42
-var values = {
+const values = {
     x: 2.1,
     y: 3.3,
     z: 1,
     a: 7.42,
 };
 
-describe('Nerdamer core', function () {
-    it('should perform simple arithmetic', function () {
+describe('Nerdamer core', () => {
+    it('should perform simple arithmetic', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: '((((((1+1))))))',
                 expected: '2',
@@ -70,19 +70,19 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate().text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate().text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value), 14).toEqual(round(testCases[i].expectedValue), 14);
         }
     });
-    it('should handle minus sign properly', function () {
+    it('should handle minus sign properly', () => {
         // given
-        var cases = [
+        const cases = [
             {
                 given: '0-4',
                 expected: '-4',
@@ -197,16 +197,16 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var k in cases) {
+        for (const k in cases) {
             // when
-            var parsed = nerdamer(cases[k].given);
+            const parsed = nerdamer(cases[k].given);
             // then
             expect(parsed.toString()).toEqual(cases[k].expected);
         }
     });
-    it('should perform simple calculations with variables', function () {
+    it('should perform simple calculations with variables', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'x+x',
                 expected: '2*x',
@@ -324,42 +324,43 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value), 14).toEqual(round(testCases[i].expectedValue), 14);
         }
     });
-    it('should handle errors', function () {
-        var formulas = ['0/0', '0^0', '-Infinity+Infinity', 'Infinity/Infinity', 'Infinity^Infinity', '1^Infinity', 'Infinity^0', '(-Infinity)^0', 'Infinity*0'];
+    it('should handle errors', () => {
+        const formulas = ['0/0', '0^0', '-Infinity+Infinity', 'Infinity/Infinity', 'Infinity^Infinity', '1^Infinity', 'Infinity^0', '(-Infinity)^0', 'Infinity*0'];
 
-        for (var i = 0; i < formulas.length; i++)
-            expect(function () {
+        for (var i = 0; i < formulas.length; i++) {
+            expect(() => {
                 nerdamer(formulas[i]);
             }).toThrowError();
+        }
     });
-    it('should set postfix operators correctly', function () {
-        var core = nerdamer.getCore();
-        var _ = core.PARSER;
-        var NerdamerSymbol = core.NerdamerSymbol;
+    it('should set postfix operators correctly', () => {
+        const core = nerdamer.getCore();
+        const _ = core.PARSER;
+        const NerdamerSymbol = core.NerdamerSymbol;
         nerdamer.setOperator({
             precedence: 4,
             operator: '°',
             postfix: true,
-            operation: function (x) {
+            operation(x) {
                 return _.divide(_.multiply(x, new NerdamerSymbol('pi')), new NerdamerSymbol(180));
             },
         });
 
         expect(nerdamer('x+1°+π+x').toString()).toEqual('(181/180)*pi+2*x');
     });
-    it('should correctly calculate Infinity', function () {
+    it('should correctly calculate Infinity', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: '0^Infinity',
                 expected: '0',
@@ -402,16 +403,16 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
+            const parsed = nerdamer(testCases[i].given);
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
         }
     });
-    it('should calculate fib correctly', function () {
+    it('should calculate fib correctly', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'fib(0)',
                 expected: '0',
@@ -434,16 +435,16 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given).evaluate();
+            const parsed = nerdamer(testCases[i].given).evaluate();
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
         }
     });
-    it('should calculate sinc correctly', function () {
+    it('should calculate sinc correctly', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'sinc(x)',
                 expected: 'sinc(x)',
@@ -466,18 +467,18 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
-            var testCase = testCases[i];
+        for (let i = 0; i < testCases.length; ++i) {
+            const testCase = testCases[i];
             // when
-            var parsed = testCase.eval ? nerdamer(testCase.given).evaluate() : nerdamer(testCase.given);
+            const parsed = testCase.eval ? nerdamer(testCase.given).evaluate() : nerdamer(testCase.given);
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
         }
     });
-    it('should expand terms', function () {
+    it('should expand terms', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'expand((9*y*x+1)^3)',
                 expected: '1+243*x^2*y^2+27*x*y+729*x^3*y^3',
@@ -520,17 +521,17 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value, 12)).toEqual(round(testCases[i].expectedValue, 12));
         }
     });
-    it('should expand correctly', function () {
+    it('should expand correctly', () => {
         expect(nerdamer('expand((a^2*b*c)^(-1))').toString()).toEqual('a^(-2)*b^(-1)*c^(-1)');
         expect(nerdamer('expand(((a^2*b)(x+1))^2)').toString()).toEqual('2*a^4*b^2*x+a^4*b^2+a^4*b^2*x^2');
         expect(nerdamer('expand(5*x/(c+d)^2)').toString()).toEqual('5*(2*c*d+c^2+d^2)^(-1)*x');
@@ -546,9 +547,9 @@ describe('Nerdamer core', function () {
         expect(nerdamer('expand((d/(x+1)+1)^2)').toString()).toEqual('(1+2*x+x^2)^(-1)*d^2+1+2*(1+x)^(-1)*d');
         expect(nerdamer('expand(2*cos((d/(x+1)+1)^2)^2)').toString()).toEqual('2*cos((1+2*x+x^2)^(-1)*d^2+1+2*(1+x)^(-1)*d)^2');
     });
-    it('should handle imaginary log arguments', function () {
+    it('should handle imaginary log arguments', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'log(5*i)',
                 expected: '1.5707963267948966*i+1.60943791243410026',
@@ -577,18 +578,18 @@ describe('Nerdamer core', function () {
             */
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate().text('decimals', 17);
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate().text('decimals', 17);
 
             // then
             expect(value).toEqual(testCases[i].expected);
         }
     });
-    it('should convert from polar to rectangular', function () {
+    it('should convert from polar to rectangular', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'rectform(sqrt(34)*e^(i*atan(3/5)))',
                 expected: '3*i+5',
@@ -597,18 +598,18 @@ describe('Nerdamer core', function () {
             //(-1)^(1/4)*sqrt(2)
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate().text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate().text('decimals');
 
             // then
             expect(value).toEqual(testCases[i].expected);
         }
     });
-    it('should convert from rectangular to polar', function () {
+    it('should convert from rectangular to polar', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'polarform(3*i+5)',
                 expected: 'e^(atan(3/5)*i)*sqrt(34)',
@@ -635,18 +636,18 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.toString();
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.toString();
 
             // then
             expect(value).toEqual(testCases[i].expected);
         }
     });
-    it('should compute powers', function () {
+    it('should compute powers', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: '0^(1/2)',
                 expected: '0',
@@ -674,17 +675,17 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value), 14).toEqual(round(testCases[i].expectedValue), 14);
         }
     });
-    it('should handle large exponents', function () {
+    it('should handle large exponents', () => {
         expect(nerdamer('((0.06/3650))^(365)').toString()).toEqual(
             '1410126170338158616048224728371571380367482072097134683678107761' +
                 '52508851857709566371341862240808591002757985609412198322971415396168976254349069' +
@@ -710,9 +711,9 @@ describe('Nerdamer core', function () {
         );
         expect(nerdamer('1000*(1+(0.06/365))^(365*3)').evaluate().text()).toEqual('1197.1996529367538872360');
     });
-    it('should compute factorials', function () {
+    it('should compute factorials', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: '(1+x^2)!',
                 expected: 'factorial(1+x^2)',
@@ -745,19 +746,19 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value), 14).toEqual(round(testCases[i].expectedValue), 14);
         }
     });
-    it('should compute symbolic factorials', function () {
+    it('should compute symbolic factorials', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: '(-1/2)!',
                 expected: 'sqrt(pi)',
@@ -784,17 +785,17 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
+            const parsed = nerdamer(testCases[i].given);
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
         }
     });
-    it('should handle square roots', function () {
+    it('should handle square roots', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'sqrt(1+x)^(4*x)',
                 expected: '(1+x)^(2*x)',
@@ -937,31 +938,31 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value, 12)).toEqual(round(testCases[i].expectedValue, 12));
         }
     });
-    it('should simplify square roots', function () {
+    it('should simplify square roots', () => {
         expect(nerdamer('sqrt(128/49)').toString()).toEqual('(8/7)*sqrt(2)');
         expect(nerdamer('sqrt(2)-2/(sqrt(2))').toString()).toEqual('0');
         expect(nerdamer('expand((sqrt(7)+3sqrt(2))(sqrt(7)-3sqrt(2)))').toString()).toEqual('-11');
         expect(nerdamer('3sqrt(2)*2sqrt(6)').toString()).toEqual('12*sqrt(3)');
     });
-    it('should handle square roots of negative values', function () {
+    it('should handle square roots of negative values', () => {
         expect(nerdamer('sqrt(-x)').evaluate().text()).toEqual('sqrt(-x)');
         expect(nerdamer('sqrt(-0.5*x)').evaluate().text()).toEqual('0.7071067811865475*sqrt(-x)');
         expect(nerdamer('sqrt(-4)').evaluate().text()).toEqual('2*i');
         expect(nerdamer('sqrt(-pi)').evaluate().text()).toEqual('1.772453850905516*i');
     });
-    it('should expand square roots', function () {
+    it('should expand square roots', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: '(sqrt(7)+3sqrt(2))*(sqrt(7)-3sqrt(2))',
                 expected: '-11',
@@ -972,15 +973,15 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given).expand();
+            const parsed = nerdamer(testCases[i].given).expand();
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
         }
     });
-    it('should correctly test for squareness', function () {
+    it('should correctly test for squareness', () => {
         expect(nerdamer('16x^2*y^2').symbol.isSquare()).toBe(true);
         expect(nerdamer('16x^2*y^2-1').symbol.isSquare()).toBe(false);
         expect(nerdamer('9').symbol.isSquare()).toBe(true);
@@ -989,7 +990,7 @@ describe('Nerdamer core', function () {
         expect(nerdamer('9^(1/4)').symbol.isSquare()).toBe(false);
         expect(nerdamer('x^(1/2)').symbol.isSquare()).toBe(false);
     });
-    it('should correctly test for cubeness', function () {
+    it('should correctly test for cubeness', () => {
         expect(nerdamer('64x^3*y^3').symbol.isCube()).toBe(true);
         expect(nerdamer('64x^3*y^3-1').symbol.isCube()).toBe(false);
         expect(nerdamer('7').symbol.isCube()).toBe(false);
@@ -1000,9 +1001,9 @@ describe('Nerdamer core', function () {
         expect(nerdamer('x^(1/2)').symbol.isCube()).toBe(false);
         expect(nerdamer('216*z^6').symbol.isCube()).toBe(true);
     });
-    it('should support the imaginary number i', function () {
+    it('should support the imaginary number i', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'i*i',
                 expected: '-1',
@@ -1066,19 +1067,19 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals', 17);
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals', 17);
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(value).toEqual(testCases[i].expectedValue);
         }
     });
-    it('should handle powers with results using i', function () {
+    it('should handle powers with results using i', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: '(-2/3*x)^x',
                 expected: '(-x)^x*2^x*3^(-x)',
@@ -1087,19 +1088,19 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(value).toEqual(testCases[i].expectedValue);
         }
     });
-    it('should compute logarithms correctly', function () {
+    it('should compute logarithms correctly', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'log(e)',
                 expected: '1',
@@ -1122,10 +1123,10 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate().text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate().text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
@@ -1134,8 +1135,8 @@ describe('Nerdamer core', function () {
         // np issue #2
         expect(nerdamer('log(2*(a+b)^7)').toString()).toEqual('log(2*(a+b)^7)');
     });
-    it('should check for equality', function () {
-        var a, b, c, d, e, f, g;
+    it('should check for equality', () => {
+        let a, b, c, d, e, f, g;
         a = nerdamer('2sqrt(5)');
         b = nerdamer('2sqrt(5)');
         c = nerdamer('sqrt(13)');
@@ -1156,20 +1157,20 @@ describe('Nerdamer core', function () {
         expect(f.lte(g)).toBe(true);
     });
     /** Based on commit cf8c0f8. */
-    it('should not cause infinite recursion', function () {
+    it('should not cause infinite recursion', () => {
         // given
-        var formula = '1/(1+x)+(1+x)';
+        const formula = '1/(1+x)+(1+x)';
 
         // when
-        var parsed = nerdamer(formula);
-        var result = parsed.evaluate().toString();
+        const parsed = nerdamer(formula);
+        const result = parsed.evaluate().toString();
 
         // then
         expect(result).toBe('(1+x)^(-1)+1+x');
     });
-    it('should support ceil and floor', function () {
+    it('should support ceil and floor', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'floor(204)',
                 expected: '204',
@@ -1196,18 +1197,18 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate().text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate().text('decimals');
 
             // then
             expect(value).toEqual(testCases[i].expected);
         }
     });
-    it('should round', function () {
+    it('should round', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'round(204)',
                 expected: '204',
@@ -1242,18 +1243,18 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate().text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate().text('decimals');
 
             // then
             expect(value).toEqual(testCases[i].expected);
         }
     });
-    it('should support trunc()', function () {
+    it('should support trunc()', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'trunc(0)',
                 expected: '0',
@@ -1284,18 +1285,18 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate().text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate().text('decimals');
 
             // then
             expect(value).toEqual(testCases[i].expected);
         }
     });
-    it('should support continued fractions', function () {
+    it('should support continued fractions', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'continued_fraction(2.145474, 11)',
                 expected: '[1,2,[6,1,6,1,16,8,2,1,3,2]]',
@@ -1310,18 +1311,18 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
+            const parsed = nerdamer(testCases[i].given);
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
         }
     });
     /** #35 #76: Support multiple minus signs and brackets */
-    it('should support prefix operator with parantheses', function () {
+    it('should support prefix operator with parantheses', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: '(a+x)--(x+a)',
                 expected: '2*a+2*x',
@@ -1340,19 +1341,19 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate().text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate().text('decimals');
 
             // then
             expect(value).toEqual(testCases[i].expected);
         }
     });
     //#78
-    it('should substitute variables', function () {
+    it('should substitute variables', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: '2*(x+1)^2',
                 sub: 'x+1',
@@ -1427,8 +1428,8 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
-            var testCase = testCases[i];
+        for (let i = 0; i < testCases.length; ++i) {
+            const testCase = testCases[i];
 
             var parsed;
             // when
@@ -1442,74 +1443,74 @@ describe('Nerdamer core', function () {
             expect(parsed).toEqual(testCases[i].expected);
         }
     });
-    it('should ignore constants and special values', function () {
-        var core = nerdamer.getCore();
+    it('should ignore constants and special values', () => {
+        const core = nerdamer.getCore();
         expect(nerdamer('e').variables()).toEqual([]);
         expect(nerdamer('pi').variables()).toEqual([]);
         expect(nerdamer(core.Settings.IMAGINARY).variables()).toEqual([]);
     });
     /** #44: a+b - (a+b) not evaluated as 0 */
-    it('should perform subtraction of terms', function () {
+    it('should perform subtraction of terms', () => {
         // given
-        var formula = 'a+b - (a+b)';
+        const formula = 'a+b - (a+b)';
 
         // when
-        var result = nerdamer(formula).toString();
+        const result = nerdamer(formula).toString();
 
         // then
         expect(result).toBe('0');
     });
     /** #46: (x^(1/2)*x^(1/3))-x^(5/6) should be 0 */
-    it('should result in 0', function () {
+    it('should result in 0', () => {
         // given
-        var formula = '(x^(1/2)*x^(1/3))-x^(5/6)';
+        const formula = '(x^(1/2)*x^(1/3))-x^(5/6)';
 
         // when
-        var result = nerdamer(formula).toString();
+        const result = nerdamer(formula).toString();
 
         // then
         expect(result).toBe('0');
     });
     /** #47: (a^2)/(a*b) should be a/b */
-    it('should simplify correctly', function () {
+    it('should simplify correctly', () => {
         // given
-        var formula = '(a^2)/(a*b)';
+        const formula = '(a^2)/(a*b)';
 
         // when
-        var result = nerdamer(formula).toString();
+        const result = nerdamer(formula).toString();
 
         // then
         // TODO jiggzson: Result is correct but a/b would be simpler
         expect(result).toBe('a*b^(-1)');
     });
     /** #56: x/sqrt(x) = x^(3/2) */
-    it('should calculate x/sqrt(x) correctly', function () {
+    it('should calculate x/sqrt(x) correctly', () => {
         // given
-        var formula = 'x/sqrt(x)';
+        const formula = 'x/sqrt(x)';
 
         // when
-        var result = nerdamer(formula).toString();
+        const result = nerdamer(formula).toString();
 
         // then
         expect(result).toBe('x^(1/2)');
     });
     /** #60: sin(x) looks like sin(abs(x)) */
-    it('should respect the sign of argument for sin(x)', function () {
+    it('should respect the sign of argument for sin(x)', () => {
         // given
-        var halfSqrt2 = '0.7071067811865475'; // sqrt(2)/2
-        var halfSqrt3 = '0.8660254037844385'; // sqrt(3)/2
-        var testCases = [
+        const halfSqrt2 = '0.7071067811865475'; // sqrt(2)/2
+        const halfSqrt3 = '0.8660254037844385'; // sqrt(3)/2
+        const testCases = [
             {
                 given: '-pi',
                 expected: '0',
             },
             {
                 given: '-3/4*pi',
-                expected: '-' + halfSqrt2,
+                expected: `-${halfSqrt2}`,
             },
             {
                 given: '-2/3*pi',
-                expected: '-' + halfSqrt3,
+                expected: `-${halfSqrt3}`,
             },
             {
                 given: '-1/2*pi',
@@ -1553,18 +1554,16 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var result = nerdamer('sin(' + testCases[i].given + ')')
-                .evaluate()
-                .text('decimals');
+            const result = nerdamer(`sin(${testCases[i].given})`).evaluate().text('decimals');
 
             // then
             expect(round(result, 14)).toEqual(round(testCases[i].expected), 14);
         }
     });
-    it('should compute complex numbers', function () {
-        var testCases = [
+    it('should compute complex numbers', () => {
+        const testCases = [
             //SYMBOLIC
             {
                 given: 'cos(3*i+a)',
@@ -1718,13 +1717,13 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
-            var result = nerdamer(testCases[i].given, null, 'numer').text();
+        for (let i = 0; i < testCases.length; ++i) {
+            const result = nerdamer(testCases[i].given, null, 'numer').text();
             expect(round(result, 14)).toEqual(round(testCases[i].expected), 14);
         }
     });
-    it('should correctly get the numerator', function () {
-        var testCases = [
+    it('should correctly get the numerator', () => {
+        const testCases = [
             {
                 given: '3/4*a',
                 expected: '3*a',
@@ -1755,13 +1754,13 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
-            var result = nerdamer(testCases[i].given).numerator().text();
+        for (let i = 0; i < testCases.length; ++i) {
+            const result = nerdamer(testCases[i].given).numerator().text();
             expect(result.toString()).toEqual(testCases[i].expected);
         }
     });
-    it('should correctly get the denominator', function () {
-        var testCases = [
+    it('should correctly get the denominator', () => {
+        const testCases = [
             {
                 given: '3/4*a',
                 expected: '4',
@@ -1792,63 +1791,63 @@ describe('Nerdamer core', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
-            var result = nerdamer(testCases[i].given).denominator().text();
+        for (let i = 0; i < testCases.length; ++i) {
+            const result = nerdamer(testCases[i].given).denominator().text();
             expect(result.toString()).toEqual(testCases[i].expected);
         }
     });
-    it('should add vectors correctly', function () {
+    it('should add vectors correctly', () => {
         expect(nerdamer('1+[a,b]').toString()).toEqual('[1+a,1+b]');
         expect(nerdamer('[a,b]+1').toString()).toEqual('[1+a,1+b]');
         expect(nerdamer('[a,b]+[a,b]').toString()).toEqual('[2*a,2*b]');
         expect(nerdamer('[a,b]+[c,d]').expand().toString()).toEqual('[a+c,b+d]');
     });
-    it('should subtract vectors correctly', function () {
+    it('should subtract vectors correctly', () => {
         expect(nerdamer('1-[a,b]').toString()).toEqual('[-a+1,-b+1]');
         expect(nerdamer('[a,b]-1').toString()).toEqual('[-1+a,-1+b]');
         expect(nerdamer('[a,b]-[a,b]').toString()).toEqual('[0,0]');
     });
-    it('should multiply vectors correctly', function () {
+    it('should multiply vectors correctly', () => {
         expect(nerdamer('3*[a,b]').toString()).toEqual('[3*a,3*b]');
         expect(nerdamer('[a,b]*x').toString()).toEqual('[a*x,b*x]');
         expect(nerdamer('[a,b]*[a,b]').toString()).toEqual('[a^2,b^2]');
     });
-    it('should cross-multiply vectors correctly', function () {
+    it('should cross-multiply vectors correctly', () => {
         expect(nerdamer('cross([1,2,3],[4,5,6])').toString()).toEqual('[-3,6,-3]');
         expect(nerdamer('cross(1,2)').toString()).toEqual('2');
     });
-    it('should dot-multiply vectors correctly', function () {
+    it('should dot-multiply vectors correctly', () => {
         expect(nerdamer('dot([1,2,3],[4,5,6])').toString()).toEqual('32');
         expect(nerdamer('dot(1,2)').toString()).toEqual('2');
     });
-    it('should divide vectors correctly', function () {
+    it('should divide vectors correctly', () => {
         expect(nerdamer('12/[3,4]').toString()).toEqual('[4,3]');
         expect(nerdamer('[21,15]/3').toString()).toEqual('[7,5]');
         expect(nerdamer('[a^2, b^2]/[a,b]').toString()).toEqual('[a,b]');
     });
-    it('should expand vectors correctly', function () {
+    it('should expand vectors correctly', () => {
         expect(nerdamer('[a*(b+c),4]').expand().toString()).toEqual('[a*b+a*c,4]');
     });
-    it('should expand collections correctly', function () {
+    it('should expand collections correctly', () => {
         expect(nerdamer('(a*(b+c),4)').expand().toString()).toEqual('(a*b+a*c, 4)');
     });
-    it('should remove near duplicates from vectors', function () {
+    it('should remove near duplicates from vectors', () => {
         expect(nerdamer('vectrim([cos(0), 1, 1.000000000000001])').toString()).toEqual('[1]');
         expect(nerdamer('vectrim([cos(0), 1, 1.000000000000001], 0)').text()).toEqual('[1,900719925474100/900719925474099]');
     });
-    it('should convert degrees to radians', function () {
+    it('should convert degrees to radians', () => {
         expect(nerdamer('radians(45)').toString()).toEqual('(1/4)*pi');
     });
-    it('should convert radians to degrees', function () {
+    it('should convert radians to degrees', () => {
         expect(nerdamer('degrees(pi/4)').toString()).toEqual('45');
     });
-    it('should rationalize correctly', function () {
+    it('should rationalize correctly', () => {
         expect(nerdamer('rationalize(a/b+c/d+e/f)').toString()).toEqual('(a*d*f+b*c*f+b*d*e)*(b*d*f)^(-1)');
         expect(nerdamer('rationalize(1/x+x)').toString()).toEqual('(1+x^2)*x^(-1)');
         expect(nerdamer('rationalize((x+1)/x-1)').toString()).toEqual('x^(-1)');
         expect(nerdamer('rationalize((a*x^2+b)/x^2-1)').toString()).toEqual('(-x^2+a*x^2+b)*x^(-2)');
     });
-    it('should handle matrix operations', function () {
+    it('should handle matrix operations', () => {
         expect(nerdamer('matrix([3,4])^2').toString()).toEqual('matrix([9,16])');
         expect(nerdamer('2^matrix([3,4])').toString()).toEqual('matrix([8,16])');
         expect(nerdamer('2^matrix([3,4])').toString()).toEqual('matrix([8,16])');
@@ -1862,141 +1861,141 @@ describe('Nerdamer core', function () {
         expect(nerdamer('matrix([1,2])/matrix([8,4])').toString()).toEqual('matrix([1/8,1/2])');
         expect(nerdamer('16/matrix([8,4])').toString()).toEqual('matrix([2,4])');
     });
-    it('should perform scientific rounding', function () {
+    it('should perform scientific rounding', () => {
         expect(nerdamer('12/7*x+cos(33333333333333333)-11/17').text('scientific')).toEqual('-6.47058823529412e-1+1.71428571428571*x+cos(3.33333333333333e16)');
         expect(nerdamer('7/(11*x-24*x^2)+cos(13/44)^(300/21)').text('scientific')).toEqual('7*(-2.4e1*x^2+1.1e1*x)^(-1)+cos(2.95454545454545e-1)^1.42857142857143e1');
     });
-    it('should throw for even negative powers in nthroots', function () {
-        expect(function () {
+    it('should throw for even negative powers in nthroots', () => {
+        expect(() => {
             nerdamer('nthroot(-9, 2)').evaluate();
         }).toThrowError();
     });
-    it('should throw for zero powers in nthroots', function () {
-        expect(function () {
+    it('should throw for zero powers in nthroots', () => {
+        expect(() => {
             nerdamer('nthroot(-9, 0)').evaluate();
         }).toThrowError();
     });
-    it('should calculate nthroots', function () {
+    it('should calculate nthroots', () => {
         expect(nerdamer('nthroot(-8, 3)').evaluate().text()).toEqual('-2');
         expect(nerdamer('nthroot(sqrt(64), sqrt(9))').evaluate().text()).toEqual('2');
         expect(nerdamer('nthroot(-1, 3)').evaluate().text()).toEqual('-1');
         expect(nerdamer('nthroot(-7, 3)').evaluate().text()).toEqual('-1.9129311827723888731');
         expect(nerdamer('nthroot(-x*8, 3)').evaluate().text()).toEqual('nthroot(-8*x,3)');
     });
-    it('should calculate cube roots', function () {
+    it('should calculate cube roots', () => {
         expect(nerdamer('cbrt(8)').evaluate().text()).toEqual('2');
         expect(nerdamer('cbrt(x)').evaluate().text()).toEqual('cbrt(x)');
         expect(nerdamer('cbrt(27*x^3)').evaluate().text()).toEqual('3*x');
         expect(nerdamer('cbrt((y^3*x^3))').evaluate().text()).toEqual('x*y');
     });
-    it('should correctly build a JS function', function () {
+    it('should correctly build a JS function', () => {
         expect(nerdamer('acos((-x)^(1/6))').buildFunction()(0)).toEqual(1.5707963267948966);
         //factorials
         expect(nerdamer('x^2+x!').buildFunction()(4)).toEqual(40);
     });
-    it('should correctly build for a nerdamer defined function', function () {
+    it('should correctly build for a nerdamer defined function', () => {
         //Note: this may break at some point when big numbers are implemented
         expect(nerdamer('Ci(x)+x').buildFunction()(4)).toEqual(3.8590183021130704);
     });
-    it('should handle percent', function () {
+    it('should handle percent', () => {
         expect(nerdamer('10%+20%').toString()).toEqual('3/10');
         expect(nerdamer('a%/10%').toString()).toEqual('(1/10)*a');
         expect(nerdamer('x%-x%').toString()).toEqual('0');
         expect(nerdamer('x%*x%').toString()).toEqual('(1/10000)*x^2');
     });
-    it('should recognize the mod and percent operator', function () {
+    it('should recognize the mod and percent operator', () => {
         expect(nerdamer('3*(a%%b%)').toString()).toEqual('3*mod((1/100)*a,(1/100)*b)');
     });
-    it('should rewrite e as exp', function () {
-        block('E_TO_EXP', function () {
+    it('should rewrite e as exp', () => {
+        block('E_TO_EXP', () => {
             expect(nerdamer('(3*e^(e^(x))+tan(-e^x))+a').toString()).toEqual('3*exp(exp(x))+a+tan(-exp(x))');
         });
     });
-    it('should unwrap even abs', function () {
+    it('should unwrap even abs', () => {
         expect(nerdamer('(3*abs(x))^2').toString()).toEqual('3*x^2');
     });
 
-    describe('User constants,', function () {
+    describe('User constants,', () => {
         const NerdamerTypeError = nerdamer.getCore().exceptions.NerdamerTypeError;
 
-        afterEach(function () {
+        afterEach(() => {
             nerdamer.clearConstants();
         });
 
-        it('should add user constant', function () {
+        it('should add user constant', () => {
             nerdamer.setConstant('G', '9.81');
             expect(nerdamer('G').text()).toEqual('9.81');
         });
 
-        it('should get user constant', function () {
+        it('should get user constant', () => {
             nerdamer.setConstant('G', '9.81');
             expect(nerdamer.getConstant('G')).toEqual('9.81');
         });
 
-        it('constant should be number', function () {
+        it('constant should be number', () => {
             expect(function testError() {
                 nerdamer.setConstant('G', '2*pi');
             }).toThrowError(NerdamerTypeError);
         });
 
-        it('should clear user constants', function () {
+        it('should clear user constants', () => {
             nerdamer.setConstant('G', '9.81');
             nerdamer.clearConstants();
             expect(nerdamer('G').text()).toEqual('9.81');
         });
     });
 
-    describe('User variables,', function () {
-        afterEach(function () {
+    describe('User variables,', () => {
+        afterEach(() => {
             nerdamer.clearVars();
         });
 
-        it('should add user variable', function () {
+        it('should add user variable', () => {
             nerdamer.setVar('aa', 'a*a');
             expect(nerdamer('aa').text()).toEqual('a^2');
         });
 
-        it('should get user variable', function () {
+        it('should get user variable', () => {
             nerdamer.setVar('aa', 'a*a');
             expect(nerdamer.getVar('aa').text()).toEqual('a^2');
         });
 
-        it('constant should not be alredy declared as constant', function () {
+        it('constant should not be alredy declared as constant', () => {
             nerdamer.setConstant('G', '9.81');
             expect(function testError() {
                 nerdamer.setVar('G', 'a*a');
             }).toThrow();
         });
 
-        it('should clear user variable', function () {
+        it('should clear user variable', () => {
             nerdamer.setVar('aa', 'a*a');
             nerdamer.clearVars();
             expect(nerdamer('aa').text()).toEqual('aa');
         });
 
-        it('should parse variables with scientific number patterns in the subscript', function () {
+        it('should parse variables with scientific number patterns in the subscript', () => {
             expect(nerdamer('x_a1e1').text()).toEqual('x_a1e1');
         });
     });
 
-    describe('User functions 1', function () {
-        afterEach(function () {
+    describe('User functions 1', () => {
+        afterEach(() => {
             nerdamer.clearFunctions();
         });
 
-        it('should handle nested functions', function () {
+        it('should handle nested functions', () => {
             nerdamer.setFunction('a', ['x'], '2*x');
             nerdamer.setFunction('b', ['x'], 'x^2');
 
             expect(nerdamer('a(b(x))').text()).toEqual('2*x^2');
         });
-        it('should handle nested functions version 2', function () {
+        it('should handle nested functions version 2', () => {
             nerdamer.setFunction('a(x)=2*x');
             nerdamer.setFunction('b(x)=x^2');
 
             expect(nerdamer('a(b(x))').text()).toEqual('2*x^2');
         });
-        it('should clear nested functions', function () {
+        it('should clear nested functions', () => {
             nerdamer.setFunction('c(x)=2*x');
             expect(nerdamer('sin(1)').evaluate().text()).toEqual('0.8414709848078964790');
             expect(nerdamer('c(t)').text()).toEqual('2*t');
@@ -2007,18 +2006,18 @@ describe('Nerdamer core', function () {
         });
     });
 
-    describe('User functions 2,', function () {
-        afterEach(function () {
+    describe('User functions 2,', () => {
+        afterEach(() => {
             nerdamer.clearFunctions();
         });
 
-        it('should add function type 1', function () {
+        it('should add function type 1', () => {
             nerdamer.setFunction('f', ['x', 'y'], '2*x+y');
 
             expect(nerdamer('f(2, 3)').toString()).toEqual('7');
         });
 
-        it('should add function type 2a', function () {
+        it('should add function type 2a', () => {
             nerdamer.setFunction('f(x, y)=2*x+y');
             nerdamer.setFunction(' g(x, y) = 2 * x + y ');
 
@@ -2026,7 +2025,7 @@ describe('Nerdamer core', function () {
             expect(nerdamer('g(2, 3)').toString()).toEqual('7');
         });
 
-        it('should add function type 2b', function () {
+        it('should add function type 2b', () => {
             nerdamer.setFunction('f(x, y):=2*x+y');
             nerdamer.setFunction(' g(x, y) := 2 * x + y ');
 
@@ -2034,7 +2033,7 @@ describe('Nerdamer core', function () {
             expect(nerdamer('g(2, 3)').toString()).toEqual('7');
         });
 
-        it('should use JavaScript functions', function () {
+        it('should use JavaScript functions', () => {
             function jsA(a, b) {
                 return a + b;
             }
@@ -2050,12 +2049,12 @@ describe('Nerdamer core', function () {
         });
     });
 
-    describe('User functions 3,', function () {
-        afterEach(function () {
+    describe('User functions 3,', () => {
+        afterEach(() => {
             nerdamer.clearFunctions();
         });
 
-        it('should add function string type', function () {
+        it('should add function string type', () => {
             nerdamer('a1(x, y)=2*x+y');
             nerdamer('b1(x, y):=3*x+y');
             nerdamer(' c1(x, y) = 2 * x + y ');
@@ -2067,7 +2066,7 @@ describe('Nerdamer core', function () {
             expect(nerdamer('d1(2, 1)').toString()).toEqual('7');
         });
 
-        it('should use JavaScript functions', function () {
+        it('should use JavaScript functions', () => {
             function jsA(a, b) {
                 return a + b;
             }
@@ -2093,10 +2092,10 @@ describe('Nerdamer core', function () {
     });
 });
 
-describe('Further arithmetic test cases', function () {
-    it('Batch 1', function () {
+describe('Further arithmetic test cases', () => {
+    it('Batch 1', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: '(x+x^2)+x',
                 expected: '2*x+x^2',
@@ -2225,19 +2224,19 @@ describe('Further arithmetic test cases', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value, 14)).toEqual(round(testCases[i].expectedValue), 14);
         }
     });
-    it('Batch 2', function () {
+    it('Batch 2', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: '2*(x+x^2)^2+3*(x^2+x)^2',
                 expected: '5*(x+x^2)^2',
@@ -2410,18 +2409,18 @@ describe('Further arithmetic test cases', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value, 8)).toEqual(round(testCases[i].expectedValue, 8));
         }
     });
-    it('Batch 3', function () {
-        var testCases = [
+    it('Batch 3', () => {
+        const testCases = [
             {
                 given: '(8*x)^(2/3)',
                 expected: '4*x^(2/3)',
@@ -2579,18 +2578,18 @@ describe('Further arithmetic test cases', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals', 18);
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals', 18);
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value, 12)).toEqual(round(testCases[i].expectedValue, 12));
         }
     });
-    it('Batch 4', function () {
-        var testCases = [
+    it('Batch 4', () => {
+        const testCases = [
             {
                 given: '5*(x+x^2)*(2*(x+x^2)^x)',
                 expected: '10*(x+x^2)^(1+x)',
@@ -2602,10 +2601,10 @@ describe('Further arithmetic test cases', function () {
                 expectedValue: '332.7369754244108',
             },
         ];
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
@@ -2614,10 +2613,10 @@ describe('Further arithmetic test cases', function () {
     });
 });
 
-describe('trigonometric functions', function () {
-    it('should be computed properly', function () {
+describe('trigonometric functions', () => {
+    it('should be computed properly', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'cos(pi)',
                 expected: '-1',
@@ -2740,17 +2739,17 @@ describe('trigonometric functions', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate().text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate().text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value, 14)).toEqual(round(testCases[i].expectedValue), 14);
         }
     });
-    it('should handle inverse trig in complex domain', function () {
+    it('should handle inverse trig in complex domain', () => {
         expect(nerdamer('asin(2)').evaluate().text()).toEqual('-1.3169578969248164*i+1.5707963267948965801');
         expect(nerdamer('asin(2.19549352839451962743423602992)').evaluate().text()).toEqual('-1.423114269539483*i+1.5707963267948965801');
         expect(nerdamer('acos(2)').evaluate().text()).toEqual('1.3169578969248164*i');
@@ -2759,12 +2758,12 @@ describe('trigonometric functions', function () {
         expect(nerdamer('asec(0.89)').evaluate().text()).toEqual('0.0000000000000002505+0.4921996534425183*i'); // Has rounding errors
         expect(nerdamer('acsc(0.23)').evaluate().text()).toEqual('-2.1493278111894236*i+1.5707963267948960677'); // Has rounding errors
     });
-    it('should throw for wrong trigonometric arguments', function () {
+    it('should throw for wrong trigonometric arguments', () => {
         // given
-        var testCases = ['tan(pi/2)', 'sec(pi/2)', 'csc(pi)', 'csc(2*pi)', 'cot(pi)', 'cot(2*pi)'];
+        const testCases = ['tan(pi/2)', 'sec(pi/2)', 'csc(pi)', 'csc(2*pi)', 'cot(pi)', 'cot(2*pi)'];
 
-        for (var i = 0; i < testCases.length; ++i) {
-            var threwError = false;
+        for (let i = 0; i < testCases.length; ++i) {
+            let threwError = false;
             try {
                 nerdamer(testCases[i]);
             } catch (e) {
@@ -2773,32 +2772,32 @@ describe('trigonometric functions', function () {
             expect(threwError).toBe(true);
         }
     });
-    it('should throw for malformed expression', function () {
-        expect(function () {
+    it('should throw for malformed expression', () => {
+        expect(() => {
             nerdamer('+');
         }).toThrowError();
-        expect(function () {
+        expect(() => {
             nerdamer('(+)');
         }).toThrowError();
-        expect(function () {
+        expect(() => {
             nerdamer('cos(');
         }).toThrowError();
-        expect(function () {
+        expect(() => {
             nerdamer('(x+1))');
         }).toThrowError();
-        expect(function () {
+        expect(() => {
             nerdamer('/2');
         }).toThrowError();
-        expect(function () {
+        expect(() => {
             nerdamer('()');
         }).toThrowError();
-        expect(function () {
+        expect(() => {
             nerdamer('5+');
         }).toThrowError();
     });
-    it('should calculate correctly with variables', function () {
+    it('should calculate correctly with variables', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'cos(x)',
                 expected: 'cos(x)',
@@ -2891,19 +2890,19 @@ describe('trigonometric functions', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value, 14)).toEqual(round(testCases[i].expectedValue), 14);
         }
     });
-    it('should cancel inverses correctly', function () {
+    it('should cancel inverses correctly', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'cos(x)*sec(x)',
                 expected: '1',
@@ -2930,24 +2929,24 @@ describe('trigonometric functions', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given).evaluate();
+            const parsed = nerdamer(testCases[i].given).evaluate();
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
         }
     });
-    it('should handle known trig cases for `numer`', function () {
+    it('should handle known trig cases for `numer`', () => {
         expect(nerdamer('tan(pi)', {}, 'numer').text()).toEqual('0');
         expect(nerdamer('cot(90*pi/180)', {}, 'numer').text()).toEqual('0');
     });
 });
 
-describe('hyperbolic trigonometric functions', function () {
-    it('should be computed properly', function () {
+describe('hyperbolic trigonometric functions', () => {
+    it('should be computed properly', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'acosh(1/23.12)',
                 expected: 'acosh(25/578)',
@@ -3005,10 +3004,10 @@ describe('hyperbolic trigonometric functions', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate().text('decimals');
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate().text('decimals');
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
@@ -3032,9 +3031,9 @@ describe('hyperbolic trigonometric functions', function () {
     //         expect(threwError).toBe(true);
     //     }
     // });
-    it('should calculate correctly with variables', function () {
+    it('should calculate correctly with variables', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'cosh(x)',
                 expected: 'cosh(x)',
@@ -3127,63 +3126,63 @@ describe('hyperbolic trigonometric functions', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var value = parsed.evaluate(values).text('decimals', 15);
+            const parsed = nerdamer(testCases[i].given);
+            const value = parsed.evaluate(values).text('decimals', 15);
 
             // then
             expect(parsed.toString()).toEqual(testCases[i].expected);
             expect(round(value, 14)).toEqual(round(testCases[i].expectedValue), 14);
         }
     });
-    it('should not overflow', function () {
+    it('should not overflow', () => {
         expect(nerdamer('(x+1)+((x+1)^2+(x+1)^3)').toString()).toEqual('(1+x)^2+(1+x)^3+1+x');
     });
 });
 
-describe('omit brackets for functions', function () {
-    it('should add functions with coefficients', function () {
+describe('omit brackets for functions', () => {
+    it('should add functions with coefficients', () => {
         expect(nerdamer('2 sin x + 4 sin x').toString()).toEqual('6*sin(x)');
     });
-    it('should add functions without coefficients', function () {
+    it('should add functions without coefficients', () => {
         expect(nerdamer('sin x + sin x').toString()).toEqual('2*sin(x)');
     });
-    it('should multiply and divide functions with "random" spaces', function () {
+    it('should multiply and divide functions with "random" spaces', () => {
         expect(nerdamer('3sin x /6+sin x').toString()).toEqual('(3/2)*sin(x)');
     });
-    it('should recognize functions with multiple arguments', function () {
+    it('should recognize functions with multiple arguments', () => {
         expect(nerdamer('2 max 1,2,3 +1').toString()).toEqual('7');
     });
-    it('should recognize functions with arguments containing coefficients', function () {
+    it('should recognize functions with arguments containing coefficients', () => {
         expect(nerdamer('sin 2x').toString()).toEqual('sin(2*x)');
     });
-    it('should recognize functions with arguments containing coefficients', function () {
+    it('should recognize functions with arguments containing coefficients', () => {
         expect(nerdamer('sin 2x').toString()).toEqual('sin(2*x)');
         expect(nerdamer('sin a x').toString()).toEqual('sin(a)*x');
     });
-    it('should multiply functions without brackets', function () {
+    it('should multiply functions without brackets', () => {
         expect(nerdamer('sin 2a cos 2b').toString()).toEqual('cos(2*b)*sin(2*a)');
         expect(nerdamer('sin x + sin x + 1 ').toString()).toEqual('1+2*sin(x)');
         expect(nerdamer('5 x y sin x').toString()).toEqual('5*sin(x)*x*y');
     });
 });
 
-describe('together.math functionality', function () {
-    it('should simplify squareroots of baseunit_ squares', function () {
+describe('together.math functionality', () => {
+    it('should simplify squareroots of baseunit_ squares', () => {
         expect(nerdamer('sqrt(baseunit_kg^2)').toString()).toEqual('baseunit_kg');
         expect(nerdamer('sqrt(4*baseunit_kg^2)').toString()).toEqual('2*baseunit_kg');
         expect(nerdamer('sqrt(4*baseunit_kg^4)').toString()).toEqual('2*baseunit_kg^2');
     });
-    it('should give vectors of primes', function () {
+    it('should give vectors of primes', () => {
         expect(nerdamer('primes(0,5)').toString()).toEqual('[2,3,5,7,11]');
         expect(nerdamer('primes(0,1)').toString()).toEqual('2');
         expect(nerdamer('primes(5,0)').toString()).toEqual('0');
     });
 });
 
-describe('misc and regression tests', function () {
-    it('bug fixes', function () {
+describe('misc and regression tests', () => {
+    it('bug fixes', () => {
         // issue #11 - lost precision
         expect(nerdamer('(19279880988/100000000000000000)kg(1/((km)^(3)))(((((1km))/((1000m))))^(3))').text('decimals')).toEqual('1.9279880988e-16*kg*m^(-3)');
 
@@ -3215,10 +3214,10 @@ describe('misc and regression tests', function () {
      *
      * Both exceed the magnitude limit (PRECISION - 5 = 16), so exact fraction arithmetic is used, giving the correct result 86.88.
      */
-    it('should handle precision underflow correctly in multiply (regression)', function () {
+    it('should handle precision underflow correctly in multiply (regression)', () => {
         // This specific calculation requires the precision underflow fallback
         // in multiply() to work correctly
-        var result = nerdamer('3.535401^3.535401').evaluate().text();
+        const result = nerdamer('3.535401^3.535401').evaluate().text();
         // The result should be approximately 86.886, NOT 141.69
         expect(result).toEqual('86.88617111335813153910');
 
@@ -3236,21 +3235,21 @@ describe('misc and regression tests', function () {
      *
      * The proactive magnitude check in multiply() ensures that numbers outside the safe precision range use exact arithmetic instead of decimal approximation.
      */
-    it('should multiply small fractions by large numbers correctly', function () {
+    it('should multiply small fractions by large numbers correctly', () => {
         // This test directly exercises the multiply() function with PARSE2NUMBER=true
         // which is the code path used during expression evaluation
-        var core = nerdamer.getCore();
-        var _ = core.PARSER;
-        var Settings = core.Settings;
+        const core = nerdamer.getCore();
+        const _ = core.PARSER;
+        const Settings = core.Settings;
 
         // 1/7e19 * 7e19 = 1 (exactly)
         // The magnitude check detects that 1/7e19 is outside the safe precision range
         // and uses exact fraction arithmetic instead of decimal approximation
-        var small = _.parse('1/70000000000000000000');
-        var large = _.parse('70000000000000000000');
+        const small = _.parse('1/70000000000000000000');
+        const large = _.parse('70000000000000000000');
 
         Settings.PARSE2NUMBER = true;
-        var result = _.multiply(small, large);
+        const result = _.multiply(small, large);
         Settings.PARSE2NUMBER = false;
 
         // The mathematically correct result is 1
@@ -3258,7 +3257,7 @@ describe('misc and regression tests', function () {
     });
 });
 
-describe('Known issues', function () {
+describe('Known issues', () => {
     /*
      * GitHub Issue: together-science/nerdamer-prime#62
      * Title: "Number of decimal places and rounding errors in text('decimals', n)"
@@ -3272,15 +3271,15 @@ describe('Known issues', function () {
      *
      * This ensures text('decimals', n) returns exactly n decimal places with correct rounding.
      */
-    describe('text("decimals", n) precision (issue #62)', function () {
-        it('should return the correct number of decimal places', function () {
+    describe('text("decimals", n) precision (issue #62)', () => {
+        it('should return the correct number of decimal places', () => {
             // Requesting 5 decimal places should give exactly 5 decimal places
             expect(nerdamer('1/3').evaluate().text('decimals', 5)).toEqual('0.33333');
             expect(nerdamer('1/7').evaluate().text('decimals', 5)).toEqual('0.14286');
             expect(nerdamer('2/3').evaluate().text('decimals', 3)).toEqual('0.667');
         });
 
-        it('should round correctly to the specified decimal places', function () {
+        it('should round correctly to the specified decimal places', () => {
             // 5/41 = 0.121951219512... should round to 0.12195 at 5 decimal places
             expect(nerdamer('5/41').evaluate().text('decimals', 5)).toEqual('0.12195');
             // 1/6 = 0.16666... should round to 0.17 at 2 decimal places
@@ -3303,13 +3302,13 @@ describe('Known issues', function () {
      * Note: The 1e-15 case is now FIXED by adding a relative epsilon check in fullConversion()
      * to handle floating-point precision errors when computing reciprocals of very small numbers.
      */
-    describe('scientific notation handling (issue #64)', function () {
-        it('should parse 1e-15 exactly', function () {
+    describe('scientific notation handling (issue #64)', () => {
+        it('should parse 1e-15 exactly', () => {
             // 1e-15 should be exactly 1/1000000000000000, not 1/999999999999999
             expect(nerdamer('1e-15').toString()).toEqual('1/1000000000000000');
         });
 
-        it('should preserve precision for very small numbers in evaluate', function () {
+        it('should preserve precision for very small numbers in evaluate', () => {
             // Very small numbers should not evaluate to 0
             const result = nerdamer('1e-20').evaluate().text();
             expect(result).not.toEqual('0');
@@ -3342,20 +3341,20 @@ describe('Known issues', function () {
      *    - SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT setting
      *    - Updated TypeScript bindings
      */
-    describe('scientific notation output (PR #67)', function () {
-        it('should include decimal point for whole number coefficients', function () {
+    describe('scientific notation output (PR #67)', () => {
+        it('should include decimal point for whole number coefficients', () => {
             // 1000 should be "1e+3" or "1.0e+3", not "100e3"
             const result = nerdamer('1000').text('scientific');
             expect(result).toMatch(/^1(\.0)?e\+?3$/);
         });
 
-        it('should preserve decimal places in scientific input', function () {
+        it('should preserve decimal places in scientific input', () => {
             // Input with many decimal places should preserve them in output
             const result = nerdamer('3.333333e50').text('scientific');
             expect(result).toContain('3.333333');
         });
 
-        it('should handle rounding edge case when coefficient rounds to 10', function () {
+        it('should handle rounding edge case when coefficient rounds to 10', () => {
             // When 9.9999... rounds to 10, it should become 1e(n+1)
             // This requires finding an input that triggers this edge case
             const result = nerdamer('9.9999999999999').text('scientific');

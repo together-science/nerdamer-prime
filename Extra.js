@@ -18,7 +18,7 @@ if (typeof module !== 'undefined') {
 (function () {
     'use strict';
 
-    var core = nerdamer.getCore(),
+    const core = nerdamer.getCore(),
         _ = core.PARSER,
         NerdamerSymbol = core.NerdamerSymbol,
         format = core.Utils.format,
@@ -35,13 +35,18 @@ if (typeof module !== 'undefined') {
 
     NerdamerSymbol.prototype.findFunction = function (fname) {
         //this is what we're looking for
-        if (this.group === FN && this.fname === fname) return this.clone();
-        var found;
-        if (this.symbols)
-            for (var x in this.symbols) {
+        if (this.group === FN && this.fname === fname) {
+            return this.clone();
+        }
+        let found;
+        if (this.symbols) {
+            for (const x in this.symbols) {
                 found = this.symbols[x].findFunction(fname);
-                if (found) break;
+                if (found) {
+                    break;
+                }
             }
+        }
 
         return found;
     };
@@ -52,13 +57,13 @@ if (typeof module !== 'undefined') {
         //Laplace assumes all coefficients to be positive
         LaPlace: {
             //Using: integral_0^oo f(t)*e^(-s*t) dt
-            transform: function (symbol, t, s) {
+            transform(symbol, t, s) {
                 symbol = symbol.clone();
 
                 t = t.toString();
                 //First try a lookup for a speed boost
                 symbol = NerdamerSymbol.unwrapSQRT(symbol, true);
-                var retval,
+                let retval,
                     coeff = symbol.stripVar(t),
                     g = symbol.group;
 
@@ -67,20 +72,20 @@ if (typeof module !== 'undefined') {
                 if (symbol.isConstant() || !symbol.contains(t, true)) {
                     retval = _.parse(format('({0})/({1})', symbol, s));
                 } else if (g === S && core.Utils.isInt(symbol.power)) {
-                    var n = String(symbol.power);
+                    const n = String(symbol.power);
                     retval = _.parse(format('factorial({0})/({1})^({0}+1)', n, s));
                 } else if (symbol.group === S && symbol.power.equals(1 / 2)) {
                     retval = _.parse(format('sqrt(pi)/(2*({0})^(3/2))', s));
                 } else if (symbol.isComposite()) {
                     retval = new NerdamerSymbol(0);
-                    symbol.each(function (x) {
+                    symbol.each(x => {
                         retval = _.add(retval, __.LaPlace.transform(x, t, s));
                     }, true);
                 } else if (symbol.isE() && (symbol.power.group === S || symbol.power.group === CB)) {
                     var a = symbol.power.stripVar(t);
                     retval = _.parse(format('1/(({1})-({0}))', a, s));
                 } else {
-                    var fns = ['sin', 'cos', 'sinh', 'cosh'];
+                    const fns = ['sin', 'cos', 'sinh', 'cosh'];
                     //support for symbols in fns with arguments in the form a*t or n*t where a = symbolic and n = Number
                     if (
                         symbol.group === FN &&
@@ -106,7 +111,8 @@ if (typeof module !== 'undefined') {
                     } else {
                         //Try to integrate for a solution
                         //we need at least the Laplace integration depth
-                        var depth_is_lower = core.Settings.integration_depth < core.Settings.Laplace_integration_depth;
+                        const depth_is_lower =
+                            core.Settings.integration_depth < core.Settings.Laplace_integration_depth;
 
                         if (depth_is_lower) {
                             var integration_depth = core.Settings.integration_depth; //save the depth
@@ -116,11 +122,13 @@ if (typeof module !== 'undefined') {
                         core.Utils.block(
                             'PARSE2NUMBER',
                             function () {
-                                var u = t;
-                                var sym = symbol.sub(t, u);
-                                var integration_expr = _.parse('e^(-' + s + '*' + u + ')*' + sym);
+                                const u = t;
+                                const sym = symbol.sub(t, u);
+                                const integration_expr = _.parse(`e^(-${s}*${u})*${sym}`);
                                 retval = core.Calculus.integrate(integration_expr, u);
-                                if (retval.hasIntegral()) return _.symfunction('laplace', arguments);
+                                if (retval.hasIntegral()) {
+                                    return _.symfunction('laplace', arguments);
+                                }
                                 //                                _.error('Unable to compute transform');
                                 retval = retval.sub(t, 0);
                                 retval = _.expand(_.multiply(retval, new NerdamerSymbol(-1)));
@@ -129,34 +137,29 @@ if (typeof module !== 'undefined') {
                             false
                         );
 
-                        retval = core.Utils.block(
-                            'PARSE2NUMBER',
-                            function () {
-                                return _.parse(retval);
-                            },
-                            true
-                        );
+                        retval = core.Utils.block('PARSE2NUMBER', () => _.parse(retval), true);
 
-                        if (depth_is_lower)
-                            //put the integration depth as it was
+                        if (depth_is_lower) //put the integration depth as it was
+                        {
                             core.Settings.integration_depth = integration_depth;
+                        }
                     }
                 }
 
                 return _.multiply(retval, coeff);
             },
-            inverse: function (symbol, s_, t) {
-                var input_symbol = symbol.clone();
+            inverse(symbol, s_, t) {
+                const input_symbol = symbol.clone();
                 return core.Utils.block(
                     'POSITIVE_MULTIPLIERS',
-                    function () {
+                    () => {
                         //expand and get partial fractions
                         if (symbol.group === CB) {
                             symbol = core.Algebra.PartFrac.partfrac(_.expand(symbol), s_);
                         }
 
                         if (symbol.group === S || symbol.group === CB || symbol.isComposite()) {
-                            var finalize = function () {
+                            const finalize = function () {
                                 //put back the numerator
                                 retval = _.multiply(retval, num);
                                 retval.multiplier = retval.multiplier.multiply(symbol.multiplier);
@@ -209,11 +212,11 @@ if (typeof module !== 'undefined') {
                                     // Possibly in the form 1/(s^2+2*s+1)
                                     // Try factoring to get it in a more familiar form{
                                     // Apply inverse of F(s-a)
-                                    var completed = core.Algebra.sqComplete(den, s);
-                                    var u = core.Utils.getU(den);
+                                    const completed = core.Algebra.sqComplete(den, s);
+                                    const u = core.Utils.getU(den);
                                     // Get a for the function above
                                     var a = core.Utils.decompose_fn(completed.a, s, true).b;
-                                    var tf = __.LaPlace.inverse(_.parse(`1/((${u})^2+(${completed.c}))`), u, t);
+                                    const tf = __.LaPlace.inverse(_.parse(`1/((${u})^2+(${completed.c}))`), u, t);
                                     retval = _.multiply(tf, _.parse(`(${m})*e^(-(${a})*(${t}))`));
                                 } else {
                                     // a/(b*s-c) -> ae^(-bt)
@@ -252,17 +255,20 @@ if (typeof module !== 'undefined') {
                                             else {
                                                 var a = new NerdamerSymbol(1);
                                                 if (num.group === CB) {
-                                                    var new_num = new NerdamerSymbol(1);
-                                                    num.each(function (x) {
-                                                        if (x.contains(s)) new_num = _.multiply(new_num, x);
-                                                        else a = _.multiply(a, x);
+                                                    let new_num = new NerdamerSymbol(1);
+                                                    num.each(x => {
+                                                        if (x.contains(s)) {
+                                                            new_num = _.multiply(new_num, x);
+                                                        } else {
+                                                            a = _.multiply(a, x);
+                                                        }
                                                     });
                                                     num = new_num;
                                                 }
 
                                                 //we need more information about the denominator to decide
                                                 var f2 = core.Utils.decompose_fn(num, s, true);
-                                                var fn1, fn2, a_has_sin, b_has_cos, a_has_cos, b_has_sin;
+                                                let fn1, fn2, a_has_sin, b_has_cos, a_has_cos, b_has_sin;
                                                 fn1 = f2.a;
                                                 fn2 = f2.b;
                                                 a_has_sin = fn1.containsFunction('sin');
@@ -285,7 +291,7 @@ if (typeof module !== 'undefined') {
                                                     );
                                                 } else {
                                                     if (a_has_sin && b_has_cos) {
-                                                        var sin, cos;
+                                                        let sin, cos;
                                                         sin = fn1.findFunction('sin');
                                                         cos = fn2.findFunction('cos');
                                                         //who has the s?
@@ -329,28 +335,31 @@ if (typeof module !== 'undefined') {
                                     // Decompose the numerator to check value of s
                                     f2 = core.Utils.decompose_fn(_.expand(num.clone()), s, true);
                                     if (f2.x.isComposite()) {
-                                        var s_terms = [];
+                                        const s_terms = [];
                                         //first collect the factors e.g. (a)(bx)(cx^2+d)
-                                        var symbols = num
-                                            .collectSymbols(function (x) {
+                                        const symbols = num
+                                            .collectSymbols(x => {
                                                 x = NerdamerSymbol.unwrapPARENS(x);
-                                                var t = core.Utils.decompose_fn(x, s, true);
+                                                const t = core.Utils.decompose_fn(x, s, true);
                                                 t.symbol = x;
                                                 return t;
                                             })
                                             //then sort them by power hightest to lowest
-                                            .sort(function (a, b) {
-                                                var p1, p2;
+                                            .sort((a, b) => {
+                                                let p1, p2;
                                                 p1 = a.x.value !== s ? 0 : a.x.power;
                                                 p2 = b.x.value !== s ? 0 : b.x.power;
                                                 return p2 - p1;
                                             });
                                         a = new NerdamerSymbol(-1);
                                         // Grab only the ones which have s
-                                        for (var i = 0; i < symbols.length; i++) {
-                                            var fc = symbols[i];
-                                            if (fc.x.value === s) s_terms.push(fc);
-                                            else a = _.multiply(a, fc.symbol);
+                                        for (let i = 0; i < symbols.length; i++) {
+                                            const fc = symbols[i];
+                                            if (fc.x.value === s) {
+                                                s_terms.push(fc);
+                                            } else {
+                                                a = _.multiply(a, fc.symbol);
+                                            }
                                         }
                                         // The following 2 assumptions are made
                                         // 1. since the numerator was factored above then each s_term has a unique power
@@ -402,7 +411,7 @@ if (typeof module !== 'undefined') {
 
                                     symbol = core.Algebra.PartFrac.partfrac(_.expand(symbol), s_);
 
-                                    symbol.each(function (x) {
+                                    symbol.each(x => {
                                         retval = _.add(retval, __.LaPlace.inverse(x, s_, t));
                                     }, true);
                                 }
@@ -420,132 +429,163 @@ if (typeof module !== 'undefined') {
             },
         },
         Statistics: {
-            frequencyMap: function (arr) {
-                var map = {};
+            frequencyMap(arr) {
+                const map = {};
                 //get the frequency map
-                for (var i = 0, l = arr.length; i < l; i++) {
-                    var e = arr[i],
+                for (let i = 0, l = arr.length; i < l; i++) {
+                    const e = arr[i],
                         key = e.toString();
-                    if (!map[key])
-                        //default it to zero
+                    if (!map[key]) //default it to zero
+                    {
                         map[key] = 0;
+                    }
                     map[key]++; //increment
                 }
                 return map;
             },
-            sort: function (arr) {
-                return arr.sort(function (a, b) {
-                    if (!a.isConstant() || !b.isConstant()) _.error('Unable to sort! All values must be numeric');
+            sort(arr) {
+                return arr.sort((a, b) => {
+                    if (!a.isConstant() || !b.isConstant()) {
+                        _.error('Unable to sort! All values must be numeric');
+                    }
                     return a.multiplier.subtract(b.multiplier);
                 });
             },
-            count: function (arr) {
+            count(arr) {
                 return new NerdamerSymbol(arr.length);
             },
-            sum: function (arr, x_) {
-                var sum = new NerdamerSymbol(0);
-                for (var i = 0, l = arr.length; i < l; i++) {
-                    var xi = arr[i].clone();
+            sum(arr, x_) {
+                let sum = new NerdamerSymbol(0);
+                for (let i = 0, l = arr.length; i < l; i++) {
+                    const xi = arr[i].clone();
                     if (x_) {
                         sum = _.add(_.pow(_.subtract(xi, x_.clone()), new NerdamerSymbol(2)), sum);
-                    } else sum = _.add(xi, sum);
+                    } else {
+                        sum = _.add(xi, sum);
+                    }
                 }
 
                 return sum;
             },
-            mean: function () {
-                var args = [].slice.call(arguments);
+            mean() {
+                const args = [].slice.call(arguments);
                 //handle arrays
-                if (isVector(args[0])) return __.Statistics.mean.apply(this, args[0].elements);
+                if (isVector(args[0])) {
+                    return __.Statistics.mean.apply(this, args[0].elements);
+                }
                 return _.divide(__.Statistics.sum(args), __.Statistics.count(args));
             },
-            median: function () {
-                var args = [].slice.call(arguments),
+            median() {
+                let args = [].slice.call(arguments),
                     retval;
                 //handle arrays
-                if (isVector(args[0])) return __.Statistics.median.apply(this, args[0].elements);
+                if (isVector(args[0])) {
+                    return __.Statistics.median.apply(this, args[0].elements);
+                }
                 try {
-                    var sorted = __.Statistics.sort(args);
-                    var l = args.length;
+                    const sorted = __.Statistics.sort(args);
+                    const l = args.length;
                     if (core.Utils.even(l)) {
-                        var mid = l / 2;
+                        const mid = l / 2;
                         retval = __.Statistics.mean(sorted[mid - 1], sorted[mid]);
-                    } else retval = sorted[Math.floor(l / 2)];
+                    } else {
+                        retval = sorted[Math.floor(l / 2)];
+                    }
                 } catch (e) {
-                    if (e.message === 'timeout') throw e;
+                    if (e.message === 'timeout') {
+                        throw e;
+                    }
                     retval = _.symfunction('median', args);
                 }
                 return retval;
             },
-            mode: function () {
-                var args = [].slice.call(arguments),
+            mode() {
+                let args = [].slice.call(arguments),
                     retval;
                 //handle arrays
-                if (isVector(args[0])) return __.Statistics.mode.apply(this, args[0].elements);
+                if (isVector(args[0])) {
+                    return __.Statistics.mode.apply(this, args[0].elements);
+                }
 
-                var map = __.Statistics.frequencyMap(args);
+                const map = __.Statistics.frequencyMap(args);
 
                 //the mode of 1 item is that item as per issue #310 (verified by Happypig375).
-                if (core.Utils.keys(map).length === 1) retval = args[0];
-                else {
+                if (core.Utils.keys(map).length === 1) {
+                    retval = args[0];
+                } else {
                     //invert by arraning them according to their frequency
-                    var inverse = {};
-                    for (var x in map) {
-                        var freq = map[x];
+                    const inverse = {};
+                    for (const x in map) {
+                        const freq = map[x];
                         //check if it's in the inverse already
-                        if (!(freq in inverse)) inverse[freq] = x;
-                        else {
-                            var e = inverse[freq];
+                        if (!(freq in inverse)) {
+                            inverse[freq] = x;
+                        } else {
+                            const e = inverse[freq];
                             //if it's already an array then just add it
-                            if (isArray(e)) e.push(x);
+                            if (isArray(e)) {
+                                e.push(x);
+                            }
                             //convert it to and array
-                            else inverse[freq] = [x, inverse[freq]];
+                            else {
+                                inverse[freq] = [x, inverse[freq]];
+                            }
                         }
                     }
                     //the keys now represent the maxes. We want the max of those keys
-                    var max = inverse[Math.max.apply(null, core.Utils.keys(inverse))];
+                    const max = inverse[Math.max.apply(null, core.Utils.keys(inverse))];
                     //check it's an array. If it is then map over the results and convert
                     //them to NerdamerSymbol
                     if (isArray(max)) {
                         retval = _.symfunction('mode', max.sort());
-                    } else retval = _.parse(max);
+                    } else {
+                        retval = _.parse(max);
+                    }
                 }
 
                 return retval;
             },
-            gVariance: function (k, args) {
-                var x_ = __.Statistics.mean.apply(__.Statistics, args),
+            gVariance(k, args) {
+                const x_ = __.Statistics.mean.apply(__.Statistics, args),
                     sum = __.Statistics.sum(args, x_);
                 return _.multiply(k, sum);
             },
-            variance: function () {
-                var args = [].slice.call(arguments);
+            variance() {
+                const args = [].slice.call(arguments);
                 //handle arrays
-                if (isVector(args[0])) return __.Statistics.variance.apply(this, args[0].elements);
-                var k = _.divide(new NerdamerSymbol(1), __.Statistics.count(args));
+                if (isVector(args[0])) {
+                    return __.Statistics.variance.apply(this, args[0].elements);
+                }
+                const k = _.divide(new NerdamerSymbol(1), __.Statistics.count(args));
                 return __.Statistics.gVariance(k, args);
             },
-            sampleVariance: function () {
-                var args = [].slice.call(arguments);
+            sampleVariance() {
+                const args = [].slice.call(arguments);
                 //handle arrays
-                if (isVector(args[0])) return __.Statistics.sampleVariance.apply(this, args[0].elements);
+                if (isVector(args[0])) {
+                    return __.Statistics.sampleVariance.apply(this, args[0].elements);
+                }
 
-                var k = _.divide(new NerdamerSymbol(1), _.subtract(__.Statistics.count(args), new NerdamerSymbol(1)));
+                const k = _.divide(new NerdamerSymbol(1), _.subtract(__.Statistics.count(args), new NerdamerSymbol(1)));
                 return __.Statistics.gVariance(k, args);
             },
-            standardDeviation: function () {
-                var args = [].slice.call(arguments);
+            standardDeviation() {
+                const args = [].slice.call(arguments);
                 //handle arrays
-                if (isVector(args[0])) return __.Statistics.standardDeviation.apply(this, args[0].elements);
+                if (isVector(args[0])) {
+                    return __.Statistics.standardDeviation.apply(this, args[0].elements);
+                }
                 return _.pow(__.Statistics.variance.apply(__.Statistics, args), new NerdamerSymbol(1 / 2));
             },
-            sampleStandardDeviation: function () {
-                var args = [].slice.call(arguments);
+            sampleStandardDeviation() {
+                const args = [].slice.call(arguments);
                 //handle arrays
-                if (isVector(args[0])) return __.Statistics.sampleStandardDeviation.apply(this, args[0].elements);
+                if (isVector(args[0])) {
+                    return __.Statistics.sampleStandardDeviation.apply(this, args[0].elements);
+                }
                 return _.pow(__.Statistics.sampleVariance.apply(__.Statistics, args), new NerdamerSymbol(1 / 2));
             },
-            zScore: function (x, mean, stdev) {
+            zScore(x, mean, stdev) {
                 return _.divide(_.subtract(x, mean), stdev);
             },
         },
@@ -563,7 +603,7 @@ if (typeof module !== 'undefined') {
             name: 'laplace',
             visible: true,
             numargs: 3,
-            build: function () {
+            build() {
                 return __.LaPlace.transform;
             },
         },
@@ -571,7 +611,7 @@ if (typeof module !== 'undefined') {
             name: 'ilt',
             visible: true,
             numargs: 3,
-            build: function () {
+            build() {
                 return __.LaPlace.inverse;
             },
         },
@@ -580,7 +620,7 @@ if (typeof module !== 'undefined') {
             name: 'mean',
             visible: true,
             numargs: -1,
-            build: function () {
+            build() {
                 return __.Statistics.mean;
             },
         },
@@ -588,7 +628,7 @@ if (typeof module !== 'undefined') {
             name: 'median',
             visible: true,
             numargs: -1,
-            build: function () {
+            build() {
                 return __.Statistics.median;
             },
         },
@@ -596,7 +636,7 @@ if (typeof module !== 'undefined') {
             name: 'mode',
             visible: true,
             numargs: -1,
-            build: function () {
+            build() {
                 return __.Statistics.mode;
             },
         },
@@ -604,7 +644,7 @@ if (typeof module !== 'undefined') {
             name: 'smpvar',
             visible: true,
             numargs: -1,
-            build: function () {
+            build() {
                 return __.Statistics.sampleVariance;
             },
         },
@@ -612,7 +652,7 @@ if (typeof module !== 'undefined') {
             name: 'variance',
             visible: true,
             numargs: -1,
-            build: function () {
+            build() {
                 return __.Statistics.variance;
             },
         },
@@ -620,7 +660,7 @@ if (typeof module !== 'undefined') {
             name: 'smpstdev',
             visible: true,
             numargs: -1,
-            build: function () {
+            build() {
                 return __.Statistics.sampleStandardDeviation;
             },
         },
@@ -628,7 +668,7 @@ if (typeof module !== 'undefined') {
             name: 'stdev',
             visible: true,
             numargs: -1,
-            build: function () {
+            build() {
                 return __.Statistics.standardDeviation;
             },
         },
@@ -636,7 +676,7 @@ if (typeof module !== 'undefined') {
             name: 'zscore',
             visible: true,
             numargs: 3,
-            build: function () {
+            build() {
                 return __.Statistics.zScore;
             },
         },

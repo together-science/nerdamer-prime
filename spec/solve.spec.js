@@ -2,7 +2,7 @@
 
 'use strict';
 
-var nerdamer = require('../nerdamer.core.js');
+const nerdamer = require('../nerdamer.core.js');
 require('../Solve');
 
 // describe("profiler", () => {
@@ -11,11 +11,11 @@ require('../Solve');
 //     });
 // });
 
-describe('Solve', function () {
-    it('debug problem of the day', function () {
+describe('Solve', () => {
+    it('debug problem of the day', () => {
         // expect(nerdamer('x^3+x^2-4x-4=y').solveFor('x').toString()).toEqual('');
     });
-    it('should solve correctly', function () {
+    it('should solve correctly', () => {
         expect(nerdamer('solve(x=y/3416.3333333333344, y)').toString()).toEqual('[(1073228064103962/314146179365)*x]');
         expect(nerdamer('solve(x, x)').toString()).toEqual('[0]');
         expect(nerdamer('solve(5*y^x=8, x)').toString()).toEqual('[log(8/5)*log(y)^(-1)]');
@@ -109,7 +109,7 @@ describe('Solve', function () {
         expect(nerdamer('h=(981/200)*m*s^(-2)*t^2').solveFor('t').toString()).toEqual('(-10/327)*abs(s)*m^(-1)*sqrt(218)*sqrt(h)*sqrt(m),(10/327)*abs(s)*m^(-1)*sqrt(218)*sqrt(h)*sqrt(m)');
     });
 
-    it('should solve system of equations correctly', function () {
+    it('should solve system of equations correctly', () => {
         expect(nerdamer.solveEquations(['x+y=1', '2*x=6', '4*z+y=6']).toString()).toEqual('x,3,y,-2,z,2');
         expect(nerdamer.solveEquations(['x+y=a', 'x-y=b', 'z+y=c'], ['x', 'y', 'z']).toString()).toEqual('x,0.5*a+0.5*b,y,-0.5*b+0.5*a,z,-0.5*a+0.5*b+c');
         expect(nerdamer.solveEquations(['x-2*y=-3', 'x+y-z+2*d=8', '5*d-1=19', 'z+d=7']).toString()).toEqual('d,4,x,1,y,2,z,3');
@@ -125,38 +125,38 @@ describe('Solve', function () {
         expect(nerdamer.solveEquations(['0=a*c', '0=b'], ['a', 'b']).toString()).toEqual('a,0,b,0');
     });
     //#55: nerdamer.solveEquation quits working
-    it('should handle text("fractions") without later impact', function () {
+    it('should handle text("fractions") without later impact', () => {
         expect(nerdamer.solveEquations('x+1=2', 'x').toString()).toEqual('1');
         expect(nerdamer('x=1').text('fractions')).toEqual('x=1');
         expect(nerdamer.solveEquations('x+1=2', 'x').toString()).toEqual('1');
     });
-    it('should parse equations correctly', function () {
+    it('should parse equations correctly', () => {
         expect(nerdamer('-(a+1)=(a+3)^2').toString()).toEqual('-1-a=(3+a)^2');
     });
     //NOTE: contains duplicates
-    it('should solve functions with factorials', function () {
+    it('should solve functions with factorials', () => {
         // Bug: And I don't believe the expected solution is correct, see Wolfram Alpha
         // expect(nerdamer('solve(x!-x^2,x)').text('decimals', 20)).toEqual('[-2.200391782610595,-4.010232827899529,-2.938361683501947,1,1.000000000000001,3.562382285390900,3.562382285390896,0.9999999999999910,1.000000000000000]');
     });
-    it('should solve for variables other than x', function () {
+    it('should solve for variables other than x', () => {
         expect(nerdamer('solve(2*a^(2)+4*a*6=128, a)').toString()).toEqual('[4,-16]');
     });
-    it('should solve nonlinear system of equations with multiple parameter functions', function () {
-        var ans = nerdamer.solveEquations([`y=x * 2`, `z=y + max (y * 0.1, 23)`, `j=y + max (y * 0.1, 23)`, `6694.895373 = j + z + (max(j * 0.280587, z * 0.280587, 176))`]);
+    it('should solve nonlinear system of equations with multiple parameter functions', () => {
+        const ans = nerdamer.solveEquations([`y=x * 2`, `z=y + max (y * 0.1, 23)`, `j=y + max (y * 0.1, 23)`, `6694.895373 = j + z + (max(j * 0.280587, z * 0.280587, 176))`]);
         expect(ans.toString()).toEqual('j,2935.601831019821,x,1334.3644686453729,y,2668.7289372907458,z,2935.601831019821');
     });
 
-    it('should solve factors', function () {
+    it('should solve factors', () => {
         expect(nerdamer('solve((x-1)*(-a*c-a*x+c*x+x^2),x)').text()).toEqual('[1,-c,a]');
     });
 
-    it('should solve circle equations', function () {
-        var eq1 = 'x^2+y^2=1';
-        var eq2 = 'x+y=1';
-        var sol = nerdamer.solveEquations([eq1, eq2]);
+    it('should solve circle equations', () => {
+        const eq1 = 'x^2+y^2=1';
+        const eq2 = 'x+y=1';
+        const sol = nerdamer.solveEquations([eq1, eq2]);
         expect(sol.toString()).toEqual('x,1,0,y,0,1');
     });
-    it('regression tests', function () {
+    it('regression tests', () => {
         expect(nerdamer('solve(a^2-a-1=0,a)').toString()).toEqual('[(1/2)*sqrt(5)+1/2,(-1/2)*sqrt(5)+1/2]');
         // issue #26
         expect(nerdamer('solve(h=(981/200)*baseunit_m*baseunit_s^(-2)*t^2, t)').text()).toEqual('[(-10/327)*baseunit_m^(-1)*baseunit_s*sqrt(218)*sqrt(baseunit_m)*sqrt(h),(10/327)*baseunit_m^(-1)*baseunit_s*sqrt(218)*sqrt(baseunit_m)*sqrt(h)]');
@@ -194,7 +194,7 @@ describe('Solve', function () {
         ).toEqual('y');
     });
 
-    describe('Known issues', function () {
+    describe('Known issues', () => {
         /*
          * Problem: Solver returns rational approximation instead of exact symbolic answer.
          *
@@ -218,7 +218,7 @@ describe('Solve', function () {
          *
          * Expected: All three solutions in symbolic form.
          */
-        xit('should return exact symbolic solutions for sqrt(x)-2x+x^2', function () {
+        xit('should return exact symbolic solutions for sqrt(x)-2x+x^2', () => {
             expect(nerdamer('solve(sqrt(x)-2x+x^2,x)').toString()).toEqual('[(-1/2)*sqrt(5)+3/2,0,832040/2178309,1]');
         });
 
@@ -248,7 +248,7 @@ describe('Solve', function () {
          * large integer coefficient, which is ~150x slower than simple coefficients.
          * A simple quadratic should use the quadratic formula directly.
          */
-        xit('should solve quadratic with large coefficients quickly (issue #58)', function () {
+        xit('should solve quadratic with large coefficients quickly (issue #58)', () => {
             // This should complete in <100ms like simple quadratics, not ~3000ms
             const start = Date.now();
             const result = nerdamer('solve(0=(365152319648560825/8)*s*t+(981/200)*t^2,t)').toString();

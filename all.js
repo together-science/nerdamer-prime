@@ -6,7 +6,7 @@
  * Can be used to load all add-ons with one require
  */
 
-var nerdamer = require('./nerdamer.core.js');
+const nerdamer = require('./nerdamer.core.js');
 require('./Algebra.js');
 require('./Calculus.js');
 require('./Solve.js');

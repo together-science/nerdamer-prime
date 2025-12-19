@@ -17,17 +17,17 @@ if (typeof module !== 'undefined') {
 (function () {
     'use strict';
 
-    var _debuglevel = 0;
-    var debuglevel = function (n) {
+    let _debuglevel = 0;
+    const debuglevel = function (n) {
         _debuglevel += n;
     };
-    var debugout = function (s) {
-        var prefix = '                                                  '.substring(0, _debuglevel);
+    const debugout = function (s) {
+        const prefix = '                                                  '.substring(0, _debuglevel);
         console.log(prefix + s);
     };
 
     /*shortcuts*/
-    var core = nerdamer.getCore(),
+    const core = nerdamer.getCore(),
         _ = core.PARSER,
         N = core.groups.N,
         P = core.groups.P,
@@ -63,10 +63,11 @@ if (typeof module !== 'undefined') {
             this.variable = this.variable || variable;
         } else if (!isNaN(symbol)) {
             order = order || 0;
-            if (variable === undefined)
+            if (variable === undefined) {
                 throw new core.exceptions.InvalidVariableNameError(
                     'Polynomial expects a variable name when creating using order'
                 );
+            }
             this.coeffs = [];
             this.coeffs[order] = symbol;
             this.fill(symbol);
@@ -82,11 +83,12 @@ if (typeof module !== 'undefined') {
      * @returns {Polynomial}
      */
     Polynomial.fromArray = function (arr, variable) {
-        if (typeof variable === 'undefined')
+        if (typeof variable === 'undefined') {
             throw new core.exceptions.InvalidVariableNameError(
                 'A variable name must be specified when creating polynomial from array'
             );
-        var p = new Polynomial();
+        }
+        const p = new Polynomial();
         p.coeffs = arr;
         p.variable = variable;
         return p;
@@ -94,7 +96,7 @@ if (typeof module !== 'undefined') {
 
     Polynomial.fit = function (c1, c2, n, base, p, variable) {
         //after having looped through and mod 10 the number to get the matching factor
-        var terms = new Array(p + 1),
+        let terms = new Array(p + 1),
             t = n - c2;
         terms[0] = c2; //the constants is assumed to be correct
         //constant for x^p is also assumed know so add
@@ -102,15 +104,19 @@ if (typeof module !== 'undefined') {
         t -= c1 * Math.pow(base, p);
         //start fitting
         for (var i = p - 1; i > 0; i--) {
-            var b = Math.pow(base, i), //we want as many wholes as possible
+            const b = Math.pow(base, i), //we want as many wholes as possible
                 q = t / b,
                 sign = Math.sign(q);
-            var c = sign * Math.floor(Math.abs(q));
+            const c = sign * Math.floor(Math.abs(q));
             t -= c * b;
             terms[i] = c;
         }
-        if (t !== 0) return null;
-        for (var i = 0; i < terms.length; i++) terms[i] = new Frac(terms[i]);
+        if (t !== 0) {
+            return null;
+        }
+        for (var i = 0; i < terms.length; i++) {
+            terms[i] = new Frac(terms[i]);
+        }
 
         return Polynomial.fromArray(terms, variable);
     };
@@ -123,23 +129,27 @@ if (typeof module !== 'undefined') {
          * @param {Array} c - A collector array
          * @returns {Polynomial}
          */
-        parse: function (symbol, c) {
+        parse(symbol, c) {
             this.variable = variables(symbol)[0];
-            if (!symbol.isPoly())
+            if (!symbol.isPoly()) {
                 throw core.exceptions.NerdamerTypeError('Polynomial Expected! Received ' + core.Utils.text(symbol));
+            }
             c = c || [];
-            if (!symbol.power.absEquals(1)) symbol = _.expand(symbol);
+            if (!symbol.power.absEquals(1)) {
+                symbol = _.expand(symbol);
+            }
 
             if (symbol.group === core.groups.N) {
                 c[0] = symbol.multiplier;
             } else if (symbol.group === core.groups.S) {
                 c[symbol.power.toDecimal()] = symbol.multiplier;
             } else {
-                for (var x in symbol.symbols) {
-                    var sub = symbol.symbols[x],
+                for (const x in symbol.symbols) {
+                    let sub = symbol.symbols[x],
                         p = sub.power;
-                    if (core.Utils.isSymbol(p))
+                    if (core.Utils.isSymbol(p)) {
                         throw new core.exceptions.NerdamerTypeError('power cannot be a NerdamerSymbol');
+                    }
 
                     p = sub.group === N ? 0 : p.toDecimal();
                     if (sub.symbols) {
@@ -159,10 +169,10 @@ if (typeof module !== 'undefined') {
          *
          * @param {number} x - The number to fill the holes with
          */
-        fill: function (x) {
+        fill(x) {
             x = Number(x) || 0;
-            var l = this.coeffs.length;
-            for (var i = 0; i < l; i++) {
+            const l = this.coeffs.length;
+            for (let i = 0; i < l; i++) {
                 if (this.coeffs[i] === undefined) {
                     this.coeffs[i] = new Frac(x);
                 }
@@ -174,15 +184,19 @@ if (typeof module !== 'undefined') {
          *
          * @returns {Array}
          */
-        trim: function () {
-            var l = this.coeffs.length;
+        trim() {
+            let l = this.coeffs.length;
             while (l--) {
-                var c = this.coeffs[l];
-                var equalsZero = c.equals(0);
+                const c = this.coeffs[l];
+                const equalsZero = c.equals(0);
                 if (c && equalsZero) {
-                    if (l === 0) break;
+                    if (l === 0) {
+                        break;
+                    }
                     this.coeffs.pop();
-                } else break;
+                } else {
+                    break;
+                }
             }
 
             return this;
@@ -192,10 +206,10 @@ if (typeof module !== 'undefined') {
          * @param {number} p
          * @returns {Polynomial}
          */
-        modP: function (p) {
-            var l = this.coeffs.length;
-            for (var i = 0; i < l; i++) {
-                var c = this.coeffs[i];
+        modP(p) {
+            const l = this.coeffs.length;
+            for (let i = 0; i < l; i++) {
+                let c = this.coeffs[i];
                 if (c < 0) {
                     //go borrow
                     var b; //a coefficient > 0
@@ -218,11 +232,11 @@ if (typeof module !== 'undefined') {
                     }
                 }
 
-                var d = c.mod(p);
-                var w = c.subtract(d).divide(p);
+                const d = c.mod(p);
+                const w = c.subtract(d).divide(p);
                 if (!w.equals(0)) {
-                    var up_one = i + 1;
-                    var next = this.coeffs[up_one] || new Frac(0);
+                    const up_one = i + 1;
+                    let next = this.coeffs[up_one] || new Frac(0);
                     next = next.add(w);
                     this.coeffs[up_one] = new Frac(next);
                     this.coeffs[i] = new Frac(d);
@@ -236,10 +250,10 @@ if (typeof module !== 'undefined') {
          *
          * @param {Polynomial} poly
          */
-        add: function (poly) {
-            var l = Math.max(this.coeffs.length, poly.coeffs.length);
-            for (var i = 0; i < l; i++) {
-                var a = this.coeffs[i] || new Frac(0),
+        add(poly) {
+            const l = Math.max(this.coeffs.length, poly.coeffs.length);
+            for (let i = 0; i < l; i++) {
+                const a = this.coeffs[i] || new Frac(0),
                     b = poly.coeffs[i] || new Frac(0);
                 this.coeffs[i] = a.add(b);
             }
@@ -250,17 +264,17 @@ if (typeof module !== 'undefined') {
          *
          * @param {Polynomial} poly
          */
-        subtract: function (poly) {
-            var l = Math.max(this.coeffs.length, poly.coeffs.length);
-            for (var i = 0; i < l; i++) {
-                var a = this.coeffs[i] || new Frac(0),
+        subtract(poly) {
+            const l = Math.max(this.coeffs.length, poly.coeffs.length);
+            for (let i = 0; i < l; i++) {
+                const a = this.coeffs[i] || new Frac(0),
                     b = poly.coeffs[i] || new Frac(0);
                 this.coeffs[i] = a.subtract(b);
             }
             return this;
         },
-        divide: function (poly) {
-            var variable = this.variable,
+        divide(poly) {
+            const variable = this.variable,
                 dividend = core.Utils.arrayClone(this.coeffs),
                 divisor = core.Utils.arrayClone(poly.coeffs),
                 n = dividend.length,
@@ -268,36 +282,38 @@ if (typeof module !== 'undefined') {
                 quotient = [];
 
             //loop through the dividend
-            for (var i = 0; i < n; i++) {
-                var p = n - (i + 1);
+            for (let i = 0; i < n; i++) {
+                const p = n - (i + 1);
                 //get the difference of the powers
-                var d = p - mp;
+                const d = p - mp;
                 //get the quotient of the coefficients
-                var q = dividend[p].divide(divisor[mp]);
+                const q = dividend[p].divide(divisor[mp]);
 
-                if (d < 0) break; //the divisor is not greater than the dividend
+                if (d < 0) {
+                    break;
+                } //the divisor is not greater than the dividend
                 //place it in the quotient
                 quotient[d] = q;
 
-                for (var j = 0; j <= mp; j++) {
+                for (let j = 0; j <= mp; j++) {
                     //reduce the dividend
                     dividend[j + d] = dividend[j + d].subtract(divisor[j].multiply(q));
                 }
             }
 
             //clean up
-            var p1 = Polynomial.fromArray(dividend, variable || 'x').trim(), //pass in x for safety
+            const p1 = Polynomial.fromArray(dividend, variable || 'x').trim(), //pass in x for safety
                 p2 = Polynomial.fromArray(quotient, variable || 'x');
             return [p2, p1];
         },
-        multiply: function (poly) {
-            var l1 = this.coeffs.length,
+        multiply(poly) {
+            const l1 = this.coeffs.length,
                 l2 = poly.coeffs.length,
                 c = []; //array to be returned
-            for (var i = 0; i < l1; i++) {
-                var x1 = this.coeffs[i];
-                for (var j = 0; j < l2; j++) {
-                    var k = i + j, //add the powers together
+            for (let i = 0; i < l1; i++) {
+                const x1 = this.coeffs[i];
+                for (let j = 0; j < l2; j++) {
+                    const k = i + j, //add the powers together
                         x2 = poly.coeffs[j],
                         e = c[k] || new Frac(0); //get the existing term from the new array
                     c[k] = e.add(x1.multiply(x2)); //multiply the coefficients and add to new polynomial array
@@ -311,11 +327,13 @@ if (typeof module !== 'undefined') {
          *
          * @returns {boolean}
          */
-        isZero: function () {
-            var l = this.coeffs.length;
-            for (var i = 0; i < l; i++) {
-                var e = this.coeffs[i];
-                if (!e.equals(0)) return false;
+        isZero() {
+            const l = this.coeffs.length;
+            for (let i = 0; i < l; i++) {
+                const e = this.coeffs[i];
+                if (!e.equals(0)) {
+                    return false;
+                }
             }
             return true;
         },
@@ -325,12 +343,14 @@ if (typeof module !== 'undefined') {
          * @param {number} n
          * @returns {Frac}
          */
-        sub: function (n) {
-            var sum = new Frac(0),
+        sub(n) {
+            let sum = new Frac(0),
                 l = this.coeffs.length;
-            for (var i = 0; i < l; i++) {
-                var t = this.coeffs[i];
-                if (!t.equals(0)) sum = sum.add(t.multiply(new Frac(Math.pow(n, i))));
+            for (let i = 0; i < l; i++) {
+                const t = this.coeffs[i];
+                if (!t.equals(0)) {
+                    sum = sum.add(t.multiply(new Frac(Math.pow(n, i))));
+                }
             }
             return sum;
         },
@@ -339,8 +359,8 @@ if (typeof module !== 'undefined') {
          *
          * @returns {Polynomial}
          */
-        clone: function () {
-            var p = new Polynomial();
+        clone() {
+            const p = new Polynomial();
             p.coeffs = this.coeffs;
             p.variable = this.variable;
             return p;
@@ -350,7 +370,7 @@ if (typeof module !== 'undefined') {
          *
          * @returns {number}
          */
-        deg: function () {
+        deg() {
             this.trim();
             return this.coeffs.length - 1;
         },
@@ -359,7 +379,7 @@ if (typeof module !== 'undefined') {
          *
          * @returns {Frac}
          */
-        lc: function () {
+        lc() {
             return this.coeffs[this.deg()].clone();
         },
         /**
@@ -367,10 +387,12 @@ if (typeof module !== 'undefined') {
          *
          * @returns {Polynomial}
          */
-        monic: function () {
-            var lc = this.lc(),
+        monic() {
+            const lc = this.lc(),
                 l = this.coeffs.length;
-            for (var i = 0; i < l; i++) this.coeffs[i] = this.coeffs[i].divide(lc);
+            for (let i = 0; i < l; i++) {
+                this.coeffs[i] = this.coeffs[i].divide(lc);
+            }
             return this;
         },
         /**
@@ -379,29 +401,29 @@ if (typeof module !== 'undefined') {
          * @param {Polynomial} poly
          * @returns {Polynomial}
          */
-        gcd: function (poly) {
+        gcd(poly) {
             //get the maximum power of each
-            var mp1 = this.coeffs.length - 1,
+            let mp1 = this.coeffs.length - 1,
                 mp2 = poly.coeffs.length - 1,
                 T;
             //swap so we always have the greater power first
             if (mp1 < mp2) {
                 return poly.gcd(this);
             }
-            var a = this;
+            let a = this;
 
             while (!poly.isZero()) {
-                var t = poly.clone();
+                const t = poly.clone();
                 a = a.clone();
                 T = a.divide(t);
                 poly = T[1];
                 a = t;
             }
 
-            var gcd = core.Math2.QGCD.apply(null, a.coeffs);
+            const gcd = core.Math2.QGCD.apply(null, a.coeffs);
             if (!gcd.equals(1)) {
-                var l = a.coeffs.length;
-                for (var i = 0; i < l; i++) {
+                const l = a.coeffs.length;
+                for (let i = 0; i < l; i++) {
                     a.coeffs[i] = a.coeffs[i].divide(gcd);
                 }
             }
@@ -412,10 +434,12 @@ if (typeof module !== 'undefined') {
          *
          * @returns {Polynomial}
          */
-        diff: function () {
-            var new_array = [],
+        diff() {
+            const new_array = [],
                 l = this.coeffs.length;
-            for (var i = 1; i < l; i++) new_array.push(this.coeffs[i].multiply(new Frac(i)));
+            for (let i = 1; i < l; i++) {
+                new_array.push(this.coeffs[i].multiply(new Frac(i)));
+            }
             this.coeffs = new_array;
             return this;
         },
@@ -424,11 +448,11 @@ if (typeof module !== 'undefined') {
          *
          * @returns {Polynomial}
          */
-        integrate: function () {
-            var new_array = [0],
+        integrate() {
+            const new_array = [0],
                 l = this.coeffs.length;
-            for (var i = 0; i < l; i++) {
-                var c = new Frac(i + 1);
+            for (let i = 0; i < l; i++) {
+                const c = new Frac(i + 1);
                 new_array[c] = this.coeffs[i].divide(c);
             }
             this.coeffs = new_array;
@@ -440,20 +464,24 @@ if (typeof module !== 'undefined') {
          * @param {boolean} toPolynomial - True if a polynomial is wanted
          * @returns {Frac | Polynomial}
          */
-        gcf: function (toPolynomial) {
+        gcf(toPolynomial) {
             //get the first nozero coefficient and returns its power
-            var fnz = function (a) {
-                    for (var i = 0; i < a.length; i++) if (!a[i].equals(0)) return i;
+            const fnz = function (a) {
+                    for (let i = 0; i < a.length; i++) {
+                        if (!a[i].equals(0)) return i;
+                    }
                 },
                 ca = [];
-            for (var i = 0; i < this.coeffs.length; i++) {
-                var c = this.coeffs[i];
-                if (!c.equals(0) && ca.indexOf(c) === -1) ca.push(c);
+            for (let i = 0; i < this.coeffs.length; i++) {
+                const c = this.coeffs[i];
+                if (!c.equals(0) && ca.indexOf(c) === -1) {
+                    ca.push(c);
+                }
             }
-            var p = [core.Math2.QGCD.apply(undefined, ca), fnz(this.coeffs)].toDecimal();
+            let p = [core.Math2.QGCD.apply(undefined, ca), fnz(this.coeffs)].toDecimal();
 
             if (toPolynomial) {
-                var parr = [];
+                const parr = [];
                 parr[p[1] - 1] = p[0];
                 p = Polynomial.fromArray(parr, this.variable).fill();
             }
@@ -465,17 +493,21 @@ if (typeof module !== 'undefined') {
          *
          * @param {boolean} incl_img - Include imaginary numbers
          */
-        quad: function (incl_img) {
-            var roots = [];
-            if (this.coeffs.length > 3)
+        quad(incl_img) {
+            const roots = [];
+            if (this.coeffs.length > 3) {
                 throw new Error('Cannot calculate quadratic order of ' + (this.coeffs.length - 1));
-            if (this.coeffs.length === 0) throw new Error('Polynomial array has no terms');
-            var a = this.coeffs[2] || 0,
+            }
+            if (this.coeffs.length === 0) {
+                throw new Error('Polynomial array has no terms');
+            }
+            const a = this.coeffs[2] || 0,
                 b = this.coeffs[1] || 0,
                 c = this.coeffs[0];
-            var dsc = b * b - 4 * a * c;
-            if (dsc < 0 && !incl_img) return roots;
-            else {
+            const dsc = b * b - 4 * a * c;
+            if (dsc < 0 && !incl_img) {
+                return roots;
+            } else {
                 roots[0] = (-b + Math.sqrt(dsc)) / (2 * a);
                 roots[1] = (-b - Math.sqrt(dsc)) / (2 * a);
             }
@@ -486,21 +518,23 @@ if (typeof module !== 'undefined') {
          *
          * @returns {Array}
          */
-        squareFree: function () {
-            var a = this.clone(),
+        squareFree() {
+            let a = this.clone(),
                 i = 1,
                 b = a.clone().diff(),
                 c = a.clone().gcd(b),
                 w = a.divide(c)[0];
-            var output = Polynomial.fromArray([new Frac(1)], a.variable);
+            let output = Polynomial.fromArray([new Frac(1)], a.variable);
             while (!c.equalsNumber(1)) {
-                var y = w.gcd(c);
-                var z = w.divide(y)[0];
+                const y = w.gcd(c);
+                let z = w.divide(y)[0];
                 //one of the factors may have shown up since it's square but smaller than the
                 //one where finding
                 if (!z.equalsNumber(1) && i > 1) {
-                    var t = z.clone();
-                    for (var j = 1; j < i; j++) t.multiply(z.clone());
+                    const t = z.clone();
+                    for (let j = 1; j < i; j++) {
+                        t.multiply(z.clone());
+                    }
                     z = t;
                 }
                 output = output.multiply(z);
@@ -516,18 +550,22 @@ if (typeof module !== 'undefined') {
          *
          * @returns {NerdamerSymbol}
          */
-        toSymbol: function () {
-            var l = this.coeffs.length,
+        toSymbol() {
+            const l = this.coeffs.length,
                 variable = this.variable;
-            if (l === 0) return new core.NerdamerSymbol(0);
-            var end = l - 1,
+            if (l === 0) {
+                return new core.NerdamerSymbol(0);
+            }
+            let end = l - 1,
                 str = '';
 
-            for (var i = 0; i < l; i++) {
+            for (let i = 0; i < l; i++) {
                 //place the plus sign for all but the last one
-                var plus = i === end ? '' : '+',
+                const plus = i === end ? '' : '+',
                     e = this.coeffs[i];
-                if (!e.equals(0)) str += e + '*' + variable + '^' + i + plus;
+                if (!e.equals(0)) {
+                    str += e + '*' + variable + '^' + i + plus;
+                }
             }
             return _.parse(str);
         },
@@ -537,11 +575,11 @@ if (typeof module !== 'undefined') {
          * @param {number} x
          * @returns {boolean}
          */
-        equalsNumber: function (x) {
+        equalsNumber(x) {
             this.trim();
             return this.coeffs.length === 1 && this.coeffs[0].toDecimal() === String(x);
         },
-        toString: function () {
+        toString() {
             return this.toSymbol().toString();
         },
     };
@@ -564,52 +602,66 @@ if (typeof module !== 'undefined') {
      * @returns {Array}
      */
     NerdamerSymbol.prototype.coeffs = function (c, with_order) {
-        if (with_order && !this.isPoly(true)) _.error('Polynomial expected when requesting coefficients with order');
+        if (with_order && !this.isPoly(true)) {
+            _.error('Polynomial expected when requesting coefficients with order');
+        }
         c = c || [];
-        var s = this.clone().distributeMultiplier();
+        const s = this.clone().distributeMultiplier();
         if (s.isComposite()) {
-            for (var x in s.symbols) {
-                var sub = s.symbols[x];
+            for (const x in s.symbols) {
+                const sub = s.symbols[x];
                 if (sub.isComposite()) {
                     sub.clone().distributeMultiplier().coeffs(c, with_order);
                 } else {
-                    if (with_order) c[sub.isConstant() ? 0 : sub.power.toDecimal()] = sub.multiplier;
-                    else {
+                    if (with_order) {
+                        c[sub.isConstant() ? 0 : sub.power.toDecimal()] = sub.multiplier;
+                    } else {
                         c.push(sub.multiplier);
                     }
                 }
             }
         } else {
-            if (with_order) c[s.isConstant(true) ? 0 : s.power.toDecimal()] = s.multiplier;
-            else {
+            if (with_order) {
+                c[s.isConstant(true) ? 0 : s.power.toDecimal()] = s.multiplier;
+            } else {
                 if (s.group === CB && s.isImaginary()) {
-                    var m = new NerdamerSymbol(s.multiplier);
-                    s.each(function (x) {
+                    let m = new NerdamerSymbol(s.multiplier);
+                    s.each(x => {
                         //add the imaginary part
-                        if (x.isConstant(true) || x.imaginary) m = _.multiply(m, x);
+                        if (x.isConstant(true) || x.imaginary) {
+                            m = _.multiply(m, x);
+                        }
                     });
                     c.push(m);
-                } else c.push(s.multiplier);
+                } else {
+                    c.push(s.multiplier);
+                }
             }
         }
         //fill the holes
         if (with_order) {
-            for (var i = 0; i < c.length; i++) if (c[i] === undefined) c[i] = new NerdamerSymbol(0);
+            for (let i = 0; i < c.length; i++) {
+                if (c[i] === undefined) {
+                    c[i] = new NerdamerSymbol(0);
+                }
+            }
         }
         return c;
     };
     NerdamerSymbol.prototype.tBase = function (map) {
-        if (typeof map === 'undefined') throw new Error('NerdamerSymbol.tBase requires a map object!');
-        var terms = [];
-        var symbols = this.collectSymbols(null, null, null, true),
+        if (typeof map === 'undefined') {
+            throw new Error('NerdamerSymbol.tBase requires a map object!');
+        }
+        const terms = [];
+        const symbols = this.collectSymbols(null, null, null, true),
             l = symbols.length;
-        for (var i = 0; i < l; i++) {
-            var symbol = symbols[i],
+        for (let i = 0; i < l; i++) {
+            const symbol = symbols[i],
                 g = symbol.group,
                 nterm = new MVTerm(symbol.multiplier, [], map);
             if (g === CB) {
-                for (var x in symbol.symbols) {
-                    var sym = symbol.symbols[x];
+                for (const x in symbol.symbols) {
+                    const sym = symbol.symbols[x];
                     nterm.terms[map[x]] = sym.power;
                 }
             } else {
@@ -622,9 +674,9 @@ if (typeof module !== 'undefined') {
         return terms;
     };
     NerdamerSymbol.prototype.altVar = function (x) {
-        var m = this.multiplier.toString(),
+        const m = this.multiplier.toString(),
             p = this.power.toString();
-        return (m === '1' ? '' : m + '*') + x + (p === '1' ? '' : '^' + p);
+        return (m === '1' ? '' : `${m}*`) + x + (p === '1' ? '' : `^${p}`);
     };
     /**
      * Checks to see if the symbols contain the same variables
@@ -633,12 +685,18 @@ if (typeof module !== 'undefined') {
      * @returns {boolean}
      */
     NerdamerSymbol.prototype.sameVars = function (symbol) {
-        if (!(this.symbols || this.group === symbol.group)) return false;
-        for (var x in this.symbols) {
-            var a = this.symbols[x],
+        if (!(this.symbols || this.group === symbol.group)) {
+            return false;
+        }
+        for (const x in this.symbols) {
+            const a = this.symbols[x],
                 b = symbol.symbols[x];
-            if (!b) return false;
-            if (a.value !== b.value) return false;
+            if (!b) {
+                return false;
+            }
+            if (a.value !== b.value) {
+                return false;
+            }
         }
         return true;
     };
@@ -650,14 +708,16 @@ if (typeof module !== 'undefined') {
      */
     NerdamerSymbol.prototype.groupTerms = function (x) {
         x = String(x);
-        var f, p, egrouped;
-        var grouped = [];
-        this.each(function (e) {
+        let f, p, egrouped;
+        const grouped = [];
+        this.each(e => {
             if (e.group === PL) {
                 egrouped = e.groupTerms(x);
-                for (var i = 0; i < egrouped.length; i++) {
-                    var el = egrouped[i];
-                    if (el) grouped[i] = el;
+                for (let i = 0; i < egrouped.length; i++) {
+                    const el = egrouped[i];
+                    if (el) {
+                        grouped[i] = el;
+                    }
                 }
             } else {
                 f = core.Utils.decompose_fn(e, x, true);
@@ -674,12 +734,14 @@ if (typeof module !== 'undefined') {
      * @returns {NerdamerSymbol[]}
      */
     NerdamerSymbol.prototype.collectFactors = function () {
-        var factors = [];
-        if (this.group === CB)
-            this.each(function (x) {
+        const factors = [];
+        if (this.group === CB) {
+            this.each(x => {
                 factors.push(x.clone());
             });
-        else factors.push(this.clone());
+        } else {
+            factors.push(this.clone());
+        }
         return factors;
     };
     /**
@@ -692,9 +754,11 @@ if (typeof module !== 'undefined') {
         this.length = 0;
     }
     Factors.prototype.getNumberSymbolics = function () {
-        var n = 0;
-        this.each(function (x) {
-            if (!x.isConstant(true)) n++;
+        let n = 0;
+        this.each(x => {
+            if (!x.isConstant(true)) {
+                n++;
+            }
         });
         return n;
     };
@@ -705,13 +769,15 @@ if (typeof module !== 'undefined') {
      * @returns {Factors}
      */
     Factors.prototype.add = function (s) {
-        if (s.equals(0)) return this; //nothing to add
+        if (s.equals(0)) {
+            return this;
+        } //nothing to add
 
         //we don't want to carry -1 as a factor. If a factor already exists,
         //then add the minus one to that factor and return.
         if (s.equals(-1) && this.length > 0) {
-            var fo = core.Utils.firstObject(this.factors, null, true);
-            let newObj = _.symfunction(core.Settings.PARENTHESIS, [fo.obj]).negate();
+            const fo = core.Utils.firstObject(this.factors, null, true);
+            const newObj = _.symfunction(core.Settings.PARENTHESIS, [fo.obj]).negate();
             delete this.factors[fo.key];
             this.add(newObj);
             this.length--;
@@ -719,22 +785,28 @@ if (typeof module !== 'undefined') {
         }
 
         if (s.group === CB) {
-            var factors = this;
-            if (!s.multiplier.equals(1)) factors.add(new NerdamerSymbol(s.multiplier));
-            s.each(function (x) {
+            const factors = this;
+            if (!s.multiplier.equals(1)) {
+                factors.add(new NerdamerSymbol(s.multiplier));
+            }
+            s.each(x => {
                 factors.add(x);
             });
         } else {
-            if (this.preAdd)
-                //if a preAdd function was defined call it to do prep
+            if (this.preAdd) //if a preAdd function was defined call it to do prep
+            {
                 s = this.preAdd(s);
-            if (this.pFactor)
-                //if the symbol isn't linear add back the power
+            }
+            if (this.pFactor) //if the symbol isn't linear add back the power
+            {
                 s = _.pow(s, new NerdamerSymbol(this.pFactor));
+            }
 
-            var is_constant = s.isConstant();
-            if (is_constant && s.equals(1)) return this; //don't add 1
-            var v = is_constant ? s.value : s.text();
+            const is_constant = s.isConstant();
+            if (is_constant && s.equals(1)) {
+                return this;
+            } //don't add 1
+            const v = is_constant ? s.value : s.text();
             if (v in this.factors) {
                 this.factors[v] = _.multiply(this.factors[v], s);
                 //did the addition cancel out the existing factor? If so remove it and decrement the length
@@ -755,23 +827,23 @@ if (typeof module !== 'undefined') {
      * @returns {NerdamerSymbol}
      */
     Factors.prototype.toSymbol = function () {
-        var factored = new NerdamerSymbol(1);
-        var factors = Object.values(this.factors).sort(function (a, b) {
-            return a.group > b.group;
-        });
+        let factored = new NerdamerSymbol(1);
+        const factors = Object.values(this.factors).sort((a, b) => a.group > b.group);
 
-        for (var i = 0, l = factors.length; i < l; i++) {
-            var f = factors[i];
+        for (let i = 0, l = factors.length; i < l; i++) {
+            const f = factors[i];
 
             //don't wrap group S or FN
-            var factor =
+            const factor =
                 f.power.equals(1) && f.fname !== '' /* don't wrap it twice */
                     ? _.symfunction(core.PARENTHESIS, [f])
                     : f;
 
             factored = _.multiply(factored, factor);
         }
-        if (factored.fname === '') factored = NerdamerSymbol.unwrapPARENS(factored);
+        if (factored.fname === '') {
+            factored = NerdamerSymbol.unwrapPARENS(factored);
+        }
         return factored;
     };
     /**
@@ -781,9 +853,12 @@ if (typeof module !== 'undefined') {
      * @returns {Factors}
      */
     Factors.prototype.merge = function (o) {
-        for (var x in o) {
-            if (x in this.factors) this.factors[x] = _.multiply(this.factors[x], o[x]);
-            else this.factors[x] = o[x];
+        for (const x in o) {
+            if (x in this.factors) {
+                this.factors[x] = _.multiply(this.factors[x], o[x]);
+            } else {
+                this.factors[x] = o[x];
+            }
         }
         return this;
     };
@@ -794,9 +869,11 @@ if (typeof module !== 'undefined') {
      * @returns {Factor}
      */
     Factors.prototype.each = function (f) {
-        for (var x in this.factors) {
-            var factor = this.factors[x];
-            if (factor.fname === core.PARENTHESIS && factor.isLinear()) factor = factor.args[0];
+        for (const x in this.factors) {
+            let factor = this.factors[x];
+            if (factor.fname === core.PARENTHESIS && factor.isLinear()) {
+                factor = factor.args[0];
+            }
             f.call(this, factor, x);
         }
         return this;
@@ -816,16 +893,21 @@ if (typeof module !== 'undefined') {
      */
     Factors.prototype.clean = function () {
         try {
-            var h = core.Settings.CONST_HASH;
+            const h = core.Settings.CONST_HASH;
             if (this.factors[h].lessThan(0)) {
-                if (this.factors[h].equals(-1)) delete this.factors[h];
-                else this.factors[h].negate();
-                this.each(function (x) {
+                if (this.factors[h].equals(-1)) {
+                    delete this.factors[h];
+                } else {
+                    this.factors[h].negate();
+                }
+                this.each(x => {
                     x.negate();
                 });
             }
         } catch (e) {
-            if (e.message === 'timeout') throw e;
+            if (e.message === 'timeout') {
+                throw e;
+            }
         }
     };
     Factors.prototype.toString = function () {
@@ -842,17 +924,21 @@ if (typeof module !== 'undefined') {
     }
     MVTerm.prototype.updateCount = function () {
         this.count = this.count || 0;
-        for (var i = 0; i < this.terms.length; i++) {
-            if (!this.terms[i].equals(0)) this.count++;
+        for (let i = 0; i < this.terms.length; i++) {
+            if (!this.terms[i].equals(0)) {
+                this.count++;
+            }
         }
         return this;
     };
     MVTerm.prototype.getVars = function () {
-        var vars = [];
-        for (var i = 0; i < this.terms.length; i++) {
-            var term = this.terms[i],
+        const vars = [];
+        for (let i = 0; i < this.terms.length; i++) {
+            const term = this.terms[i],
                 rev_map = this.getRevMap();
-            if (!term.equals(0)) vars.push(this.rev_map[i]);
+            if (!term.equals(0)) {
+                vars.push(this.rev_map[i]);
+            }
         }
         return vars.join(' ');
     };
@@ -864,21 +950,27 @@ if (typeof module !== 'undefined') {
     };
     MVTerm.prototype.toSymbol = function (rev_map) {
         rev_map = rev_map || this.getRevMap();
-        var symbol = new NerdamerSymbol(this.coeff);
-        for (var i = 0; i < this.terms.length; i++) {
-            var v = rev_map[i],
+        let symbol = new NerdamerSymbol(this.coeff);
+        for (let i = 0; i < this.terms.length; i++) {
+            const v = rev_map[i],
                 t = this.terms[i];
-            if (t.equals(0) || v === CONST_HASH) continue;
-            var mapped = new NerdamerSymbol(v);
+            if (t.equals(0) || v === CONST_HASH) {
+                continue;
+            }
+            const mapped = new NerdamerSymbol(v);
             mapped.power = t;
             symbol = _.multiply(symbol, mapped);
         }
         return symbol;
     };
     MVTerm.prototype.getRevMap = function () {
-        if (this.rev_map) return this.rev_map;
-        var o = {};
-        for (var x in this.map) o[this.map[x]] = x;
+        if (this.rev_map) {
+            return this.rev_map;
+        }
+        const o = {};
+        for (const x in this.map) {
+            o[this.map[x]] = x;
+        }
         this.rev_map = o;
         return o;
     };
@@ -887,34 +979,37 @@ if (typeof module !== 'undefined') {
         return this;
     }),
         (MVTerm.prototype.getImg = function () {
-            if (!this.image) this.generateImage();
+            if (!this.image) {
+                this.generateImage();
+            }
             return this.image;
         }),
         (MVTerm.prototype.fill = function () {
-            var l = this.map.length;
-            for (var i = 0; i < l; i++) {
-                if (typeof this.terms[i] === 'undefined') this.terms[i] = new core.Frac(0);
-                else {
+            const l = this.map.length;
+            for (let i = 0; i < l; i++) {
+                if (typeof this.terms[i] === 'undefined') {
+                    this.terms[i] = new core.Frac(0);
+                } else {
                     this.sum = this.sum.add(this.terms[i]);
                 }
             }
             return this;
         }));
     MVTerm.prototype.divide = function (mvterm) {
-        var c = this.coeff.divide(mvterm.coeff),
+        const c = this.coeff.divide(mvterm.coeff),
             l = this.terms.length,
             new_mvterm = new MVTerm(c, [], this.map);
-        for (var i = 0; i < l; i++) {
+        for (let i = 0; i < l; i++) {
             new_mvterm.terms[i] = this.terms[i].subtract(mvterm.terms[i]);
             new_mvterm.sum = new_mvterm.sum.add(new_mvterm.terms[i]);
         }
         return new_mvterm;
     };
     MVTerm.prototype.multiply = function (mvterm) {
-        var c = this.coeff.multiply(mvterm.coeff),
+        const c = this.coeff.multiply(mvterm.coeff),
             l = this.terms.length,
             new_mvterm = new MVTerm(c, [], this.map);
-        for (var i = 0; i < l; i++) {
+        for (let i = 0; i < l; i++) {
             new_mvterm.terms[i] = this.terms[i].add(mvterm.terms[i]);
             new_mvterm.sum = new_mvterm.sum.add(new_mvterm.terms[i]);
         }
@@ -924,24 +1019,16 @@ if (typeof module !== 'undefined') {
         return this.coeff.equals(0);
     };
     MVTerm.prototype.toString = function () {
-        return (
-            '{ coeff: ' +
-            this.coeff.toString() +
-            ', terms: [' +
-            this.terms.join(',') +
-            ']: sum: ' +
-            this.sum.toString() +
-            ', count: ' +
-            this.count +
-            '}'
-        );
+        return `{ coeff: ${this.coeff.toString()}, terms: [${this.terms.join(
+            ','
+        )}]: sum: ${this.sum.toString()}, count: ${this.count}}`;
     };
 
     core.Utils.toMapObj = function (arr) {
-        var c = 0,
+        let c = 0,
             o = {};
-        for (var i = 0; i < arr.length; i++) {
-            var v = arr[i];
+        for (let i = 0; i < arr.length; i++) {
+            const v = arr[i];
             if (typeof o[v] === 'undefined') {
                 o[v] = c;
                 c++;
@@ -951,16 +1038,18 @@ if (typeof module !== 'undefined') {
         return o;
     };
     core.Utils.filledArray = function (v, n, clss) {
-        var a = [];
+        const a = [];
         while (n--) {
             a[n] = clss ? new clss(v) : v;
         }
         return a;
     };
     core.Utils.arrSum = function (arr) {
-        var sum = 0,
+        let sum = 0,
             l = arr.length;
-        for (var i = 0; i < l; i++) sum += arr[i];
+        for (let i = 0; i < l; i++) {
+            sum += arr[i];
+        }
         return sum;
     };
     /**
@@ -971,11 +1060,11 @@ if (typeof module !== 'undefined') {
      * @returns {boolean} True if a and b have intersecting elements.
      */
     core.Utils.haveIntersection = function (a, b) {
-        var t;
-        if (b.length > a.length) ((t = b), (b = a), (a = t)); // indexOf to loop over shorter
-        return a.some(function (e) {
-            return b.indexOf(e) > -1;
-        });
+        let t;
+        if (b.length > a.length) {
+            ((t = b), (b = a), (a = t));
+        } // indexOf to loop over shorter
+        return a.some(e => b.indexOf(e) > -1);
     };
     /**
      * Substitutes out functions as variables so they can be used in regular algorithms
@@ -986,12 +1075,12 @@ if (typeof module !== 'undefined') {
      */
     core.Utils.subFunctions = function (symbol, map) {
         map = map || {};
-        var subbed = [];
-        var vars = new Set(variables(symbol));
-        symbol.each(function (x) {
+        const subbed = [];
+        const vars = new Set(variables(symbol));
+        symbol.each(x => {
             if (x.group === FN || x.previousGroup === FN) {
                 //we need a new variable name so why not use one of the existing
-                var val = core.Utils.text(x, 'hash'),
+                const val = core.Utils.text(x, 'hash'),
                     tvar = map[val];
                 if (!tvar) {
                     //generate a unique enough name
@@ -1003,34 +1092,46 @@ if (typeof module !== 'undefined') {
                     } while (vars.has(t));
                     map[val] = t;
                     subbed.push(x.altVar(t));
-                } else subbed.push(x.altVar(tvar));
+                } else {
+                    subbed.push(x.altVar(tvar));
+                }
             } else if (x.group === CB || x.group === PL || x.group === CP) {
                 subbed.push(core.Utils.subFunctions(x, map));
-            } else subbed.push(x.text());
+            } else {
+                subbed.push(x.text());
+            }
         });
-        if (symbol.group === CP || symbol.group === PL) return symbol.altVar(core.Utils.inBrackets(subbed.join('+')));
-        if (symbol.group === CB) return symbol.altVar(core.Utils.inBrackets(subbed.join('*')));
+        if (symbol.group === CP || symbol.group === PL) {
+            return symbol.altVar(core.Utils.inBrackets(subbed.join('+')));
+        }
+        if (symbol.group === CB) {
+            return symbol.altVar(core.Utils.inBrackets(subbed.join('*')));
+        }
         return symbol.text();
     };
     core.Utils.getFunctionsSubs = function (map) {
-        var subs = {};
+        const subs = {};
         //prepare substitutions
-        for (var x in map) subs[map[x]] = _.parse(x);
+        for (const x in map) {
+            subs[map[x]] = _.parse(x);
+        }
         return subs;
     };
 
     var __ = (core.Algebra = {
         version: '1.4.6',
-        proots: function (symbol, decp) {
+        proots(symbol, decp) {
             //the roots will be rounded up to 7 decimal places.
             //if this causes trouble you can explicitly pass in a different number of places
             //rarr for polynomial of power n is of format [n, coeff x^n, coeff x^(n-1), ..., coeff x^0]
             decp = decp || 7;
-            var zeros = 0;
-            var known_roots = [];
-            var get_roots = function (rarr, powers, max) {
-                var roots = calcroots(rarr, powers, max).concat(known_roots);
-                for (var i = 0; i < zeros; i++) roots.unshift(0);
+            const zeros = 0;
+            const known_roots = [];
+            const get_roots = function (rarr, powers, max) {
+                let roots = calcroots(rarr, powers, max).concat(known_roots);
+                for (let i = 0; i < zeros; i++) {
+                    roots.unshift(0);
+                }
                 return roots;
             };
 
@@ -1038,8 +1139,8 @@ if (typeof module !== 'undefined') {
                 symbol.distributeMultiplier();
                 //make it so the symbol has a constants as the lowest term
                 if (symbol.group === PL) {
-                    var lowest_pow = core.Utils.arrayMin(keys(symbol.symbols));
-                    var lowest_symbol = symbol.symbols[lowest_pow].clone().toUnitMultiplier();
+                    const lowest_pow = core.Utils.arrayMin(keys(symbol.symbols));
+                    const lowest_symbol = symbol.symbols[lowest_pow].clone().toUnitMultiplier();
                     symbol = _.expand(_.divide(symbol, lowest_symbol));
                     known_roots.push(0); //add zero since this is a known root
                 }
@@ -1048,7 +1149,7 @@ if (typeof module !== 'undefined') {
                 } else if (symbol.group === core.groups.PL) {
                     var powers = keys(symbol.symbols),
                         minpower = core.Utils.arrayMin(powers),
-                        symbol = core.PARSER.divide(symbol, core.PARSER.parse(symbol.value + '^' + minpower));
+                        symbol = core.PARSER.divide(symbol, core.PARSER.parse(`${symbol.value}^${minpower}`));
                 }
 
                 var variable = keys(symbol.symbols).sort().pop(),
@@ -1060,8 +1161,8 @@ if (typeof module !== 'undefined') {
 
                 // Prepare the data
                 for (var i = 1; i <= max; i++) {
-                    var c = 0; //if there is no power then the hole must be filled with a zero
-                    if (powers.indexOf(i + '') !== -1) {
+                    let c = 0; //if there is no power then the hole must be filled with a zero
+                    if (powers.indexOf(`${i}`) !== -1) {
                         if (g === S) {
                             c = sym.multiplier;
                         } else {
@@ -1074,23 +1175,29 @@ if (typeof module !== 'undefined') {
 
                 rarr.push(symbol.symbols[CONST_HASH].multiplier);
 
-                if (sym.group === S) rarr[0] = sym.multiplier; //the symbol maybe of group CP with one variable
+                if (sym.group === S) {
+                    rarr[0] = sym.multiplier;
+                } //the symbol maybe of group CP with one variable
 
                 return get_roots(rarr, powers, max);
             } else if (core.Utils.isArray(symbol)) {
-                var parr = symbol;
+                const parr = symbol;
                 var rarr = [],
                     powers = [],
                     last_power = 0;
                 for (var i = 0; i < parr.length; i++) {
-                    var coeff = parr[i][0],
+                    const coeff = parr[i][0],
                         pow = parr[i][1],
                         d = pow - last_power - 1;
                     //insert the zeros
-                    for (var j = 0; j < d; j++) rarr.unshift(0);
+                    for (let j = 0; j < d; j++) {
+                        rarr.unshift(0);
+                    }
 
                     rarr.unshift(coeff);
-                    if (pow !== 0) powers.push(pow);
+                    if (pow !== 0) {
+                        powers.push(pow);
+                    }
                     last_power = pow;
                 }
                 var max = Math.max.apply(undefined, powers);
@@ -1103,28 +1210,28 @@ if (typeof module !== 'undefined') {
             }
 
             function calcroots(rarr, powers, max) {
-                var MAXDEGREE = 100; // Degree of largest polynomial accepted by this script.
+                const MAXDEGREE = 100; // Degree of largest polynomial accepted by this script.
 
                 // Make a clone of the coefficients before appending the max power
-                var p = rarr.slice(0);
+                const p = rarr.slice(0);
 
                 // Divide the string up into its individual entries, which--presumably--are separated by whitespace
                 rarr.unshift(max);
 
                 if (max > MAXDEGREE) {
                     throw new core.exceptions.ValueLimitExceededError(
-                        'This utility accepts polynomials of degree up to ' + MAXDEGREE + '. '
+                        `This utility accepts polynomials of degree up to ${MAXDEGREE}. `
                     );
                 }
 
-                var zeroi = [], // Vector of imaginary components of roots
+                const zeroi = [], // Vector of imaginary components of roots
                     degreePar = {}; // degreePar is a dummy variable for passing the parameter POLYDEGREE by reference
                 degreePar.Degree = max;
 
                 for (i = 0; i < max; i++) {
                     zeroi.push(0);
                 }
-                var zeror = zeroi.slice(0); // Vector of real components of roots
+                const zeror = zeroi.slice(0); // Vector of real components of roots
 
                 // Find the roots
                 //--> Begin Jenkins-Traub
@@ -1138,7 +1245,7 @@ if (typeof module !== 'undefined') {
                     q[0] = iPar.b = p[0];
                     q[1] = iPar.a = -(u * iPar.b) + p[1];
 
-                    for (var i = 2; i < NN; i++) {
+                    for (let i = 2; i < NN; i++) {
                         q[i] = -(u * iPar.a + v * iPar.b) + p[i];
                         iPar.b = iPar.a;
                         iPar.a = q[i];
@@ -1154,7 +1261,7 @@ if (typeof module !== 'undefined') {
                     // iPar is a dummy variable for passing in the nine parameters--a1, a3, a7, c, d, e, f, g, and h --by reference
 
                     // sdPar is a dummy variable for passing the two parameters--c and d--into QuadSD_ak1 by reference
-                    var sdPar = new Object(),
+                    let sdPar = new Object(),
                         // TYPE = 3 indicates the quadratic is almost a factor of K
                         dumFlag = 3;
 
@@ -1165,7 +1272,9 @@ if (typeof module !== 'undefined') {
                     iPar.d = sdPar.b;
 
                     if (Math.abs(iPar.c) <= 100.0 * DBL_EPSILON * Math.abs(K[N - 1])) {
-                        if (Math.abs(iPar.d) <= 100.0 * DBL_EPSILON * Math.abs(K[N - 2])) return dumFlag;
+                        if (Math.abs(iPar.d) <= 100.0 * DBL_EPSILON * Math.abs(K[N - 2])) {
+                            return dumFlag;
+                        }
                     }
 
                     iPar.h = v * b;
@@ -1194,7 +1303,7 @@ if (typeof module !== 'undefined') {
                 function nextK_ak1(DBL_EPSILON, N, tFlag, a, b, iPar, K, qk, qp) {
                     // Computes the next K polynomials using the scalars computed in calcSC_ak1
                     // iPar is a dummy variable for passing in three parameters--a1, a3, and a7
-                    var temp;
+                    let temp;
                     if (tFlag == 3) {
                         // Use unscaled form of the recurrence
                         K[1] = K[0] = 0.0;
@@ -1211,7 +1320,9 @@ if (typeof module !== 'undefined') {
                         iPar.a3 /= iPar.a1;
                         K[0] = qp[0];
                         K[1] = -(qp[0] * iPar.a7) + qp[1];
-                        for (var i = 2; i < N; i++) K[i] = -(qp[i - 1] * iPar.a7) + qk[i - 2] * iPar.a3 + qp[i];
+                        for (var i = 2; i < N; i++) {
+                            K[i] = -(qp[i - 1] * iPar.a7) + qk[i - 2] * iPar.a3 + qp[i];
+                        }
                     } else {
                         // If a1 is nearly zero, then use a special form of the recurrence
                         K[0] = 0.0;
@@ -1228,7 +1339,7 @@ if (typeof module !== 'undefined') {
                     // iPar is a dummy variable for passing in the two parameters--uu and vv--by reference
                     // iPar.a = uu, iPar.b = vv
 
-                    var a4, a5, b1, b2, c1, c2, c3, c4, temp;
+                    let a4, a5, b1, b2, c1, c2, c3, c4, temp;
                     iPar.b = iPar.a = 0.0; // The quadratic is zeroed
 
                     if (tFlag != 3) {
@@ -1264,7 +1375,7 @@ if (typeof module !== 'undefined') {
 
                     // iPar is a dummy variable for passing in the four parameters--sr, si, lr, and li--by reference
 
-                    var b, d, e;
+                    let b, d, e;
                     iPar.sr = iPar.si = iPar.lr = iPar.li = 0.0;
 
                     if (a == 0) {
@@ -1309,7 +1420,7 @@ if (typeof module !== 'undefined') {
                     // calcPar is a dummy variable for passing the nine parameters--a1, a3, a7, c, d, e, f, g, and h --in by reference
 
                     // qPar is a dummy variable for passing the four parameters--szr, szi, lzr, and lzi--into Quad_ak1 by reference
-                    var qPar = new Object(),
+                    let qPar = new Object(),
                         ee,
                         mp,
                         omp,
@@ -1339,7 +1450,9 @@ if (typeof module !== 'undefined') {
 
                         // Return if roots of the quadratic are real and not close to multiple or nearly
                         // equal and of opposite sign.
-                        if (Math.abs(Math.abs(iPar.szr) - Math.abs(iPar.lzr)) > 0.01 * Math.abs(iPar.lzr)) break;
+                        if (Math.abs(Math.abs(iPar.szr) - Math.abs(iPar.lzr)) > 0.01 * Math.abs(iPar.lzr)) {
+                            break;
+                        }
 
                         // Evaluate polynomial by quadratic synthetic division
 
@@ -1370,7 +1483,9 @@ if (typeof module !== 'undefined') {
 
                         j++;
                         // Stop iteration after 20 steps
-                        if (j > 20) break;
+                        if (j > 20) {
+                            break;
+                        }
                         if (j >= 2) {
                             if (relstp <= 0.01 && mp >= omp && !triedFlag) {
                                 // A cluster appears to be stalling the convergence. Five fixed shift
@@ -1433,7 +1548,7 @@ if (typeof module !== 'undefined') {
                     // NZ		- number of zeros found = iPar.NZ
                     // dumFlag	- flag to indicate a pair of zeros near real axis, returned to iFlag
 
-                    var ee,
+                    let ee,
                         kv,
                         mp,
                         ms,
@@ -1476,7 +1591,9 @@ if (typeof module !== 'undefined') {
                         }
                         j++;
                         // Stop iteration after 10 steps
-                        if (j > 10) break;
+                        if (j > 10) {
+                            break;
+                        }
 
                         if (j >= 2) {
                             if (Math.abs(t) <= 0.001 * Math.abs(-t + s) && mp > omp) {
@@ -1507,7 +1624,9 @@ if (typeof module !== 'undefined') {
                         } else {
                             // Use unscaled form
                             K[0] = 0.0;
-                            for (i = 1; i < N; i++) K[i] = qk[i - 1];
+                            for (i = 1; i < N; i++) {
+                                K[i] = qk[i - 1];
+                            }
                         }
 
                         kv = K[0];
@@ -1527,7 +1646,7 @@ if (typeof module !== 'undefined') {
                     // L2	limit of fixed shift steps
                     // iPar is a dummy variable for passing in the five parameters--NZ, lzi, lzr, szi, and szr--by reference
                     // NZ	number of zeros found
-                    var sdPar = new Object(), // sdPar is a dummy variable for passing the two parameters--a and b--into QuadSD_ak1 by reference
+                    let sdPar = new Object(), // sdPar is a dummy variable for passing the two parameters--a and b--into QuadSD_ak1 by reference
                         calcPar = new Object(),
                         // calcPar is a dummy variable for passing the nine parameters--a1, a3, a7, c, d, e, f, g, and h --into calcSC_ak1 by reference
 
@@ -1651,7 +1770,9 @@ if (typeof module !== 'undefined') {
                                         a = sdPar.a;
                                         b = sdPar.b;
 
-                                        if (iPar.NZ > 0) return;
+                                        if (iPar.NZ > 0) {
+                                            return;
+                                        }
 
                                         // Quadratic iteration has failed. Flag that it has been tried and decrease the
                                         // convergence criterion
@@ -1662,7 +1783,9 @@ if (typeof module !== 'undefined') {
                                         if (stry || !spass) {
                                             iFlag = 0;
                                         } else {
-                                            for (i = 0; i < N; i++) K[i] = svk[i];
+                                            for (i = 0; i < N; i++) {
+                                                K[i] = svk[i];
+                                            }
                                         }
                                     }
                                     //fflag = 0;
@@ -1673,7 +1796,9 @@ if (typeof module !== 'undefined') {
                                         iFlag = RealIT_ak1(DBL_EPSILON, iPar, sdPar, N, p, NN, qp, K, qk);
                                         s = sdPar.a;
 
-                                        if (iPar.NZ > 0) return;
+                                        if (iPar.NZ > 0) {
+                                            return;
+                                        }
 
                                         // Linear iteration has failed. Flag that it has been tried and decrease the
                                         // convergence criterion
@@ -1689,10 +1814,14 @@ if (typeof module !== 'undefined') {
                                     }
 
                                     // Restore variables
-                                    for (i = 0; i < N; i++) K[i] = svk[i];
+                                    for (i = 0; i < N; i++) {
+                                        K[i] = svk[i];
+                                    }
 
                                     // Try quadratic iteration if it has not been tried and the v sequence is converging
-                                    if (!vpass || vtry) break; // Break out of infinite for loop
+                                    if (!vpass || vtry) {
+                                        break;
+                                    } // Break out of infinite for loop
                                 }
 
                                 // Re-compute qp and scalar values to continue the second stage
@@ -1713,7 +1842,7 @@ if (typeof module !== 'undefined') {
                 }
 
                 function rpSolve(degPar, p, zeror, zeroi) {
-                    var N = degPar.Degree,
+                    let N = degPar.Degree,
                         RADFAC = 3.14159265358979323846 / 180, // Degrees-to-radians conversion factor = PI/180
                         LB2 = Math.LN2, // Dummy variable to avoid re-calculating this value in loop below
                         MDP1 = degPar.Degree + 1,
@@ -1759,7 +1888,7 @@ if (typeof module !== 'undefined') {
                         bb = 1.0 + aa;
                     } while (bb > 1.0);
 
-                    var LO = Number.MIN_VALUE / DBL_EPSILON,
+                    let LO = Number.MIN_VALUE / DBL_EPSILON,
                         cosr = Math.cos(94.0 * RADFAC), // = -0.069756474
                         sinr = Math.sin(94.0 * RADFAC), // = 0.99756405
                         xx = Math.sqrt(0.5), // = 0.70710678
@@ -1802,8 +1931,12 @@ if (typeof module !== 'undefined') {
 
                         for (i = 0; i < NN; i++) {
                             x = Math.abs(p[i]);
-                            if (x > moduli_max) moduli_max = x;
-                            if (x != 0 && x < moduli_min) moduli_min = x;
+                            if (x > moduli_max) {
+                                moduli_max = x;
+                            }
+                            if (x != 0 && x < moduli_min) {
+                                moduli_min = x;
+                            }
                         }
 
                         // Scale if there are large or very small coefficients
@@ -1818,12 +1951,16 @@ if (typeof module !== 'undefined') {
                             l = Math.floor(Math.log(sc) / LB2 + 0.5);
                             factor = Math.pow(2.0, l);
                             if (factor != 1.0) {
-                                for (i = 0; i < NN; i++) p[i] *= factor;
+                                for (i = 0; i < NN; i++) {
+                                    p[i] *= factor;
+                                }
                             }
                         }
 
                         // Compute lower bound on moduli of zeros
-                        for (var i = 0; i < NN; i++) pt[i] = Math.abs(p[i]);
+                        for (var i = 0; i < NN; i++) {
+                            pt[i] = Math.abs(p[i]);
+                        }
                         pt[N] = -pt[N];
                         NM1 = N - 1;
 
@@ -1864,7 +2001,9 @@ if (typeof module !== 'undefined') {
                         bnd = x;
 
                         // Compute the derivative as the initial K polynomial and do 5 steps with no shift
-                        for (var i = 1; i < N; i++) K[i] = ((N - i) * p[i]) / N;
+                        for (var i = 1; i < N; i++) {
+                            K[i] = ((N - i) * p[i]) / N;
+                        }
                         K[0] = p[0];
                         aa = p[N];
                         bb = p[NM1];
@@ -1893,7 +2032,9 @@ if (typeof module !== 'undefined') {
                         }
 
                         // Save K for restarts with new shifts
-                        for (var i = 0; i < N; i++) temp[i] = K[i];
+                        for (var i = 0; i < N; i++) {
+                            temp[i] = K[i];
+                        }
 
                         // Loop to select the quadratic corresponding to each new shift
                         for (jj = 1; jj <= 20; jj++) {
@@ -1919,7 +2060,9 @@ if (typeof module !== 'undefined') {
                                 zeroi[j] = Fxshfr_Par.szi;
                                 NN = NN - Fxshfr_Par.NZ;
                                 N = NN - 1;
-                                for (var i = 0; i < NN; i++) p[i] = qp[i];
+                                for (var i = 0; i < NN; i++) {
+                                    p[i] = qp[i];
+                                }
                                 if (Fxshfr_Par.NZ != 1) {
                                     zeror[j + 1] = Fxshfr_Par.lzr;
                                     zeroi[j + 1] = Fxshfr_Par.lzi;
@@ -1944,17 +2087,17 @@ if (typeof module !== 'undefined') {
                 //--> End Jenkins-Traub
                 rpSolve(degreePar, p, zeror, zeroi);
 
-                var l = zeroi.length;
+                const l = zeroi.length;
                 //format the output
                 for (i = 0; i < l; i++) {
                     // We round the imaginary part to avoid having something crazy like 5.67e-16.
-                    var img = round(zeroi[i], decp + 8),
+                    let img = round(zeroi[i], decp + 8),
                         real = round(zeror[i], decp + 8);
                     // Did the rounding pay off? If the rounding did nothing more than chop off a few digits then no.
                     // If the rounding results in a a number at least 3 digits shorter we'll keep it else we'll keep
                     // the original otherwise the rounding was worth it.
                     real = decp - String(real).length > 2 ? real : zeror[i];
-                    var sign = img < 0 ? '-' : '';
+                    const sign = img < 0 ? '-' : '';
 
                     // Remove the zeroes
                     if (real === 0) {
@@ -1965,26 +2108,26 @@ if (typeof module !== 'undefined') {
                     }
 
                     // Remove 1 as the multiplier and discard imaginary part if there isn't one.
-                    img = Math.abs(img) === 1 ? sign + 'i' : img ? img + '*i' : '';
+                    img = Math.abs(img) === 1 ? `${sign}i` : img ? `${img}*i` : '';
 
-                    var num = real && img ? real + '+' + img : real + img;
+                    const num = real && img ? `${real}+${img}` : real + img;
                     zeror[i] = num.replace(/\+\-/g, '-');
                 }
                 return zeror;
             }
         },
-        roots: function (symbol) {
+        roots(symbol) {
             if (symbol.isConstant(true, true)) {
                 return core.Utils.nroots(symbol);
             }
-            var roots = __.proots(symbol).map(function (x) {
+            const roots = __.proots(symbol).map(x => {
                 return _.parse(x);
             });
             return core.Vector.fromArray(roots);
         },
-        froot: function (f, guess, dx) {
-            var newtonraph = function (xn) {
-                var mesh = 1e-12,
+        froot(f, guess, dx) {
+            const newtonraph = function (xn) {
+                let mesh = 1e-12,
                     // If the derivative was already provided then don't recalculate.
                     df = dx ? dx : core.Utils.build(core.Calculus.diff(f.clone())),
                     // If the function was passed in as a function then don't recalculate.
@@ -1993,14 +2136,15 @@ if (typeof module !== 'undefined') {
                     done = false,
                     safety = 0;
                 while (!done) {
-                    var x = xn - fn(xn) / df(xn);
+                    let x = xn - fn(xn) / df(xn);
                     //absolute values for both x & xn ensures that we indeed have the radius
-                    var r = Math.abs(x) - Math.abs(xn),
+                    let r = Math.abs(x) - Math.abs(xn),
                         delta = Math.abs(r);
                     xn = x;
 
-                    if (delta < mesh) done = true;
-                    else if (safety > max) {
+                    if (delta < mesh) {
+                        done = true;
+                    } else if (safety > max) {
                         xn = null;
                         done = true;
                     }
@@ -2011,18 +2155,16 @@ if (typeof module !== 'undefined') {
             };
             return newtonraph(Number(guess));
         },
-        quad: function (a, b, c) {
-            var q = function (a, b, c, sign) {
-                return _.parse('-(' + b + '+' + sign + '*sqrt((' + b + ')^2-4*(' + a + ')*(' + c + ')))/(2*' + a + ')');
+        quad(a, b, c) {
+            const q = function (a, b, c, sign) {
+                return _.parse(`-(${b}+${sign}*sqrt((${b})^2-4*(${a})*(${c})))/(2*${a})`);
             };
             return [q(a, b, c, 1), q(a, b, c, -1)];
         },
-        sumProd: function (a, b) {
-            return __.quad(-b, a, -1).map(function (x) {
-                return x.invert();
-            });
+        sumProd(a, b) {
+            return __.quad(-b, a, -1).map(x => x.invert());
         },
-        coeffs: function (symbol, wrt, coeffs) {
+        coeffs(symbol, wrt, coeffs) {
             symbol = _.expand(symbol);
             coeffs = coeffs || [new NerdamerSymbol(0)];
             //we cannot get coeffs for group EX
@@ -2034,24 +2176,25 @@ if (typeof module !== 'undefined') {
             }
             wrt = String(wrt);
 
-            if (symbol.group === EX && symbol.contains(wrt, true))
+            if (symbol.group === EX && symbol.contains(wrt, true)) {
                 _.error('Unable to get coefficients using expression ' + symbol.toString());
+            }
             var vars = variables(symbol);
 
             // Check if symbol contains irrational constants that would be lost by Polynomial
             // These include pi, e, and sqrt (which are treated as constants but aren't simple numbers)
-            var hasIrrationalConstants =
+            const hasIrrationalConstants =
                 symbol.contains('pi') || symbol.contains('e') || symbol.containsFunction('sqrt');
 
             if (vars.length === 1 && vars[0] === wrt && !symbol.isImaginary() && !hasIrrationalConstants) {
-                var a = new Polynomial(symbol).coeffs.map(function (x) {
-                    return new NerdamerSymbol(x);
-                });
+                var a = new Polynomial(symbol).coeffs.map(x => new NerdamerSymbol(x));
 
                 for (var i = 0, l = a.length; i < l; i++) {
                     var coeff = a[i],
                         e = coeffs[i];
-                    if (e) coeff = _.add(e, coeff);
+                    if (e) {
+                        coeff = _.add(e, coeff);
+                    }
                     coeffs[i] = coeff; //transfer it all over
                 }
             } else if (
@@ -2068,12 +2211,15 @@ if (typeof module !== 'undefined') {
                 for (var i = 0, l = a.length; i < l; i++) {
                     var coeff = a[i],
                         e = coeffs[i];
-                    if (e) coeff = _.add(e, coeff);
+                    if (e) {
+                        coeff = _.add(e, coeff);
+                    }
                     coeffs[i] = coeff;
                 }
             } else {
-                if (!wrt)
+                if (!wrt) {
                     _.error('Polynomial contains more than one variable. Please specify which variable is to be used!');
+                }
                 //if the variable isn't part of this polynomial then we're looking at x^0
 
                 if (vars.indexOf(wrt) === -1) {
@@ -2081,24 +2227,31 @@ if (typeof module !== 'undefined') {
                 } else {
                     coeffs = coeffs || [new NerdamerSymbol(0)];
                     if (symbol.group === CB) {
-                        var s = symbol.symbols[wrt];
-                        if (!s) _.error('Expression is not a polynomial!');
-                        var p = Number(s.power);
+                        const s = symbol.symbols[wrt];
+                        if (!s) {
+                            _.error('Expression is not a polynomial!');
+                        }
+                        const p = Number(s.power);
                         coeff = _.divide(symbol.clone(), s.clone());
-                        if (coeff.contains(wrt, true) || p < 0 || !isInt(p)) _.error('Expression is not a polynomial!');
+                        if (coeff.contains(wrt, true) || p < 0 || !isInt(p)) {
+                            _.error('Expression is not a polynomial!');
+                        }
                         var e = coeffs[p];
-                        if (e) coeff = _.add(e, coeff);
+                        if (e) {
+                            coeff = _.add(e, coeff);
+                        }
                         coeffs[p] = coeff;
                     } else if (symbol.group === CP) {
-                        symbol.each(function (x) {
+                        symbol.each(x => {
                             __.coeffs(x.clone(), wrt, coeffs);
                         }, true);
                     }
                 }
             }
             //fill holes
-            for (var i = 0, l = coeffs.length; i < l; i++)
+            for (var i = 0, l = coeffs.length; i < l; i++) {
                 if (typeof coeffs[i] === 'undefined') coeffs[i] = new NerdamerSymbol(0);
+            }
 
             return coeffs;
         },
@@ -2113,22 +2266,28 @@ if (typeof module !== 'undefined') {
          * @returns {Array} An array of the powers
          */
         //assumes you've already verified that it's a polynomial
-        polyPowers: function (e, for_variable, powers) {
+        polyPowers(e, for_variable, powers) {
             powers = powers || [];
             var g = (g = e.group);
             if (g === PL && for_variable === e.value) {
                 powers = powers.concat(keys(e.symbols));
             } else if (g === CP) {
-                for (var s in e.symbols) {
-                    var symbol = e.symbols[s];
+                for (const s in e.symbols) {
+                    const symbol = e.symbols[s];
                     var g = symbol.group,
                         v = symbol.value;
-                    if (g === S && for_variable === v) powers.push(symbol.power);
-                    else if (g === PL || g === CP) powers = __.polyPowers(symbol, for_variable, powers);
-                    else if (g === CB && symbol.contains(for_variable)) {
-                        var t = symbol.symbols[for_variable];
-                        if (t) powers.push(t.power);
-                    } else if (g === N || for_variable !== v) powers.push(0);
+                    if (g === S && for_variable === v) {
+                        powers.push(symbol.power);
+                    } else if (g === PL || g === CP) {
+                        powers = __.polyPowers(symbol, for_variable, powers);
+                    } else if (g === CB && symbol.contains(for_variable)) {
+                        const t = symbol.symbols[for_variable];
+                        if (t) {
+                            powers.push(t.power);
+                        }
+                    } else if (g === N || for_variable !== v) {
+                        powers.push(0);
+                    }
                 }
             } else if (g === CB && e.contains(for_variable)) {
                 powers.push(core.Utils.decompose_fn(e, for_variable, true).x.power);
@@ -2138,11 +2297,11 @@ if (typeof module !== 'undefined') {
         //The factor object
         Factor: {
             //splits the symbol in symbol and constant
-            split: function (symbol) {
-                var c = new NerdamerSymbol(1); //the constants part
-                var s = new NerdamerSymbol(1); //the symbolic part
-                __.Factor.factorInner(symbol, new Factors()).each(function (x) {
-                    var t = _.parse(x);
+            split(symbol) {
+                let c = new NerdamerSymbol(1); //the constants part
+                let s = new NerdamerSymbol(1); //the symbolic part
+                __.Factor.factorInner(symbol, new Factors()).each(x => {
+                    const t = _.parse(x);
                     if (x.isConstant(true)) {
                         c = _.multiply(c, t);
                     } else {
@@ -2151,26 +2310,30 @@ if (typeof module !== 'undefined') {
                 });
                 return [c, s];
             },
-            mix: function (o, include_negatives) {
-                var factors = keys(o);
-                var l = factors.length;
-                var m = []; //create a row which we'r going to be mixing
-                for (var i = 0; i < l; i++) {
-                    var factor = factors[i],
+            mix(o, include_negatives) {
+                const factors = keys(o);
+                const l = factors.length;
+                const m = []; //create a row which we'r going to be mixing
+                for (let i = 0; i < l; i++) {
+                    const factor = factors[i],
                         p = o[factor];
-                    var ll = m.length;
+                    const ll = m.length;
                     for (var j = 0; j < ll; j++) {
-                        var t = m[j] * factor;
+                        const t = m[j] * factor;
                         m.push(t);
-                        if (include_negatives) m.push(-t);
+                        if (include_negatives) {
+                            m.push(-t);
+                        }
                     }
 
-                    for (var j = 1; j <= p; j++) m.push(Math.pow(factor, j));
+                    for (var j = 1; j <= p; j++) {
+                        m.push(Math.pow(factor, j));
+                    }
                 }
                 return m;
             },
             //TODO: this method is to replace common factoring
-            common: function (symbol, factors) {
+            common(symbol, factors) {
                 try {
                     if (symbol.group === CP) {
                         //this may have the unfortunate side effect of expanding and factoring again
@@ -2178,30 +2341,36 @@ if (typeof module !== 'undefined') {
                         //TODO: try to avoid this
                         //collect the symbols and sort to have the longest first. Thinking is that the longest terms
                         //has to contain the variable in order for it to be factorable
-                        var symbols = _.expand(symbol.clone(), true).collectSymbols(null, null, function (a, b) {
+                        const symbols = _.expand(symbol.clone(), true).collectSymbols(null, null, (a, b) => {
                             return (b.length || 1) - (a.length || 1);
                         });
 
-                        var map = {}; //create a map of common factors
-                        var coeffs = [];
+                        const map = {}; //create a map of common factors
+                        const coeffs = [];
                         for (var i = 0; i < symbols.length; i++) {
-                            var sym = symbols[i];
+                            const sym = symbols[i];
                             coeffs.push(sym.multiplier.clone());
-                            sym.each(function (x) {
-                                var p = Number(x.power);
+                            sym.each(x => {
+                                const p = Number(x.power);
                                 //This check exits since we have a symbolic power.
                                 //For the future... think about removing this check and modify for symbolic powers
-                                if (isNaN(p)) throw new Error('exiting');
+                                if (isNaN(p)) {
+                                    throw new Error('exiting');
+                                }
                                 //loop through the symbols and lump together common terms
                                 if (x.value in map) {
-                                    if (p < map[x.value][0]) map[x.value][0] = p;
+                                    if (p < map[x.value][0]) {
+                                        map[x.value][0] = p;
+                                    }
                                     map[x.value][1].push(x);
-                                } else map[x.value] = [p, [x]];
+                                } else {
+                                    map[x.value] = [p, [x]];
+                                }
                             });
                         }
                         //the factor
-                        var factor = new NerdamerSymbol(1);
-                        for (var x in map) {
+                        let factor = new NerdamerSymbol(1);
+                        for (const x in map) {
                             //if this factor is found in all terms since the length of
                             //matching variable terms matches the number of original terms
                             if (map[x][1].length === symbols.length) {
@@ -2213,7 +2382,7 @@ if (typeof module !== 'undefined') {
                             }
                         }
                         //get coefficient factor
-                        var c = core.Math2.QGCD.apply(null, coeffs);
+                        const c = core.Math2.QGCD.apply(null, coeffs);
 
                         if (!c.equals(1)) {
                             factors.add(new NerdamerSymbol(c));
@@ -2232,38 +2401,44 @@ if (typeof module !== 'undefined') {
                         }
                     }
                 } catch (e) {
-                    if (e.message === 'timeout') throw e;
+                    if (e.message === 'timeout') {
+                        throw e;
+                    }
                 }
 
                 return symbol;
             },
-            zeroes: function (symbol, factors) {
-                var exit = function () {
+            zeroes(symbol, factors) {
+                const exit = function () {
                     throw new core.exceptions.ValueLimitExceededError('Exiting');
                 };
                 try {
-                    var vars, term, sum, p, e;
+                    let vars, term, sum, p, e;
                     symbol = _.expand(symbol.clone());
                     e = symbol.toString();
                     vars = variables(symbol);
 
                     sum = new NerdamerSymbol(0);
 
-                    var terms = [];
-                    var powers = [];
+                    const terms = [];
+                    const powers = [];
 
                     //start setting each variable to zero
                     for (var i = 0, l = vars.length; i < vars.length; i++) {
-                        var subs = {};
+                        const subs = {};
                         //we want to create a subs object with all but the current variable set to zero
-                        for (var j = 0; j < l; j++)
-                            if (i !== j)
-                                //make sure we're not looking at the same variable
+                        for (let j = 0; j < l; j++) {
+                            if (i !== j) //make sure we're not looking at the same variable
+                            {
                                 subs[vars[j]] = 0;
+                            }
+                        }
                         term = _.parse(e, subs);
-                        var tp = term.power;
+                        const tp = term.power;
                         //the temporary power has to be an integer as well
-                        if (!isInt(tp)) exit();
+                        if (!isInt(tp)) {
+                            exit();
+                        }
                         terms.push(term);
                         powers.push(term.power);
                     }
@@ -2272,10 +2447,10 @@ if (typeof module !== 'undefined') {
                     //if the gcd equals 1 meaning n = m then we need a tie breakder
                     if (core.Utils.allSame(powers)) {
                         //get p given x number of terms
-                        var n_terms = symbol.length;
+                        const n_terms = symbol.length;
                         //the number of zeroes determines
-                        var n_zeroes = terms.length;
-                        let den = Math.round((Math.sqrt(8 * n_terms - 1) - 3) / 2);
+                        const n_zeroes = terms.length;
+                        const den = Math.round((Math.sqrt(8 * n_terms - 1) - 3) / 2);
                         if (n_zeroes === 2) {
                             p = new Frac(powers[0] / (n_terms - 1));
                         } else if (n_zeroes === 3 && den !== 0) {
@@ -2312,8 +2487,8 @@ if (typeof module !== 'undefined') {
 
                     //build the factor
                     for (var i = 0; i < terms.length; i++) {
-                        var t = terms[i];
-                        var n = t.power.clone().divide(p);
+                        const t = terms[i];
+                        const n = t.power.clone().divide(p);
                         // don't take squareroots of negatives
                         if ((t.multiplier.num < 0 || t.multiplier.den < 0) && n % 2 === 0) {
                             return symbol;
@@ -2325,32 +2500,41 @@ if (typeof module !== 'undefined') {
 
                     //by now we have the factor of zeroes. We'll know if we got it right because
                     //we'll get a remainder of zero each time we divide by it
-                    if (sum.group !== CP) return symbol; //nothing to do
+                    if (sum.group !== CP) {
+                        return symbol;
+                    } //nothing to do
 
                     while (true) {
-                        var d = __.div(symbol.clone(), sum.clone());
+                        const d = __.div(symbol.clone(), sum.clone());
                         if (d[1].equals(0)) {
                             symbol = d[0];
                             factors.add(sum.clone());
-                            if (symbol.equals(1))
-                                //we've reached 1 so done.
+                            if (symbol.equals(1)) //we've reached 1 so done.
+                            {
                                 break;
-                        } else break;
+                            }
+                        } else {
+                            break;
+                        }
                     }
                 } catch (e) {
-                    if (e.message === 'timeout') throw e;
+                    if (e.message === 'timeout') {
+                        throw e;
+                    }
                 }
                 return symbol;
             },
-            factor: function (symbol, factors) {
+            factor(symbol, factors) {
                 core.Utils.checkTimeout();
-                let originalFactors = factors ? [...factors] : null;
+                const originalFactors = factors ? [...factors] : null;
                 try {
                     let retval = __.Factor.factorInner(symbol, factors);
                     retval = retval.pushMinus();
                     return retval;
                 } catch (error) {
-                    if (error.message === 'timeout') throw error;
+                    if (error.message === 'timeout') {
+                        throw error;
+                    }
 
                     if (factors) {
                         factors.splice(0, factors.length, ...originalFactors);
@@ -2358,7 +2542,7 @@ if (typeof module !== 'undefined') {
                     return symbol;
                 }
             },
-            factorInner: function (symbol, factors) {
+            factorInner(symbol, factors) {
                 core.Utils.checkTimeout();
                 // Don't try to factor constants,
                 // do it with Math2.factor
@@ -2370,7 +2554,7 @@ if (typeof module !== 'undefined') {
                     }
                 }
 
-                var _symbol = _.parse(symbol);
+                const _symbol = _.parse(symbol);
 
                 // functions may have been evaluated in parse()
                 // STILL don't try to factor constants
@@ -2388,7 +2572,7 @@ if (typeof module !== 'undefined') {
                     return _symbol;
                 }
 
-                var retval = __.Factor._factor(_symbol, factors);
+                let retval = __.Factor._factor(_symbol, factors);
                 if (retval.equals(symbol)) {
                     return retval;
                 }
@@ -2399,10 +2583,10 @@ if (typeof module !== 'undefined') {
                 }
 
                 if (retval.group === CB) {
-                    var t = new NerdamerSymbol(1);
-                    var p = _.parse(retval.power);
+                    let t = new NerdamerSymbol(1);
+                    const p = _.parse(retval.power);
                     //store the multiplier and strip it
-                    var m = _.parse(retval.multiplier);
+                    let m = _.parse(retval.multiplier);
 
                     retval.toUnitMultiplier();
 
@@ -2415,19 +2599,19 @@ if (typeof module !== 'undefined') {
                         retval.negate();
                     }
 
-                    retval.each(function (x) {
+                    retval.each(x => {
                         // Related to #566. Since the symbol's group may not have been properly
                         // updated, it's easier to just parse the symbol and have the parser
                         // do the update for us.
 
-                        var factored = _.parse(__.Factor._factor(x));
+                        const factored = _.parse(__.Factor._factor(x));
                         m = _.multiply(m, NerdamerSymbol.create(factored.multiplier));
                         factored.toUnitMultiplier();
 
                         if (factored.group === CB) {
                             let _t = new NerdamerSymbol(1);
-                            factored.each(function (y) {
-                                var _factored = _.parse(__.Factor._factor(y));
+                            factored.each(y => {
+                                const _factored = _.parse(__.Factor._factor(y));
                                 if (_factored.group === CB) {
                                     m = _.multiply(m, NerdamerSymbol.create(_factored.multiplier));
                                     _factored.toUnitMultiplier();
@@ -2447,12 +2631,12 @@ if (typeof module !== 'undefined') {
                 }
                 return retval;
             },
-            quadFactor: function (symbol, factors) {
+            quadFactor(symbol, factors) {
                 if (symbol.isPoly() && __.degree(symbol.equals(2))) {
                     //We've  already checked that we're dealing with a polynomial
-                    var v = core.Utils.variables(symbol)[0]; //get the variable
-                    var coeffs = __.coeffs(symbol, v);
-                    var cf;
+                    const v = core.Utils.variables(symbol)[0]; //get the variable
+                    const coeffs = __.coeffs(symbol, v);
+                    let cf;
                     //factor the lead coefficient
                     if (coeffs.length < 3) {
                         return symbol;
@@ -2460,26 +2644,30 @@ if (typeof module !== 'undefined') {
                     cf = __.Factor._factor(coeffs[2].clone());
                     //check if we have factors
                     if (cf.group === CB) {
-                        var symbols = cf.collectSymbols();
+                        const symbols = cf.collectSymbols();
                         //if the factors are greater than 2 we're done so exit
-                        if (symbols.length > 2) return symbol;
+                        if (symbols.length > 2) {
+                            return symbol;
+                        }
                         //if we have two factors then attempt to factor the polynomial
                         //let the factors be f1 and f1
                         //let the factors be (ax+b)(cx+d)
                         //let the coefficients be c1x^2+c2x+c3
                         //then a(x1)+c(x2)=c2 and x1*x2=c3
                         //we can solve for x1 and x2
-                        var c = _.multiply(_.parse(coeffs[0]), _.parse(symbols[0]));
-                        var b = _.parse(coeffs[1]).negate();
-                        var a = _.parse(symbols[1]);
+                        const c = _.multiply(_.parse(coeffs[0]), _.parse(symbols[0]));
+                        const b = _.parse(coeffs[1]).negate();
+                        const a = _.parse(symbols[1]);
                         //solve the system
-                        var root = __.quad(a, b, c).filter(function (x) {
-                            if (core.Utils.isInt(x)) return x;
+                        const root = __.quad(a, b, c).filter(x => {
+                            if (core.Utils.isInt(x)) {
+                                return x;
+                            }
                         });
                         //if we have one root then find the other one by dividing the constant
                         if (root.length === 1) {
-                            var root1 = root[0];
-                            var root2 = _.divide(coeffs[0], _.parse(root1));
+                            const root1 = root[0];
+                            const root2 = _.divide(coeffs[0], _.parse(root1));
                             if (core.Utils.isInt(root2)) {
                                 //we found them both
                                 factors.add(_.parse(format('({0})*({1})+({2})', symbols[1], v, root2)));
@@ -2501,18 +2689,18 @@ if (typeof module !== 'undefined') {
                 }
                 return symbol;
             },
-            cubeFactor: function (symbol, factors) {
+            cubeFactor(symbol, factors) {
                 if (symbol.isComposite()) {
-                    var symbols = symbol.collectSymbols();
+                    const symbols = symbol.collectSymbols();
                     // The symbol should be in the form of a^3+-b^3. The length
                     // should therefore only be two. If it's any different from this
                     // then we're done
                     if (symbols.length === 2) {
                         // Store the signs and then strip them from the symbols
-                        var sign_a = symbols[0].sign();
-                        var a = symbols[0].clone().abs();
-                        var sign_b = symbols[1].sign();
-                        var b = symbols[1].clone().abs();
+                        let sign_a = symbols[0].sign();
+                        let a = symbols[0].clone().abs();
+                        let sign_b = symbols[1].sign();
+                        let b = symbols[1].clone().abs();
                         // Check if they're cube
                         if (a.isCube() && b.isCube()) {
                             // Keep the negative sign on the right, meaning b is always negative.
@@ -2523,12 +2711,18 @@ if (typeof module !== 'undefined') {
                             }
 
                             // Get teh roots
-                            var m_root_a = _.parse(a.getNth(3));
-                            var m_root_b = _.parse(b.getNth(3));
+                            const m_root_a = _.parse(a.getNth(3));
+                            const m_root_b = _.parse(b.getNth(3));
 
                             // Remove the cube for both
-                            var x = _.multiply(_.expand(_.pow(a.clone().toUnitMultiplier(), _.parse('1/3'))), m_root_a);
-                            var y = _.multiply(_.expand(_.pow(b.clone().toUnitMultiplier(), _.parse('1/3'))), m_root_b);
+                            const x = _.multiply(
+                                _.expand(_.pow(a.clone().toUnitMultiplier(), _.parse('1/3'))),
+                                m_root_a
+                            );
+                            const y = _.multiply(
+                                _.expand(_.pow(b.clone().toUnitMultiplier(), _.parse('1/3'))),
+                                m_root_b
+                            );
 
                             if (sign_a === 1 && sign_b === -1) {
                                 // Apply difference of cubes rule
@@ -2547,12 +2741,12 @@ if (typeof module !== 'undefined') {
 
                 return symbol;
             },
-            _factor: function (symbol, factors) {
+            _factor(symbol, factors) {
                 core.Utils.checkTimeout();
-                var g = symbol.group;
+                const g = symbol.group;
                 //some items cannot be factored any further so return those right away
                 if (symbol.group === FN) {
-                    var arg = symbol.args[0];
+                    const arg = symbol.args[0];
                     if (arg.group === S && arg.isSimple()) {
                         return symbol;
                     }
@@ -2565,9 +2759,11 @@ if (typeof module !== 'undefined') {
                 //if(symbol.group === CP && !(even(symbol.power) && symbol.multiplier.lessThan(0))) {
                 if (symbol.group === CP) {
                     symbol.distributeMultiplier(true);
-                    var t = new NerdamerSymbol(0);
-                    symbol.each(function (x) {
-                        if ((x.group === CP && x.power.greaterThan(1)) || x.group === CB) x = _.expand(x);
+                    let t = new NerdamerSymbol(0);
+                    symbol.each(x => {
+                        if ((x.group === CP && x.power.greaterThan(1)) || x.group === CB) {
+                            x = _.expand(x);
+                        }
                         t = _.add(t, x);
                     });
                     t.power = symbol.power;
@@ -2580,12 +2776,12 @@ if (typeof module !== 'undefined') {
                 }
 
                 //make a copy of the symbol to return if something goes wrong
-                var untouched = symbol.clone();
+                const untouched = symbol.clone();
                 try {
                     if (symbol.group === CB) {
                         var p = _.parse(symbol.power);
 
-                        var den_array, num_array, den, num, dfact, nfact;
+                        let den_array, num_array, den, num, dfact, nfact;
                         //grab the denominator and strip the multiplier and power. Store them in an array
                         den_array = __.Simplify.strip(symbol.getDenom());
                         num_array = __.Simplify.strip(symbol.getNum());
@@ -2600,8 +2796,8 @@ if (typeof module !== 'undefined') {
                         nfact = __.Factor.factorInner(num);
                         dfact = __.Factor.factorInner(den);
 
-                        var n = __.Simplify.unstrip(num_array, nfact);
-                        var d = __.Simplify.unstrip(den_array, dfact);
+                        const n = __.Simplify.unstrip(num_array, nfact);
+                        const d = __.Simplify.unstrip(den_array, dfact);
 
                         var retval = _.divide(n, d);
 
@@ -2612,23 +2808,25 @@ if (typeof module !== 'undefined') {
                     }
 
                     if (symbol.isConstant()) {
-                        if (symbol.equals(1) || symbol.equals(0) || !symbol.isInteger()) return symbol.clone();
-                        var ret = core.Math2.factor(symbol);
+                        if (symbol.equals(1) || symbol.equals(0) || !symbol.isInteger()) {
+                            return symbol.clone();
+                        }
+                        const ret = core.Math2.factor(symbol);
                         return ret;
                     }
 
                     var p = symbol.power.clone();
 
                     if (isInt(p) && !(p.lessThan(0) && symbol.group === FN)) {
-                        var sign = p.sign();
+                        const sign = p.sign();
                         symbol.toLinear();
                         factors = factors || new Factors();
-                        var map = {};
+                        const map = {};
                         symbol = _.parse(core.Utils.subFunctions(symbol, map));
                         if (keys(map).length > 0) {
                             //it might have functions
                             factors.preAdd = function (factor) {
-                                var ret = _.parse(factor, core.Utils.getFunctionsSubs(map));
+                                const ret = _.parse(factor, core.Utils.getFunctionsSubs(map));
                                 return ret;
                             };
                         }
@@ -2639,20 +2837,24 @@ if (typeof module !== 'undefined') {
                             symbol.toLinear();
                         }
 
-                        var vars = variables(symbol);
+                        const vars = variables(symbol);
                         //bypass for imaginary. TODO: find a better solution
                         if (symbol.isImaginary()) {
                             vars.push(core.Settings.IMAGINARY);
                         }
-                        var multiVar = vars.length > 1;
+                        const multiVar = vars.length > 1;
 
                         //minor optimization. Seems to cut factor time by half in some cases.
                         if (multiVar) {
-                            var all_S = true,
+                            let all_S = true,
                                 all_unit = true;
-                            symbol.each(function (x) {
-                                if (x.group !== S) all_S = false;
-                                if (!x.multiplier.equals(1)) all_unit = false;
+                            symbol.each(x => {
+                                if (x.group !== S) {
+                                    all_S = false;
+                                }
+                                if (!x.multiplier.equals(1)) {
+                                    all_unit = false;
+                                }
                             });
 
                             if (all_S && all_unit) {
@@ -2661,48 +2863,52 @@ if (typeof module !== 'undefined') {
                         }
 
                         //factor the coefficients
-                        var coeff_factors = new Factors();
+                        const coeff_factors = new Factors();
 
                         symbol = __.Factor.coeffFactor(symbol, coeff_factors);
 
-                        coeff_factors.each(function (x) {
+                        coeff_factors.each(x => {
                             // If the factor was negative but was within a square then it becomes positive
                             if (even(p) && x.lessThan(0)) {
                                 x.negate();
                             }
 
-                            if (sign < 0) x.invert();
+                            if (sign < 0) {
+                                x.invert();
+                            }
                             factors.add(x);
                         });
 
                         //factor the power
-                        var power_factors = new Factors();
+                        const power_factors = new Factors();
                         symbol = __.Factor.powerFactor(symbol, power_factors);
-                        power_factors.each(function (x) {
-                            if (sign < 0) x.invert();
+                        power_factors.each(x => {
+                            if (sign < 0) {
+                                x.invert();
+                            }
                             factors.add(x);
                         });
 
                         if (!multiVar) {
                             //pass in vars[0] for safety
-                            var v = vars[0];
+                            const v = vars[0];
 
                             symbol = __.Factor.squareFree(symbol, factors, v);
 
-                            var t_factors = new Factors();
+                            const t_factors = new Factors();
 
                             symbol = __.Factor.trialAndError(symbol, t_factors, v);
 
                             //generate a symbol based off the last factors
-                            var tf_symbol = t_factors.toSymbol();
+                            const tf_symbol = t_factors.toSymbol();
                             //if nothing was factored then return the factors
                             if (tf_symbol.equals(untouched)) {
                                 return tf_symbol;
                             }
 
-                            for (var x in t_factors.factors) {
+                            for (const x in t_factors.factors) {
                                 //store the current factor in t_factor
-                                var t_factor = t_factors.factors[x];
+                                const t_factor = t_factors.factors[x];
                                 factors.add(_.pow(t_factor, _.parse(p)));
                             }
                             //if we still don't have a factor and it's quadratic then let's just do a quad factor
@@ -2716,15 +2922,17 @@ if (typeof module !== 'undefined') {
                             symbol = __.Factor.mfactor(symbol, factors);
 
                             //put back the sign of power
-                            factors.each(function (x) {
-                                if (sign < 0) x.power.negate();
+                            factors.each(x => {
+                                if (sign < 0) {
+                                    x.power.negate();
+                                }
                             });
                         }
 
                         //last minute clean up
                         symbol = _.parse(symbol, core.Utils.getFunctionsSubs(map));
 
-                        var addPower = factors.length === 1;
+                        const addPower = factors.length === 1;
 
                         factors.add(_.pow(symbol, _.parse(p)));
 
@@ -2749,14 +2957,14 @@ if (typeof module !== 'undefined') {
                     return untouched;
                 }
             },
-            reduce: function (symbol, factors) {
+            reduce(symbol, factors) {
                 if (symbol.group === CP && symbol.length === 2) {
-                    var symbols = symbol.collectSymbols().sort(function (a, b) {
+                    const symbols = symbol.collectSymbols().sort((a, b) => {
                         return b.multiplier - a.multiplier;
                     });
                     if (symbols[0].power.equals(symbols[1].power)) {
                         //x^n-a^n
-                        var n = _.parse(symbols[0].power),
+                        const n = _.parse(symbols[0].power),
                             a = symbols[0].clone().toLinear(),
                             b = symbols[1].clone().toLinear();
 
@@ -2765,11 +2973,11 @@ if (typeof module !== 'undefined') {
                         //flip the sign
                         b.negate();
                         //turn n into a number
-                        var nn = Number(n);
+                        const nn = Number(n);
                         //the remainder
-                        var result = new NerdamerSymbol(0);
-                        for (var i = 1; i <= nn; i++) {
-                            var aa = _.pow(a.clone(), _.subtract(n.clone(), new NerdamerSymbol(i))),
+                        let result = new NerdamerSymbol(0);
+                        for (let i = 1; i <= nn; i++) {
+                            const aa = _.pow(a.clone(), _.subtract(n.clone(), new NerdamerSymbol(i))),
                                 bb = _.pow(b.clone(), _.subtract(new NerdamerSymbol(i), new NerdamerSymbol(1)));
                             result = _.add(result, _.multiply(aa, bb));
                         }
@@ -2786,25 +2994,27 @@ if (typeof module !== 'undefined') {
              * @param {string} variable The variable which is being factored
              * @returns {[NerdamerSymbol, Factor]}
              */
-            squareFree: function (symbol, factors, variable) {
-                if (symbol.isConstant() || symbol.group === S) return symbol;
+            squareFree(symbol, factors, variable) {
+                if (symbol.isConstant() || symbol.group === S) {
+                    return symbol;
+                }
 
                 if (!symbol.isPoly()) {
                     return symbol;
                 }
 
-                var poly = new Polynomial(symbol, variable);
-                var sqfr = poly.squareFree();
-                var p = sqfr[2];
+                const poly = new Polynomial(symbol, variable);
+                const sqfr = poly.squareFree();
+                const p = sqfr[2];
                 //if we found a square then the p entry in the array will be non-unit
                 if (p !== 1) {
                     //make sure the remainder doesn't have factors
-                    var t = sqfr[1].toSymbol();
+                    const t = sqfr[1].toSymbol();
                     t.power = t.power.multiply(new Frac(p));
                     //send the factor to be fatored to be sure it's completely factored
                     factors.add(__.Factor.factorInner(t));
 
-                    var retval = __.Factor.squareFree(sqfr[0].toSymbol(), factors);
+                    const retval = __.Factor.squareFree(sqfr[0].toSymbol(), factors);
 
                     return retval;
                 }
@@ -2818,17 +3028,21 @@ if (typeof module !== 'undefined') {
              * @param {Factors} factors
              * @returns {[NerdamerSymbol, Factor]}
              */
-            powerFactor: function (symbol, factors) {
+            powerFactor(symbol, factors) {
                 //only PL need apply
-                if (symbol.group !== PL || symbol.previousGroup === EX) return symbol;
-                var k = keys(symbol.symbols);
+                if (symbol.group !== PL || symbol.previousGroup === EX) {
+                    return symbol;
+                }
+                const k = keys(symbol.symbols);
                 //we expect only numeric powers so return all else
-                if (!core.Utils.allNumeric(k)) return symbol;
+                if (!core.Utils.allNumeric(k)) {
+                    return symbol;
+                }
 
-                var d = core.Utils.arrayMin(k);
-                var retval = new NerdamerSymbol(0);
-                var q = _.parse(symbol.value + '^' + d);
-                symbol.each(function (x) {
+                const d = core.Utils.arrayMin(k);
+                let retval = new NerdamerSymbol(0);
+                const q = _.parse(`${symbol.value}^${d}`);
+                symbol.each(x => {
                     x = _.divide(x, q.clone());
                     retval = _.add(retval, x);
                 });
@@ -2843,26 +3057,28 @@ if (typeof module !== 'undefined') {
              * @param {Factor} factors
              * @returns {NerdamerSymbol}
              */
-            coeffFactor: function (symbol, factors) {
+            coeffFactor(symbol, factors) {
                 if (symbol.isComposite()) {
-                    var gcd = core.Math2.QGCD.apply(null, symbol.coeffs());
+                    const gcd = core.Math2.QGCD.apply(null, symbol.coeffs());
 
                     if (!gcd.equals(1)) {
-                        symbol.each(function (x) {
+                        symbol.each(x => {
                             if (x.isComposite()) {
-                                x.each(function (y) {
+                                x.each(y => {
                                     y.multiplier = y.multiplier.divide(gcd);
                                 });
-                            } else x.multiplier = x.multiplier.divide(gcd);
+                            } else {
+                                x.multiplier = x.multiplier.divide(gcd);
+                            }
                         });
                         symbol.updateHash();
                     } else {
                         // TODO: This should probably go to the prototype
-                        var power = function (symbol) {
-                            var p;
+                        const power = function (symbol) {
+                            let p;
                             if (symbol.group === CB) {
                                 p = 0;
-                                symbol.each(function (x) {
+                                symbol.each(x => {
                                     p += x.power;
                                 });
                             } else {
@@ -2871,13 +3087,15 @@ if (typeof module !== 'undefined') {
                             return p;
                         };
                         // Factor out negatives from the lead term
-                        var terms = symbol.collectSymbols(null, null, null, true).sort(function (a, b) {
+                        const terms = symbol.collectSymbols(null, null, null, true).sort((a, b) => {
                             // Push constants to the back
-                            if (a.isConstant(true)) return 1;
+                            if (a.isConstant(true)) {
+                                return 1;
+                            }
                             return b.power - a.power;
                         });
 
-                        var LT = terms[0];
+                        const LT = terms[0];
 
                         // Check if the LT is indeed the greatest
                         if (power(LT) > power(terms[1]) || terms[1].isConstant(true)) {
@@ -2886,7 +3104,7 @@ if (typeof module !== 'undefined') {
                                 // to be safe.
                                 factors.add(new NerdamerSymbol(-1));
 
-                                symbol.each(function (x) {
+                                symbol.each(x => {
                                     x.negate();
                                 }, true);
                             }
@@ -2908,37 +3126,39 @@ if (typeof module !== 'undefined') {
              * @param {string} variable
              * @returns {NerdamerSymbol}
              */
-            trialAndError: function (symbol, factors, variable) {
-                var untouched = symbol.clone();
+            trialAndError(symbol, factors, variable) {
+                const untouched = symbol.clone();
                 try {
                     // At temp holder for the factors. If all goes well then
                     // they'll be moved to the actual factors.
-                    var factor_array = [];
+                    const factor_array = [];
 
-                    if (symbol.isConstant() || symbol.group === S || !symbol.isPoly()) return symbol;
-                    var poly = new Polynomial(symbol, variable),
+                    if (symbol.isConstant() || symbol.group === S || !symbol.isPoly()) {
+                        return symbol;
+                    }
+                    let poly = new Polynomial(symbol, variable),
                         cnst = poly.coeffs[0],
                         cfactors = core.Math2.ifactor(cnst),
                         roots = __.proots(symbol);
-                    for (var i = 0; i < roots.length; i++) {
-                        var r = roots[i],
+                    for (let i = 0; i < roots.length; i++) {
+                        let r = roots[i],
                             p = 1;
                         if (!isNaN(r)) {
                             //if it's a number
-                            for (var x in cfactors) {
+                            for (const x in cfactors) {
                                 //check it's raised to a power
-                                var n = core.Utils.round(Math.log(x) / Math.log(Math.abs(r)), 8);
+                                const n = core.Utils.round(Math.log(x) / Math.log(Math.abs(r)), 8);
                                 if (isInt(n)) {
                                     r = x; //x must be the root since n gave us a whole
                                     p = n;
                                     break;
                                 }
                             }
-                            var root = new Frac(r),
+                            const root = new Frac(r),
                                 terms = [new Frac(root.num).negate()];
                             terms[p] = new Frac(root.den);
                             //convert to Frac. The den is coeff of LT and the num is coeff of constant
-                            var div = Polynomial.fromArray(terms, poly.variable).fill(),
+                            const div = Polynomial.fromArray(terms, poly.variable).fill(),
                                 t = poly.divide(div);
                             if (t[1].equalsNumber(0)) {
                                 //if it's zero we have a root and divide it out
@@ -2954,19 +3174,21 @@ if (typeof module !== 'undefined') {
                     }
 
                     // Move the factors over since all went well.
-                    factor_array.forEach(function (x) {
+                    factor_array.forEach(x => {
                         factors.add(x);
                     });
 
                     return poly.toSymbol();
                 } catch (e) {
-                    if (e.message === 'timeout') throw e;
+                    if (e.message === 'timeout') {
+                        throw e;
+                    }
                     return untouched;
                 }
             },
-            search: function (poly, factors, base) {
+            search(poly, factors, base) {
                 base = base || 10; //I like 10 because numbers exhibit similar behaviours at 10
-                var v = poly.variable; //the polynmial variable name
+                const v = poly.variable; //the polynmial variable name
                 /**
                  * Attempt to remove a root by division given a number by first creating a polynomial fromt he given
                  * information
@@ -2977,10 +3199,10 @@ if (typeof module !== 'undefined') {
                  * @param {number} p - The power at which to create the polynomial
                  * @returns {null | Polynomial} - Returns polynomial if successful otherwise null
                  */
-                var check = function (c1, c2, n, p) {
-                    var candidate = Polynomial.fit(c1, c2, n, base, p, v);
+                const check = function (c1, c2, n, p) {
+                    let candidate = Polynomial.fit(c1, c2, n, base, p, v);
                     if (candidate && candidate.coeffs.length > 1) {
-                        var t = poly.divide(candidate);
+                        let t = poly.divide(candidate);
                         if (t[1].equalsNumber(0)) {
                             factors.add(candidate.toSymbol());
                             return [t[0], candidate];
@@ -2988,32 +3210,38 @@ if (typeof module !== 'undefined') {
                     }
                     return null;
                 };
-                var cnst = poly.coeffs[0];
-                var cfactors = core.Math2.ifactor(cnst);
-                var lc = poly.lc();
-                var ltfactors = core.Math2.ifactor(lc);
-                var subbed = poly.sub(base);
-                var isubbed = core.Math2.ifactor(subbed);
-                var nfactors = __.Factor.mix(isubbed, subbed < 0);
-                var cp = Math.ceil(poly.coeffs.length / 2);
-                var lc_is_neg = lc.lessThan(0);
-                var cnst_is_neg = cnst.lessThan(0);
+                const cnst = poly.coeffs[0];
+                const cfactors = core.Math2.ifactor(cnst);
+                const lc = poly.lc();
+                const ltfactors = core.Math2.ifactor(lc);
+                const subbed = poly.sub(base);
+                const isubbed = core.Math2.ifactor(subbed);
+                const nfactors = __.Factor.mix(isubbed, subbed < 0);
+                let cp = Math.ceil(poly.coeffs.length / 2);
+                const lc_is_neg = lc.lessThan(0);
+                const cnst_is_neg = cnst.lessThan(0);
                 ltfactors['1'] = 1;
                 cfactors['1'] = 1;
                 while (cp--) {
-                    for (var x in ltfactors) {
-                        for (var y in cfactors) {
-                            for (var i = 0; i < nfactors.length; i++) {
-                                var factor_found = check(x, y, nfactors[i], cp);
+                    for (const x in ltfactors) {
+                        for (const y in cfactors) {
+                            for (let i = 0; i < nfactors.length; i++) {
+                                let factor_found = check(x, y, nfactors[i], cp);
                                 if (factor_found) {
                                     poly = factor_found[0];
-                                    if (!core.Utils.isPrime(poly.sub(base))) poly = __.Factor.search(poly, factors);
+                                    if (!core.Utils.isPrime(poly.sub(base))) {
+                                        poly = __.Factor.search(poly, factors);
+                                    }
                                     return poly;
                                 } else if (!factor_found) {
-                                    if (lc_is_neg && cnst_is_neg) factor_found = check(-x, -y, nfactors[i], cp);
-                                    else if (lc_is_neg)
-                                        factor_found = check(-x, y, nfactors[i], cp); //check a negative lc
-                                    else if (cnst_is_neg) factor_found = check(x, -y, nfactors[i], cp); //check a negative constant
+                                    if (lc_is_neg && cnst_is_neg) {
+                                        factor_found = check(-x, -y, nfactors[i], cp);
+                                    } else if (lc_is_neg) {
+                                        factor_found = check(-x, y, nfactors[i], cp);
+                                    } //check a negative lc
+                                    else if (cnst_is_neg) {
+                                        factor_found = check(x, -y, nfactors[i], cp);
+                                    } //check a negative constant
                                 }
                             }
                         }
@@ -3028,13 +3256,13 @@ if (typeof module !== 'undefined') {
              * @param {Factors} factors
              * @returns {NerdamerSymbol | Array}
              */
-            mSqfrFactor: function (symbol, factors) {
+            mSqfrFactor(symbol, factors) {
                 if (symbol.group !== FN) {
-                    var vars = variables(symbol).reverse();
+                    const vars = variables(symbol).reverse();
 
                     // Loop through all the variable and remove the partial derivatives
-                    for (var i = 0; i < vars.length; i++) {
-                        var is_factor = false;
+                    for (let i = 0; i < vars.length; i++) {
+                        let is_factor = false;
                         do {
                             if (vars[i] === symbol.value) {
                                 //the derivative tells us nothing since this symbol is already the factor
@@ -3043,11 +3271,13 @@ if (typeof module !== 'undefined') {
                                 continue;
                             }
 
-                            var diff = core.Calculus.diff(symbol, vars[i]);
+                            const diff = core.Calculus.diff(symbol, vars[i]);
 
                             var d = __.Factor.coeffFactor(diff);
 
-                            if (d.equals(0)) break;
+                            if (d.equals(0)) {
+                                break;
+                            }
 
                             // sometimes nerdamer get too happy about factoring out 1 and -1
                             if (d.equals(1) || d.equals(-1)) {
@@ -3061,14 +3291,16 @@ if (typeof module !== 'undefined') {
                             if (d.isConstant() && symbol.isComposite()) {
                                 //check the coefficients
 
-                                symbol.each(function (x) {
-                                    if (x.multiplier % d !== 0) can_divide = false;
+                                symbol.each(x => {
+                                    if (x.multiplier % d !== 0) {
+                                        can_divide = false;
+                                    }
                                 }, true);
                             }
 
                             //if we can divide then do so
                             if (can_divide) {
-                                let s = symbol.clone();
+                                const s = symbol.clone();
                                 var div = __.divWithCheck(symbol, d.clone());
                                 is_factor = div[1].equals(0);
 
@@ -3083,7 +3315,9 @@ if (typeof module !== 'undefined') {
                                     factors.add(div[0]);
                                     break;
                                 }
-                            } else is_factor = false;
+                            } else {
+                                is_factor = false;
+                            }
 
                             if (is_factor) {
                                 factors.add(div[0]);
@@ -3096,42 +3330,40 @@ if (typeof module !== 'undefined') {
                 return symbol;
             },
             //difference of squares factorization
-            sqdiff: function (symbol, factors) {
+            sqdiff(symbol, factors) {
                 if (symbol.isConstant('all')) {
                     // Nothing to do
                     return symbol;
                 }
 
                 try {
-                    var remove_square = function (x) {
+                    const remove_square = function (x) {
                         return core.Utils.block(
                             'POSITIVE_MULTIPLIERS',
-                            function () {
+                            () => {
                                 return NerdamerSymbol.unwrapPARENS(math.sqrt(math.abs(x)));
                             },
                             true
                         );
                     };
-                    var separated = core.Utils.separate(symbol.clone());
+                    const separated = core.Utils.separate(symbol.clone());
                     if (!separated) {
                         return symbol;
                     }
 
-                    var obj_array = [];
+                    const obj_array = [];
 
                     //get the unique variables
-                    for (var x in separated) {
+                    for (const x in separated) {
                         if (x !== 'constants') {
                             obj_array.push(separated[x]);
                         }
                     }
-                    obj_array.sort(function (a, b) {
-                        return b.power - a.power;
-                    });
+                    obj_array.sort((a, b) => b.power - a.power);
 
                     //if we have the same number of variables as unique variables then we can apply the difference of squares
                     if (obj_array.length === 2) {
-                        var a, b;
+                        let a, b;
                         a = obj_array.pop();
                         b = obj_array.pop();
 
@@ -3141,7 +3373,7 @@ if (typeof module !== 'undefined') {
                         if (a.isComposite() && b.power.equals(2) && a.sign() !== b.sign()) {
                             //remove the square from b
                             b = remove_square(b);
-                            var f = __.Factor.factorInner(_.add(a, separated.constants));
+                            const f = __.Factor.factorInner(_.add(a, separated.constants));
                             if (f.power.equals(2)) {
                                 f.toLinear();
                                 factors.add(_.subtract(f.clone(), b.clone()));
@@ -3160,7 +3392,7 @@ if (typeof module !== 'undefined') {
                                 !separated.constants
                             ) {
                                 if (a.multiplier.lessThan(0)) {
-                                    var t = b;
+                                    const t = b;
                                     b = a;
                                     a = t;
                                 }
@@ -3176,20 +3408,22 @@ if (typeof module !== 'undefined') {
                         }
                     }
                 } catch (e) {
-                    if (e.message === 'timeout') throw e;
+                    if (e.message === 'timeout') {
+                        throw e;
+                    }
                 }
 
                 return symbol;
             },
             //factoring for multivariate
-            mfactor: function (symbol, factors) {
+            mfactor(symbol, factors) {
                 if (symbol.group === FN) {
                     if (symbol.fname === 'sqrt') {
-                        var factors2 = new Factors(),
+                        let factors2 = new Factors(),
                             arg = __.Factor.common(symbol.args[0].clone(), factors2);
                         arg = __.Factor.coeffFactor(arg, null);
                         symbol = _.multiply(_.symfunction('sqrt', [arg]), _.parse(symbol.multiplier));
-                        factors2.each(function (x) {
+                        factors2.each(x => {
                             symbol = _.multiply(symbol, _.parse(core.Utils.format('sqrt({0})', x)));
                         });
                     } else {
@@ -3203,8 +3437,8 @@ if (typeof module !== 'undefined') {
                     //try factor out common factors
                     //symbol = __.Factor.common(symbol, factors);
 
-                    var vars = variables(symbol),
-                        symbols = symbol.collectSymbols().map(function (x) {
+                    const vars = variables(symbol),
+                        symbols = symbol.collectSymbols().map(x => {
                             return NerdamerSymbol.unwrapSQRT(x);
                         }),
                         sorted = {},
@@ -3214,26 +3448,30 @@ if (typeof module !== 'undefined') {
                     //take all the variables in the symbol and organize by variable name
                     //e.g. a^2+a^2+b*a -> {a: {a^3, a^2, b*a}, b: {b*a}}
 
-                    for (var i = 0; i < l; i++) {
-                        var v = vars[i];
+                    for (let i = 0; i < l; i++) {
+                        const v = vars[i];
                         sorted[v] = new NerdamerSymbol(0);
-                        for (var j = 0; j < n; j++) {
-                            var s = symbols[j];
+                        for (let j = 0; j < n; j++) {
+                            const s = symbols[j];
                             if (s.contains(v)) {
-                                var p = s.value === v ? s.power.toDecimal() : s.symbols[v].power.toDecimal();
-                                if (!maxes[v] || p < maxes[v]) maxes[v] = p;
+                                const p = s.value === v ? s.power.toDecimal() : s.symbols[v].power.toDecimal();
+                                if (!maxes[v] || p < maxes[v]) {
+                                    maxes[v] = p;
+                                }
                                 sorted[v] = _.add(sorted[v], s.clone());
                             }
                         }
                     }
 
-                    for (var x in sorted) {
-                        var r = _.parse(x + '^' + maxes[x]);
-                        var div = _.divide(sorted[x], r);
-                        var new_factor = _.expand(div);
+                    for (const x in sorted) {
+                        var r = _.parse(`${x}^${maxes[x]}`);
+                        const div = _.divide(sorted[x], r);
+                        const new_factor = _.expand(div);
 
-                        if (new_factor.equals(1) || new_factor.equals(-1)) break; //why divide by one. Just move
-                        var divided = __.div(symbol.clone(), new_factor);
+                        if (new_factor.equals(1) || new_factor.equals(-1)) {
+                            break;
+                        } //why divide by one. Just move
+                        const divided = __.div(symbol.clone(), new_factor);
 
                         if (divided[0].equals(0)) {
                             //cant factor anymore
@@ -3247,7 +3485,7 @@ if (typeof module !== 'undefined') {
                         if (divided[1].equals(0)) {
                             var has_fractions = false;
 
-                            divided[0].each(function (x) {
+                            divided[0].each(x => {
                                 if (!isInt(x.multiplier)) {
                                     has_fractions = true;
                                 }
@@ -3261,13 +3499,13 @@ if (typeof module !== 'undefined') {
                             }
                         }
 
-                        var neg_numeric_factor = isInt(new_factor) && new_factor.lessThan(0);
+                        const neg_numeric_factor = isInt(new_factor) && new_factor.lessThan(0);
 
                         if (divided[1].equals(0) && !neg_numeric_factor) {
                             //we found at least one factor
 
                             //factors.add(new_factor);
-                            var d = __.divWithCheck(symbol.clone(), divided[0].clone());
+                            const d = __.divWithCheck(symbol.clone(), divided[0].clone());
                             var r = d[0];
 
                             // Nothing left to do since we didn't get a reduction
@@ -3280,20 +3518,26 @@ if (typeof module !== 'undefined') {
                             //and we just return the symbol;
                             //If r equals zero then there's nothing left to do so we're done
 
-                            if (r.equals(-1) && !symbol.equals(0)) return symbol;
+                            if (r.equals(-1) && !symbol.equals(0)) {
+                                return symbol;
+                            }
 
-                            var factor = divided[0];
+                            const factor = divided[0];
 
                             if (symbol.equals(factor)) {
-                                var rem = __.Factor.reduce(factor, factors);
+                                const rem = __.Factor.reduce(factor, factors);
 
-                                if (!symbol.equals(rem)) return __.Factor.mfactor(rem, factors);
+                                if (!symbol.equals(rem)) {
+                                    return __.Factor.mfactor(rem, factors);
+                                }
 
                                 return rem;
                             } else {
                                 factors.add(factor);
                                 //if the remainder of the symbol is zero then we're done. TODO: Rethink this logic a bit.
-                                if (symbol.equals(0)) return r;
+                                if (symbol.equals(0)) {
+                                    return r;
+                                }
                             }
 
                             if (r.isConstant('all')) {
@@ -3342,10 +3586,12 @@ if (typeof module !== 'undefined') {
          * @param {Array} s - The set of equations to check
          * @returns {boolean}
          */
-        allLinear: function (s) {
-            var l = s.length;
-            for (var i = 0; i < l; i++) {
-                if (!__.isLinear(s[i])) return false;
+        allLinear(s) {
+            const l = s.length;
+            for (let i = 0; i < l; i++) {
+                if (!__.isLinear(s[i])) {
+                    return false;
+                }
             }
             return true;
         },
@@ -3354,13 +3600,13 @@ if (typeof module !== 'undefined') {
          * @param {NerdamerSymbol} e
          * @returns {boolean}
          */
-        isLinear: function (e) {
-            var status = false,
+        isLinear(e) {
+            let status = false,
                 g = e.group;
             if (g === PL || g === CP) {
                 status = true;
-                for (var s in e.symbols) {
-                    var symbol = e.symbols[s],
+                for (const s in e.symbols) {
+                    const symbol = e.symbols[s],
                         sg = symbol.group;
                     if (sg === FN || sg === EX) {
                         status = false;
@@ -3369,8 +3615,9 @@ if (typeof module !== 'undefined') {
                         //needs further checking since it might be imaginary
                         status = variables(symbol).length === 1;
                     } else {
-                        if (sg === PL || sg === CP) status = __.isLinear(symbol);
-                        else {
+                        if (sg === PL || sg === CP) {
+                            status = __.isLinear(symbol);
+                        } else {
                             if (symbol.group !== N && symbol.power.toString() !== '1') {
                                 status = false;
                                 break;
@@ -3378,19 +3625,27 @@ if (typeof module !== 'undefined') {
                         }
                     }
                 }
-            } else if (g === S && e.power === 1) status = true;
+            } else if (g === S && e.power === 1) {
+                status = true;
+            }
             return status;
         },
-        gcd: function () {
-            var args;
-            if (arguments.length === 1 && arguments[0] instanceof core.Vector) args = arguments[0].elements;
-            else args = core.Utils.arguments2Array(arguments);
+        gcd() {
+            let args;
+            if (arguments.length === 1 && arguments[0] instanceof core.Vector) {
+                args = arguments[0].elements;
+            } else {
+                args = core.Utils.arguments2Array(arguments);
+            }
 
             //short-circuit early
-            if (args.length === 0) return new NerdamerSymbol(1);
-            else if (args.length === 1) return args[0];
+            if (args.length === 0) {
+                return new NerdamerSymbol(1);
+            } else if (args.length === 1) {
+                return args[0];
+            }
 
-            var appeared = [],
+            let appeared = [],
                 evaluate = false;
             for (var i = 0; i < args.length; i++) {
                 if (args[i].group === FN && args[i].fname === 'gcd') {
@@ -3401,24 +3656,22 @@ if (typeof module !== 'undefined') {
                 } else {
                     //Look if there are any common variables such that
                     //gcd(a,b) => gcd(a,b); gcd(a,a) => a
-                    var vars = variables(args[i]);
+                    const vars = variables(args[i]);
                     if (core.Utils.haveIntersection(vars, appeared)) {
                         //Ok, there are common variables
                         evaluate = true;
                         break;
-                    } else appeared = appeared.concat(vars);
+                    } else {
+                        appeared = appeared.concat(vars);
+                    }
                 }
             }
 
             //appeared.length is 0 when all arguments are group N
             if (evaluate || appeared.length === 0) {
                 //TODO: distribute exponent so that (a^-1*b^-1)^-1 => a*b
-                if (
-                    args.every(function (symbol) {
-                        return symbol.getDenom().equals(1);
-                    })
-                ) {
-                    var aggregate = args[0];
+                if (args.every(symbol => symbol.getDenom().equals(1))) {
+                    let aggregate = args[0];
 
                     for (var i = 1; i < args.length; i++) {
                         aggregate = __.gcd_(args[i], aggregate);
@@ -3429,37 +3682,40 @@ if (typeof module !== 'undefined') {
                     return _.divide(
                         __.gcd.apply(
                             null,
-                            args.map(function (symbol) {
-                                return symbol.getNum();
-                            })
+                            args.map(symbol => symbol.getNum())
                         ),
                         __.lcm.apply(
                             null,
-                            args.map(function (symbol) {
-                                return symbol.getDenom();
-                            })
+                            args.map(symbol => symbol.getDenom())
                         )
                     );
                 }
-            } else return _.symfunction('gcd', args);
+            } else {
+                return _.symfunction('gcd', args);
+            }
         },
-        gcd_: function (a, b) {
-            if (a.group === FN || a.group === P)
-                a = core.Utils.block('PARSE2NUMBER', function () {
+        gcd_(a, b) {
+            if (a.group === FN || a.group === P) {
+                a = core.Utils.block('PARSE2NUMBER', () => {
                     return _.parse(a);
                 });
+            }
 
-            if (b.group === FN)
-                b = core.Utils.block('PARSE2NUMBER', function () {
+            if (b.group === FN) {
+                b = core.Utils.block('PARSE2NUMBER', () => {
                     return _.parse(b);
                 });
+            }
 
             if (a.isConstant() && b.isConstant()) {
                 // return core.Math2.QGCD(new Frac(+a), new Frac(+b));
                 return new NerdamerSymbol(core.Math2.QGCD(new Frac(+a), new Frac(+b)));
             }
 
-            var den = _.multiply(a.getDenom() || new NerdamerSymbol(1), b.getDenom() || new NerdamerSymbol(1)).invert();
+            const den = _.multiply(
+                a.getDenom() || new NerdamerSymbol(1),
+                b.getDenom() || new NerdamerSymbol(1)
+            ).invert();
             a = _.multiply(a.clone(), den.clone());
             b = _.multiply(b.clone(), den.clone());
 
@@ -3468,20 +3724,22 @@ if (typeof module !== 'undefined') {
             b = _.expand(b);
 
             if (a.group === CB || b.group === CB) {
-                var q = _.divide(a.clone(), b.clone()); //get the quotient
+                const q = _.divide(a.clone(), b.clone()); //get the quotient
                 var t = _.multiply(b.clone(), q.getDenom().invert()); //multiply by the denominator
                 //if they have a common factor then the result will not equal one
-                if (!t.equals(1)) return t;
+                if (!t.equals(1)) {
+                    return t;
+                }
             }
 
             //just take the gcd of each component when either of them is in group EX
             if (a.group === EX || b.group === EX) {
-                var gcd_m = new NerdamerSymbol(core.Math2.GCD(a.multiplier, b.multiplier));
-                var gcd_v = __.gcd_(
+                const gcd_m = new NerdamerSymbol(core.Math2.GCD(a.multiplier, b.multiplier));
+                const gcd_v = __.gcd_(
                     a.value === CONST_HASH ? new NerdamerSymbol(1) : _.parse(a.value),
                     b.value === CONST_HASH ? new NerdamerSymbol(1) : _.parse(b.value)
                 );
-                var gcd_p = __.gcd_(_.parse(a.power), _.parse(b.power));
+                const gcd_p = __.gcd_(_.parse(a.power), _.parse(b.power));
                 return _.multiply(gcd_m, _.pow(gcd_v, gcd_p));
             }
 
@@ -3491,7 +3749,7 @@ if (typeof module !== 'undefined') {
                 a = b;
                 b = t;
             }
-            var vars_a = variables(a),
+            const vars_a = variables(a),
                 vars_b = variables(b);
             if (
                 (vars_a.length === vars_b.length && vars_a.length === 1 && vars_a[0] === vars_b[0]) ||
@@ -3504,15 +3762,15 @@ if (typeof module !== 'undefined') {
             } else {
                 //get the gcd of the multipiers
                 //get rid of gcd in coeffs
-                var multipliers = [];
-                a.each(function (x) {
+                const multipliers = [];
+                a.each(x => {
                     multipliers.push(x.multiplier);
                 });
-                b.each(function (x) {
+                b.each(x => {
                     multipliers.push(x.multiplier);
                 });
 
-                var T;
+                let T;
                 while (!b.equals(0)) {
                     var t = b.clone();
                     a = a.clone();
@@ -3526,46 +3784,52 @@ if (typeof module !== 'undefined') {
                     a = t;
                 }
 
-                var gcd = core.Math2.QGCD.apply(undefined, multipliers);
+                const gcd = core.Math2.QGCD.apply(undefined, multipliers);
 
                 if (!gcd.equals(1)) {
-                    a.each(function (x) {
+                    a.each(x => {
                         x.multiplier = x.multiplier.divide(gcd);
                     });
                 }
 
                 //return symbolic function for gcd in indeterminate form
-                if (a.equals(1) && !a.isConstant() && !b.isConstant())
+                if (a.equals(1) && !a.isConstant() && !b.isConstant()) {
                     return _.divide(_.symfunction('gcd', arguments), den);
+                }
 
                 return _.divide(a, den);
             }
         },
-        lcm: function () {
+        lcm() {
             //https://math.stackexchange.com/a/319310
             //generalization of the 2-variable formula of lcm
 
-            var args;
-            if (arguments.length === 1)
-                if (arguments[0] instanceof core.Vector) args = arguments[0].elements;
-                else _.error('lcm expects either 1 vector or 2 or more arguments');
-            else args = core.Utils.arguments2Array(arguments);
+            let args;
+            if (arguments.length === 1) {
+                if (arguments[0] instanceof core.Vector) {
+                    args = arguments[0].elements;
+                } else {
+                    _.error('lcm expects either 1 vector or 2 or more arguments');
+                }
+            } else {
+                args = core.Utils.arguments2Array(arguments);
+            }
 
             //product of all arguments
             //start with new NerdamerSymbol(1) so that prev.clone() which makes unnessesary clones can be avoided
-            var numer = args.reduce(function (prev, curr) {
+            const numer = args.reduce((prev, curr) => {
                 return _.multiply(prev, curr.clone());
             }, new NerdamerSymbol(1));
 
             //gcd of complementary terms
-            var denom_args =
+            const denom_args =
                 //https://stackoverflow.com/a/18223072
                 //take all complementary terms, e.g.
                 //[a,b,c] => [a*b, b*c, a*c]
                 //[a,b,c,d] => [a*b*c, a*b*d, a*c*d, b*c*d]
                 (function (input, size) {
                     size = Number(size);
-                    var results = [],
+                    let results = [],
                         result,
                         mask,
                         i,
@@ -3586,23 +3850,21 @@ if (typeof module !== 'undefined') {
                     }
                     return results;
                     //start with new NerdamerSymbol(1) so that prev.clone() which makes unnessesary clones can be avoided
-                })(arguments, arguments.length - 1).map(function (x) {
-                    return x.reduce(function (prev, curr) {
+                })(arguments, arguments.length - 1).map(x => {
+                    return x.reduce((prev, curr) => {
                         return _.multiply(prev, curr.clone());
                     }, new NerdamerSymbol(1));
                 });
 
-            var denom;
+            let denom;
             //don't eat the gcd term if all arguments are symbols
-            if (
-                args.every(function (x) {
-                    return core.Utils.isVariableSymbol(x);
-                })
-            )
+            if (args.every(x => core.Utils.isVariableSymbol(x))) {
                 denom = _.symfunction('gcd', core.Utils.arrayUnique(denom_args));
-            else denom = __.gcd.apply(null, denom_args);
+            } else {
+                denom = __.gcd.apply(null, denom_args);
+            }
             //divide product of all arguments by gcd of complementary terms
-            var div = _.divide(numer, denom);
+            const div = _.divide(numer, denom);
             return div;
         },
         /**
@@ -3612,25 +3874,26 @@ if (typeof module !== 'undefined') {
          * @param {NerdamerSymbol} symbol2
          * @returns {Array}
          */
-        divide: function (symbol1, symbol2) {
-            var result, remainder, factored, den;
+        divide(symbol1, symbol2) {
+            let result, remainder, factored, den;
             factored = core.Algebra.Factor.factorInner(symbol1.clone());
             den = factored.getDenom();
             if (!den.isConstant('all')) {
                 symbol1 = _.expand(NerdamerSymbol.unwrapPARENS(_.multiply(factored, den.clone())));
-            } else
-                //reset the denominator since we're not dividing by it anymore
+            } else //reset the denominator since we're not dividing by it anymore
+            {
                 den = new NerdamerSymbol(1);
+            }
             result = __.div(symbol1, symbol2);
             remainder = _.divide(result[1], symbol2);
             return _.divide(_.add(result[0], remainder), den);
         },
-        divWithCheck: function (symbol1, symbol2) {
+        divWithCheck(symbol1, symbol2) {
             const fail = [new NerdamerSymbol(0), symbol1.clone()];
-            let div = __.div(symbol1, symbol2);
+            const div = __.div(symbol1, symbol2);
             // GM safety check because __.div() produces b.s. sometimes
             // see whether multiplication comes out clean
-            let a = symbol1.clone();
+            const a = symbol1.clone();
             let b = _.multiply(div[0].clone(), symbol2.clone());
             b = _.add(b, div[1].clone());
             let test = _.subtract(a, b);
@@ -3646,15 +3909,15 @@ if (typeof module !== 'undefined') {
                 return fail;
             }
         },
-        div: function (symbol1, symbol2) {
+        div(symbol1, symbol2) {
             // If all else fails then assume that division failed with
             // a remainder of zero and the original quotient
-            var fail = [new NerdamerSymbol(0), symbol1.clone()];
+            const fail = [new NerdamerSymbol(0), symbol1.clone()];
 
             try {
                 // Division by constants
                 if (symbol2.isConstant('all')) {
-                    symbol1.each(function (x) {
+                    symbol1.each(x => {
                         x.multiplier = x.multiplier.divide(symbol2.multiplier);
                     });
                     return [symbol1, new NerdamerSymbol(0)];
@@ -3664,21 +3927,22 @@ if (typeof module !== 'undefined') {
                 symbol2 = _.expand(symbol2);
                 // Special case. May need revisiting
                 if (symbol1.group === S && symbol2.group === CP) {
-                    var x = symbol1.value;
-                    var f = core.Utils.decompose_fn(symbol2.clone(), x, true);
+                    const x = symbol1.value;
+                    const f = core.Utils.decompose_fn(symbol2.clone(), x, true);
                     if (symbol1.isLinear() && f.x && f.x.isLinear() && symbol2.isLinear()) {
-                        var k = NerdamerSymbol.create(symbol1.multiplier);
+                        const k = NerdamerSymbol.create(symbol1.multiplier);
                         return [_.divide(k.clone(), f.a.clone()), _.divide(_.multiply(k, f.b), f.a).negate()];
                     }
                 }
                 if (symbol1.group === S && symbol2.group === S) {
-                    var r = _.divide(symbol1.clone(), symbol2.clone());
-                    if (r.isConstant())
-                        //we have a whole
+                    const r = _.divide(symbol1.clone(), symbol2.clone());
+                    if (r.isConstant()) //we have a whole
+                    {
                         return [r, new NerdamerSymbol(0)];
+                    }
                     return [new NerdamerSymbol(0), symbol1.clone()];
                 }
-                var symbol1_has_func = symbol1.hasFunc(),
+                let symbol1_has_func = symbol1.hasFunc(),
                     symbol2_has_func = symbol2.hasFunc(),
                     parse_funcs = false;
 
@@ -3691,7 +3955,7 @@ if (typeof module !== 'undefined') {
                         subs = core.Utils.getFunctionsSubs(map);
                 }
                 //get a list of the variables
-                var vars = core.Utils.arrayUnique(variables(symbol1).concat(variables(symbol2))),
+                let vars = core.Utils.arrayUnique(variables(symbol1).concat(variables(symbol2))),
                     quot,
                     rem;
 
@@ -3706,18 +3970,18 @@ if (typeof module !== 'undefined') {
                     rem = q[1].toSymbol();
                 } else {
                     vars.push(CONST_HASH); //this is for the numbers
-                    var reconvert = function (arr) {
-                        var symbol = new NerdamerSymbol(0);
-                        for (var i = 0; i < arr.length; i++) {
-                            var x = arr[i].toSymbol();
+                    const reconvert = function (arr) {
+                        let symbol = new NerdamerSymbol(0);
+                        for (let i = 0; i < arr.length; i++) {
+                            let x = arr[i].toSymbol();
                             symbol = _.add(symbol, x);
                         }
                         return symbol;
                     };
 
                     // Silly Martin. This is why you document. I don't remember now
-                    var get_unique_max = function (term, any) {
-                        var max = Math.max.apply(null, term.terms),
+                    const get_unique_max = function (term, any) {
+                        let max = Math.max.apply(null, term.terms),
                             count = 0,
                             idx;
 
@@ -3727,29 +3991,34 @@ if (typeof module !== 'undefined') {
                                     idx = i;
                                     count++;
                                 }
-                                if (count > 1) return;
+                                if (count > 1) {
+                                    return;
+                                }
                             }
                         }
                         if (any) {
-                            for (i = 0; i < term.terms.length; i++)
+                            for (i = 0; i < term.terms.length; i++) {
                                 if (term.terms[i].equals(max)) {
                                     idx = i;
                                     break;
                                 }
+                            }
                         }
                         return [max, idx, term];
                     };
 
                     // Tries to find an LT in the dividend that will satisfy division
-                    var get_det = function (s, lookat) {
+                    const get_det = function (s, lookat) {
                         lookat = lookat || 0;
-                        var det = s[lookat],
+                        let det = s[lookat],
                             l = s.length;
-                        if (!det) return;
+                        if (!det) {
+                            return;
+                        }
                         //eliminate the first term if it doesn't apply
-                        var umax = get_unique_max(det);
+                        let umax = get_unique_max(det);
                         for (var i = lookat + 1; i < l; i++) {
-                            var term = s[i],
+                            let term = s[i],
                                 is_equal = det.sum.equals(term.sum);
                             if (!is_equal && umax) {
                                 break;
@@ -3762,8 +4031,8 @@ if (typeof module !== 'undefined') {
                                     idx1,
                                     idx2,
                                     l2 = det.terms.length;
-                                for (var j = 0; j < l2; j++) {
-                                    var item1 = det.terms[j],
+                                for (let j = 0; j < l2; j++) {
+                                    let item1 = det.terms[j],
                                         item2 = term.terms[j];
                                     if (typeof max1 === 'undefined' || item1.greaterThan(max1)) {
                                         max1 = item1;
@@ -3775,7 +4044,7 @@ if (typeof module !== 'undefined') {
                                     }
                                 }
                                 //check their differences
-                                var d1 = max1.subtract(term.terms[idx1]),
+                                let d1 = max1.subtract(term.terms[idx1]),
                                     d2 = max2.subtract(det.terms[idx2]);
                                 if (d2 > d1) {
                                     umax = [max2, idx2, term];
@@ -3789,75 +4058,98 @@ if (typeof module !== 'undefined') {
                                 //check if it's a suitable pick to determine the order
                                 umax = get_unique_max(term);
                                 //if(umax) return umax;
-                                if (umax) break;
+                                if (umax) {
+                                    break;
+                                }
                             }
                             umax = get_unique_max(term); //calculate a new unique max
                         }
 
                         //if still no umax then any will do since we have a tie
-                        if (!umax) return get_unique_max(s[0], true);
-                        var e, idx;
+                        if (!umax) {
+                            return get_unique_max(s[0], true);
+                        }
+                        let e, idx;
                         for (var i = 0; i < s2.length; i++) {
-                            var cterm = s2[i].terms;
+                            let cterm = s2[i].terms;
                             //confirm that this is a good match for the denominator
                             idx = umax[1];
-                            if (idx === cterm.length - 1) return;
+                            if (idx === cterm.length - 1) {
+                                return;
+                            }
                             e = cterm[idx];
-                            if (!e.equals(0)) break;
+                            if (!e.equals(0)) {
+                                break;
+                            }
                         }
-                        if (e.equals(0)) return get_det(s, ++lookat); //look at the next term
+                        if (e.equals(0)) {
+                            return get_det(s, ++lookat);
+                        } //look at the next term
 
                         return umax;
                     };
 
-                    var t_map = core.Utils.toMapObj(vars);
-                    var init_sort = function (a, b) {
+                    const t_map = core.Utils.toMapObj(vars);
+                    const init_sort = function (a, b) {
                         return b.sum.subtract(a.sum);
                     };
-                    var is_larger = function (a, b) {
-                        if (!a || !b) return false; //it's empty so...
-                        for (var i = 0; i < a.terms.length; i++) {
-                            if (a.terms[i].lessThan(b.terms[i])) return false;
+                    const is_larger = function (a, b) {
+                        if (!a || !b) {
+                            return false;
+                        } //it's empty so...
+                        for (let i = 0; i < a.terms.length; i++) {
+                            if (a.terms[i].lessThan(b.terms[i])) {
+                                return false;
+                            }
                         }
                         return true;
                     };
 
                     var s1 = symbol1.tBase(t_map).sort(init_sort),
                         s2 = symbol2.tBase(t_map).sort(init_sort);
-                    var target = is_larger(s1[0], s2[0]) && s1[0].count > s2[0].count ? s2 : s1; //since the num is already larger than we can get the det from denom
-                    var det = get_det(target); //we'll begin by assuming that this will let us know which term
-                    var quotient = [];
+                    const target = is_larger(s1[0], s2[0]) && s1[0].count > s2[0].count ? s2 : s1; //since the num is already larger than we can get the det from denom
+                    const det = get_det(target); //we'll begin by assuming that this will let us know which term
+                    const quotient = [];
                     if (det) {
-                        var lead_var = det[1];
-                        var can_divide = function (a, b) {
-                            if (a[0].sum.equals(b[0].sum)) return a.length >= b.length;
+                        let lead_var = det[1];
+                        const can_divide = function (a, b) {
+                            if (a[0].sum.equals(b[0].sum)) {
+                                return a.length >= b.length;
+                            }
                             return true;
                         };
 
-                        var try_better_lead_var = function (s1, s2, lead_var) {
-                            var checked = [];
+                        const try_better_lead_var = function (s1, s2, lead_var) {
+                            let checked = [];
                             for (var i = 0; i < s1.length; i++) {
                                 var t = s1[i];
-                                for (var j = 0; j < t.terms.length; j++) {
-                                    var cf = checked[j],
+                                for (let j = 0; j < t.terms.length; j++) {
+                                    let cf = checked[j],
                                         tt = t.terms[j];
-                                    if (i === 0)
-                                        checked[j] = tt; //add the terms for the first one
-                                    else if (cf && !cf.equals(tt)) checked[j] = undefined;
+                                    if (i === 0) {
+                                        checked[j] = tt;
+                                    } //add the terms for the first one
+                                    else if (cf && !cf.equals(tt)) {
+                                        checked[j] = undefined;
+                                    }
                                 }
                             }
                             for (var i = 0; i < checked.length; i++) {
                                 var t = checked[i];
-                                if (t && !t.equals(0)) return i;
+                                if (t && !t.equals(0)) {
+                                    return i;
+                                }
                             }
                             return lead_var;
                         };
-                        var sf = function (a, b) {
-                            var l1 = a.len(),
+                        const sf = function (a, b) {
+                            let l1 = a.len(),
                                 l2 = b.len();
-                            var blv = b.terms[lead_var],
+                            let blv = b.terms[lead_var],
                                 alv = a.terms[lead_var];
-                            if (l2 > l1 && blv.greaterThan(alv)) return l2 - l1;
+                            if (l2 > l1 && blv.greaterThan(alv)) {
+                                return l2 - l1;
+                            }
                             return blv.subtract(alv);
                         };
 
@@ -3868,27 +4160,29 @@ if (typeof module !== 'undefined') {
                         s2.sort(sf);
 
                         //try to adjust if den is larger
-                        var fdt = s2[0],
+                        const fdt = s2[0],
                             fnt = s1[0];
 
                         var den = new MVTerm(new Frac(1), [], fnt.map);
                         if (fdt.sum.greaterThan(fnt.sum) && fnt.len() > 1) {
                             for (var i = 0; i < fnt.terms.length; i++) {
-                                var d = fdt.terms[i].subtract(fnt.terms[i]);
+                                const d = fdt.terms[i].subtract(fnt.terms[i]);
                                 if (!d.equals(0)) {
-                                    var nd = d.add(new Frac(1));
+                                    const nd = d.add(new Frac(1));
                                     den.terms[i] = d;
                                     for (var j = 0; j < s1.length; j++) {
                                         s1[j].terms[i] = s1[j].terms[i].add(nd);
                                     }
-                                } else den.terms[i] = new Frac(0);
+                                } else {
+                                    den.terms[i] = new Frac(0);
+                                }
                             }
                         }
 
-                        var dividend_larger = is_larger(s1[0], s2[0]);
+                        let dividend_larger = is_larger(s1[0], s2[0]);
 
-                        var safety = 0;
-                        var max = 200;
+                        let safety = 0;
+                        const max = 200;
 
                         while (dividend_larger && can_divide(s1, s2)) {
                             if (safety++ > max) {
@@ -3901,7 +4195,7 @@ if (typeof module !== 'undefined') {
                             s1.shift(); //the first one is guaranteed to be gone so remove from dividend
                             for (var i = 1; i < s2.length; i++) {
                                 //loop through the denominator
-                                var t = s2[i].multiply(q).generateImage(),
+                                const t = s2[i].multiply(q).generateImage(),
                                     l2 = s1.length;
                                 //if we're subtracting from 0
                                 if (l2 === 0) {
@@ -3911,7 +4205,7 @@ if (typeof module !== 'undefined') {
                                 }
 
                                 for (var j = 0; j < l2; j++) {
-                                    var cur = s1[j];
+                                    const cur = s1[j];
                                     if (cur.getImg() === t.getImg()) {
                                         cur.coeff = cur.coeff.subtract(t.coeff);
                                         if (cur.coeff.equals(0)) {
@@ -3961,17 +4255,24 @@ if (typeof module !== 'undefined') {
 
                 return [quot, rem];
             } catch (e) {
-                if (e.message === 'timeout') throw e;
+                if (e.message === 'timeout') {
+                    throw e;
+                }
                 return fail;
             }
         },
-        line: function (v1, v2, x) {
-            if (core.Utils.isArray(v1)) v1 = core.Utils.convertToVector(v1);
-            if (core.Utils.isArray(v2)) v2 = core.Utils.convertToVector(v2);
+        line(v1, v2, x) {
+            if (core.Utils.isArray(v1)) {
+                v1 = core.Utils.convertToVector(v1);
+            }
+            if (core.Utils.isArray(v2)) {
+                v2 = core.Utils.convertToVector(v2);
+            }
             x = _.parse(x || 'x');
-            if (!core.Utils.isVector(v1) || !core.Utils.isVector(v2))
+            if (!core.Utils.isVector(v1) || !core.Utils.isVector(v2)) {
                 _.error('Line expects a vector! Received "' + v1 + '" & "' + v2 + '"');
-            var dx = _.subtract(v2.e(1).clone(), v1.e(1).clone()),
+            }
+            const dx = _.subtract(v2.e(1).clone(), v1.e(1).clone()),
                 dy = _.subtract(v2.e(2).clone(), v1.e(2).clone()),
                 m = _.divide(dy, dx),
                 a = _.multiply(x, m.clone()),
@@ -3979,14 +4280,14 @@ if (typeof module !== 'undefined') {
             return _.add(_.subtract(a, b), v1.e(2).clone());
         },
         PartFrac: {
-            createTemplate: function (den, denom_factors, f_array, v) {
+            createTemplate(den, denom_factors, f_array, v) {
                 //clean up the denominator function by factors so it reduces nicely
                 den = __.Factor.factorInner(den);
 
                 //clean up factors. This is so inefficient but factors are wrapped in parens for safety
                 den.each(function (x, key) {
                     if (x.group === FN && x.fname === '' && x.args[0].group === S) {
-                        var y = x.args[0];
+                        const y = x.args[0];
                         if (this.symbols) {
                             delete this.symbols[key];
                             this.symbols[y.value] = y;
@@ -3996,23 +4297,23 @@ if (typeof module !== 'undefined') {
                     }
                 });
 
-                var factors, factors_vec, f, p, deg, degrees, m;
+                let factors, factors_vec, f, p, deg, degrees, m;
                 factors = denom_factors.collectFactors();
                 factors_vec = []; //a vector for the template
                 degrees = [];
                 m = new NerdamerSymbol(1);
 
-                for (var i = 0; i < factors.length; i++) {
+                for (let i = 0; i < factors.length; i++) {
                     //loop through the factors
-                    var factor = NerdamerSymbol.unwrapPARENS(factors[i]);
+                    const factor = NerdamerSymbol.unwrapPARENS(factors[i]);
                     //if in he for P^n where P is polynomial and n = integer
                     if (factor.power.greaterThan(1)) {
                         p = Number(factor.power);
                         f = factor.clone().toLinear(); //remove the power so we have only the function
                         deg = Number(__.degree(f, v)); //get the degree of f
                         //expand the factor
-                        for (var j = 0; j < p; j++) {
-                            var efactor = _.pow(f.clone(), new NerdamerSymbol(j + 1));
+                        for (let j = 0; j < p; j++) {
+                            const efactor = _.pow(f.clone(), new NerdamerSymbol(j + 1));
                             f_array.push(efactor.clone());
                             var d = _.divide(den.clone(), efactor.clone());
                             degrees.push(deg);
@@ -4037,13 +4338,11 @@ if (typeof module !== 'undefined') {
                     }
                 }
                 //put back the constant
-                f_array = f_array.map(function (x) {
-                    return _.multiply(x, m.clone());
-                });
+                f_array = f_array.map(x => _.multiply(x, m.clone()));
                 return [f_array, factors_vec, degrees];
             },
-            partfrac: function (symbol, v, as_array) {
-                var vars = variables(symbol);
+            partfrac(symbol, v, as_array) {
+                const vars = variables(symbol);
 
                 v = v || _.parse(vars[0]); //make wrt optional and assume first variable
                 try {
@@ -4079,11 +4378,15 @@ if (typeof module !== 'undefined') {
                         r = div[0]; //remove the wholes
                         num = div[1]; //work with the remainder
                         nterms = num.groupTerms(v); //recalculate the nterms
-                    } else r = new NerdamerSymbol(0);
+                    } else {
+                        r = new NerdamerSymbol(0);
+                    }
 
                     if (Number(__.degree(den, v)) === 1) {
-                        var q = _.divide(num, den);
-                        if (as_array) return [r, q];
+                        const q = _.divide(num, den);
+                        if (as_array) {
+                            return [r, q];
+                        }
                         return _.add(r, q);
                     }
                     //first factor the denominator. This means that the strength of this
@@ -4101,16 +4404,16 @@ if (typeof module !== 'undefined') {
                     dterms = [];
                     factors = [];
                     ks = [];
-                    var factor, deg;
-                    factors_vec.map(function (x, idx) {
+                    let factor, deg;
+                    factors_vec.map((x, idx) => {
                         factor = tfactors[idx];
                         deg = degrees[idx];
-                        for (var i = 0; i < deg; i++) {
+                        for (let i = 0; i < deg; i++) {
                             factors.push(factor.clone());
-                            var k = NerdamerSymbol.create(v, i);
-                            var t = _.expand(_.multiply(x, k.clone())).groupTerms(v);
+                            const k = NerdamerSymbol.create(v, i);
+                            const t = _.expand(_.multiply(x, k.clone())).groupTerms(v);
                             //make a note of the power which corresponds to the length of the array
-                            var p = t.length;
+                            const p = t.length;
                             powers.push(p);
                             dterms.push(t);
                             ks.push(k.clone());
@@ -4123,55 +4426,62 @@ if (typeof module !== 'undefined') {
                     c = new core.Matrix(core.Utils.fillHoles(nterms, max)).transpose();
                     //for each of the factors we do the same
                     M = new core.Matrix();
-                    for (var i = 0; i < dterms.length; i++) {
+                    for (let i = 0; i < dterms.length; i++) {
                         M.elements.push(core.Utils.fillHoles(dterms[i], max));
                     }
 
                     //solve the system of equations
-                    var partials = _.multiply(M.transpose().invert(), c);
+                    const partials = _.multiply(M.transpose().invert(), c);
                     //the results are backwards to reverse it
                     //partials.elements.reverse();
                     //convert it all back
-                    var retval = as_array ? [r] : r;
-                    partials.each(function (e, i) {
-                        var term = _.multiply(ks[i], _.divide(e, factors[i]));
-                        if (as_array) retval.push(term);
-                        else retval = _.add(retval, term);
+                    let retval = as_array ? [r] : r;
+                    partials.each((e, i) => {
+                        const term = _.multiply(ks[i], _.divide(e, factors[i]));
+                        if (as_array) {
+                            retval.push(term);
+                        } else {
+                            retval = _.add(retval, term);
+                        }
                     });
 
                     //done
                     return retval;
                 } catch (e) {
-                    if (e.message === 'timeout') throw e;
+                    if (e.message === 'timeout') {
+                        throw e;
+                    }
                     //try to group symbols
                     try {
                         if (symbol.isComposite()) {
                             //group denominators
-                            var denominators = {};
+                            const denominators = {};
 
-                            symbol.each(function (x) {
-                                var d = x.getDenom();
-                                var n = x.getNum();
-                                var e = denominators[d];
+                            symbol.each(x => {
+                                const d = x.getDenom();
+                                const n = x.getNum();
+                                const e = denominators[d];
                                 denominators[d] = e ? _.add(e, n) : n;
                             });
 
-                            var t = new NerdamerSymbol(0);
+                            let t = new NerdamerSymbol(0);
 
-                            for (var x in denominators) {
+                            for (const x in denominators) {
                                 t = _.add(t, _.divide(denominators[x], _.parse(x)));
                             }
 
                             symbol = t;
                         }
                     } catch (e2) {
-                        if (e2.message === 'timeout') throw error;
+                        if (e2.message === 'timeout') {
+                            throw e2;
+                        }
                     }
                 }
                 return symbol;
             },
         },
-        degree: function (symbol, v, o) {
+        degree(symbol, v, o) {
             o = o || {
                 nd: [], //numeric
                 sd: [], //symbolic
@@ -4179,29 +4489,33 @@ if (typeof module !== 'undefined') {
             };
 
             if (!v) {
-                var vars = variables(symbol);
+                const vars = variables(symbol);
                 //The user must specify the variable for multivariate
-                if (vars.length > 1) throw new Error('You must specify the variable for multivariate polynomials!');
+                if (vars.length > 1) {
+                    throw new Error('You must specify the variable for multivariate polynomials!');
+                }
                 //if it's empty then we're dealing with a constant
-                if (vars.length === 0) return new NerdamerSymbol(0);
+                if (vars.length === 0) {
+                    return new NerdamerSymbol(0);
+                }
                 //assume the variable for univariate
                 v = _.parse(vars[0]);
             }
 
             //store the group
-            var g = symbol.group;
+            const g = symbol.group;
             //we're going to trust the user and assume no EX. Calling isPoly
             //would eliminate this but no sense in checking twice.
             if (symbol.isComposite()) {
                 symbol = symbol.clone();
                 symbol.distributeExponent();
-                symbol.each(function (x) {
+                symbol.each(x => {
                     o.depth++; //mark a depth increase
                     __.degree(x, v, o);
                     o.depth--; //we're back
                 });
             } else if (symbol.group === CB) {
-                symbol.each(function (x) {
+                symbol.each(x => {
                     o.depth++;
                     __.degree(x, v, o);
                     o.depth++;
@@ -4210,16 +4524,22 @@ if (typeof module !== 'undefined') {
                 o.sd.push(symbol.power.clone());
             } else if (g === S && symbol.value === v.value) {
                 o.nd.push(_.parse(symbol.power));
-            } else o.nd.push(new NerdamerSymbol(0));
+            } else {
+                o.nd.push(new NerdamerSymbol(0));
+            }
 
             //get the max out of the array
-            var deg = o.nd.length > 0 ? core.Utils.arrayMax(o.nd) : undefined;
+            let deg = o.nd.length > 0 ? core.Utils.arrayMax(o.nd) : undefined;
 
             if (o.depth === 0 && o.sd.length > 0) {
-                if (deg !== undefined) o.sd.unshift(deg);
+                if (deg !== undefined) {
+                    o.sd.unshift(deg);
+                }
                 return _.symfunction('max', o.sd);
             }
-            if (!core.Utils.isSymbol(deg)) deg = _.parse(deg);
+            if (!core.Utils.isSymbol(deg)) {
+                deg = _.parse(deg);
+            }
             //return the degree
             return deg;
         },
@@ -4232,24 +4552,30 @@ if (typeof module !== 'undefined') {
          * @returns {object | NerdamerSymbol[]}
          * @throws {Error}
          */
-        sqComplete: function (symbol, v, raw) {
-            if (!core.Utils.isSymbol(v)) v = _.parse(v);
-            var stop = function (msg) {
+        sqComplete(symbol, v, raw) {
+            if (!core.Utils.isSymbol(v)) {
+                v = _.parse(v);
+            }
+            const stop = function (msg) {
                 msg = msg || 'Stopping';
                 throw new core.exceptions.ValueLimitExceededError(msg);
             };
             //if not CP then nothing to do
-            if (!symbol.isPoly(true)) stop('Must be a polynomial!');
+            if (!symbol.isPoly(true)) {
+                stop('Must be a polynomial!');
+            }
 
             //declare vars
-            var deg, a, b, c, d, e, coeffs, sign, br, sym, sqrt_a;
+            let deg, a, b, c, d, e, coeffs, sign, br, sym, sqrt_a;
 
             br = core.Utils.inBrackets;
             //make a copy
             symbol = symbol.clone();
             deg = core.Algebra.degree(symbol, v); //get the degree of polynomial
             //must be in form ax^2 +/- bx +/- c
-            if (!deg.equals(2)) stop('Cannot complete square for degree ' + deg);
+            if (!deg.equals(2)) {
+                stop('Cannot complete square for degree ' + deg);
+            }
             //get the coeffs
             coeffs = core.Algebra.coeffs(symbol, v);
             a = coeffs[2];
@@ -4259,13 +4585,15 @@ if (typeof module !== 'undefined') {
             b = _.divide(coeffs[1], new NerdamerSymbol(2));
             //add the difference to the constant
             c = _.pow(b.clone(), new NerdamerSymbol(2));
-            if (raw) return [a, b, d];
+            if (raw) {
+                return [a, b, d];
+            }
             sqrt_a = math.sqrt(a);
             e = _.divide(math.sqrt(c), sqrt_a.clone());
             //calculate d which is the constant
             d = _.subtract(coeffs[0], _.pow(e.clone(), new NerdamerSymbol(2)));
             //compute the square part
-            sym = _.parse(br(sqrt_a.clone() + '*' + v + (sign < 0 ? '-' : '+') + e));
+            sym = _.parse(br(`${sqrt_a.clone()}*${v}${sign < 0 ? '-' : '+'}${e}`));
             return {
                 a: sym,
                 c: d,
@@ -4273,21 +4601,21 @@ if (typeof module !== 'undefined') {
             };
         },
         Simplify: {
-            strip: function (symbol) {
-                var c = _.parse(symbol.multiplier);
+            strip(symbol) {
+                const c = _.parse(symbol.multiplier);
                 symbol.toUnitMultiplier();
-                var p = _.parse(symbol.power);
+                const p = _.parse(symbol.power);
                 symbol.toLinear();
                 return [c, p, symbol];
             },
-            unstrip: function (cp, symbol) {
-                var c = cp[0];
-                var p = cp[1];
+            unstrip(cp, symbol) {
+                const c = cp[0];
+                const p = cp[1];
                 const result = _.multiply(c, _.pow(symbol, p));
                 return result;
             },
-            complexSimp: function (num, den) {
-                var ac, bd, bc, ad, cd, r1, r2, i1, i2;
+            complexSimp(num, den) {
+                let ac, bd, bc, ad, cd, r1, r2, i1, i2;
                 r1 = num.realpart();
                 i1 = num.imagpart();
                 r2 = den.realpart();
@@ -4301,7 +4629,7 @@ if (typeof module !== 'undefined') {
 
                 return _.divide(_.add(_.add(ac, bd), _.multiply(_.subtract(bc, ad), NerdamerSymbol.imaginary())), cd);
             },
-            trigSimp: function (symbol) {
+            trigSimp(symbol) {
                 let workDone = true;
                 let iterations = 0;
                 while (workDone && symbol.containsFunction(['cos', 'sin', 'tan'])) {
@@ -4309,17 +4637,17 @@ if (typeof module !== 'undefined') {
                     workDone = false;
                     symbol = symbol.clone();
                     //remove power and multiplier
-                    var sym_array = __.Simplify.strip(symbol);
+                    const sym_array = __.Simplify.strip(symbol);
                     symbol = sym_array.pop();
                     //the default return value is the symbol
-                    var retval = symbol.clone();
+                    let retval = symbol.clone();
 
                     //rewrite the symbol
                     if (symbol.group === CP) {
                         var sym = new NerdamerSymbol(0);
-                        symbol.each(function (x) {
+                        symbol.each(x => {
                             //rewrite the function
-                            var tr = __.Simplify.trigSimp(x.fnTransform());
+                            const tr = __.Simplify.trigSimp(x.fnTransform());
                             sym = _.add(sym, tr);
                         }, true);
 
@@ -4330,8 +4658,8 @@ if (typeof module !== 'undefined') {
                         );
                         workDone = retval.text() !== symbol.text();
                     } else if (symbol.group === CB) {
-                        var n = symbol.getNum();
-                        var d = symbol.getDenom();
+                        const n = symbol.getNum();
+                        const d = symbol.getDenom();
 
                         //try for tangent or fractions with tangent
                         if (
@@ -4368,7 +4696,7 @@ if (typeof module !== 'undefined') {
                             workDone = true;
                         } else {
                             var t = new NerdamerSymbol(1);
-                            retval.each(function (x) {
+                            retval.each(x => {
                                 if (x.fname === 'tan') {
                                     x = _.parse(
                                         core.Utils.format(
@@ -4399,7 +4727,7 @@ if (typeof module !== 'undefined') {
                         // test the sum for presence of a "n*pi/2" summands
                         let count = 0;
                         let newArg = new NerdamerSymbol(0);
-                        let piOverTwo = _.parse('pi/2');
+                        const piOverTwo = _.parse('pi/2');
                         symbol.args[0].each(x => {
                             let c = _.divide(x.clone(), piOverTwo.clone());
                             c = __.Simplify._simplify(c);
@@ -4427,7 +4755,7 @@ if (typeof module !== 'undefined') {
                             const summands = Object.values(arg.symbols);
                             const a = summands[0];
                             const b = summands.slice(1);
-                            const bStr = b.map(x => '(' + x.text() + ')').join('+');
+                            const bStr = b.map(x => `(${x.text()})`).join('+');
                             let s;
                             if (symbol.fname === 'sin') {
                                 s = core.Utils.format('sin({0})cos({1})+sin({1})cos({0})', a, bStr);
@@ -4445,9 +4773,9 @@ if (typeof module !== 'undefined') {
                         // remove the minus from the argument
                         const newArg = symbol.args[0].clone().negate();
                         // make the new trig call
-                        let s = core.Utils.format(symbol.fname + '({0})', newArg);
+                        let s = core.Utils.format(`${symbol.fname}({0})`, newArg);
                         if (symbol.fname === 'sin') {
-                            s = '-' + s;
+                            s = `-${s}`;
                         }
                         retval = _.parse(s);
                         // continue with the simpler form
@@ -4458,7 +4786,7 @@ if (typeof module !== 'undefined') {
                         // remove the minus from the argument
                         const newArg = symbol.args[0].clone().toUnitMultiplier();
                         // make the new trig call
-                        let s = core.Utils.format('2sin({0})cos({0})', newArg);
+                        const s = core.Utils.format('2sin({0})cos({0})', newArg);
                         retval = _.parse(s);
                         // continue with the simpler form
                         workDone = true;
@@ -4474,7 +4802,7 @@ if (typeof module !== 'undefined') {
 
                 return symbol;
             },
-            logArgSimp: function (fn, term) {
+            logArgSimp(fn, term) {
                 // console.log("----- log term: "+ term.text());
                 // note: use symbol.equals
                 if (term.value === '1' || term.value === 1) {
@@ -4484,13 +4812,13 @@ if (typeof module !== 'undefined') {
                 // inintialize the sum
                 let r = new NerdamerSymbol(0);
                 // first up: the numerator's multiplier
-                let m = term.multiplier.clone();
+                const m = term.multiplier.clone();
                 // console.log("----  multiplier: "+m);
                 term.toUnitMultiplier();
                 // console.log("term with unit multiplier: "+term);
 
                 if (!m.equals(1)) {
-                    let a = core.Utils.format('({0}({1}))', fn, m);
+                    const a = core.Utils.format('({0}({1}))', fn, m);
                     // console.log("m transformed: "+a);
                     r = _.add(r, _.parse(a));
                     // console.log("m r: "+r.text());
@@ -4499,27 +4827,27 @@ if (typeof module !== 'undefined') {
                 // console.log("---- term factors");
                 if (term.group === CB) {
                     // product
-                    term.each(function (x) {
+                    term.each(x => {
                         x = x.clone();
-                        let p = x.power.clone();
+                        const p = x.power.clone();
                         // note: there will be no multiplier
                         // strip modifies the original
                         __.Simplify.strip(x);
                         // console.log("factor: "+m+" * "+x+"^"+p+" = "+original);
-                        let a = core.Utils.format('(({1})*{0}({2}))', fn, p, x);
+                        const a = core.Utils.format('(({1})*{0}({2}))', fn, p, x);
                         // console.log("factor transformed: "+a);
                         r = _.add(r, _.parse(a));
                         // console.log("running sum: "+r.text());
                     });
                 } else {
                     // everything else
-                    let x = term.clone();
-                    let p = x.power.clone();
+                    const x = term.clone();
+                    const p = x.power.clone();
                     // note: there will be no multiplier
                     // strip modifies the original
                     __.Simplify.strip(x);
                     // console.log("factor: "+m+" * "+x+"^"+p+" = "+original);
-                    let a = core.Utils.format('(({1})*{0}({2}))', fn, p, x);
+                    const a = core.Utils.format('(({1})*{0}({2}))', fn, p, x);
                     // console.log("factor transformed: "+r+"+"+a);
                     r = _.add(r, _.parse(a));
                     // console.log("running sum: "+r.text());
@@ -4527,26 +4855,26 @@ if (typeof module !== 'undefined') {
                 // console.log("result: "+r.text());
                 return r;
             },
-            logSimp: function (symbol) {
+            logSimp(symbol) {
                 if (symbol.group === FN && (symbol.fname === 'log' || symbol.fname === 'log10')) {
                     // console.log();
                     // console.log("Initial: "+symbol.text());
                     // remove power and multiplier
-                    let original = symbol.clone();
-                    var sym_array = __.Simplify.strip(symbol);
+                    const original = symbol.clone();
+                    const sym_array = __.Simplify.strip(symbol);
                     symbol = sym_array.pop();
 
                     // work on the argument
-                    let arg = symbol.args[0].clone();
-                    let n = arg.getNum().clone();
+                    const arg = symbol.args[0].clone();
+                    const n = arg.getNum().clone();
                     // console.log("n: "+n.text());
-                    let d = arg.getDenom().clone();
+                    const d = arg.getDenom().clone();
                     // console.log("d: "+d.text());
-                    let fn = symbol.fname;
+                    const fn = symbol.fname;
 
                     let retval = __.Simplify.logArgSimp(fn, n);
                     if (!d.equals(1)) {
-                        let rd = __.Simplify.logArgSimp(fn, d);
+                        const rd = __.Simplify.logArgSimp(fn, d);
                         retval = _.subtract(retval, rd);
                     }
 
@@ -4554,18 +4882,18 @@ if (typeof module !== 'undefined') {
                     symbol = retval;
                     // console.log("result: "+symbol.text());
                 } else if (symbol.containsFunction(['log', 'log10'])) {
-                    for (let termkey in symbol.symbols) {
-                        let term = symbol.symbols[termkey];
+                    for (const termkey in symbol.symbols) {
+                        const term = symbol.symbols[termkey];
                         symbol.symbols[termkey] = __.Simplify.logSimp(term);
                     }
                 }
 
                 return symbol;
             },
-            _sqrtCompression: function (symbol, num, den) {
+            _sqrtCompression(symbol, num, den) {
                 // return symbol;
                 // preserve power and multiplier
-                var sym_array = __.Simplify.strip(symbol);
+                const sym_array = __.Simplify.strip(symbol);
 
                 // helper functions
                 const isABS = s => s.fname === 'abs';
@@ -4657,19 +4985,21 @@ if (typeof module !== 'undefined') {
                 return symbol;
             },
 
-            fracSimp: function (symbol) {
+            fracSimp(symbol) {
                 //try a quick simplify of imaginary numbers
                 var den = symbol.getDenom();
                 var num = symbol.getNum();
 
-                if (num.isImaginary() && den.isImaginary()) symbol = __.Simplify.complexSimp(num, den);
+                if (num.isImaginary() && den.isImaginary()) {
+                    symbol = __.Simplify.complexSimp(num, den);
+                }
 
                 if (symbol.isComposite()) {
                     if (symbol.power > 1) {
                         symbol = _.expand(symbol);
                     }
 
-                    var symbols = symbol.collectSymbols();
+                    const symbols = symbol.collectSymbols();
                     //assumption 1.
                     //since it's a composite, it has a length of at least 1
                     var retval, a, b, d1, d2, n1, n2, s, x, y, c, den, num;
@@ -4708,7 +5038,7 @@ if (typeof module !== 'undefined') {
                 symbol = __.Simplify.simpleFracSimp(symbol);
                 return symbol;
             },
-            simpleFracSimp: function (symbol) {
+            simpleFracSimp(symbol) {
                 let den = symbol.getDenom();
                 let num = symbol.getNum();
                 let retval;
@@ -4728,17 +5058,17 @@ if (typeof module !== 'undefined') {
                 // retval = __.Simplify._simplify(retval);
                 return retval;
             },
-            ratSimp: function (symbol) {
+            ratSimp(symbol) {
                 if (symbol.group === CB) {
-                    var den = symbol.getDenom();
-                    var num = symbol.getNum().distributeMultiplier();
-                    var d = __.Simplify.fracSimp(den);
-                    var n = __.Simplify.fracSimp(num);
+                    const den = symbol.getDenom();
+                    const num = symbol.getNum().distributeMultiplier();
+                    const d = __.Simplify.fracSimp(den);
+                    const n = __.Simplify.fracSimp(num);
                     symbol = _.divide(n, d);
                 }
                 return symbol;
             },
-            sqrtSimp: function (symbol, sym_array) {
+            sqrtSimp(symbol, sym_array) {
                 let retval;
                 let workDone = false;
 
@@ -4750,16 +5080,16 @@ if (typeof module !== 'undefined') {
                     if (symbol.isSQRT()) {
                         // symbol is itself sqrt
                         // save outer multiplier
-                        let mOuter = symbol.multiplier.clone();
+                        const mOuter = symbol.multiplier.clone();
 
                         // now factor it
-                        let sqrtArg = symbol.args[0].clone();
-                        let factored = __.Factor.factorInner(sqrtArg);
+                        const sqrtArg = symbol.args[0].clone();
+                        const factored = __.Factor.factorInner(sqrtArg);
 
                         // get a sanitized version of the argument's multiplier
-                        let m = _.parse(factored.multiplier);
+                        const m = _.parse(factored.multiplier);
                         // and its sign
-                        let sign = m.sign();
+                        const sign = m.sign();
 
                         // make an initial return value
                         retval = new NerdamerSymbol(1);
@@ -4767,12 +5097,12 @@ if (typeof module !== 'undefined') {
 
                         if (factored.group === CB) {
                             // monomial arg
-                            var rem = new NerdamerSymbol(1);
+                            let rem = new NerdamerSymbol(1);
 
-                            factored.each(function (x) {
+                            factored.each(x => {
                                 x = _.parse(x);
                                 if (x.group === N) {
-                                    var trial = _.sqrt(x.clone());
+                                    const trial = _.sqrt(x.clone());
 
                                     // Multiply back sqrt if it's an integer otherwise just put back the number
                                     if (isInt(trial)) {
@@ -4784,7 +5114,7 @@ if (typeof module !== 'undefined') {
                                     rem = _.multiply(rem, x);
                                 }
                             });
-                            let t = _.multiply(rem, _.parse(sign));
+                            const t = _.multiply(rem, _.parse(sign));
                             arg = _.sqrt(t.clone());
 
                             // Expand if it's imaginary
@@ -4809,7 +5139,7 @@ if (typeof module !== 'undefined') {
                     } else if (symbol.isComposite() && symbol.isLinear()) {
                         // polynomial or CP => sum of things
                         retval = new NerdamerSymbol(0);
-                        symbol.each(function (x) {
+                        symbol.each(x => {
                             retval = _.add(retval, __.Simplify.sqrtSimp(x));
                         }, true);
                         // Put back the multiplier and power
@@ -4819,8 +5149,8 @@ if (typeof module !== 'undefined') {
                     } else if (symbol.group === CB) {
                         // monomial
                         retval = new NerdamerSymbol(1);
-                        symbol.each(function (x) {
-                            var simp = __.Simplify.sqrtSimp(x);
+                        symbol.each(x => {
+                            const simp = __.Simplify.sqrtSimp(x);
                             retval = _.multiply(retval, simp);
                         });
                         // Put back the power and multiplier
@@ -4843,9 +5173,11 @@ if (typeof module !== 'undefined') {
                     // debugout("");
                     return retval;
                 } catch (error) {
-                    if (error.message === 'timeout') throw error;
+                    if (error.message === 'timeout') {
+                        throw error;
+                    }
                     symbol = original;
-                    debugout('crash in sqrtsimp, symbol: ' + symbol.text() + ' ' + error.msg);
+                    debugout(`crash in sqrtsimp, symbol: ${symbol.text()} ${error.msg}`);
                     return symbol;
                 } finally {
                     // debuglevel(-1);
@@ -4857,12 +5189,12 @@ if (typeof module !== 'undefined') {
              * @param {NerdamerSymbol} symbol
              * @returns {Array} The symbol and the matched patterns
              */
-            patternSub: function (symbol) {
-                var patterns = {};
+            patternSub(symbol) {
+                const patterns = {};
 
-                var has_CP = function (symbol) {
-                    var found = false;
-                    symbol.each(function (x) {
+                const has_CP = function (symbol) {
+                    let found = false;
+                    symbol.each(x => {
                         if (x.group === CP) {
                             found = true;
                         } else if (x.symbols) {
@@ -4873,10 +5205,10 @@ if (typeof module !== 'undefined') {
                     return found;
                 };
 
-                var collect = function (sym) {
+                const collect = function (sym) {
                     // We loop through each symbol looking for anything in the simplest
                     // form of ax+byz+...
-                    sym.each(function (x) {
+                    sym.each(x => {
                         // Items of group N,P,S, need to apply
                         if (!x.symbols && x.group !== FN) {
                             return;
@@ -4888,7 +5220,7 @@ if (typeof module !== 'undefined') {
                             collect(x);
                         } else {
                             if (!patterns[x.value]) {
-                                var u = core.Utils.getU(symbol);
+                                let u = core.Utils.getU(symbol);
                                 // Get a u value and mark it for subsitution
                                 patterns[x.value] = u;
                                 symbol = symbol.sub(x.value, u);
@@ -4902,7 +5234,7 @@ if (typeof module !== 'undefined') {
 
                 return [symbol, patterns];
             },
-            simplify: function (symbol) {
+            simplify(symbol) {
                 if (symbol.simplify) {
                     return symbol.simplify();
                 }
@@ -4911,19 +5243,19 @@ if (typeof module !== 'undefined') {
                 retval = _.parse(retval);
                 return retval;
             },
-            _simplify: function (symbol) {
+            _simplify(symbol) {
                 // debuglevel(1);
                 // debugout("input to _simplify: "+symbol.text());
                 // try {
                 //remove the multiplier to make calculation easier;
-                var sym_array = __.Simplify.strip(symbol.clone());
+                const sym_array = __.Simplify.strip(symbol.clone());
                 symbol = sym_array.pop();
                 //remove gcd from denominator
                 symbol = __.Simplify.fracSimp(symbol);
                 //nothing more to do
                 if (symbol.isConstant() || symbol.group === core.groups.S) {
                     sym_array.push(symbol);
-                    var ret = __.Simplify.unstrip(sym_array, symbol);
+                    const ret = __.Simplify.unstrip(sym_array, symbol);
                     // debugout("final result: "+ret.text());
                     return ret;
                 }
@@ -4931,7 +5263,7 @@ if (typeof module !== 'undefined') {
 
                 //var patterns;
 
-                var simplified = symbol.clone(); //make a copy
+                let simplified = symbol.clone(); //make a copy
 
                 //[simplified, patterns] = __.Simplify.patternSub(symbol);
 
@@ -4960,12 +5292,12 @@ if (typeof module !== 'undefined') {
                 //e.g. simplify(1/(x-1)+1/(1-x)) as per issue #431
                 // console.log("before sums: "+simplified.text());
                 if (simplified.group === core.groups.CP && simplified.isLinear()) {
-                    let m = simplified.multiplier.clone();
+                    const m = simplified.multiplier.clone();
                     simplified.toUnitMultiplier(); //strip the multiplier
-                    var r = new NerdamerSymbol(0);
+                    let r = new NerdamerSymbol(0);
                     //return the sum of simplifications
-                    simplified.each(function (x) {
-                        var s = __.Simplify._simplify(x);
+                    simplified.each(x => {
+                        const s = __.Simplify._simplify(x);
                         r = _.add(r, s);
                     });
                     simplified = r;
@@ -4991,9 +5323,9 @@ if (typeof module !== 'undefined') {
         },
 
         Classes: {
-            Polynomial: Polynomial,
-            Factors: Factors,
-            MVTerm: MVTerm,
+            Polynomial,
+            Factors,
+            MVTerm,
         },
     });
 
@@ -5005,7 +5337,7 @@ if (typeof module !== 'undefined') {
             // equation?
             if (typeof this.symbol.LHS !== 'undefined') {
                 // don't have access to equation here, so we clone instead
-                let eq = this.symbol.clone();
+                const eq = this.symbol.clone();
                 eq.LHS = __.Simplify.simplify(eq.LHS);
                 eq.RHS = __.Simplify.simplify(eq.RHS);
                 retval = eq;
@@ -5014,7 +5346,9 @@ if (typeof module !== 'undefined') {
             }
             return retval;
         } catch (error) {
-            if (error.message === 'timeout') throw error;
+            if (error.message === 'timeout') {
+                throw error;
+            }
             return this;
         } finally {
             core.Utils.disarmTimeout();
@@ -5027,29 +5361,32 @@ if (typeof module !== 'undefined') {
     };
 
     core.Matrix.prototype.simplify = function () {
-        this.elements = this.elements.map(row => {
-            return row.map(e => __.Simplify.simplify(e));
-        });
+        this.elements = this.elements.map(row => row.map(e => __.Simplify.simplify(e)));
         return this;
     };
 
     nerdamer.useAlgebraDiv = function () {
-        var divide = (__.divideFn = _.divide);
-        var calls = 0; //keep track of how many calls were made
+        const divide = (__.divideFn = _.divide);
+        let calls = 0; //keep track of how many calls were made
         _.divide = function (a, b) {
             calls++;
-            var ans;
-            if (calls === 1)
-                //check if this is the first call. If it is use algebra divide
-                ans = core.Algebra.divide(a, b); //otherwise use parser divide
-            else ans = divide(a, b);
+            let ans;
+            if (calls === 1) //check if this is the first call. If it is use algebra divide
+            {
+                ans = core.Algebra.divide(a, b);
+            } //otherwise use parser divide
+            else {
+                ans = divide(a, b);
+            }
             calls = 0; //reset the number of calls back to none
             return ans;
         };
     };
 
     nerdamer.useParserDiv = function () {
-        if (__.divideFn) _.divide = __.divideFn;
+        if (__.divideFn) {
+            _.divide = __.divideFn;
+        }
         delete __.divideFn;
     };
 
@@ -5058,7 +5395,7 @@ if (typeof module !== 'undefined') {
             name: 'factor',
             visible: true,
             numargs: 1,
-            build: function () {
+            build() {
                 return __.Factor.factor;
             },
         },
@@ -5066,7 +5403,7 @@ if (typeof module !== 'undefined') {
             name: 'simplify',
             visible: true,
             numargs: 1,
-            build: function () {
+            build() {
                 return __.Simplify.simplify;
             },
         },
@@ -5074,7 +5411,7 @@ if (typeof module !== 'undefined') {
             name: 'gcd',
             visible: true,
             numargs: [1],
-            build: function () {
+            build() {
                 return __.gcd;
             },
         },
@@ -5082,7 +5419,7 @@ if (typeof module !== 'undefined') {
             name: 'lcm',
             visible: true,
             numargs: [1],
-            build: function () {
+            build() {
                 return __.lcm;
             },
         },
@@ -5090,7 +5427,7 @@ if (typeof module !== 'undefined') {
             name: 'roots',
             visible: true,
             numargs: -1,
-            build: function () {
+            build() {
                 return __.roots;
             },
         },
@@ -5098,7 +5435,7 @@ if (typeof module !== 'undefined') {
             name: 'divide',
             visible: true,
             numargs: 2,
-            build: function () {
+            build() {
                 return __.divide;
             },
         },
@@ -5106,7 +5443,7 @@ if (typeof module !== 'undefined') {
             name: 'div',
             visible: true,
             numargs: 2,
-            build: function () {
+            build() {
                 return __.div;
             },
         },
@@ -5114,7 +5451,7 @@ if (typeof module !== 'undefined') {
             name: 'partfrac',
             visible: true,
             numargs: [1, 2],
-            build: function () {
+            build() {
                 return __.PartFrac.partfrac;
             },
         },
@@ -5122,7 +5459,7 @@ if (typeof module !== 'undefined') {
             name: 'deg',
             visible: true,
             numargs: [1, 2],
-            build: function () {
+            build() {
                 return __.degree;
             },
         },
@@ -5130,9 +5467,9 @@ if (typeof module !== 'undefined') {
             name: 'coeffs',
             visible: true,
             numargs: [1, 2],
-            build: function () {
-                var f = function () {
-                    var coeffs = __.coeffs.apply(__, arguments);
+            build() {
+                const f = function () {
+                    let coeffs = __.coeffs.apply(__, arguments);
                     return new core.Vector(coeffs);
                 };
                 return f;
@@ -5144,10 +5481,10 @@ if (typeof module !== 'undefined') {
     // The standard updateAPI wrapper uses PARSE2NUMBER which converts pi, e, sqrt(2) to rationals
     // This version parses arguments without PARSE2NUMBER to preserve symbolic constants
     nerdamer.coeffs = function () {
-        var args = [].slice.call(arguments);
-        var _ = core.PARSER;
+        const args = [].slice.call(arguments);
+        const _ = core.PARSER;
         // Parse arguments WITHOUT PARSE2NUMBER to preserve symbolic constants like pi, e, sqrt(2)
-        for (var i = 0; i < args.length; i++) {
+        for (let i = 0; i < args.length; i++) {
             if (typeof args[i] === 'string') {
                 args[i] = _.parse(args[i]);
             } else if (args[i] && args[i].symbol) {
@@ -5157,7 +5494,7 @@ if (typeof module !== 'undefined') {
                 args[i] = args[i].clone();
             }
         }
-        var coeffs = __.coeffs.apply(__, args);
+        const coeffs = __.coeffs.apply(__, args);
         return new core.Expression(new core.Vector(coeffs));
     };
 
@@ -5166,7 +5503,7 @@ if (typeof module !== 'undefined') {
             name: 'line',
             visible: true,
             numargs: [2, 3],
-            build: function () {
+            build() {
                 return __.line;
             },
         },
@@ -5174,14 +5511,16 @@ if (typeof module !== 'undefined') {
             name: 'sqcomp',
             visible: true,
             numargs: [1, 2],
-            build: function () {
-                var f = function (x, v) {
+            build() {
+                const f = function (x, v) {
                     try {
                         v = v || variables(x)[0];
-                        var sq = __.sqComplete(x.clone(), v);
+                        let sq = __.sqComplete(x.clone(), v);
                         return sq.f;
                     } catch (e) {
-                        if (e.message === 'timeout') throw e;
+                        if (e.message === 'timeout') {
+                            throw e;
+                        }
                         return x;
                     }
                 };

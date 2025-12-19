@@ -2,11 +2,11 @@
 
 'use strict';
 
-var nerdamer = require('../nerdamer.core.js');
-var round = nerdamer.getCore().Utils.round;
+const nerdamer = require('../nerdamer.core.js');
+const round = nerdamer.getCore().Utils.round;
 
-describe('Calculus', function () {
-    it('should differentiate correctly', function () {
+describe('Calculus', () => {
+    it('should differentiate correctly', () => {
         expect(nerdamer('diff(cos(x),x)').toString()).toEqual('-sin(x)');
         expect(nerdamer('diff(log(x),x)').toString()).toEqual('x^(-1)');
         expect(nerdamer('diff(tan(x),x)').toString()).toEqual('sec(x)^2');
@@ -97,7 +97,7 @@ describe('Calculus', function () {
         case Settings.LOG10:
     */
 
-    it('should calculate sums correctly', function () {
+    it('should calculate sums correctly', () => {
         expect(nerdamer('sum(x+y, x, 0, 3)').evaluate().toString()).toEqual('4*y+6');
         expect(nerdamer('sum(x^2+x, x, 0, 10)').evaluate().toString()).toEqual('440');
         expect(nerdamer('sum(x^2*z^2+x*y-z+1, x, 0, 10)').evaluate().toString()).toEqual('-11*z+385*z^2+11+55*y');
@@ -107,7 +107,7 @@ describe('Calculus', function () {
         expect(round(nerdamer('sum(e^(-x^2*π/9),x,1,100)').evaluate(), 10)).toEqual(round(1.0, 10));
     });
 
-    it('should calculate the definite integral correctly', function () {
+    it('should calculate the definite integral correctly', () => {
         expect(round(nerdamer('defint(cos(x),1,2,x)').evaluate(), 14)).toEqual(round(0.067826442018, 14));
         expect(round(nerdamer('defint(cos(x)^3*x^2-1,-1,9)').evaluate(), 14)).toEqual(round(8.543016466395, 14));
         expect(round(nerdamer('defint(cos(x^x),1,2,x)').evaluate(), 14)).toEqual(round(-0.27113666621, 14));
@@ -121,7 +121,7 @@ describe('Calculus', function () {
         expect(round(nerdamer('defint(sqrt(4(x^2)+4), 0, 3)').evaluate(), 14)).toEqual(round(11.305279439735999908, 14));
     });
 
-    it('should calculate limits correctly', function () {
+    it('should calculate limits correctly', () => {
         expect(nerdamer('limit((2-2*x^2)/(x-1), x, 1)').toString()).toEqual('-4');
         expect(nerdamer('limit(1/2*(x^2 - 1)/(x^2 + 1), x, 3)').toString()).toEqual('2/5');
         expect(nerdamer('limit(tan(3*x)/tan(x), x, pi/2)').toString()).toEqual('1/3');
@@ -138,7 +138,7 @@ describe('Calculus', function () {
         expect(nerdamer('limit((2sin(x)-sin(2x))/(x-sin(x)),x,0)').toString()).toEqual('6');
     });
 
-    it('should integrate properly', function () {
+    it('should integrate properly', () => {
         expect(nerdamer('integrate(sin(x), x)').toString()).toEqual('-cos(x)');
         expect(nerdamer('integrate((22/7)^x,x)').toString()).toEqual('(log(1/7)+log(22))^(-1)*22^x*7^(-x)');
         expect(nerdamer('integrate(cos(x), x)').toString()).toEqual('sin(x)');

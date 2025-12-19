@@ -66,25 +66,21 @@ const LEGACY_CORE_FILES = [
 const LEGACY_JS_DISABLED_RULES: Linter.RulesRecord = {
     'no-var': 'off',
     'prefer-const': 'off',
-    curly: 'off',
-    'object-shorthand': 'off',
-    'prefer-template': 'off',
-    'prefer-arrow-callback': 'off',
     'no-redeclare': 'off',
-    'no-unused-vars': 'off',
-    'no-console': 'off',
-    eqeqeq: 'off',
-    'no-shadow': 'off',
     'no-use-before-define': 'off',
-    'prettier/prettier': 'off',
+    'no-shadow': 'off',
+    eqeqeq: 'off',
+    'no-unused-vars': 'off',
     'no-useless-escape': 'off',
-    'dot-notation': 'off',
-    'no-undef': 'off',
     'no-sparse-arrays': 'off',
-    'no-prototype-builtins': 'off',
-    'no-case-declarations': 'off',
+    'prefer-arrow-callback': 'off',
     'arrow-body-style': 'off',
+    'prefer-template': 'off',
+    'no-console': 'off',
     'no-loss-of-precision': 'off',
+    'no-case-declarations': 'off',
+    curly: 'off',
+    'no-prototype-builtins': 'off',
 };
 
 // =============================================================================
@@ -554,6 +550,9 @@ export default defineConfig([
 
             // Type declarations (generated, in types/ folder)
             'types/**/*.d.ts',
+
+            // Generated spec output
+            'spec-dts/dist/',
 
             // Temporary files
             'temp/',

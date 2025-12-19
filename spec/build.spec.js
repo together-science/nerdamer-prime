@@ -2,14 +2,14 @@
 
 'use strict';
 
-var nerdamer = require('../nerdamer.core.js');
+const nerdamer = require('../nerdamer.core.js');
 
-describe('build', function () {
-    var values = [2.1, 3.3, 1];
+describe('build', () => {
+    const values = [2.1, 3.3, 1];
 
-    it('should honor argument order', function () {
+    it('should honor argument order', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: '-x^2+1',
                 params: ['x'],
@@ -114,11 +114,11 @@ describe('build', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var parsed = nerdamer(testCases[i].given);
-            var f1 = parsed.buildFunction();
-            var f2 = parsed.buildFunction(testCases[i].params);
+            const parsed = nerdamer(testCases[i].given);
+            const f1 = parsed.buildFunction();
+            const f2 = parsed.buildFunction(testCases[i].params);
 
             // then
             expect(f1.apply(null, values)).toEqual(testCases[i].one_expected);

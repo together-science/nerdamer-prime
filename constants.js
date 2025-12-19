@@ -10,7 +10,7 @@
  * Container of pregenerated prime numbers up to 2083 This array is used as a cache and can be extended at runtime by
  * functions like generatePrimes()
  */
-var PRIMES = [
+const PRIMES = [
     2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109,
     113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239,
     241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359, 367, 373, 379,
@@ -30,18 +30,18 @@ var PRIMES = [
 
 /** Set representation of PRIMES for O(1) lookup This object is used as a cache and can be extended at runtime */
 /** @type {Record<number, boolean>} */
-var PRIMES_SET = {};
+const PRIMES_SET = {};
 for (const p of PRIMES) {
     PRIMES_SET[p] = true;
 }
 
 /** High precision value of Pi (200 decimal places) Used for high-precision calculations */
-var LONG_PI =
+const LONG_PI =
     '3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214' +
     '808651328230664709384460955058223172535940812848111745028410270193852110555964462294895493038196';
 
 /** High precision value of Euler's number e (200 decimal places) Used for high-precision calculations */
-var LONG_E =
+const LONG_E =
     '2.718281828459045235360287471352662497757247093699959574966967627724076630353547594571382178525166427427466' +
     '39193200305992181741359662904357290033429526059563073813232862794349076323382988075319525101901';
 
@@ -49,7 +49,7 @@ var LONG_E =
  * Precomputed high-precision fraction values for the bigLog function. These are used for arbitrary-precision logarithm
  * calculations. Each entry is a string representation of a high-precision rational number.
  */
-var BIG_LOG_CACHE = [
+const BIG_LOG_CACHE = [
     '-253631954333118718762629409109262279926288908775918712466601196032/39970093576053625963957478139049824030906352922262642968060706375',
     '0',
     '24553090145869607172412918483124184864289170814122579923404694986469653261608528681589949629750677407356463601998534945057511664951799678336/35422621391945757431676178435630229283255250779216421054188228659061954317501699707236864189383591478024245495110561124597124995986978302375',
@@ -254,10 +254,10 @@ var BIG_LOG_CACHE = [
 
 if (typeof module !== 'undefined') {
     module.exports = {
-        PRIMES: PRIMES,
-        PRIMES_SET: PRIMES_SET,
-        LONG_PI: LONG_PI,
-        LONG_E: LONG_E,
-        BIG_LOG_CACHE: BIG_LOG_CACHE,
+        PRIMES,
+        PRIMES_SET,
+        LONG_PI,
+        LONG_E,
+        BIG_LOG_CACHE,
     };
 }

@@ -2,11 +2,11 @@
 
 'use strict';
 
-var nerdamer = require('../nerdamer.core.js');
+const nerdamer = require('../nerdamer.core.js');
 
-describe('TeX features', function () {
-    it('should render TeX output correctly', function () {
-        var testCases = [
+describe('TeX features', () => {
+    it('should render TeX output correctly', () => {
+        const testCases = [
             {
                 given: '2',
                 TeX: '2',
@@ -224,56 +224,56 @@ describe('TeX features', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var teX = nerdamer(testCases[i].given).toTeX();
-            var decimalTex = nerdamer(testCases[i].given).toTeX('decimal');
+            const teX = nerdamer(testCases[i].given).toTeX();
+            const decimalTex = nerdamer(testCases[i].given).toTeX('decimal');
 
             // then
-            expect(teX).toEqual(testCases[i].TeX, 'for formula ' + testCases[i].given);
-            expect(decimalTex).toEqual(testCases[i].decimalTeX, 'for formula ' + testCases[i].given);
+            expect(teX).toEqual(testCases[i].TeX, `for formula ${testCases[i].given}`);
+            expect(decimalTex).toEqual(testCases[i].decimalTeX, `for formula ${testCases[i].given}`);
         }
     });
 
     /** #36: Weird results with sqrt */
-    it('should render square roots properly', function () {
+    it('should render square roots properly', () => {
         // given
-        var formula = '2*sqrt(x)';
+        const formula = '2*sqrt(x)';
 
         // when
-        var teX = nerdamer(formula).toTeX();
+        const teX = nerdamer(formula).toTeX();
 
         // then
         expect(teX).toEqual('2 \\cdot \\sqrt{x}');
     });
 
     /** #39: Terms multiplied in brackets not rendered correctly */
-    it('should render parentheses', function () {
+    it('should render parentheses', () => {
         // given
-        var formula = '(x+1)*(x+2)';
+        const formula = '(x+1)*(x+2)';
 
         // when
-        var teX = nerdamer(formula).toTeX();
+        const teX = nerdamer(formula).toTeX();
 
         // then
         expect(teX).toEqual('\\left(x+1\\right) \\cdot \\left(x+2\\right)');
     });
 
     /** #41: Latex output should use descending order */
-    it('should use descending order of polynomials', function () {
+    it('should use descending order of polynomials', () => {
         // given
-        var formula = 'x^2+x+1';
+        const formula = 'x^2+x+1';
 
         // when
-        var teX = nerdamer(formula).toTeX();
+        const teX = nerdamer(formula).toTeX();
 
         // then
         expect(teX).toEqual('x^{2}+x+1');
     });
 
-    it('should support Greek letters', function () {
+    it('should support Greek letters', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'alpha + beta',
                 expected: '\\alpha+\\beta',
@@ -288,16 +288,16 @@ describe('TeX features', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var teX = nerdamer(testCases[i].given).toTeX();
+            const teX = nerdamer(testCases[i].given).toTeX();
 
             // then
             expect(teX).toEqual(testCases[i].expected);
         }
     });
 
-    it('should explicitly convert to LaTeX', function () {
+    it('should explicitly convert to LaTeX', () => {
         expect(nerdamer.convertToLaTeX('realpart(a)')).toEqual('\\operatorname{Re}\\left(a\\right)');
         expect(nerdamer.convertToLaTeX('imagpart(a)')).toEqual('\\operatorname{Im}\\left(a\\right)');
         expect(nerdamer.convertToLaTeX('diff(cos(x),x)')).toEqual('\\frac{d}{d x}\\left({\\mathrm{cos}\\left(x\\right)}\\right)');
@@ -311,9 +311,9 @@ describe('TeX features', function () {
         expect(nerdamer.convertToLaTeX('log1p(x)')).toEqual('\\ln\\left( 1 + x \\right)');
     });
 
-    it('should display integrals', function () {
+    it('should display integrals', () => {
         // given
-        var testCases = [
+        const testCases = [
             {
                 given: 'defint(log(2cos(x/2)),-π,π,x)',
                 expected: '\\int\\limits_{-\\pi}^{\\pi} \\mathrm{log}\\left(2 \\cdot \\mathrm{cos}\\left(\\frac{x}{2}\\right)\\right) dx',
@@ -324,9 +324,9 @@ describe('TeX features', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
+        for (let i = 0; i < testCases.length; ++i) {
             // when
-            var teX = nerdamer(testCases[i].given).toTeX();
+            const teX = nerdamer(testCases[i].given).toTeX();
 
             // then
             expect(teX).toEqual(testCases[i].expected);

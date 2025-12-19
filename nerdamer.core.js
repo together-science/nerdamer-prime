@@ -19,30 +19,27 @@ var nerdamer = (function (imports) {
     'use strict';
 
     //version ======================================================================
-    var version = '1.1.16';
-
-    //inits ========================================================================
-    var _ = new Parser(); //nerdamer's parser
+    const version = '1.1.16';
 
     //import bigInt
-    var bigInt = imports.bigInt;
-    var bigDec = imports.bigDec;
+    const bigInt = imports.bigInt;
+    const bigDec = imports.bigDec;
 
     //set the precision to js precision
     bigDec.set({
         precision: 250,
     });
 
-    var Groups = {};
+    const Groups = {};
 
     //import constants
-    var PRIMES = imports.constants.PRIMES;
-    var PRIMES_SET = imports.constants.PRIMES_SET;
+    const PRIMES = imports.constants.PRIMES;
+    const PRIMES_SET = imports.constants.PRIMES_SET;
 
     //Settings =====================================================================
-    var CUSTOM_OPERATORS = {};
+    const CUSTOM_OPERATORS = {};
 
-    var Settings = {
+    const Settings = {
         //Enables/Disables call peekers. False means callPeekers are disabled and true means callPeekers are enabled.
         callPeekers: false,
 
@@ -125,21 +122,21 @@ var nerdamer = (function (imports) {
 
     (function () {
         Settings.CACHE.roots = {};
-        var x = 40,
+        const x = 40,
             y = 40;
-        for (var i = 2; i <= x; i++) {
-            for (var j = 2; j <= y; j++) {
-                var nthpow = bigInt(i).pow(j);
-                Settings.CACHE.roots[nthpow + '-' + j] = i;
+        for (let i = 2; i <= x; i++) {
+            for (let j = 2; j <= y; j++) {
+                const nthpow = bigInt(i).pow(j);
+                Settings.CACHE.roots[`${nthpow}-${j}`] = i;
             }
         }
     })();
 
-    var __starttime = 0;
-    var __timeout;
+    let __starttime = 0;
+    let __timeout;
 
     function armTimeout() {
-        if (console.global && console.global.tsDebugChannels && console.global.tsDebugChannels['notimeout']) {
+        if (console.global && console.global.tsDebugChannels && console.global.tsDebugChannels.notimeout) {
             disarmTimeout();
             return;
         }
@@ -178,11 +175,13 @@ var nerdamer = (function (imports) {
         return this.elements.length;
     };
     Collection.prototype.text = function (options) {
-        return '(' + this.elements.map(e => e.text(options)).join(',') + ')';
+        return `(${this.elements.map(e => e.text(options)).join(',')})`;
     };
     Collection.create = function (e) {
-        var collection = new Collection();
-        if (e) collection.append(e);
+        const collection = new Collection();
+        if (e) {
+            collection.append(e);
+        }
         return collection;
     };
     Collection.prototype.clone = function (elements) {
@@ -195,7 +194,7 @@ var nerdamer = (function (imports) {
         return this;
     };
 
-    Collection.prototype.evaluate = function () {
+    Collection.prototype.evaluate = function (options) {
         this.elements = this.elements.map(e => _.evaluate(e, options));
         return this;
     };
@@ -211,13 +210,11 @@ var nerdamer = (function (imports) {
         return block(
             'SAFE',
             function () {
-                var V = c2.elements || c2;
+                const V = c2.elements || c2;
                 if (this.elements.length !== V.length) {
                     return null;
                 }
-                return this.map(function (x, i) {
-                    return _.add(x, V[i - 1]);
-                });
+                return this.map((x, i) => _.add(x, V[i - 1]));
             },
             undefined,
             this
@@ -229,13 +226,11 @@ var nerdamer = (function (imports) {
         return block(
             'SAFE',
             function () {
-                var V = vector.elements || vector;
+                const V = vector.elements || vector;
                 if (this.elements.length !== V.length) {
                     return null;
                 }
-                return this.map(function (x, i) {
-                    return _.subtract(x, V[i - 1]);
-                });
+                return this.map((x, i) => _.subtract(x, V[i - 1]));
             },
             undefined,
             this
@@ -245,39 +240,39 @@ var nerdamer = (function (imports) {
     //Add the groups. These have been reorganized as of v0.5.1 to make CP the highest group
     //The groups that help with organizing during parsing. Note that for FN is still a function even
     //when it's raised to a symbol, which typically results in an EX
-    var N = (Groups.N = 1); // A number
-    var P = (Groups.P = 2); // A number with a rational power e.g. 2^(3/5).
-    var S = (Groups.S = 3); // A single variable e.g. x.
-    var EX = (Groups.EX = 4); // An exponential
-    var FN = (Groups.FN = 5); // A function
-    var PL = (Groups.PL = 6); // A symbol/expression having same name with different powers e.g. 1/x + x^2
-    var CB = (Groups.CB = 7); // A symbol/expression composed of one or more variables through multiplication e.g. x*y
-    var CP = (Groups.CP = 8); // A symbol/expression composed of one variable and any other symbol or number x+1 or x+y
+    const N = (Groups.N = 1); // A number
+    const P = (Groups.P = 2); // A number with a rational power e.g. 2^(3/5).
+    const S = (Groups.S = 3); // A single variable e.g. x.
+    const EX = (Groups.EX = 4); // An exponential
+    const FN = (Groups.FN = 5); // A function
+    const PL = (Groups.PL = 6); // A symbol/expression having same name with different powers e.g. 1/x + x^2
+    const CB = (Groups.CB = 7); // A symbol/expression composed of one or more variables through multiplication e.g. x*y
+    const CP = (Groups.CP = 8); // A symbol/expression composed of one variable and any other symbol or number x+1 or x+y
 
-    var CONST_HASH = (Settings.CONST_HASH = '#');
+    const CONST_HASH = (Settings.CONST_HASH = '#');
 
-    var PARENTHESIS = Settings.PARENTHESIS;
+    const PARENTHESIS = Settings.PARENTHESIS;
 
-    var SQRT = Settings.SQRT;
+    const SQRT = Settings.SQRT;
 
-    var ABS = Settings.ABS;
+    const ABS = Settings.ABS;
 
-    var FACTORIAL = Settings.FACTORIAL;
+    const FACTORIAL = Settings.FACTORIAL;
 
-    var DOUBLEFACTORIAL = Settings.DOUBLEFACTORIAL;
+    const DOUBLEFACTORIAL = Settings.DOUBLEFACTORIAL;
 
     //the storage container "memory" for parsed expressions
-    var EXPRESSIONS = [];
+    let EXPRESSIONS = [];
 
     //variables
-    var VARS = {};
+    let VARS = {};
 
     //the container used to store all the reserved functions
-    var RESERVED = [];
+    const RESERVED = [];
 
-    var WARNINGS = [];
+    const WARNINGS = [];
 
-    var USER_FUNCTIONS = [];
+    const USER_FUNCTIONS = [];
 
     /**
      * Use this when errors are suppressible
@@ -285,19 +280,22 @@ var nerdamer = (function (imports) {
      * @param {string} msg
      * @param {object} ErrorObj
      */
-    var err = function (msg, ErrorObj) {
+    const err = function (msg, ErrorObj) {
         if (!Settings.suppress_errors) {
-            if (ErrorObj) throw new ErrorObj(msg);
-            else throw new Error(msg);
+            if (ErrorObj) {
+                throw new ErrorObj(msg);
+            } else {
+                throw new Error(msg);
+            }
         }
     };
 
     //Utils ========================================================================
-    var customError = function (name) {
-        var E = function (message) {
+    const customError = function (name) {
+        const E = function (message) {
             this.name = name;
             this.message = message !== undefined ? message : '';
-            var error = new Error(this.message);
+            const error = new Error(this.message);
             error.name = this.name;
             this.stack = error.stack;
         }; //create an empty error
@@ -311,7 +309,7 @@ var nerdamer = (function (imports) {
      * @param {string} value
      * @returns Boolean
      */
-    var isReserved = function (value) {
+    const isReserved = function (value) {
         return RESERVED.indexOf(value) !== -1;
     };
 
@@ -321,9 +319,13 @@ var nerdamer = (function (imports) {
      * @param {NerdamerSymbol[]} arr
      * @returns {boolean}
      */
-    var allSame = function (arr) {
-        var last = arr[0];
-        for (var i = 1, l = arr.length; i < l; i++) if (!arr[i].equals(last)) return false;
+    const allSame = function (arr) {
+        const last = arr[0];
+        for (let i = 1, l = arr.length; i < l; i++) {
+            if (!arr[i].equals(last)) {
+                return false;
+            }
+        }
         return true;
     };
 
@@ -332,7 +334,7 @@ var nerdamer = (function (imports) {
      *
      * @param msg
      */
-    var warn = function (msg) {
+    const warn = function (msg) {
         WARNINGS.push(msg);
         if (Settings.SHOW_WARNINGS && console && console.warn) {
             console.warn(msg);
@@ -347,12 +349,14 @@ var nerdamer = (function (imports) {
      * @param {string} typ - The type of symbols that's being validated
      * @throws {Exception} - Throws an exception on fail
      */
-    var validateName = function (name, typ) {
+    const validateName = function (name, typ) {
         typ = typ || 'variable';
-        if (Settings.ALLOW_CHARS.indexOf(name) !== -1) return;
-        var regex = Settings.VALIDATION_REGEX;
+        if (Settings.ALLOW_CHARS.indexOf(name) !== -1) {
+            return;
+        }
+        const regex = Settings.VALIDATION_REGEX;
         if (!regex.test(name)) {
-            throw new InvalidVariableNameError(name + ' is not a valid ' + typ + ' name');
+            throw new InvalidVariableNameError(`${name} is not a valid ${typ} name`);
         }
     };
 
@@ -361,13 +365,13 @@ var nerdamer = (function (imports) {
      *
      * @param {number} num
      */
-    var scientificToDecimal = function (num) {
-        var nsign = Math.sign(num);
+    const scientificToDecimal = function (num) {
+        const nsign = Math.sign(num);
         //remove the sign
         num = Math.abs(num);
         //if the number is in scientific notation remove it
         if (/\d+\.?\d*e[\+\-]*\d+/i.test(num)) {
-            var zero = '0',
+            let zero = '0',
                 parts = String(num).toLowerCase().split('e'), //split into coeff and exponent
                 e = parts.pop(), //store the exponential part
                 l = Math.abs(e), //get the number of zeros
@@ -377,39 +381,41 @@ var nerdamer = (function (imports) {
                 //return "("+parts[0]+"/1"+"0".repeat(l)+")";
                 l = l - coeff_array[0].length;
                 if (l < 0) {
-                    num =
-                        coeff_array[0].slice(0, l) +
-                        '.' +
-                        coeff_array[0].slice(l) +
-                        (coeff_array.length === 2 ? coeff_array[1] : '');
+                    num = `${coeff_array[0].slice(0, l)}.${coeff_array[0].slice(
+                        l
+                    )}${coeff_array.length === 2 ? coeff_array[1] : ''}`;
                 } else {
-                    num = zero + '.' + new Array(l + 1).join(zero) + coeff_array.join('');
+                    num = `${zero}.${new Array(l + 1).join(zero)}${coeff_array.join('')}`;
                 }
             } else {
-                var dec = coeff_array[1];
-                if (dec) l = l - dec.length;
+                const dec = coeff_array[1];
+                if (dec) {
+                    l = l - dec.length;
+                }
                 if (l < 0) {
-                    num = coeff_array[0] + dec.slice(0, l) + '.' + dec.slice(l);
+                    num = `${coeff_array[0] + dec.slice(0, l)}.${dec.slice(l)}`;
                 } else {
                     num = coeff_array.join('') + new Array(l + 1).join(zero);
                 }
             }
         }
 
-        return nsign < 0 ? '-' + num : num;
+        return nsign < 0 ? `-${num}` : num;
     };
     /**
      * Checks if number is a prime number
      *
      * @param {number} n - The number to be checked
      */
-    var isPrime = function (n) {
+    const isPrime = function (n) {
         if (n in PRIMES_SET) {
             return true;
         }
-        var q = Math.floor(Math.sqrt(n));
-        for (var i = 2; i <= q; i++) {
-            if (n % i === 0) return false;
+        const q = Math.floor(Math.sqrt(n));
+        for (let i = 2; i <= q; i++) {
+            if (n % i === 0) {
+                return false;
+            }
         }
         return true;
     };
@@ -421,8 +427,8 @@ var nerdamer = (function (imports) {
      * @param {any} value Any stringifyable object
      * @returns {object}
      */
-    var knownVariable = function (variable, value) {
-        var o = {};
+    const knownVariable = function (variable, value) {
+        const o = {};
         o[variable] = value;
         return o;
     };
@@ -432,7 +438,7 @@ var nerdamer = (function (imports) {
      *
      * @param {any} n
      */
-    var isNumber = function (n) {
+    const isNumber = function (n) {
         return /^\d+\.?\d*$/.test(n);
     };
 
@@ -441,8 +447,12 @@ var nerdamer = (function (imports) {
      *
      * @param {Array} arr
      */
-    var allNumeric = function (arr) {
-        for (var i = 0; i < arr.length; i++) if (!isNumber(arr[i])) return false;
+    const allNumeric = function (arr) {
+        for (let i = 0; i < arr.length; i++) {
+            if (!isNumber(arr[i])) {
+                return false;
+            }
+        }
         return true;
     };
     /**
@@ -451,8 +461,10 @@ var nerdamer = (function (imports) {
      * @param {number | NerdamerSymbol} num
      * @returns {boolean}
      */
-    var isFraction = function (num) {
-        if (isSymbol(num)) return isFraction(num.multiplier.toDecimal());
+    const isFraction = function (num) {
+        if (isSymbol(num)) {
+            return isFraction(num.multiplier.toDecimal());
+        }
         return num % 1 !== 0;
     };
 
@@ -470,7 +482,7 @@ var nerdamer = (function (imports) {
      *
      * @param {object} obj
      */
-    var isExpression = function (obj) {
+    const isExpression = function (obj) {
         return obj instanceof Expression;
     };
 
@@ -484,33 +496,41 @@ var nerdamer = (function (imports) {
      *   the future this will be a Collector object.
      * @returns {string[]} - An array containing variable names
      */
-    var variables = function (obj, poly, vars) {
+    const variables = function (obj, poly, vars) {
         vars = vars || {
             c: [],
-            add: function (value) {
-                if (this.c.indexOf(value) === -1 && isNaN(value)) this.c.push(value);
+            add(value) {
+                if (this.c.indexOf(value) === -1 && isNaN(value)) {
+                    this.c.push(value);
+                }
             },
         };
 
         if (isSymbol(obj)) {
-            var group = obj.group,
+            const group = obj.group,
                 prevgroup = obj.previousGroup;
-            if (group === EX) variables(obj.power, poly, vars);
+            if (group === EX) {
+                variables(obj.power, poly, vars);
+            }
 
             if (group === CP || group === CB || prevgroup === CP || prevgroup === CB) {
-                for (var x in obj.symbols) {
+                for (const x in obj.symbols) {
                     variables(obj.symbols[x], poly, vars);
                 }
             } else if (group === S || prevgroup === S) {
                 //very crude needs fixing. TODO
-                if (!(obj.value === 'e' || obj.value === 'pi' || obj.value === Settings.IMAGINARY)) vars.add(obj.value);
+                if (!(obj.value === 'e' || obj.value === 'pi' || obj.value === Settings.IMAGINARY)) {
+                    vars.add(obj.value);
+                }
             } else if (group === PL || prevgroup === PL) {
                 variables(firstObject(obj.symbols), poly, vars);
             } else if (group === EX) {
-                if (!isNaN(obj.value)) vars.add(obj.value);
+                if (!isNaN(obj.value)) {
+                    vars.add(obj.value);
+                }
                 variables(obj.power, poly, vars);
             } else if (group === FN && !poly) {
-                for (var i = 0; i < obj.args.length; i++) {
+                for (let i = 0; i < obj.args.length; i++) {
                     variables(obj.args[i], poly, vars);
                 }
             }
@@ -526,10 +546,10 @@ var nerdamer = (function (imports) {
      * @param {boolean} toNumber
      * @returns {NerdamerSymbol}
      */
-    var arraySum = function (arr, toNumber) {
-        var sum = new NerdamerSymbol(0);
-        for (var i = 0; i < arr.length; i++) {
-            var x = arr[i];
+    const arraySum = function (arr, toNumber) {
+        let sum = new NerdamerSymbol(0);
+        for (let i = 0; i < arr.length; i++) {
+            const x = arr[i];
             // Convert to symbol if not
             sum = _.add(sum, !isSymbol(x) ? _.parse(x) : x);
         }
@@ -546,14 +566,16 @@ var nerdamer = (function (imports) {
      * @returns {undefined}
      * @throws {Error} For exponentials
      */
-    var separate = function (symbol, o) {
+    const separate = function (symbol, o) {
         symbol = _.expand(symbol);
         o = o || {};
-        var insert = function (key, sym) {
-            if (!o[key]) o[key] = new NerdamerSymbol(0);
+        const insert = function (key, sym) {
+            if (!o[key]) {
+                o[key] = new NerdamerSymbol(0);
+            }
             o[key] = _.add(o[key], sym.clone());
         };
-        symbol.each(function (x) {
+        symbol.each(x => {
             if (x.isConstant('all')) {
                 insert('constants', x);
             } else if (x.group === S) {
@@ -577,11 +599,13 @@ var nerdamer = (function (imports) {
      * @param {Array} arr
      * @param {number} n
      */
-    var fillHoles = function (arr, n) {
+    const fillHoles = function (arr, n) {
         n = n || arr.length;
-        for (var i = 0; i < n; i++) {
-            var sym = arr[i];
-            if (!sym) arr[i] = new NerdamerSymbol(0);
+        for (let i = 0; i < n; i++) {
+            const sym = arr[i];
+            if (!sym) {
+                arr[i] = new NerdamerSymbol(0);
+            }
         }
         return arr;
     };
@@ -591,11 +615,11 @@ var nerdamer = (function (imports) {
      *
      * @param {object} obj
      */
-    var isVector = function (obj) {
+    const isVector = function (obj) {
         return obj instanceof Vector;
     };
 
-    var isCollection = function (obj) {
+    const isCollection = function (obj) {
         return obj instanceof Collection;
     };
 
@@ -604,11 +628,11 @@ var nerdamer = (function (imports) {
      *
      * @param {object} obj
      */
-    var isMatrix = function (obj) {
+    const isMatrix = function (obj) {
         return obj instanceof Matrix;
     };
 
-    var isSet = function (obj) {
+    const isSet = function (obj) {
         return obj instanceof Set;
     };
 
@@ -617,7 +641,7 @@ var nerdamer = (function (imports) {
      *
      * @param {NerdamerSymbol} symbol
      */
-    var isNumericSymbol = function (symbol) {
+    const isNumericSymbol = function (symbol) {
         return symbol.group === N || symbol.group === P;
     };
 
@@ -626,7 +650,7 @@ var nerdamer = (function (imports) {
      *
      * @param {NerdamerSymbol} symbol
      */
-    var isVariableSymbol = function (symbol) {
+    const isVariableSymbol = function (symbol) {
         return symbol.group === S && symbol.multiplier.equals(1) && symbol.power.equals(1);
     };
 
@@ -635,7 +659,7 @@ var nerdamer = (function (imports) {
      *
      * @param {object} arr
      */
-    var isArray = function (arr) {
+    const isArray = function (arr) {
         return Array.isArray(arr);
     };
 
@@ -644,7 +668,7 @@ var nerdamer = (function (imports) {
      *
      * @param {number} num
      */
-    var isInt = function (num) {
+    const isInt = function (num) {
         if (typeof num === 'number') {
             return Number.isInteger(num);
         }
@@ -655,7 +679,7 @@ var nerdamer = (function (imports) {
      * @param {number | NerdamerSymbol} obj
      * @returns {boolean}
      */
-    var isNegative = function (obj) {
+    const isNegative = function (obj) {
         if (isSymbol(obj)) {
             obj = obj.multiplier;
         }
@@ -666,8 +690,10 @@ var nerdamer = (function (imports) {
      *
      * @param o
      */
-    var stringify = function (o) {
-        if (!o) return o;
+    const stringify = function (o) {
+        if (!o) {
+            return o;
+        }
         return String(o);
     };
 
@@ -675,8 +701,8 @@ var nerdamer = (function (imports) {
      * @param {string} str
      * @returns {string} - Returns a formatted string surrounded by brackets
      */
-    var inBrackets = function (str) {
-        return '(' + str + ')';
+    const inBrackets = function (str) {
+        return `(${str})`;
     };
 
     /**
@@ -688,7 +714,7 @@ var nerdamer = (function (imports) {
      * @param {string} with_str - The replacement string
      * @returns {string} - A formatted string
      */
-    var stringReplace = function (str, from, to, with_str) {
+    const stringReplace = function (str, from, to, with_str) {
         return str.substr(0, from) + with_str + str.substr(to, str.length);
     };
 
@@ -698,7 +724,7 @@ var nerdamer = (function (imports) {
      * @param {object} obj
      * @returns {boolean}
      */
-    var customType = function (obj) {
+    const customType = function (obj) {
         return obj !== undefined && obj.custom;
     };
 
@@ -709,7 +735,7 @@ var nerdamer = (function (imports) {
      * @param {number} b
      * @returns {boolean}
      */
-    var sameSign = function (a, b) {
+    const sameSign = function (a, b) {
         return a < 0 === b < 0;
     };
 
@@ -720,11 +746,11 @@ var nerdamer = (function (imports) {
      *     format('{0} nice, {0} sweet', 'something');
      *     //returns 'something nice, something sweet'
      */
-    var format = function () {
-        var args = [].slice.call(arguments),
+    const format = function () {
+        const args = [].slice.call(arguments),
             str = args.shift();
-        var new_str = str.replace(/{(\d+)}/g, function (match, index) {
-            var arg = args[index];
+        const new_str = str.replace(/{(\d+)}/g, (match, index) => {
+            const arg = args[index];
             return typeof arg === 'function' ? arg() : arg;
         });
 
@@ -738,10 +764,12 @@ var nerdamer = (function (imports) {
      * @param {number} end
      * @param {number} step
      */
-    var range = function (start, end, step) {
-        var arr = [];
+    const range = function (start, end, step) {
+        const arr = [];
         step = step || 1;
-        for (var i = start; i <= end; i++) arr.push(i * step);
+        for (let i = start; i <= end; i++) {
+            arr.push(i * step);
+        }
         return arr;
     };
 
@@ -751,7 +779,7 @@ var nerdamer = (function (imports) {
      * @param {object} obj
      * @returns {Array}
      */
-    var keys = Object.keys;
+    const keys = Object.keys;
 
     /**
      * Returns the first encountered item in an object. Items do not have a fixed order in objects so only use if you
@@ -763,13 +791,18 @@ var nerdamer = (function (imports) {
      * @returns {any}
      */
     var firstObject = function (obj, key, both) {
-        for (var x in obj) break;
-        if (key) return x;
-        if (both)
+        for (var x in obj) {
+            break;
+        }
+        if (key) {
+            return x;
+        }
+        if (both) {
             return {
                 key: x,
                 obj: obj[x],
             };
+        }
         return obj[x];
     };
 
@@ -781,12 +814,14 @@ var nerdamer = (function (imports) {
      * @param {string[]} vars - An optional array of variables to use
      * @returns {boolean}
      */
-    var compare = function (sym1, sym2, vars) {
-        var n = 5; //a random number between 1 and 5 is good enough
-        var scope = {}; // scope object with random numbers generated using vars
-        var comparison;
-        for (var i = 0; i < vars.length; i++) scope[vars[i]] = new NerdamerSymbol(Math.floor(Math.random() * n) + 1);
-        block('PARSE2NUMBER', function () {
+    const compare = function (sym1, sym2, vars) {
+        const n = 5; //a random number between 1 and 5 is good enough
+        const scope = {}; // scope object with random numbers generated using vars
+        let comparison;
+        for (let i = 0; i < vars.length; i++) {
+            scope[vars[i]] = new NerdamerSymbol(Math.floor(Math.random() * n) + 1);
+        }
+        block('PARSE2NUMBER', () => {
             comparison = _.parse(sym1, scope).equals(_.parse(sym2, scope));
         });
         return comparison;
@@ -801,9 +836,9 @@ var nerdamer = (function (imports) {
      * @param {string} [fnBody]
      * @returns {boolean}
      */
-    var setFunction = function (fnName, fnParams, fnBody) {
+    const setFunction = function (fnName, fnParams, fnBody) {
         if (!fnParams) {
-            var fnNameType = typeof fnName;
+            const fnNameType = typeof fnName;
 
             // Option setFunction('f(x)=x^2+2'), setFunction('f(x):=x^2+2')
             if (fnNameType === 'string') {
@@ -811,11 +846,11 @@ var nerdamer = (function (imports) {
                     return false;
                 }
 
-                var match = Settings.FUNCTION_REGEX.exec(fnName);
+                const match = Settings.FUNCTION_REGEX.exec(fnName);
                 if (!match) {
                     return false;
                 }
-                var [, fName, fParams, fBody] = match;
+                const [, fName, fParams, fBody] = match;
                 fnName = fName;
                 fnParams = fParams.split(',').map(arg => arg.trim());
                 fnBody = fBody;
@@ -823,8 +858,8 @@ var nerdamer = (function (imports) {
 
             // Option setFunction(function fox(x) { return x^2; })
             else if (fnNameType === 'function') {
-                var jsFunction = fnName;
-                var jsName = jsFunction.name;
+                const jsFunction = fnName;
+                const jsName = jsFunction.name;
                 validateName(jsName);
                 if (!isReserved(jsName)) {
                     C.Math2[jsName] = jsFunction;
@@ -870,8 +905,8 @@ var nerdamer = (function (imports) {
     };
 
     /** Clears all user defined functions */
-    var clearFunctions = function () {
-        for (var name of USER_FUNCTIONS) {
+    const clearFunctions = function () {
+        for (const name of USER_FUNCTIONS) {
             delete C.Math2[name];
             delete _.functions[name];
         }
@@ -883,7 +918,7 @@ var nerdamer = (function (imports) {
      * @param {Array} arr
      * @returns {number}
      */
-    var arrayMax = function (arr) {
+    const arrayMax = function (arr) {
         return Math.max.apply(undefined, arr);
     };
 
@@ -893,7 +928,7 @@ var nerdamer = (function (imports) {
      * @param {Array} arr
      * @returns {number}
      */
-    var arrayMin = function (arr) {
+    const arrayMin = function (arr) {
         return Math.min.apply(undefined, arr);
     };
 
@@ -903,13 +938,13 @@ var nerdamer = (function (imports) {
      * @param {Array} arr1
      * @param {Array} arr2
      */
-    var arrayEqual = function (arr1, arr2) {
+    const arrayEqual = function (arr1, arr2) {
         arr1.sort();
         arr2.sort();
 
         // The must be of the same length
         if (arr1.length === arr2.length) {
-            for (var i = 0; i < arr1.length; i++) {
+            for (let i = 0; i < arr1.length; i++) {
                 // If any two items don't match we're done
                 if (arr1[i] !== arr2[i]) {
                     return false;
@@ -928,10 +963,12 @@ var nerdamer = (function (imports) {
      * @param {Array} arr
      * @returns {Array}
      */
-    var arrayClone = function (arr) {
-        var new_array = [],
+    const arrayClone = function (arr) {
+        const new_array = [],
             l = arr.length;
-        for (var i = 0; i < l; i++) new_array[i] = arr[i].clone();
+        for (let i = 0; i < l; i++) {
+            new_array[i] = arr[i].clone();
+        }
         return new_array;
     };
 
@@ -941,16 +978,16 @@ var nerdamer = (function (imports) {
      * @param {number[]} arr
      * @param {number} slices
      */
-    var arrayAddSlices = function (arr, slices) {
+    const arrayAddSlices = function (arr, slices) {
         slices = slices || 20;
-        var retval = [];
-        var c, delta, e;
+        const retval = [];
+        let c, delta, e;
         retval.push(arr[0]); //push the beginning
-        for (var i = 0; i < arr.length - 1; i++) {
+        for (let i = 0; i < arr.length - 1; i++) {
             c = arr[i];
             delta = arr[i + 1] - c; //get the difference
             e = delta / slices; //chop it up in the desired number of slices
-            for (var j = 0; j < slices; j++) {
+            for (let j = 0; j < slices; j++) {
                 c += e; //add the mesh to the last slice
                 retval.push(c);
             }
@@ -965,8 +1002,8 @@ var nerdamer = (function (imports) {
      * @param {NerdamerSymbol} symbol
      * @returns {Vector}
      */
-    var nroots = function (symbol) {
-        var a, b;
+    const nroots = function (symbol) {
+        let a, b;
 
         if (symbol.group === FN && symbol.fname === '') {
             a = NerdamerSymbol.unwrapPARENS(_.parse(symbol).toLinear());
@@ -979,34 +1016,33 @@ var nerdamer = (function (imports) {
         if (a && b && a.group === N && b.group === N && a.multiplier.isNegative()) {
             var _roots = [];
 
-            var parts = NerdamerSymbol.toPolarFormArray(evaluate(symbol));
-            var r = parts[0];
+            const parts = NerdamerSymbol.toPolarFormArray(evaluate(symbol));
+            const r = parts[0];
 
             //var r = _.parse(a).abs().toString();
 
             //https://en.wikipedia.org/wiki/De_Moivre%27s_formula
             var x = _.arg(a);
-            var n = b.multiplier.den.toString();
-            var p = b.multiplier.num.toString();
+            const n = b.multiplier.den.toString();
+            const p = b.multiplier.num.toString();
 
-            var formula = '(({0})^({1})*(cos({3})+({2})*sin({3})))^({4})';
+            const formula = '(({0})^({1})*(cos({3})+({2})*sin({3})))^({4})';
 
-            for (var i = 0; i < n; i++) {
-                var t = evaluate(_.parse(format('(({0})+2*pi*({1}))/({2})', x, i, n))).multiplier.toDecimal();
+            for (let i = 0; i < n; i++) {
+                const t = evaluate(_.parse(format('(({0})+2*pi*({1}))/({2})', x, i, n))).multiplier.toDecimal();
                 _roots.push(evaluate(_.parse(format(formula, r, n, Settings.IMAGINARY, t, p))));
             }
             return Vector.fromArray(_roots);
         } else if (symbol.isConstant(true, true)) {
-            var sign = symbol.sign();
+            const sign = symbol.sign();
             var x = evaluate(symbol.abs());
-            var root = _.sqrt(x);
+            const root = _.sqrt(x);
 
             var _roots = [root.clone(), root.negate()];
 
-            if (sign < 0)
-                _roots = _roots.map(function (x) {
-                    return _.multiply(x, NerdamerSymbol.imaginary());
-                });
+            if (sign < 0) {
+                _roots = _roots.map(x => _.multiply(x, NerdamerSymbol.imaginary()));
+            }
         } else {
             _roots = [_.parse(symbol)];
         }
@@ -1020,18 +1056,16 @@ var nerdamer = (function (imports) {
      * @param {string} a
      * @param {string} b
      */
-    var comboSort = function (a, b) {
-        var l = a.length,
+    const comboSort = function (a, b) {
+        const l = a.length,
             combined = []; //the linker
         for (var i = 0; i < a.length; i++) {
             combined.push([a[i], b[i]]); //create the map
         }
 
-        combined.sort(function (x, y) {
-            return x[0] - y[0];
-        });
+        combined.sort((x, y) => x[0] - y[0]);
 
-        var na = [],
+        const na = [],
             nb = [];
 
         for (i = 0; i < l; i++) {
@@ -1049,24 +1083,27 @@ var nerdamer = (function (imports) {
      * @param {string} wrt
      * @param {boolean} as_obj
      */
-    var decompose_fn = function (fn, wrt, as_obj) {
+    const decompose_fn = function (fn, wrt, as_obj) {
         wrt = String(wrt); //convert to string
-        var ax, a, x, b;
+        let ax, a, x, b;
         if (fn.group === CP) {
-            var t = _.expand(fn.clone()).stripVar(wrt);
+            const t = _.expand(fn.clone()).stripVar(wrt);
             ax = _.subtract(fn.clone(), t.clone());
             b = t;
-        } else ax = fn.clone();
+        } else {
+            ax = fn.clone();
+        }
         a = ax.stripVar(wrt);
         x = _.divide(ax.clone(), a.clone());
         b = b || new NerdamerSymbol(0);
-        if (as_obj)
+        if (as_obj) {
             return {
-                a: a,
-                x: x,
-                ax: ax,
-                b: b,
+                a,
+                x,
+                ax,
+                b,
             };
+        }
         return [a, x, ax, b];
     };
     /**
@@ -1075,9 +1112,11 @@ var nerdamer = (function (imports) {
      * @param {number} x
      * @param {number} s
      */
-    var nround = function (x, s) {
+    const nround = function (x, s) {
         if (isInt(x)) {
-            if (x >= Number.MAX_VALUE) return x.toString();
+            if (x >= Number.MAX_VALUE) {
+                return x.toString();
+            }
             return Number(x);
         }
 
@@ -1093,22 +1132,28 @@ var nerdamer = (function (imports) {
      *
      * @param {NerdamerSymbol} symbol
      */
-    var getU = function (symbol) {
+    const getU = function (symbol) {
         //start with u
-        var u = 'u', //start with u
+        let u = 'u', //start with u
             v = u, //init with u
             c = 0, //postfix number
             vars = variables(symbol);
         //make sure this variable isn't reserved and isn't in the variable list
-        while (!(RESERVED.indexOf(v) === -1 && vars.indexOf(v) === -1)) v = u + c++;
+        while (!(RESERVED.indexOf(v) === -1 && vars.indexOf(v) === -1)) {
+            v = u + c++;
+        }
         //get an empty slot. It seems easier to just push but the
         //problem is that we may have some which are created by clearU
-        for (var i = 0, l = RESERVED.length; i <= l; i++)
-            //reserved cannot equals false or 0 so we can safely check for a falsy type
+        for (
+            let i = 0, l = RESERVED.length;
+            i <= l;
+            i++ //reserved cannot equals false or 0 so we can safely check for a falsy type
+        ) {
             if (!RESERVED[i]) {
                 RESERVED[i] = v; //reserve the variable
                 break;
             }
+        }
         return v;
     };
 
@@ -1117,9 +1162,11 @@ var nerdamer = (function (imports) {
      *
      * @param {string} u
      */
-    var clearU = function (u) {
-        var indx = RESERVED.indexOf(u);
-        if (indx !== -1) RESERVED[indx] = undefined;
+    const clearU = function (u) {
+        const indx = RESERVED.indexOf(u);
+        if (indx !== -1) {
+            RESERVED[indx] = undefined;
+        }
     };
 
     /**
@@ -1128,12 +1175,18 @@ var nerdamer = (function (imports) {
      * @param {object | Array} obj
      * @param {Function} fn
      */
-    var each = function (obj, fn) {
+    const each = function (obj, fn) {
         if (isArray(obj)) {
-            var l = obj.length;
-            for (var i = 0; i < l; i++) fn.call(obj, i);
+            const l = obj.length;
+            for (let i = 0; i < l; i++) {
+                fn.call(obj, i);
+            }
         } else {
-            for (var x in obj) if (obj.hasOwnProperty(x)) fn.call(obj, x);
+            for (const x in obj) {
+                if (obj.hasOwnProperty(x)) {
+                    fn.call(obj, x);
+                }
+            }
         }
     };
 
@@ -1143,7 +1196,7 @@ var nerdamer = (function (imports) {
      * @param {number} num
      * @returns {boolean}
      */
-    var even = function (num) {
+    const even = function (num) {
         return num % 2 === 0;
     };
 
@@ -1153,7 +1206,7 @@ var nerdamer = (function (imports) {
      * @param {number} num
      * @returns {boolean}
      */
-    var evenFraction = function (num) {
+    const evenFraction = function (num) {
         return (1 / (num % 1)) % 2 === 0;
     };
 
@@ -1162,12 +1215,14 @@ var nerdamer = (function (imports) {
      *
      * @param {Array} arr
      */
-    var arrayUnique = function (arr) {
-        var l = arr.length,
+    const arrayUnique = function (arr) {
+        const l = arr.length,
             a = [];
-        for (var i = 0; i < l; i++) {
-            var item = arr[i];
-            if (a.indexOf(item) === -1) a.push(item);
+        for (let i = 0; i < l; i++) {
+            const item = arr[i];
+            if (a.indexOf(item) === -1) {
+                a.push(item);
+            }
         }
         return a;
     };
@@ -1177,11 +1232,13 @@ var nerdamer = (function (imports) {
      *
      * @param {NerdamerSymbol[]} arr
      */
-    var arrayGetVariables = function (arr) {
-        var vars = variables(arr[0], null, null, true);
+    const arrayGetVariables = function (arr) {
+        let vars = variables(arr[0], null, null, true);
 
         //get all variables
-        for (var i = 1, l = arr.length; i < l; i++) vars = vars.concat(variables(arr[i]));
+        for (let i = 1, l = arr.length; i < l; i++) {
+            vars = vars.concat(variables(arr[i]));
+        }
         //remove duplicates
         vars = arrayUnique(vars).sort();
 
@@ -1195,8 +1252,8 @@ var nerdamer = (function (imports) {
      * @param {Array} arr
      * @param {Function} condition
      */
-    var removeDuplicates = function (arr, condition) {
-        var conditionType = typeof condition;
+    const removeDuplicates = function (arr, condition) {
+        const conditionType = typeof condition;
 
         if (conditionType !== 'function' || conditionType === 'undefined') {
             condition = function (a, b) {
@@ -1204,21 +1261,23 @@ var nerdamer = (function (imports) {
             };
         }
 
-        var seen = [];
+        const seen = [];
 
         while (arr.length) {
-            var a = arr[0];
+            const a = arr[0];
             //only one element left so we're done
             if (arr.length === 1) {
                 seen.push(a);
                 break;
             }
-            var temp = [];
+            const temp = [];
             seen.push(a); //we already scanned these
-            for (var i = 1; i < arr.length; i++) {
-                var b = arr[i];
+            for (let i = 1; i < arr.length; i++) {
+                const b = arr[i];
                 //if the number is outside the specified tolerance
-                if (!condition(a, b)) temp.push(b);
+                if (!condition(a, b)) {
+                    temp.push(b);
+                }
             }
             //start over with the remainder
             arr = temp;
@@ -1232,14 +1291,17 @@ var nerdamer = (function (imports) {
      *
      * @param {object} obj
      */
-    var reserveNames = function (obj) {
-        var add = function (item) {
-            if (RESERVED.indexOf(item) === -1) RESERVED.push(item);
+    const reserveNames = function (obj) {
+        const add = function (item) {
+            if (RESERVED.indexOf(item) === -1) {
+                RESERVED.push(item);
+            }
         };
 
-        if (typeof obj === 'string') add(obj);
-        else {
-            each(obj, function (x) {
+        if (typeof obj === 'string') {
+            add(obj);
+        } else {
+            each(obj, x => {
                 add(x);
             });
         }
@@ -1252,8 +1314,8 @@ var nerdamer = (function (imports) {
      * @param {object | Array} obj
      * @param {number | string} indexOrKey
      */
-    var remove = function (obj, indexOrKey) {
-        var result;
+    const remove = function (obj, indexOrKey) {
+        let result;
         if (isArray(obj)) {
             result = obj.splice(indexOrKey, 1)[0];
         } else {
@@ -1277,9 +1339,9 @@ var nerdamer = (function (imports) {
      * @param {string} obj - The obj of interest. Usually a NerdamerSymbol but could be any object
      */
     var block = function (setting, f, opt, obj) {
-        var current_setting = Settings[setting];
+        const current_setting = Settings[setting];
         Settings[setting] = opt === undefined ? true : !!opt;
-        var retval = f.call(obj);
+        const retval = f.call(obj);
         Settings[setting] = current_setting;
         return retval;
     };
@@ -1289,9 +1351,11 @@ var nerdamer = (function (imports) {
      * This can maybe just remove the function object at some point when all functions are eventually housed in the
      * global function object. Returns ALL parser available functions. Parser.functions may not contain all functions
      */
-    var importFunctions = function () {
-        var o = {};
-        for (var x in _.functions) o[x] = _.functions[x][0];
+    const importFunctions = function () {
+        const o = {};
+        for (const x in _.functions) {
+            o[x] = _.functions[x][0];
+        }
         return o;
     };
 
@@ -1300,7 +1364,7 @@ var nerdamer = (function (imports) {
      *
      * @param {Array | object} obj
      */
-    var arguments2Array = function (obj) {
+    const arguments2Array = function (obj) {
         return [].slice.call(obj);
     };
 
@@ -1310,11 +1374,11 @@ var nerdamer = (function (imports) {
      * @param {NerdamerSymbol} symbol
      * @param {NerdamerSymbol} wrt
      */
-    var getCoeffs = function (symbol, wrt, info) {
-        var coeffs = [];
+    const getCoeffs = function (symbol, wrt, info) {
+        const coeffs = [];
         //we loop through the symbols and stick them in their respective
         //containers e.g. y*x^2 goes to index 2
-        symbol.each(function (term) {
+        symbol.each(term => {
             if (term.contains(wrt)) {
                 //we want only the coefficient which in this case will be everything but the variable
                 //e.g. a*b*x -> a*b if the variable to solve for is x
@@ -1325,12 +1389,16 @@ var nerdamer = (function (imports) {
                 coeff = term;
                 p = 0;
             }
-            var e = coeffs[p];
+            const e = coeffs[p];
             //if it exists just add it to it
             coeffs[p] = e ? _.add(e, coeff) : coeff;
         }, true);
 
-        for (var i = 0; i < coeffs.length; i++) if (!coeffs[i]) coeffs[i] = new NerdamerSymbol(0);
+        for (let i = 0; i < coeffs.length; i++) {
+            if (!coeffs[i]) {
+                coeffs[i] = new NerdamerSymbol(0);
+            }
+        }
         //fill the holes
         return coeffs;
     };
@@ -1342,13 +1410,7 @@ var nerdamer = (function (imports) {
      * @param {NerdamerSymbol} o
      */
     var evaluate = function (symbol, o) {
-        return block(
-            'PARSE2NUMBER',
-            function () {
-                return _.parse(symbol, o);
-            },
-            true
-        );
+        return block('PARSE2NUMBER', () => _.parse(symbol, o), true);
     };
 
     /**
@@ -1356,14 +1418,18 @@ var nerdamer = (function (imports) {
      *
      * @param {string[] | string | NerdamerSymbol | number | number[]} x
      */
-    var convertToVector = function (x) {
+    const convertToVector = function (x) {
         if (isArray(x)) {
-            var vector = new Vector([]);
-            for (var i = 0; i < x.length; i++) vector.elements.push(convertToVector(x[i]));
+            const vector = new Vector([]);
+            for (let i = 0; i < x.length; i++) {
+                vector.elements.push(convertToVector(x[i]));
+            }
             return vector;
         }
         //Ensure that a nerdamer ready object is returned
-        if (!isSymbol(x)) return _.parse(x);
+        if (!isSymbol(x)) {
+            return _.parse(x);
+        }
         return x;
     };
 
@@ -1372,12 +1438,14 @@ var nerdamer = (function (imports) {
      *
      * @param {number} upto
      */
-    var generatePrimes = function (upto) {
+    const generatePrimes = function (upto) {
         //get the last prime in the array
-        var last_prime = PRIMES[PRIMES.length - 1] || 2;
+        const last_prime = PRIMES[PRIMES.length - 1] || 2;
         //no need to check if we've already encountered the number. Just check the cache.
-        for (var i = last_prime; i < upto; i++) {
-            if (isPrime(i)) PRIMES.push(i);
+        for (let i = last_prime; i < upto; i++) {
+            if (isPrime(i)) {
+                PRIMES.push(i);
+            }
             PRIMES_SET[i] = true;
         }
     };
@@ -1386,8 +1454,12 @@ var nerdamer = (function (imports) {
      *
      * @param {object} args
      */
-    var allNumbers = function (args) {
-        for (var i = 0; i < args.length; i++) if (args[i].group !== N) return false;
+    const allNumbers = function (args) {
+        for (let i = 0; i < args.length; i++) {
+            if (args[i].group !== N) {
+                return false;
+            }
+        }
         return true;
     };
     /*
@@ -1395,10 +1467,14 @@ var nerdamer = (function (imports) {
      * are constants as well e.g. pi, e.
      * @param {object} args
      */
-    var allConstants = function (args) {
-        for (var i = 0; i < args.length; i++) {
-            if (args[i].isPi() || args[i].isE()) continue;
-            if (!args[i].isConstant(true)) return false;
+    const allConstants = function (args) {
+        for (let i = 0; i < args.length; i++) {
+            if (args[i].isPi() || args[i].isE()) {
+                continue;
+            }
+            if (!args[i].isConstant(true)) {
+                return false;
+            }
         }
         return true;
     };
@@ -1409,25 +1485,25 @@ var nerdamer = (function (imports) {
      * @param {NerdamerSymbol} a
      * @param {NerdamerSymbol} b
      */
-    var mix = function (a, b, opt) {
+    const mix = function (a, b, opt) {
         // Flip them if b is a CP or PL and a is not
         if ((b.isComposite() && !a.isComposite()) || (b.isLinear() && !a.isLinear())) {
             [a, b] = [b, a];
         }
         // A temporary variable to hold the expanded terms
-        var t = new NerdamerSymbol(0);
+        let t = new NerdamerSymbol(0);
         if (a.isLinear()) {
-            a.each(function (x) {
+            a.each(x => {
                 // If b is not a PL or a CP then simply multiply it
                 if (!b.isComposite()) {
-                    var term = _.multiply(_.parse(x), _.parse(b));
+                    const term = _.multiply(_.parse(x), _.parse(b));
                     t = _.add(t, _.expand(term, opt));
                 }
                 // Otherwise multiply out each term.
                 else if (b.isLinear()) {
-                    b.each(function (y) {
-                        var term = _.multiply(_.parse(x), _.parse(y));
-                        var expanded = _.expand(_.parse(term), opt);
+                    b.each(y => {
+                        const term = _.multiply(_.parse(x), _.parse(y));
+                        const expanded = _.expand(_.parse(term), opt);
                         t = _.add(t, expanded);
                     }, true);
                 } else {
@@ -1445,56 +1521,56 @@ var nerdamer = (function (imports) {
 
     //Exceptions ===================================================================
     //Is thrown for division by zero
-    var DivisionByZero = customError('DivisionByZero');
+    const DivisionByZero = customError('DivisionByZero');
     // Is throw if an error occured during parsing
-    var ParseError = customError('ParseError');
+    const ParseError = customError('ParseError');
     // Is thrown if the expression results in undefined
-    var UndefinedError = customError('UndefinedError');
+    const UndefinedError = customError('UndefinedError');
     // Is throw input is out of the function domain
-    var OutOfFunctionDomainError = customError('OutOfFunctionDomainError');
+    const OutOfFunctionDomainError = customError('OutOfFunctionDomainError');
     // Is throw if a function exceeds x amount of iterations
-    var MaximumIterationsReached = customError('MaximumIterationsReached');
+    const MaximumIterationsReached = customError('MaximumIterationsReached');
     // Is thrown if the parser receives an incorrect type
-    var NerdamerTypeError = customError('NerdamerTypeError');
+    const NerdamerTypeError = customError('NerdamerTypeError');
     // Is thrown if bracket parity is not correct
-    var ParityError = customError('ParityError');
+    const ParityError = customError('ParityError');
     // Is thrown if an unexpectd or incorrect operator is encountered
-    var OperatorError = customError('OperatorError');
+    const OperatorError = customError('OperatorError');
     // Is thrown if an index is out of range.
-    var OutOfRangeError = customError('OutOfRangeError');
+    const OutOfRangeError = customError('OutOfRangeError');
     // Is thrown if dimensions are incorrect. Mostly for matrices
-    var DimensionError = customError('DimensionError');
+    const DimensionError = customError('DimensionError');
     // Is thrown if variable name violates naming rule
     var InvalidVariableNameError = customError('InvalidVariableNameError');
     // Is thrown if the limits of the library are exceeded for a function
     // This can be that the function become unstable passed a value
-    var ValueLimitExceededError = customError('ValueLimitExceededError');
+    const ValueLimitExceededError = customError('ValueLimitExceededError');
     // Is throw if the value is an incorrect LH or RH value
-    var NerdamerValueError = customError('NerdamerValueError');
+    const NerdamerValueError = customError('NerdamerValueError');
     // Is thrown if the value is an incorrect LH or RH value
-    var SolveError = customError('SolveError');
+    const SolveError = customError('SolveError');
     // Is thrown for an infinite loop
-    var InfiniteLoopError = customError('InfiniteLoopError');
+    const InfiniteLoopError = customError('InfiniteLoopError');
     // Is thrown if an operator is found when there shouldn't be one
-    var UnexpectedTokenError = customError('UnexpectedTokenError');
+    const UnexpectedTokenError = customError('UnexpectedTokenError');
 
-    var exceptions = {
-        DivisionByZero: DivisionByZero,
-        ParseError: ParseError,
-        OutOfFunctionDomainError: OutOfFunctionDomainError,
-        UndefinedError: UndefinedError,
-        MaximumIterationsReached: MaximumIterationsReached,
-        NerdamerTypeError: NerdamerTypeError,
-        ParityError: ParityError,
-        OperatorError: OperatorError,
-        OutOfRangeError: OutOfRangeError,
-        DimensionError: DimensionError,
-        InvalidVariableNameError: InvalidVariableNameError,
-        ValueLimitExceededError: ValueLimitExceededError,
-        NerdamerValueError: NerdamerValueError,
-        SolveError: SolveError,
-        InfiniteLoopError: InfiniteLoopError,
-        UnexpectedTokenError: UnexpectedTokenError,
+    const exceptions = {
+        DivisionByZero,
+        ParseError,
+        OutOfFunctionDomainError,
+        UndefinedError,
+        MaximumIterationsReached,
+        NerdamerTypeError,
+        ParityError,
+        OperatorError,
+        OutOfRangeError,
+        DimensionError,
+        InvalidVariableNameError,
+        ValueLimitExceededError,
+        NerdamerValueError,
+        SolveError,
+        InfiniteLoopError,
+        UnexpectedTokenError,
     };
     //Math2 ========================================================================
     //This object holds additional functions for nerdamer. Think of it as an extension of the Math object.
@@ -1502,28 +1578,28 @@ var nerdamer = (function (imports) {
     //functions within are pretty self-explanatory.
     //NOTE: DO NOT USE INLINE COMMENTS WITH THE MATH2 OBJECT! THIS BREAK DURING COMPILATION OF BUILDFUNCTION.
     var Math2 = {
-        csc: function (x) {
+        csc(x) {
             return 1 / Math.sin(x);
         },
-        sec: function (x) {
+        sec(x) {
             return 1 / Math.cos(x);
         },
-        cot: function (x) {
+        cot(x) {
             return 1 / Math.tan(x);
         },
-        acsc: function (x) {
+        acsc(x) {
             return Math.asin(1 / x);
         },
-        asec: function (x) {
+        asec(x) {
             return Math.acos(1 / x);
         },
-        acot: function (x) {
+        acot(x) {
             return Math.PI / 2 - Math.atan(x);
         },
         // https://gist.github.com/jiggzson/df0e9ae8b3b06ff3d8dc2aa062853bd8
-        erf: function (x) {
-            var t = 1 / (1 + 0.5 * Math.abs(x));
-            var result =
+        erf(x) {
+            const t = 1 / (1 + 0.5 * Math.abs(x));
+            const result =
                 1 -
                 t *
                     Math.exp(
@@ -1549,23 +1625,23 @@ var nerdamer = (function (imports) {
                     );
             return x >= 0 ? result : -result;
         },
-        diff: function (f) {
-            var h = 0.001;
+        diff(f) {
+            const h = 0.001;
 
-            var derivative = function (x) {
+            const derivative = function (x) {
                 return (f(x + h) - f(x - h)) / (2 * h);
             };
 
             return derivative;
         },
-        median: function (...values) {
-            values.sort(function (a, b) {
-                return a - b;
-            });
+        median(...values) {
+            values.sort((a, b) => a - b);
 
-            var half = Math.floor(values.length / 2);
+            const half = Math.floor(values.length / 2);
 
-            if (values.length % 2) return values[half];
+            if (values.length % 2) {
+                return values[half];
+            }
 
             return (values[half - 1] + values[half]) / 2.0;
         },
@@ -1574,10 +1650,10 @@ var nerdamer = (function (imports) {
          * @param {obj} contd
          * @returns {number}
          */
-        fromContinued: function (contd) {
-            var arr = contd.fractions.slice();
-            var e = 1 / arr.pop();
-            for (var i = 0, l = arr.length; i < l; i++) {
+        fromContinued(contd) {
+            const arr = contd.fractions.slice();
+            let e = 1 / arr.pop();
+            for (let i = 0, l = arr.length; i < l; i++) {
                 e = 1 / (arr.pop() + e);
             }
             return contd.sign * (contd.whole + e);
@@ -1588,20 +1664,20 @@ var nerdamer = (function (imports) {
          * @param {number} x The number of places
          * @returns {number}
          */
-        continuedFraction: function (n, x) {
+        continuedFraction(n, x) {
             x = x || 20;
-            var sign = Math.sign(n); /*store the sign*/
-            var absn = Math.abs(n); /*get the absolute value of the number*/
-            var whole = Math.floor(absn); /*get the whole*/
-            var ni = absn - whole; /*subtract the whole*/
-            var c = 0; /*the counter to keep track of iterations*/
-            var done = false;
-            var epsilon = 1e-14;
-            var max = 1e7;
-            var e, w;
-            var retval = {
-                whole: whole,
-                sign: sign,
+            const sign = Math.sign(n); /*store the sign*/
+            const absn = Math.abs(n); /*get the absolute value of the number*/
+            const whole = Math.floor(absn); /*get the whole*/
+            let ni = absn - whole; /*subtract the whole*/
+            let c = 0; /*the counter to keep track of iterations*/
+            let done = false;
+            const epsilon = 1e-14;
+            const max = 1e7;
+            let e, w;
+            const retval = {
+                whole,
+                sign,
                 fractions: [],
             };
             /*start calculating*/
@@ -1611,19 +1687,23 @@ var nerdamer = (function (imports) {
                 w = Math.floor(e);
                 if (w > max) {
                     /*this signals that we may have already gone too far*/
-                    var d = Math2.fromContinued(retval) - n;
-                    if (d <= Number.EPSILON) break;
+                    const d = Math2.fromContinued(retval) - n;
+                    if (d <= Number.EPSILON) {
+                        break;
+                    }
                 }
                 /*add to result*/
                 retval.fractions.push(w);
                 /*move the ni to the decimal*/
                 ni = e - w;
                 /*ni should always be a decimal. If we have a whole number then we're in the rounding errors*/
-                if (ni <= epsilon || c >= x - 1) done = true;
+                if (ni <= epsilon || c >= x - 1) {
+                    done = true;
+                }
                 c++;
             }
             /*cleanup 1/(n+1/1) = 1/(n+1) so just move the last digit one over if it's one*/
-            var idx = retval.fractions.length - 1;
+            let idx = retval.fractions.length - 1;
             if (retval.fractions[idx] === 1) {
                 retval.fractions.pop();
                 /*increase the last one by one*/
@@ -1631,16 +1711,20 @@ var nerdamer = (function (imports) {
             }
             return retval;
         },
-        bigpow: function (n, p) {
-            if (!(n instanceof Frac)) n = Frac.create(n);
-            if (!(p instanceof Frac)) p = Frac.create(p);
-            var retval = new Frac(0);
+        bigpow(n, p) {
+            if (!(n instanceof Frac)) {
+                n = Frac.create(n);
+            }
+            if (!(p instanceof Frac)) {
+                p = Frac.create(p);
+            }
+            const retval = new Frac(0);
             if (p.isInteger()) {
                 retval.num = n.num.pow(p.toString());
                 retval.den = n.den.pow(p.toString());
             } else {
-                var num = Frac.create(Math.pow(n.num, p.num));
-                var den = Frac.create(Math.pow(n.den, p.num));
+                const num = Frac.create(Math.pow(n.num, p.num));
+                const den = Frac.create(Math.pow(n.den, p.num));
 
                 retval.num = Math2.nthroot(num, p.den.toString());
                 retval.den = Math2.nthroot(den, p.den);
@@ -1648,75 +1732,91 @@ var nerdamer = (function (imports) {
             return retval;
         },
         //http://stackoverflow.com/questions/15454183/how-to-make-a-function-that-computes-the-factorial-for-numbers-with-decimals
-        gamma: function (z) {
-            var g = 7;
-            var C = [
+        gamma(z) {
+            const g = 7;
+            const C = [
                 0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
                 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
             ];
-            if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * Math2.gamma(1 - z));
-            else {
+            if (z < 0.5) {
+                return Math.PI / (Math.sin(Math.PI * z) * Math2.gamma(1 - z));
+            } else {
                 z -= 1;
 
-                var x = C[0];
-                for (var i = 1; i < g + 2; i++) x += C[i] / (z + i);
+                let x = C[0];
+                for (let i = 1; i < g + 2; i++) {
+                    x += C[i] / (z + i);
+                }
 
-                var t = z + g + 0.5;
+                const t = z + g + 0.5;
                 return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
             }
         },
         //factorial
-        bigfactorial: function (x) {
-            var retval = new bigInt(1);
-            for (var i = 2; i <= x; i++) retval = retval.times(i);
+        bigfactorial(x) {
+            let retval = new bigInt(1);
+            for (let i = 2; i <= x; i++) {
+                retval = retval.times(i);
+            }
             return new Frac(retval);
         },
         //https://en.wikipedia.org/wiki/Logarithm#Calculation
-        bigLog: function (x) {
-            var CACHE = imports.constants.BIG_LOG_CACHE;
+        bigLog(x) {
+            const CACHE = imports.constants.BIG_LOG_CACHE;
             if (CACHE[x]) {
                 return Frac.quick.apply(null, CACHE[x].split('/'));
             }
             x = new Frac(x);
-            var n = 80;
-            var retval = new Frac(0);
-            var a = x.subtract(new Frac(1));
-            var b = x.add(new Frac(1));
-            for (var i = 0; i < n; i++) {
-                var t = new Frac(2 * i + 1);
-                var k = Math2.bigpow(a.divide(b), t);
-                var r = t.clone().invert().multiply(k);
+            const n = 80;
+            let retval = new Frac(0);
+            const a = x.subtract(new Frac(1));
+            const b = x.add(new Frac(1));
+            for (let i = 0; i < n; i++) {
+                const t = new Frac(2 * i + 1);
+                const k = Math2.bigpow(a.divide(b), t);
+                const r = t.clone().invert().multiply(k);
                 retval = retval.add(r);
             }
             return retval.multiply(new Frac(2));
         },
         //the factorial function but using the big library instead
-        factorial: function (x) {
-            var is_int = x % 1 === 0;
+        factorial(x) {
+            const is_int = x % 1 === 0;
 
             /*factorial for negative integers is complex infinity according to Wolfram Alpha*/
-            if (is_int && x < 0) return NaN;
+            if (is_int && x < 0) {
+                return NaN;
+            }
 
-            if (!is_int) return Math2.gamma(x + 1);
+            if (!is_int) {
+                return Math2.gamma(x + 1);
+            }
 
-            var retval = 1;
-            for (var i = 2; i <= x; i++) retval = retval * i;
+            let retval = 1;
+            for (let i = 2; i <= x; i++) {
+                retval = retval * i;
+            }
             return retval;
         },
         //double factorial
         //http://mathworld.wolfram.com/DoubleFactorial.html
-        dfactorial: function (x) {
+        dfactorial(x) {
             if (isInt(x)) {
-                var even = x % 2 === 0;
+                const even = x % 2 === 0;
                 /* If x = even then n = x/2 else n = (x-1)/2*/
-                var n = even ? x / 2 : (x + 1) / 2;
+                const n = even ? x / 2 : (x + 1) / 2;
                 /*the return value*/
                 var r = new Frac(1);
                 /*start the loop*/
-                if (even) for (var i = 1; i <= n; i++) r = r.multiply(new Frac(2).multiply(new Frac(i)));
-                else
-                    for (var i = 1; i <= n; i++)
+                if (even) {
+                    for (var i = 1; i <= n; i++) {
+                        r = r.multiply(new Frac(2).multiply(new Frac(i)));
+                    }
+                } else {
+                    for (var i = 1; i <= n; i++) {
                         r = r.multiply(new Frac(2).multiply(new Frac(i)).subtract(new Frac(1)));
+                    }
+                }
             } else {
                 /*Not yet extended to bigNum*/
                 r =
@@ -1728,17 +1828,13 @@ var nerdamer = (function (imports) {
             /*done*/
             return r;
         },
-        GCD: function () {
-            var args = arrayUnique(
-                    [].slice.call(arguments).map(function (x) {
-                        return Math.abs(x);
-                    })
-                ).sort(),
+        GCD() {
+            let args = arrayUnique([].slice.call(arguments).map(x => Math.abs(x))).sort(),
                 a = Math.abs(args.shift()),
                 n = args.length;
 
             while (n-- > 0) {
-                var b = Math.abs(args.shift());
+                let b = Math.abs(args.shift());
                 while (true) {
                     a %= b;
                     if (a === 0) {
@@ -1746,48 +1842,54 @@ var nerdamer = (function (imports) {
                         break;
                     }
                     b %= a;
-                    if (b === 0) break;
+                    if (b === 0) {
+                        break;
+                    }
                 }
             }
             return a;
         },
-        QGCD: function () {
-            var args = [].slice.call(arguments);
-            var a = args[0];
-            for (var i = 1; i < args.length; i++) {
-                var b = args[i];
-                var sign = a.isNegative() && b.isNegative() ? -1 : 1;
+        QGCD() {
+            const args = [].slice.call(arguments);
+            let a = args[0];
+            for (let i = 1; i < args.length; i++) {
+                const b = args[i];
+                const sign = a.isNegative() && b.isNegative() ? -1 : 1;
                 a = b.gcd(a);
-                if (sign < 0) a.negate();
+                if (sign < 0) {
+                    a.negate();
+                }
             }
             return a;
         },
-        LCM: function (a, b) {
+        LCM(a, b) {
             return (a * b) / Math2.GCD(a, b);
         },
         //pow but with the handling of negative numbers
         //http://stackoverflow.com/questions/12810765/calculating-cubic-root-for-negative-number
-        pow: function (b, e) {
+        pow(b, e) {
             if (b < 0) {
                 if (Math.abs(e) < 1) {
                     /*nth root of a negative number is imaginary when n is even*/
-                    if ((1 / e) % 2 === 0) return NaN;
+                    if ((1 / e) % 2 === 0) {
+                        return NaN;
+                    }
                     return -Math.pow(Math.abs(b), e);
                 }
             }
             return Math.pow(b, e);
         },
-        factor: function (n) {
+        factor(n) {
             n = Number(n);
-            var sign = Math.sign(n); /*store the sign*/
+            const sign = Math.sign(n); /*store the sign*/
             /*move the number to absolute value*/
             n = Math.abs(n);
-            var ifactors = Math2.ifactor(n);
-            var factors = new NerdamerSymbol();
+            const ifactors = Math2.ifactor(n);
+            let factors = new NerdamerSymbol();
             factors.symbols = {};
             factors.group = CB;
-            for (var x in ifactors) {
-                var factor = new NerdamerSymbol(1);
+            for (const x in ifactors) {
+                const factor = new NerdamerSymbol(1);
                 factor.group = P; /*cheat a little*/
                 factor.value = x;
                 factor.power = new NerdamerSymbol(ifactors[x]);
@@ -1800,7 +1902,9 @@ var nerdamer = (function (imports) {
             }
 
             /*put back the sign*/
-            if (sign < 0) factors.negate();
+            if (sign < 0) {
+                factors.negate();
+            }
 
             return factors;
         },
@@ -1811,23 +1915,27 @@ var nerdamer = (function (imports) {
          * @param {object} factors - The factors object
          * @returns {object}
          */
-        sfactor: function (n, factors) {
+        sfactor(n, factors) {
             factors = factors || {};
-            var r = Math.floor(Math.sqrt(n));
-            var lcprime = PRIMES[PRIMES.length - 1];
+            const r = Math.floor(Math.sqrt(n));
+            const lcprime = PRIMES[PRIMES.length - 1];
             /*a one-time cost... Hopefully ... And don't bother for more than a million*/
             /*takes too long*/
-            if (r > lcprime && n < 1e6) generatePrimes(r);
-            var l = PRIMES.length;
-            for (var i = 0; i < l; i++) {
-                var prime = PRIMES[i];
+            if (r > lcprime && n < 1e6) {
+                generatePrimes(r);
+            }
+            const l = PRIMES.length;
+            for (let i = 0; i < l; i++) {
+                const prime = PRIMES[i];
                 /*trial division*/
                 while (n % prime === 0) {
                     n = n / prime;
                     factors[prime] = (factors[prime] || 0) + 1;
                 }
             }
-            if (n > 1) factors[n] = 1;
+            if (n > 1) {
+                factors[n] = 1;
+            }
             return factors;
         },
         /**
@@ -1836,30 +1944,34 @@ var nerdamer = (function (imports) {
          * @param {number} n
          * @returns {object}
          */
-        ifactor: function (n) {
-            var input = new bigInt(n);
+        ifactor(n) {
+            const input = new bigInt(n);
 
             n = String(n);
 
-            if (n === '0') return { 0: 1 };
+            if (n === '0') {
+                return { 0: 1 };
+            }
             n = new bigInt(n); /*convert to bigInt for safety*/
-            var sign = n.isNegative() ? -1 : 1;
+            const sign = n.isNegative() ? -1 : 1;
             n = n.abs();
-            var factors = {}; /*factor object being returned.*/
+            let factors = {}; /*factor object being returned.*/
             if (n.lt('65536')) {
                 /*less than 2^16 just use trial division*/
                 factors = Math2.sfactor(n, factors);
             } else {
-                var add = function (e) {
+                const add = function (e) {
                     if (!e.isPrime()) {
                         factors = Math2.sfactor(e, factors);
-                    } else factors[e] = (factors[e] || 0) + 1;
+                    } else {
+                        factors[e] = (factors[e] || 0) + 1;
+                    }
                 };
 
                 try {
                     //set a safety
-                    var max = 1e3;
-                    var safety = 0;
+                    const max = 1e3;
+                    let safety = 0;
 
                     while (!n.abs().equals(1)) {
                         if (n.isPrime()) {
@@ -1867,15 +1979,17 @@ var nerdamer = (function (imports) {
                             break;
                         } else {
                             function rho(c) {
-                                var xf = new bigInt(c),
+                                let xf = new bigInt(c),
                                     cz = 2,
                                     x = new bigInt(c),
                                     factor = new bigInt(1);
 
                                 while (factor.equals(1)) {
-                                    for (var i = 0; i <= cz && factor.equals(1); i++) {
+                                    for (let i = 0; i <= cz && factor.equals(1); i++) {
                                         //trigger the safety
-                                        if (safety++ > max) throw new Error('stopping');
+                                        if (safety++ > max) {
+                                            throw new Error('stopping');
+                                        }
 
                                         x = x.pow(2).add(1).mod(n);
                                         factor = bigInt.gcd(x.minus(xf).abs(), n);
@@ -1889,14 +2003,16 @@ var nerdamer = (function (imports) {
                                 }
                                 return factor;
                             }
-                            var factor = rho(2);
+                            const factor = rho(2);
                             add(factor);
                             /*divide out the factor*/
                             n = n.divide(factor);
                         }
                     }
                 } catch (e) {
-                    if (e.message === 'timeout') throw e;
+                    if (e.message === 'timeout') {
+                        throw e;
+                    }
                     //reset factors
                     factors = {};
                     add(input);
@@ -1905,8 +2021,8 @@ var nerdamer = (function (imports) {
 
             /*put the sign back*/
             if (sign === -1) {
-                var sm = arrayMin(keys(factors)); /*/get the smallest number*/
-                factors['-' + sm] = factors[sm];
+                const sm = arrayMin(keys(factors)); /*/get the smallest number*/
+                factors[`-${sm}`] = factors[sm];
                 delete factors[sm];
             }
 
@@ -1914,9 +2030,9 @@ var nerdamer = (function (imports) {
         },
         //factors a number into rectangular box. If sides are primes that this will be
         //their prime factors. e.g. 21 -> (7)(3), 133 -> (7)(19)
-        boxfactor: function (n, max) {
+        boxfactor(n, max) {
             max = max || 200; //stop after this number of iterations
-            var c,
+            let c,
                 r,
                 d = Math.floor((5 / 12) * n), //the divisor
                 i = 0, //number of iterations
@@ -1924,40 +2040,44 @@ var nerdamer = (function (imports) {
             while (true) {
                 c = Math.floor(n / d);
                 r = n % d;
-                if (r === 0) break; //we're done
-                if (safety) return [n, 1];
+                if (r === 0) {
+                    break;
+                } //we're done
+                if (safety) {
+                    return [n, 1];
+                }
                 d = Math.max(r, d - r);
                 i++;
                 safety = i > max;
             }
             return [c, d, i];
         },
-        fib: function (n) {
-            var sign = Math.sign(n);
+        fib(n) {
+            let sign = Math.sign(n);
             n = Math.abs(n);
             sign = even(n) ? sign : Math.abs(sign);
-            var a = 0,
+            let a = 0,
                 b = 1,
                 f = 1;
-            for (var i = 2; i <= n; i++) {
+            for (let i = 2; i <= n; i++) {
                 f = a + b;
                 a = b;
                 b = f;
             }
             return f * sign;
         },
-        mod: function (x, y) {
+        mod(x, y) {
             return x % y;
         },
         //http://mathworld.wolfram.com/IntegerPart.html
-        integer_part: function (x) {
-            var sign = Math.sign(x);
+        integer_part(x) {
+            const sign = Math.sign(x);
             return sign * Math.floor(Math.abs(x));
         },
-        simpson: function (f, a, b, step) {
-            var get_value = function (f, x, side) {
-                var v = f(x);
-                var d = 0.000000000001;
+        simpson(f, a, b, step) {
+            const get_value = function (f, x, side) {
+                let v = f(x);
+                const d = 0.000000000001;
                 if (isNaN(v)) {
                     v = f(side === 1 ? x + d : x - d);
                 }
@@ -1966,24 +2086,26 @@ var nerdamer = (function (imports) {
 
             step = step || 0.0001;
             //calculate the number of intervals
-            var n = Math.abs(Math.floor((b - a) / step));
+            let n = Math.abs(Math.floor((b - a) / step));
             //simpson's rule requires an even number of intervals. If it's not then add 1
-            if (n % 2 !== 0) n++;
+            if (n % 2 !== 0) {
+                n++;
+            }
             //get the interval size
-            var dx = (b - a) / n;
+            const dx = (b - a) / n;
             //get x0
-            var retval = get_value(f, a, 1);
+            let retval = get_value(f, a, 1);
 
             //get the middle part 4x1+2x2+4x3 ...
             //but first set a flag to see if it's even or odd.
             //The first one is odd so we start there
-            var even = false;
+            let even = false;
             //get x1
-            var xi = a + dx;
+            let xi = a + dx;
             //the coefficient
-            var c, k;
+            let c, k;
             //https://en.wikipedia.org/wiki/Simpson%27s_rule
-            for (var i = 1; i < n; i++) {
+            for (let i = 1; i < n; i++) {
                 c = even ? 2 : 4;
                 k = c * get_value(f, xi, 1);
                 retval += k;
@@ -2006,8 +2128,10 @@ var nerdamer = (function (imports) {
          * @param {number} maxdepth
          * @returns {number}
          */
-        num_integrate: function (f, a, b, tol, maxdepth) {
-            if (maxdepth < 0) throw new Error('max depth cannot be negative');
+        num_integrate(f, a, b, tol, maxdepth) {
+            if (maxdepth < 0) {
+                throw new Error('max depth cannot be negative');
+            }
 
             /* This algorithm adapted from pseudocode in:*/
             /* http://www.math.utk.edu/~ccollins/refs/Handouts/rich.pdf*/
@@ -2015,7 +2139,7 @@ var nerdamer = (function (imports) {
                 if (state.nanEncountered) {
                     return NaN;
                 }
-                var h, f1, f2, sl, sr, s2, m, V1, V2, err;
+                let h, f1, f2, sl, sr, s2, m, V1, V2, err;
                 h = b - a;
                 f1 = f(a + h * 0.25);
                 f2 = f(b - h * 0.25);
@@ -2063,7 +2187,7 @@ var nerdamer = (function (imports) {
             }
 
             function integrate(f, a, b, tol, maxdepth) {
-                var state = {
+                const state = {
                     maxDepthCount: 0,
                     nanEncountered: false,
                 };
@@ -2077,21 +2201,19 @@ var nerdamer = (function (imports) {
                     maxdepth = 45;
                 }
 
-                var fa = f(a);
-                var fm = f(0.5 * (a + b));
-                var fb = f(b);
+                const fa = f(a);
+                const fm = f(0.5 * (a + b));
+                const fb = f(b);
 
-                var V0 = ((fa + 4 * fm + fb) * (b - a)) / 6;
+                const V0 = ((fa + 4 * fm + fb) * (b - a)) / 6;
 
-                var result = adsimp(f, a, b, fa, fm, fb, V0, tol, maxdepth, 1, state);
+                const result = adsimp(f, a, b, fa, fm, fb, V0, tol, maxdepth, 1, state);
 
                 if (state.maxDepthCount > 0) {
                     warn(
-                        'integrate-adaptive-simpson: Warning: maximum recursion depth (' +
-                            maxdepth +
-                            ') reached ' +
-                            state.maxDepthCount +
-                            ' times'
+                        `integrate-adaptive-simpson: Warning: maximum recursion depth (${maxdepth}) reached ${
+                            state.maxDepthCount
+                        } times`
                     );
                 }
 
@@ -2101,12 +2223,14 @@ var nerdamer = (function (imports) {
 
                 return result;
             }
-            var retval;
+            let retval;
 
             try {
                 retval = integrate(f, a, b, tol, maxdepth);
             } catch (e) {
-                if (e.message === 'timeout') throw e;
+                if (e.message === 'timeout') {
+                    throw e;
+                }
                 /*fallback to non-adaptive*/
                 return Math2.simpson(f, a, b);
             }
@@ -2114,47 +2238,49 @@ var nerdamer = (function (imports) {
         },
         //https://en.wikipedia.org/wiki/Trigonometric_integral
         //CosineIntegral
-        Ci: function (x) {
-            var n = 20,
+        Ci(x) {
+            let n = 20,
                 /*roughly Euler–Mascheroni*/
                 g = 0.5772156649015329,
                 sum = 0;
-            for (var i = 1; i < n; i++) {
+            for (let i = 1; i < n; i++) {
                 /*cache 2n*/
-                var n2 = 2 * i;
+                const n2 = 2 * i;
                 sum += (Math.pow(-1, i) * Math.pow(x, n2)) / (n2 * Math2.factorial(n2));
             }
             return Math.log(x) + g + sum;
         },
         /*SineIntegral*/
-        Si: function (x) {
-            var n = 20,
+        Si(x) {
+            let n = 20,
                 sum = 0;
-            for (var i = 0; i < n; i++) {
-                var n2 = 2 * i;
+            for (let i = 0; i < n; i++) {
+                const n2 = 2 * i;
                 sum += (Math.pow(-1, i) * Math.pow(x, n2 + 1)) / ((n2 + 1) * Math2.factorial(n2 + 1));
             }
             return sum;
         },
         /*ExponentialIntegral*/
-        Ei: function (x) {
-            if (Number(x) === 0) return -Infinity;
-            var n = 30,
+        Ei(x) {
+            if (Number(x) === 0) {
+                return -Infinity;
+            }
+            let n = 30,
                 g = 0.5772156649015328606 /*roughly Euler–Mascheroni*/,
                 sum = 0;
-            for (var i = 1; i < n; i++) {
+            for (let i = 1; i < n; i++) {
                 sum += Math.pow(x, i) / (i * Math2.factorial(i));
             }
             return g + Math.abs(Math.log(x)) + sum;
         },
         /*Hyperbolic Sine Integral*/
         /*http://mathworld.wolfram.com/Shi.html*/
-        Shi: function (x) {
-            var n = 30,
+        Shi(x) {
+            let n = 30,
                 sum = 0,
                 k,
                 t;
-            for (var i = 0; i < n; i++) {
+            for (let i = 0; i < n; i++) {
                 k = 2 * i;
                 t = k + 1;
                 sum += Math.pow(x, t) / (t * t * Math2.factorial(k));
@@ -2162,8 +2288,8 @@ var nerdamer = (function (imports) {
             return sum;
         },
         /*the cosine integral function*/
-        Chi: function (x) {
-            var dx, g, f;
+        Chi(x) {
+            let dx, g, f;
             dx = 0.001;
             g = 0.5772156649015328606;
             f = function (t) {
@@ -2172,15 +2298,15 @@ var nerdamer = (function (imports) {
             return Math.log(x) + g + Math2.num_integrate(f, 0.002, x, dx);
         },
         /*the log integral*/
-        Li: function (x) {
+        Li(x) {
             return Math2.Ei(Math2.bigLog(x));
         },
         /*the gamma incomplete function*/
-        gamma_incomplete: function (n, x) {
+        gamma_incomplete(n, x) {
             var t = n - 1,
                 sum = 0,
                 x = x || 0;
-            for (var i = 0; i < t; i++) {
+            for (let i = 0; i < t; i++) {
                 sum += Math.pow(x, i) / Math2.factorial(i);
             }
             return Math2.factorial(t) * Math.exp(-x) * sum;
@@ -2192,9 +2318,13 @@ var nerdamer = (function (imports) {
          * if x == 0 then 1/2
          * if x < 0 then 0
          */
-        step: function (x) {
-            if (x > 0) return 1;
-            if (x < 0) return 0;
+        step(x) {
+            if (x > 0) {
+                return 1;
+            }
+            if (x < 0) {
+                return 0;
+            }
             return 0.5;
         },
         /*
@@ -2204,10 +2334,14 @@ var nerdamer = (function (imports) {
          * if |x| == 1/2 then 1/2
          * if |x| < 1/2 then 1
          */
-        rect: function (x) {
+        rect(x) {
             var x = Math.abs(x);
-            if (x === 0.5) return x;
-            if (x > 0.5) return 0;
+            if (x === 0.5) {
+                return x;
+            }
+            if (x > 0.5) {
+                return 0;
+            }
             return 1;
         },
         /*
@@ -2216,8 +2350,10 @@ var nerdamer = (function (imports) {
          * if x == 0 then 1
          * otherwise sin(x)/x
          */
-        sinc: function (x) {
-            if (x.equals(0)) return 1;
+        sinc(x) {
+            if (x.equals(0)) {
+                return 1;
+            }
             return Math.sin(x) / x;
         },
         /*
@@ -2226,28 +2362,38 @@ var nerdamer = (function (imports) {
          * if |x| >= 1 then 0
          * if |x| < then 1-|x|
          */
-        tri: function (x) {
+        tri(x) {
             x = Math.abs(x);
-            if (x >= 1) return 0;
+            if (x >= 1) {
+                return 0;
+            }
             return 1 - x;
         },
         //https://en.wikipedia.org/wiki/Nth_root_algorithm
-        nthroot: function (A, n) {
+        nthroot(A, n) {
             /*make sure the input is of type Frac*/
-            if (!(A instanceof Frac)) A = new Frac(A.toString());
-            if (!(n instanceof Frac)) n = new Frac(n.toString());
-            if (n.equals(1)) return A;
+            if (!(A instanceof Frac)) {
+                A = new Frac(A.toString());
+            }
+            if (!(n instanceof Frac)) {
+                n = new Frac(n.toString());
+            }
+            if (n.equals(1)) {
+                return A;
+            }
             /*begin algorithm*/
-            var xk = A.divide(new Frac(2)); /*x0*/
-            var e = new Frac(1e-15);
-            var dk, dk0, d0;
-            var a = n.clone().invert(),
+            let xk = A.divide(new Frac(2)); /*x0*/
+            const e = new Frac(1e-15);
+            let dk, dk0, d0;
+            const a = n.clone().invert(),
                 b = n.subtract(new Frac(1));
             do {
-                var powb = Math2.bigpow(xk, b);
+                const powb = Math2.bigpow(xk, b);
                 var dk_dec = a.multiply(A.divide(powb).subtract(xk)).toDecimal(25);
                 dk = Frac.create(dk_dec);
-                if (d0) break;
+                if (d0) {
+                    break;
+                }
 
                 xk = xk.add(dk);
                 /*check to see if there's no change from the last xk*/
@@ -2260,17 +2406,21 @@ var nerdamer = (function (imports) {
         },
         /*https://gist.github.com/jiggzson/0c5b33cbcd7b52b36132b1e96573285f*/
         /*Just the square root function but big :)*/
-        sqrt: function (n) {
-            if (!(n instanceof Frac)) n = new Frac(n);
-            var xn, d, ld, same_delta;
-            var c = 0; /*counter*/
-            var done = false;
-            var delta = new Frac(1e-20);
+        sqrt(n) {
+            if (!(n instanceof Frac)) {
+                n = new Frac(n);
+            }
+            let xn, d, ld, same_delta;
+            let c = 0; /*counter*/
+            let done = false;
+            const delta = new Frac(1e-20);
             xn = n.divide(new Frac(2));
-            var safety = 1000;
+            const safety = 1000;
             do {
                 /*break if we're not converging*/
-                if (c > safety) throw new Error('Unable to calculate square root for ' + n);
+                if (c > safety) {
+                    throw new Error(`Unable to calculate square root for ${n}`);
+                }
                 xn = xn.add(n.divide(xn)).divide(new Frac(2));
                 xn = new Frac(xn.decimal(30));
                 /*get the difference from the true square*/
@@ -2279,7 +2429,9 @@ var nerdamer = (function (imports) {
                 /*we're getting the square root or the last delta was the same as the new delta*/
                 /*then we're done*/
                 same_delta = ld ? ld.equals(d) : false;
-                if (d.clone().abs().lessThan(delta) || same_delta) done = true;
+                if (d.clone().abs().lessThan(delta) || same_delta) {
+                    done = true;
+                }
                 /*store the calculated delta*/
                 ld = d;
                 c++; /*increase the counter*/
@@ -2307,7 +2459,7 @@ var nerdamer = (function (imports) {
     Math.cosh =
         Math.cosh ||
         function (x) {
-            var y = Math.exp(x);
+            const y = Math.exp(x);
             return (y + 1 / y) / 2;
         };
 
@@ -2332,7 +2484,7 @@ var nerdamer = (function (imports) {
     Math.sinh =
         Math.sinh ||
         function (x) {
-            var y = Math.exp(x);
+            const y = Math.exp(x);
             return (y - 1 / y) / 2;
         };
 
@@ -2344,7 +2496,7 @@ var nerdamer = (function (imports) {
             } else if (x === -Infinity) {
                 return -1;
             } else {
-                var y = Math.exp(2 * x);
+                const y = Math.exp(2 * x);
                 return (y - 1) / (y + 1);
             }
         };
@@ -2394,7 +2546,7 @@ var nerdamer = (function (imports) {
      * @returns {string}
      */
     function text(obj, option, useGroup, decp) {
-        var asHash = option === 'hash',
+        let asHash = option === 'hash',
             //whether to wrap numbers in brackets
             wrapCondition = undefined,
             opt = asHash ? undefined : option,
@@ -2415,7 +2567,9 @@ var nerdamer = (function (imports) {
         //
         // Setting decp here would trigger toDecimal(16) which can truncate precision.
         // By not setting decp for plain decimals mode, we preserve full valueOf() precision.
-        if (opt === 'decimals_or_scientific' && typeof decp === 'undefined') decp = Settings.DEFAULT_DECP;
+        if (opt === 'decimals_or_scientific' && typeof decp === 'undefined') {
+            decp = Settings.DEFAULT_DECP;
+        }
 
         function toString(obj, decp) {
             switch (option) {
@@ -2440,7 +2594,9 @@ var nerdamer = (function (imports) {
                     var str = obj.toString();
                     //verify that the string is actually a fraction
                     var frac = /^-?\d+(?:\/\d+)?$/.exec(str);
-                    if (frac.length === 0) return str;
+                    if (frac.length === 0) {
+                        return str;
+                    }
 
                     //split the fraction into the numerator and denominator
                     var parts = frac[0].split('/');
@@ -2451,12 +2607,14 @@ var nerdamer = (function (imports) {
                         negative = true;
                     }
                     var n = Number(parts[1]);
-                    if (!n) n = 1;
+                    if (!n) {
+                        n = 1;
+                    }
 
                     //https://softwareengineering.stackexchange.com/questions/192070/what-is-a-efficient-way-to-find-repeating-decimal#comment743574_192081
                     var quotient = Math.floor(m / n),
                         c = 10 * (m - quotient * n);
-                    quotient = quotient.toString() + '.';
+                    quotient = `${quotient.toString()}.`;
                     while (c && c < n) {
                         c *= 10;
                         quotient += '0';
@@ -2466,12 +2624,12 @@ var nerdamer = (function (imports) {
                         i = 0;
                     while (true) {
                         if (typeof passed[c] !== 'undefined') {
-                            var prefix = digits.slice(0, passed[c]),
+                            const prefix = digits.slice(0, passed[c]),
                                 cycle = digits.slice(passed[c]),
-                                result = quotient + prefix + "'" + cycle + "'";
+                                result = `${quotient + prefix}'${cycle}'`;
                             return (negative ? '-' : '') + result.replace("'0'", '').replace(/\.$/, '');
                         }
-                        var q = Math.floor(c / n),
+                        const q = Math.floor(c / n),
                             r = c - q * n;
                         passed[c] = i;
                         digits += q.toString();
@@ -2488,13 +2646,17 @@ var nerdamer = (function (imports) {
                     var str = obj.toString();
                     //verify that the string is actually a fraction
                     var frac = /^-?\d+(?:\/\d+)?$/.exec(str);
-                    if (frac.length === 0) return str;
+                    if (frac.length === 0) {
+                        return str;
+                    }
 
                     //split the fraction into the numerator and denominator
                     var parts = frac[0].split('/');
                     var numer = new bigInt(parts[0]);
                     var denom = new bigInt(parts[1]);
-                    if (denom.equals(0)) denom = new bigInt(1);
+                    if (denom.equals(0)) {
+                        denom = new bigInt(1);
+                    }
 
                     //return the quotient plus the remainder
                     var divmod = numer.divmod(denom);
@@ -2504,7 +2666,7 @@ var nerdamer = (function (imports) {
                     return (
                         (quotient.equals(0) ? '' : quotient.toString()) +
                         operator +
-                        (remainder.equals(0) ? '' : remainder.toString() + '/' + parts[1])
+                        (remainder.equals(0) ? '' : `${remainder.toString()}/${parts[1]}`)
                     );
                 case 'scientific':
                     wrapCondition =
@@ -2543,7 +2705,7 @@ var nerdamer = (function (imports) {
 
         //if the object is a symbol
         if (isSymbol(obj)) {
-            var multiplier = '',
+            let multiplier = '',
                 power = '',
                 sign = '',
                 group = obj.group || useGroup,
@@ -2553,15 +2715,17 @@ var nerdamer = (function (imports) {
             if (!asHash) {
                 // Get multiplier as string. Don't pass decp here to preserve precision
                 // for internal operations - decp is only applied in the N case below.
-                var om = toString(obj.multiplier);
+                let om = toString(obj.multiplier);
                 if (om == '-1' && String(obj.multiplier) === '-1') {
                     sign = '-';
                     om = '1';
                 }
                 //only add the multiplier if it's not 1
-                if (om != '1') multiplier = om;
+                if (om != '1') {
+                    multiplier = om;
+                }
                 //use asDecimal to get the object back as a decimal
-                var p = obj.power ? toString(obj.power) : '';
+                const p = obj.power ? toString(obj.power) : '';
                 //only add the multiplier
                 if (p != '1') {
                     //is it a symbol
@@ -2595,9 +2759,11 @@ var nerdamer = (function (imports) {
                 case PL:
                     value = obj
                         .collectSymbols()
-                        .map(function (x) {
-                            var txt = text(x, opt, useGroup, decp);
-                            if (txt == '0') txt = '';
+                        .map(x => {
+                            let txt = text(x, opt, useGroup, decp);
+                            if (txt == '0') {
+                                txt = '';
+                            }
                             return txt;
                         })
                         .sort()
@@ -2607,9 +2773,11 @@ var nerdamer = (function (imports) {
                 case CP:
                     value = obj
                         .collectSymbols()
-                        .map(function (x) {
-                            var txt = text(x, opt, useGroup, decp);
-                            if (txt == '0') txt = '';
+                        .map(x => {
+                            let txt = text(x, opt, useGroup, decp);
+                            if (txt == '0') {
+                                txt = '';
+                            }
                             return txt;
                         })
                         .sort()
@@ -2618,8 +2786,8 @@ var nerdamer = (function (imports) {
                     break;
                 case CB:
                     value = obj
-                        .collectSymbols(function (symbol) {
-                            var g = symbol.group;
+                        .collectSymbols(symbol => {
+                            const g = symbol.group;
                             //both groups will already be in brackets if their power is greater than 1
                             //so skip it.
                             if ((g === PL || g === CP) && symbol.power.equals(1) && symbol.multiplier.equals(1)) {
@@ -2634,7 +2802,9 @@ var nerdamer = (function (imports) {
                         pwg = obj.power.group;
 
                     //PL are the exception. It's simpler to just collect and set the value
-                    if (pg === PL) value = obj.collectSymbols(text, opt).join('+').replace('+-', '-');
+                    if (pg === PL) {
+                        value = obj.collectSymbols(text, opt).join('+').replace('+-', '-');
+                    }
                     if (!(pg === N || pg === S || pg === FN) && !asHash) {
                         value = inBrackets(value);
                     }
@@ -2646,26 +2816,20 @@ var nerdamer = (function (imports) {
             }
 
             if (group === FN) {
-                value =
-                    obj.fname +
-                    inBrackets(
-                        obj.args
-                            .map(function (symbol) {
-                                return text(symbol, opt);
-                            })
-                            .join(',')
-                    );
+                value = obj.fname + inBrackets(obj.args.map(symbol => text(symbol, opt)).join(','));
             }
             //TODO: Needs to be more efficient. Maybe.
             if (group === FN && obj.fname in CUSTOM_OPERATORS) {
-                var a = text(obj.args[0]);
-                var b = text(obj.args[1]);
-                if (obj.args[0].isComposite())
-                    //preserve the brackets
+                let a = text(obj.args[0]);
+                let b = text(obj.args[1]);
+                if (obj.args[0].isComposite()) //preserve the brackets
+                {
                     a = inBrackets(a);
-                if (obj.args[1].isComposite())
-                    //preserve the brackets
+                }
+                if (obj.args[1].isComposite()) //preserve the brackets
+                {
                     b = inBrackets(b);
+                }
                 value = a + CUSTOM_OPERATORS[obj.fname] + b;
             }
             //wrap the power since / is less than ^
@@ -2706,16 +2870,22 @@ var nerdamer = (function (imports) {
             //add the sign back
             var c = sign + multiplier;
 
-            if (multiplier && wrapCondition(multiplier)) c = inBrackets(c);
+            if (multiplier && wrapCondition(multiplier)) {
+                c = inBrackets(c);
+            }
 
-            if (power < 0) power = inBrackets(power);
+            if (power < 0) {
+                power = inBrackets(power);
+            }
 
             //add the multiplication back
-            if (multiplier) c = c + '*';
+            if (multiplier) {
+                c = `${c}*`;
+            }
 
             if (power) {
                 if (value === 'e' && Settings.E_TO_EXP) {
-                    return c + 'exp' + inBrackets(power);
+                    return `${c}exp${inBrackets(power)}`;
                 }
                 power = Settings.POWER_OPERATOR + power;
             }
@@ -2725,7 +2895,7 @@ var nerdamer = (function (imports) {
                 value = inBrackets(value);
             }
 
-            var cv = c + value;
+            let cv = c + value;
 
             if (obj.parens) {
                 cv = inBrackets(cv);
@@ -2735,13 +2905,17 @@ var nerdamer = (function (imports) {
         } else if (isVector(obj)) {
             var l = obj.elements.length,
                 c = [];
-            for (var i = 0; i < l; i++) c.push(obj.elements[i].text(option));
-            return '[' + c.join(',') + ']';
+            for (let i = 0; i < l; i++) {
+                c.push(obj.elements[i].text(option));
+            }
+            return `[${c.join(',')}]`;
         } else {
             try {
                 return obj.toString();
             } catch (e) {
-                if (e.message === 'timeout') throw e;
+                if (e.message === 'timeout') {
+                    throw e;
+                }
                 return '';
             }
         }
@@ -2761,15 +2935,15 @@ var nerdamer = (function (imports) {
             return [num];
         }
 
-        var l = num,
+        let l = num,
             i = 1,
             factors = [],
             epsilon = 2.2204460492503130808472633361816e-16;
         while (i < l) {
             checkTimeout();
-            var quotient = num / i;
-            var whole = Math.floor(quotient);
-            var remainder = quotient - whole;
+            const quotient = num / i;
+            const whole = Math.floor(quotient);
+            const remainder = quotient - whole;
 
             if (remainder <= epsilon && i > 1) {
                 // If the prime wasn't found but calculated then save it and
@@ -2793,9 +2967,7 @@ var nerdamer = (function (imports) {
             i++;
         }
 
-        return factors.sort(function (a, b) {
-            return a - b;
-        });
+        return factors.sort((a, b) => a - b);
     }
     // primeFactors(314146179365)
     //Expression ===================================================================
@@ -2818,9 +2990,13 @@ var nerdamer = (function (imports) {
      * @param {boolean} asType
      */
     Expression.getExpression = function (expression_number, asType) {
-        if (expression_number === 'last' || !expression_number) expression_number = EXPRESSIONS.length;
-        if (expression_number === 'first') expression_number = 1;
-        var index = expression_number - 1,
+        if (expression_number === 'last' || !expression_number) {
+            expression_number = EXPRESSIONS.length;
+        }
+        if (expression_number === 'first') {
+            expression_number = 1;
+        }
+        const index = expression_number - 1,
             expression = EXPRESSIONS[index],
             retval = expression ? new Expression(expression) : expression;
         return retval;
@@ -2833,10 +3009,12 @@ var nerdamer = (function (imports) {
          * @param {number} n The number of significant figures
          * @returns {string}
          */
-        text: function (opt, n) {
+        text(opt, n) {
             n = n || Settings.EXPRESSION_DECP;
             opt = opt || 'decimals';
-            if (this.symbol.text_) return this.symbol.text_(opt);
+            if (this.symbol.text_) {
+                return this.symbol.text_(opt);
+            }
 
             return text(this.symbol, opt, undefined, n);
         },
@@ -2846,11 +3024,13 @@ var nerdamer = (function (imports) {
          * @param {string} option - Option for formatting numbers
          * @returns {string}
          */
-        latex: function (option) {
-            if (this.symbol.latex) return this.symbol.latex(option);
+        latex(option) {
+            if (this.symbol.latex) {
+                return this.symbol.latex(option);
+            }
             return LaTeX.latex(this.symbol, option);
         },
-        valueOf: function () {
+        valueOf() {
             return this.symbol.valueOf();
         },
 
@@ -2860,13 +3040,13 @@ var nerdamer = (function (imports) {
          *
          * @returns {Expression}
          */
-        evaluate: function () {
+        evaluate() {
             // Don't evaluate an empty vector
             if (isVector(this.symbol) && this.symbol.dimensions() === 0) {
                 return this;
             }
 
-            var first_arg = arguments[0],
+            let first_arg = arguments[0],
                 expression,
                 idx = 1;
 
@@ -2882,17 +3062,9 @@ var nerdamer = (function (imports) {
                 idx--;
             }
 
-            var subs = arguments[idx] || {};
+            const subs = arguments[idx] || {};
 
-            var retval = new Expression(
-                block(
-                    'PARSE2NUMBER',
-                    function () {
-                        return _.parse(expression, subs);
-                    },
-                    true
-                )
-            );
+            const retval = new Expression(block('PARSE2NUMBER', () => _.parse(expression, subs), true));
 
             return retval;
         },
@@ -2902,7 +3074,7 @@ var nerdamer = (function (imports) {
          *
          * @param vars {Array}
          */
-        buildFunction: function (vars) {
+        buildFunction(vars) {
             return Build.build(this.symbol, vars);
         },
         /**
@@ -2910,7 +3082,7 @@ var nerdamer = (function (imports) {
          *
          * @returns {boolean}
          */
-        isNumber: function () {
+        isNumber() {
             return isNumericSymbol(this.symbol);
         },
         /**
@@ -2918,7 +3090,7 @@ var nerdamer = (function (imports) {
          *
          * @returns {boolean}
          */
-        isInfinity: function () {
+        isInfinity() {
             return Math.abs(this.symbol.multiplier) === Infinity;
         },
         /**
@@ -2926,7 +3098,7 @@ var nerdamer = (function (imports) {
          *
          * @returns {boolean}
          */
-        isImaginary: function () {
+        isImaginary() {
             return evaluate(_.parse(this.symbol)).isImaginary();
         },
         /**
@@ -2934,114 +3106,138 @@ var nerdamer = (function (imports) {
          *
          * @returns {Array}
          */
-        variables: function () {
+        variables() {
             return variables(this.symbol);
         },
 
-        toString: function () {
+        toString() {
             try {
-                if (isArray(this.symbol)) return '[' + this.symbol.toString() + ']';
+                if (isArray(this.symbol)) {
+                    return `[${this.symbol.toString()}]`;
+                }
                 return this.symbol.toString();
             } catch (e) {
-                if (e.message === 'timeout') throw e;
+                if (e.message === 'timeout') {
+                    throw e;
+                }
                 return '';
             }
         },
         //forces the symbol to be returned as a decimal
-        toDecimal: function (prec) {
+        toDecimal(prec) {
             Settings.precision = prec;
-            var dec = text(this.symbol, 'decimals');
+            const dec = text(this.symbol, 'decimals');
             Settings.precision = undefined;
             return dec;
         },
         //checks to see if the expression is a fraction
-        isFraction: function () {
+        isFraction() {
             return isFraction(this.symbol);
         },
         //checks to see if the symbol is a multivariate polynomial
-        isPolynomial: function () {
+        isPolynomial() {
             return this.symbol.isPoly();
         },
         //performs a substitution
-        sub: function (symbol, for_symbol) {
+        sub(symbol, for_symbol) {
             return new Expression(this.symbol.sub(_.parse(symbol), _.parse(for_symbol)));
         },
-        operation: function (otype, symbol) {
-            if (isExpression(symbol)) symbol = symbol.symbol;
-            else if (!isSymbol(symbol)) symbol = _.parse(symbol);
+        operation(otype, symbol) {
+            if (isExpression(symbol)) {
+                symbol = symbol.symbol;
+            } else if (!isSymbol(symbol)) {
+                symbol = _.parse(symbol);
+            }
             return new Expression(_[otype](this.symbol.clone(), symbol.clone()));
         },
-        add: function (symbol) {
+        add(symbol) {
             return this.operation('add', symbol);
         },
-        subtract: function (symbol) {
+        subtract(symbol) {
             return this.operation('subtract', symbol);
         },
-        multiply: function (symbol) {
+        multiply(symbol) {
             return this.operation('multiply', symbol);
         },
-        divide: function (symbol) {
+        divide(symbol) {
             return this.operation('divide', symbol);
         },
-        pow: function (symbol) {
+        pow(symbol) {
             return this.operation('pow', symbol);
         },
-        expand: function () {
+        expand() {
             return new Expression(_.expand(this.symbol));
         },
-        each: function (callback, i) {
-            if (this.symbol.each) this.symbol.each(callback, i);
-            else if (isArray(this.symbol)) {
-                for (var i = 0; i < this.symbol.length; i++) callback.call(this.symbol, this.symbol[i], i);
-            } else callback.call(this.symbol);
+        each(callback, i) {
+            if (this.symbol.each) {
+                this.symbol.each(callback, i);
+            } else if (isArray(this.symbol)) {
+                for (var i = 0; i < this.symbol.length; i++) {
+                    callback.call(this.symbol, this.symbol[i], i);
+                }
+            } else {
+                callback.call(this.symbol);
+            }
         },
-        eq: function (value) {
-            if (!isSymbol(value)) value = _.parse(value);
+        eq(value) {
+            if (!isSymbol(value)) {
+                value = _.parse(value);
+            }
             try {
-                var d = _.subtract(this.symbol.clone(), value);
+                const d = _.subtract(this.symbol.clone(), value);
                 return d.equals(0);
             } catch (e) {
-                if (e.message === 'timeout') throw e;
+                if (e.message === 'timeout') {
+                    throw e;
+                }
                 return false;
             }
         },
-        lt: function (value) {
-            if (!isSymbol(value)) value = _.parse(value);
+        lt(value) {
+            if (!isSymbol(value)) {
+                value = _.parse(value);
+            }
             try {
-                var d = evaluate(_.subtract(this.symbol.clone(), value));
+                const d = evaluate(_.subtract(this.symbol.clone(), value));
                 return d.lessThan(0);
             } catch (e) {
-                if (e.message === 'timeout') throw e;
+                if (e.message === 'timeout') {
+                    throw e;
+                }
                 return false;
             }
         },
-        gt: function (value) {
-            if (!isSymbol(value)) value = _.parse(value);
+        gt(value) {
+            if (!isSymbol(value)) {
+                value = _.parse(value);
+            }
             try {
-                var d = evaluate(_.subtract(this.symbol.clone(), value));
+                const d = evaluate(_.subtract(this.symbol.clone(), value));
                 return d.greaterThan(0);
             } catch (e) {
-                if (e.message === 'timeout') throw e;
+                if (e.message === 'timeout') {
+                    throw e;
+                }
                 return false;
             }
         },
-        gte: function (value) {
+        gte(value) {
             return this.gt(value) || this.eq(value);
         },
-        lte: function (value) {
+        lte(value) {
             return this.lt(value) || this.eq(value);
         },
 
-        numerator: function () {
+        numerator() {
             return new Expression(this.symbol.getNum());
         },
-        denominator: function () {
+        denominator() {
             return new Expression(this.symbol.getDenom());
         },
-        hasFunction: function (f) {
+        hasFunction(f) {
             return this.symbol.containsFunction(f);
         },
-        contains: function (variable) {
+        contains(variable) {
             return this.symbol.contains(variable);
         },
     };
@@ -3055,7 +3251,9 @@ var nerdamer = (function (imports) {
      */
 
     function Scientific(num) {
-        if (!(this instanceof Scientific)) return new Scientific(num);
+        if (!(this instanceof Scientific)) {
+            return new Scientific(num);
+        }
 
         num = String(typeof num === 'undefined' ? 0 : num); //convert to a string
 
@@ -3077,43 +3275,42 @@ var nerdamer = (function (imports) {
     }
 
     Scientific.prototype = {
-        fromScientific: function (num) {
-            var parts = String(num).toLowerCase().split('e');
+        fromScientific(num) {
+            const parts = String(num).toLowerCase().split('e');
             this.coeff = parts[0];
             this.exponent = Number(parts[1]); // Convert to number for consistent === 0 checks in toString()
 
-            var coeffParts = this.coeff.split('.');
+            const coeffParts = this.coeff.split('.');
             this.wholes = coeffParts[0] || '';
             this.dec = coeffParts[1] || '';
-            var dec = this.dec; //if it's undefined or zero it's going to blank
+            const dec = this.dec; //if it's undefined or zero it's going to blank
             this.decp = dec === '0' ? 0 : dec.length;
 
             return this;
         },
-        convert: function (num) {
+        convert(num) {
             //get wholes and decimals
-            var parts = num.split('.');
+            const parts = num.split('.');
             //make zero go away
-            var w = parts[0] || '';
-            var d = parts[1] || '';
+            let w = parts[0] || '';
+            let d = parts[1] || '';
             //convert zero to blank strings
             w = Scientific.removeLeadingZeroes(w);
             d = Scientific.removeTrailingZeroes(d);
             //find the location of the decimal place which is right after the wholes
-            var dot_location = w.length;
+            const dot_location = w.length;
             //add them together so we can move the dot
-            var n = w + d;
+            const n = w + d;
             //find the next number
-            var zeroes = Scientific.leadingZeroes(n).length;
+            const zeroes = Scientific.leadingZeroes(n).length;
             //set the exponent
             this.exponent = dot_location - (zeroes + 1);
             //set the coeff but first remove leading zeroes
-            var coeff = Scientific.removeLeadingZeroes(n);
-            this.coeff =
-                coeff.charAt(0) + '.' + (Scientific.removeTrailingZeroes(coeff.substr(1, coeff.length)) || '0');
+            const coeff = Scientific.removeLeadingZeroes(n);
+            this.coeff = `${coeff.charAt(0)}.${Scientific.removeTrailingZeroes(coeff.substr(1, coeff.length)) || '0'}`;
 
             //the coeff decimal places
-            var dec = this.coeff.split('.')[1] || ''; //if it's undefined or zero it's going to blank
+            const dec = this.coeff.split('.')[1] || ''; //if it's undefined or zero it's going to blank
 
             this.decp = dec === '0' ? 0 : dec.length;
             //decimals
@@ -3123,45 +3320,51 @@ var nerdamer = (function (imports) {
 
             return this;
         },
-        round: function (num) {
-            var n = this.copy();
+        round(num) {
+            const n = this.copy();
 
             num = Number(num); //cast to number for safety
             //since we know it guaranteed to be in the format {digit}{optional dot}{optional digits}
             //we can round based on this
-            if (num === 0) n.coeff = n.coeff.charAt(0);
-            else {
+            if (num === 0) {
+                n.coeff = n.coeff.charAt(0);
+            } else {
                 //get up to n-1 digits
-                var rounded = this.coeff.substring(0, num + 1);
+                const rounded = this.coeff.substring(0, num + 1);
                 //get the next two
-                var next_two = this.coeff.substring(num + 1, num + 3);
+                const next_two = this.coeff.substring(num + 1, num + 3);
                 //the extra digit
-                var ed = next_two.charAt(0);
+                let ed = next_two.charAt(0);
 
-                if (next_two.charAt(1) > 4) ed++;
+                if (next_two.charAt(1) > 4) {
+                    ed++;
+                }
 
                 n.coeff = rounded + ed;
             }
 
             return n;
         },
-        copy: function () {
-            var n = new Scientific(0);
+        copy() {
+            const n = new Scientific(0);
             n.coeff = this.coeff;
             n.exponent = this.exponent;
             n.sign = this.sign;
             return n;
         },
-        toString: function (n) {
-            var retval;
+        toString(n) {
+            let retval;
 
             if (Settings.SCIENTIFIC_IGNORE_ZERO_EXPONENTS && this.exponent === 0 && this.decp < n) {
-                if (this.decp === 0 && this.wholes !== undefined) retval = this.wholes;
-                else retval = this.coeff;
+                if (this.decp === 0 && this.wholes !== undefined) {
+                    retval = this.wholes;
+                } else {
+                    retval = this.coeff;
+                }
             } else {
-                var coeff =
+                let coeff =
                     typeof n === 'undefined' ? this.coeff : Scientific.round(this.coeff, Math.min(n, this.decp || 1));
-                var exp = this.exponent;
+                let exp = this.exponent;
                 if (coeff.startsWith('10.')) {
                     // edge case when coefficient is 9.999999 rounds to 10
                     coeff =
@@ -3170,7 +3373,7 @@ var nerdamer = (function (imports) {
                             : Scientific.round(coeff.replace(/^10./, '1.0'), Math.min(n, this.decp || 1));
                     exp = Number(exp) + 1;
                 }
-                retval = this.exponent === 0 ? coeff : coeff + 'e' + exp;
+                retval = this.exponent === 0 ? coeff : `${coeff}e${exp}`;
             }
 
             return (this.sign === -1 ? '-' : '') + retval;
@@ -3181,23 +3384,23 @@ var nerdamer = (function (imports) {
         return /\d+\.?\d*e[\+\-]*\d+/i.test(num);
     };
     Scientific.leadingZeroes = function (num) {
-        var match = num.match(/^(0*).*$/);
+        const match = num.match(/^(0*).*$/);
         return match ? match[1] : '';
     };
     Scientific.removeLeadingZeroes = function (num) {
-        var match = num.match(/^0*(.*)$/);
+        const match = num.match(/^0*(.*)$/);
         return match ? match[1] : '';
     };
 
     Scientific.removeTrailingZeroes = function (num) {
-        var match = num.match(/0*$/);
+        const match = num.match(/0*$/);
         return match ? num.substring(0, num.length - match[0].length) : '';
     };
 
     Scientific.round = function (c, n) {
-        var coeff = String(nround(c, n));
-        var m = coeff.includes('.') ? coeff.split('.').pop() : '';
-        var d = n - m.length;
+        let coeff = String(nround(c, n));
+        const m = coeff.includes('.') ? coeff.split('.').pop() : '';
+        const d = n - m.length;
         //if we're asking for more significant figures
         if (d > 0) {
             if (!coeff.includes('.')) {
@@ -3210,59 +3413,75 @@ var nerdamer = (function (imports) {
 
     //Frac =========================================================================
     function Frac(n) {
-        if (n instanceof Frac) return n;
-        if (n === undefined) return this;
+        if (n instanceof Frac) {
+            return n;
+        }
+        if (n === undefined) {
+            return this;
+        }
         try {
             if (isInt(n)) {
                 try {
                     this.num = bigInt(n);
                     this.den = bigInt(1);
                 } catch (e) {
-                    if (e.message === 'timeout') throw e;
+                    if (e.message === 'timeout') {
+                        throw e;
+                    }
                     return Frac.simple(n);
                 }
             } else {
-                var frac = n instanceof bigDec ? Fraction.quickConversion(n) : Fraction.convert(n);
+                const frac = n instanceof bigDec ? Fraction.quickConversion(n) : Fraction.convert(n);
                 this.num = new bigInt(frac[0]);
                 this.den = new bigInt(frac[1]);
             }
         } catch (e) {
-            if (e.message === 'timeout') throw e;
+            if (e.message === 'timeout') {
+                throw e;
+            }
             return Frac.simple(n);
         }
     }
     //safe to use with negative numbers or other types
     Frac.create = function (n) {
-        if (n instanceof Frac) return n;
+        if (n instanceof Frac) {
+            return n;
+        }
         n = n.toString();
-        var is_neg = n.charAt(0) === '-'; //check if it's negative
-        if (is_neg) n = n.substr(1, n.length - 1); //remove the sign
-        var frac = new Frac(n);
+        const is_neg = n.charAt(0) === '-'; //check if it's negative
+        if (is_neg) {
+            n = n.substr(1, n.length - 1);
+        } //remove the sign
+        const frac = new Frac(n);
         //put the sign back
-        if (is_neg) frac.negate();
+        if (is_neg) {
+            frac.negate();
+        }
         return frac;
     };
     Frac.isFrac = function (o) {
         return o instanceof Frac;
     };
     Frac.quick = function (n, d) {
-        var frac = new Frac();
+        const frac = new Frac();
         frac.num = new bigInt(n);
         frac.den = new bigInt(d);
         return frac;
     };
     Frac.simple = function (n) {
-        var nstr = String(scientificToDecimal(n)),
+        let nstr = String(scientificToDecimal(n)),
             m_dc = nstr.split('.'),
             num = m_dc.join(''),
             den = 1,
             l = (m_dc[1] || '').length;
-        for (var i = 0; i < l; i++) den += '0';
-        var frac = Frac.quick(num, den);
+        for (let i = 0; i < l; i++) {
+            den += '0';
+        }
+        const frac = Frac.quick(num, den);
         return frac.simplify();
     };
     Frac.prototype = {
-        multiply: function (m) {
+        multiply(m) {
             if (this.isOne()) {
                 return m.clone();
             }
@@ -3270,28 +3489,30 @@ var nerdamer = (function (imports) {
                 return this.clone();
             }
 
-            var c = this.clone();
+            const c = this.clone();
             c.num = c.num.multiply(m.num);
             c.den = c.den.multiply(m.den);
 
             return c.simplify();
         },
-        divide: function (m) {
-            if (m.equals(0)) throw new DivisionByZero('Division by zero not allowed!');
+        divide(m) {
+            if (m.equals(0)) {
+                throw new DivisionByZero('Division by zero not allowed!');
+            }
             return this.clone().multiply(m.clone().invert()).simplify();
         },
-        subtract: function (m) {
+        subtract(m) {
             return this.clone().add(m.clone().neg());
         },
-        neg: function () {
+        neg() {
             this.num = this.num.multiply(-1);
             return this;
         },
-        add: function (m) {
-            var n1 = this.den,
+        add(m) {
+            const n1 = this.den,
                 n2 = m.den,
                 c = this.clone();
-            var a = c.num,
+            const a = c.num,
                 b = m.num;
             if (n1.equals(n2)) {
                 c.num = a.add(b);
@@ -3302,8 +3523,8 @@ var nerdamer = (function (imports) {
 
             return c.simplify();
         },
-        mod: function (m) {
-            var a = this.clone(),
+        mod(m) {
+            const a = this.clone(),
                 b = m.clone();
             //make their denominators even and return the mod of their numerators
             a.num = a.num.multiply(b.den);
@@ -3313,55 +3534,59 @@ var nerdamer = (function (imports) {
             a.num = a.num.mod(b.num);
             return a.simplify();
         },
-        simplify: function () {
-            var gcd = bigInt.gcd(this.num, this.den);
+        simplify() {
+            const gcd = bigInt.gcd(this.num, this.den);
 
             this.num = this.num.divide(gcd);
             this.den = this.den.divide(gcd);
             return this;
         },
-        clone: function () {
-            var m = new Frac();
+        clone() {
+            const m = new Frac();
             m.num = new bigInt(this.num);
             m.den = new bigInt(this.den);
             return m;
         },
-        decimal: function (prec) {
-            var sign = this.num.isNegative() ? '-' : '';
+        decimal(prec) {
+            const sign = this.num.isNegative() ? '-' : '';
             if (this.num.equals(this.den)) {
                 return '1';
             }
             //go plus two for rounding (one extra digit to round from, one for the rounding result)
             prec = prec || Settings.PRECISION;
             prec += 2;
-            var narr = [],
+            let narr = [],
                 n = this.num.abs(),
                 d = this.den;
             for (var i = 0; i < prec; i++) {
-                var w = n.divide(d), //divide out whole
+                const w = n.divide(d), //divide out whole
                     r = n.subtract(w.multiply(d)); //get remainder
 
                 narr.push(w);
-                if (r.equals(0)) break;
+                if (r.equals(0)) {
+                    break;
+                }
                 n = r.times(10); //shift one dec place
             }
-            var whole = narr.shift();
+            const whole = narr.shift();
             if (narr.length === 0) {
                 return sign + whole.toString();
             }
 
             if (i === prec) {
-                var lt = [];
+                const lt = [];
                 //get the last two so we can round it
-                for (var i = 0; i < 2; i++) lt.unshift(narr.pop());
+                for (var i = 0; i < 2; i++) {
+                    lt.unshift(narr.pop());
+                }
                 //put the last digit back by rounding the last two
                 narr.push(Math.round(lt.join('.')));
             }
 
-            var dec = whole.toString() + '.' + narr.join('');
+            const dec = `${whole.toString()}.${narr.join('')}`;
             return sign + dec;
         },
-        toDecimal: function (prec) {
+        toDecimal(prec) {
             prec = prec || Settings.PRECISION;
             if (prec) {
                 return this.decimal(prec);
@@ -3369,82 +3594,94 @@ var nerdamer = (function (imports) {
                 return this.num / this.den;
             }
         },
-        qcompare: function (n) {
+        qcompare(n) {
             return [this.num.multiply(n.den), n.num.multiply(this.den)];
         },
-        equals: function (n) {
-            if (!isNaN(n)) n = new Frac(n);
-            var q = this.qcompare(n);
+        equals(n) {
+            if (!isNaN(n)) {
+                n = new Frac(n);
+            }
+            const q = this.qcompare(n);
 
             return q[0].equals(q[1]);
         },
-        absEquals: function (n) {
-            if (!isNaN(n)) n = new Frac(n);
-            var q = this.qcompare(n);
+        absEquals(n) {
+            if (!isNaN(n)) {
+                n = new Frac(n);
+            }
+            const q = this.qcompare(n);
 
             return q[0].abs().equals(q[1]);
         },
         //lazy check to be fixed. Sufficient for now but will cause future problems
-        greaterThan: function (n) {
-            if (!isNaN(n)) n = new Frac(n);
-            var q = this.qcompare(n);
+        greaterThan(n) {
+            if (!isNaN(n)) {
+                n = new Frac(n);
+            }
+            const q = this.qcompare(n);
 
             return q[0].gt(q[1]);
         },
-        gte: function (n) {
+        gte(n) {
             return this.greaterThan(n) || this.equals(n);
         },
-        lte: function (n) {
+        lte(n) {
             return this.lessThan(n) || this.equals(n);
         },
-        lessThan: function (n) {
-            if (!isNaN(n)) n = new Frac(n);
-            var q = this.qcompare(n);
+        lessThan(n) {
+            if (!isNaN(n)) {
+                n = new Frac(n);
+            }
+            const q = this.qcompare(n);
 
             return q[0].lt(q[1]);
         },
-        isInteger: function () {
+        isInteger() {
             return this.den.equals(1);
         },
-        negate: function () {
+        negate() {
             this.num = this.num.multiply(-1);
             return this;
         },
-        invert: function () {
-            var t = this.den;
+        invert() {
+            const t = this.den;
             //why invert 0/1? It'll become 1/0 and that's a lie.
             if (!this.num.equals(0)) {
-                var isnegative = this.num.isNegative();
+                const isnegative = this.num.isNegative();
                 this.den = this.num.abs();
                 this.num = t;
-                if (isnegative) this.num = this.num.multiply(-1);
+                if (isnegative) {
+                    this.num = this.num.multiply(-1);
+                }
             }
 
             return this;
         },
-        isOne: function () {
+        isOne() {
             return this.num.equals(1) && this.den.equals(1);
         },
-        sign: function () {
+        sign() {
             return this.num.isNegative() ? -1 : 1;
         },
-        abs: function () {
+        abs() {
             this.num = this.num.abs();
             return this;
         },
-        gcd: function (f) {
+        gcd(f) {
             return Frac.quick(bigInt.gcd(f.num, this.num), bigInt.lcm(f.den, this.den));
         },
-        toString: function () {
-            return !this.den.equals(1) ? this.num.toString() + '/' + this.den.toString() : this.num.toString();
+        toString() {
+            return !this.den.equals(1) ? `${this.num.toString()}/${this.den.toString()}` : this.num.toString();
         },
-        valueOf: function () {
+        valueOf() {
             //            if(this.num == 24) throw new Error(999)
-            if (Settings.USE_BIG) return new bigDec(this.num.toString()).div(new bigDec(this.den.toString()));
-            var retval = this.num / this.den;
+            if (Settings.USE_BIG) {
+                return new bigDec(this.num.toString()).div(new bigDec(this.den.toString()));
+            }
+            const retval = this.num / this.den;
             return retval;
         },
-        isNegative: function () {
+        isNegative() {
             return this.toDecimal() < 0;
         },
     };
@@ -3461,7 +3698,7 @@ var nerdamer = (function (imports) {
     function NerdamerSymbol(obj) {
         checkTimeout();
 
-        var isInfinity = obj === 'Infinity';
+        const isInfinity = obj === 'Infinity';
         // This enables the class to be instantiated without the new operator
         if (!(this instanceof NerdamerSymbol)) {
             return new NerdamerSymbol(obj);
@@ -3500,7 +3737,7 @@ var nerdamer = (function (imports) {
      * @returns {NerdamerSymbol}
      */
     NerdamerSymbol.imaginary = function () {
-        var s = new NerdamerSymbol(Settings.IMAGINARY);
+        const s = new NerdamerSymbol(Settings.IMAGINARY);
         s.imaginary = true;
         return s;
     };
@@ -3511,12 +3748,14 @@ var nerdamer = (function (imports) {
      * @returns {NerdamerSymbol}
      */
     NerdamerSymbol.infinity = function (negative) {
-        var v = new NerdamerSymbol('Infinity');
-        if (negative === -1) v.negate();
+        const v = new NerdamerSymbol('Infinity');
+        if (negative === -1) {
+            v.negate();
+        }
         return v;
     };
     NerdamerSymbol.shell = function (group, value) {
-        var symbol = new NerdamerSymbol(value);
+        const symbol = new NerdamerSymbol(value);
         symbol.group = group;
         symbol.symbols = {};
         symbol.length = 0;
@@ -3524,13 +3763,15 @@ var nerdamer = (function (imports) {
     };
     //sqrt(x) -> x^(1/2)
     NerdamerSymbol.unwrapSQRT = function (symbol, all) {
-        var p = symbol.power;
+        const p = symbol.power;
         if (symbol.fname === SQRT && (symbol.isLinear() || all)) {
-            var t = symbol.args[0].clone();
+            const t = symbol.args[0].clone();
             t.power = t.power.multiply(new Frac(1 / 2));
             t.multiplier = t.multiplier.multiply(symbol.multiplier);
             symbol = t;
-            if (all) symbol.power = p.multiply(new Frac(1 / 2));
+            if (all) {
+                symbol.power = p.multiply(new Frac(1 / 2));
+            }
         }
 
         return symbol;
@@ -3542,7 +3783,7 @@ var nerdamer = (function (imports) {
     };
     //converts to polar form array
     NerdamerSymbol.toPolarFormArray = function (symbol) {
-        var re, im, r, theta;
+        let re, im, r, theta;
         re = symbol.realpart();
         im = symbol.imagpart();
         r = NerdamerSymbol.hyp(re, im);
@@ -3552,10 +3793,12 @@ var nerdamer = (function (imports) {
     //removes parentheses
     NerdamerSymbol.unwrapPARENS = function (symbol) {
         if (symbol.fname === '') {
-            var r = symbol.args[0];
+            const r = symbol.args[0];
             r.power = r.power.multiply(symbol.power);
             r.multiplier = r.multiplier.multiply(symbol.multiplier);
-            if (symbol.fname === '') return NerdamerSymbol.unwrapPARENS(r);
+            if (symbol.fname === '') {
+                return NerdamerSymbol.unwrapPARENS(r);
+            }
             return r;
         }
         return symbol;
@@ -3563,10 +3806,10 @@ var nerdamer = (function (imports) {
     //quickly creates a NerdamerSymbol
     NerdamerSymbol.create = function (value, power) {
         power = power === undefined ? 1 : power;
-        return _.parse('(' + value + ')^(' + power + ')');
+        return _.parse(`(${value})^(${power})`);
     };
     NerdamerSymbol.prototype = {
-        pushMinus: function () {
+        pushMinus() {
             let retval = this;
             if (
                 (this.group === CB || this.group === CP || this.group === PL) &&
@@ -3576,13 +3819,13 @@ var nerdamer = (function (imports) {
                 // console.log();
                 // console.log("replacing "+this.text("fractions"))
                 retval = this.clone();
-                let m = retval.multiplier.clone();
+                const m = retval.multiplier.clone();
                 m.negate();
                 // console.log("  negated multiplier: "+m)
                 retval.toUnitMultiplier();
 
                 // console.log("  unit main part: "+this)
-                for (let termkey in retval.symbols) {
+                for (const termkey in retval.symbols) {
                     retval.symbols[termkey] = retval.symbols[termkey].clone().negate();
                     // console.log("  negated term: "+this.symbols[termkey])
                     if (retval.group === CB) {
@@ -3610,13 +3853,13 @@ var nerdamer = (function (imports) {
          * @param {number} n
          * @returns {number}
          */
-        getNth: function (n) {
+        getNth(n) {
             // First calculate the root
-            var root = evaluate(_.pow(_.parse(this.multiplier), _.parse(n).invert()));
+            const root = evaluate(_.pow(_.parse(this.multiplier), _.parse(n).invert()));
             // Round of any errors
-            var rounded = _.parse(nround(root));
+            const rounded = _.parse(nround(root));
             // Reverse the root
-            var e = evaluate(_.pow(rounded, _.parse(n)));
+            const e = evaluate(_.pow(rounded, _.parse(n)));
             // If the rounded root equals the original number then we're good
             if (e.equals(_.parse(this.multiplier))) {
                 return rounded;
@@ -3629,20 +3872,20 @@ var nerdamer = (function (imports) {
          *
          * @returns {boolean}
          */
-        isToNth: function (n) {
+        isToNth(n) {
             // Start by check in the multiplier for squareness
             // First get the root but round it because currently we still depend
-            var root = this.getNth(n);
-            var nthMultiplier = isInt(root);
-            var nthPower;
+            const root = this.getNth(n);
+            const nthMultiplier = isInt(root);
+            let nthPower;
 
             if (this.group === CB) {
                 // Start by assuming that all will be square.
                 nthPower = true;
                 // All it takes is for one of the symbols to not have an even power
                 // e.g. x^n1*y^n2 requires that both n1 and n2 are even
-                this.each(function (x) {
-                    var isNth = x.isToNth(n);
+                this.each(x => {
+                    const isNth = x.isToNth(n);
 
                     if (!isNth) {
                         nthPower = false;
@@ -3660,7 +3903,7 @@ var nerdamer = (function (imports) {
          *
          * @returns {boolean}
          */
-        isSquare: function () {
+        isSquare() {
             return this.isToNth(2);
         },
         /**
@@ -3668,7 +3911,7 @@ var nerdamer = (function (imports) {
          *
          * @returns {boolean}
          */
-        isCube: function () {
+        isCube() {
             return this.isToNth(3);
         },
         /**
@@ -3676,7 +3919,7 @@ var nerdamer = (function (imports) {
          *
          * @returns {boolean}
          */
-        isSimple: function () {
+        isSimple() {
             return this.power.equals(1) && this.multiplier.equals(1);
         },
         /**
@@ -3684,20 +3927,22 @@ var nerdamer = (function (imports) {
          *
          * @returns {NerdamerSymbol} A clone of the symbol
          */
-        powSimp: function () {
+        powSimp() {
             if (this.group === CB) {
                 var powers = [],
                     sign = this.multiplier.sign();
-                this.each(function (x) {
-                    var p = x.power;
+                this.each(x => {
+                    const p = x.power;
                     //why waste time if I can't do anything anyway
-                    if (isSymbol(p) || p.equals(1)) return;
+                    if (isSymbol(p) || p.equals(1)) {
+                        return;
+                    }
                     powers.push(p);
                 });
                 if (powers.length === 0) {
                     return this.clone();
                 }
-                var min = new Frac(arrayMin(powers));
+                const min = new Frac(arrayMin(powers));
 
                 //handle the coefficient
                 //handle the multiplier
@@ -3706,26 +3951,26 @@ var nerdamer = (function (imports) {
                     mfactors = Math2.ifactor(m);
                 //if we have a multiplier of 6750 and a min of 2 then the factors are 5^3*5^3*2
                 //we can then reduce it to 2*3*5*(15)^2
-                var out_ = new Frac(1);
-                var in_ = new Frac(1);
+                let out_ = new Frac(1);
+                let in_ = new Frac(1);
 
-                for (var x in mfactors) {
-                    var n = new Frac(mfactors[x]);
+                for (const x in mfactors) {
+                    let n = new Frac(mfactors[x]);
                     if (!n.lessThan(min)) {
                         n = n.divide(min).subtract(new Frac(1));
                         in_ = in_.multiply(new Frac(x)); //move the factor inside the bracket
                     }
 
-                    out_ = out_.multiply(_.parse(inBrackets(x) + '^' + inBrackets(n)).multiplier);
+                    out_ = out_.multiply(_.parse(`${inBrackets(x)}^${inBrackets(n)}`).multiplier);
                 }
-                var t = new NerdamerSymbol(in_);
-                this.each(function (x) {
+                let t = new NerdamerSymbol(in_);
+                this.each(x => {
                     x = x.clone();
                     x.power = x.power.divide(min);
                     t = _.multiply(t, x);
                 });
 
-                var xt = _.symfunction(PARENTHESIS, [t]);
+                const xt = _.symfunction(PARENTHESIS, [t]);
                 xt.power = min;
                 xt.multiplier = sign < 0 ? out_.negate() : out_;
 
@@ -3738,8 +3983,10 @@ var nerdamer = (function (imports) {
          *
          * @param {NerdamerSymbol} symbol
          */
-        equals: function (symbol) {
-            if (!isSymbol(symbol)) symbol = new NerdamerSymbol(symbol);
+        equals(symbol) {
+            if (!isSymbol(symbol)) {
+                symbol = new NerdamerSymbol(symbol);
+            }
             return (
                 this.value === symbol.value &&
                 this.power.equals(symbol.power) &&
@@ -3747,32 +3994,40 @@ var nerdamer = (function (imports) {
                 this.group === symbol.group
             );
         },
-        abs: function () {
-            var e = this.clone();
+        abs() {
+            const e = this.clone();
             e.multiplier.abs();
             return e;
         },
         // Greater than
-        gt: function (symbol) {
-            if (!isSymbol(symbol)) symbol = new NerdamerSymbol(symbol);
+        gt(symbol) {
+            if (!isSymbol(symbol)) {
+                symbol = new NerdamerSymbol(symbol);
+            }
             return this.isConstant() && symbol.isConstant() && this.multiplier.greaterThan(symbol.multiplier);
         },
         // Greater than
-        gte: function (symbol) {
-            if (!isSymbol(symbol)) symbol = new NerdamerSymbol(symbol);
+        gte(symbol) {
+            if (!isSymbol(symbol)) {
+                symbol = new NerdamerSymbol(symbol);
+            }
             return (
                 this.equals(symbol) ||
                 (this.isConstant() && symbol.isConstant() && this.multiplier.greaterThan(symbol.multiplier))
             );
         },
         // Less than
-        lt: function (symbol) {
-            if (!isSymbol(symbol)) symbol = new NerdamerSymbol(symbol);
+        lt(symbol) {
+            if (!isSymbol(symbol)) {
+                symbol = new NerdamerSymbol(symbol);
+            }
             return this.isConstant() && symbol.isConstant() && this.multiplier.lessThan(symbol.multiplier);
         },
         // Less than
-        lte: function (symbol) {
-            if (!isSymbol(symbol)) symbol = new NerdamerSymbol(symbol);
+        lte(symbol) {
+            if (!isSymbol(symbol)) {
+                symbol = new NerdamerSymbol(symbol);
+            }
             return (
                 this.equals(symbol) ||
                 (this.isConstant() && symbol.isConstant() && this.multiplier.lessThan(symbol.multiplier))
@@ -3786,24 +4041,34 @@ var nerdamer = (function (imports) {
          * @param {boolean} multivariate
          * @returns {boolean}
          */
-        isPoly: function (multivariate) {
-            var g = this.group,
+        isPoly(multivariate) {
+            const g = this.group,
                 p = this.power;
             //the power must be a integer so fail if it's not
-            if (!isInt(p) || p < 0) return false;
+            if (!isInt(p) || p < 0) {
+                return false;
+            }
             //constants and first orders
-            if (g === N || g === S || this.isConstant(true)) return true;
-            var vars = variables(this);
+            if (g === N || g === S || this.isConstant(true)) {
+                return true;
+            }
+            const vars = variables(this);
             if (g === CB && vars.length === 1) {
                 //the variable is assumed the only one that was found
-                var v = vars[0];
+                const v = vars[0];
                 //if no variable then guess what!?!? We're done!!! We have a polynomial.
-                if (!v) return true;
+                if (!v) {
+                    return true;
+                }
                 for (var x in this.symbols) {
-                    var sym = this.symbols[x];
+                    const sym = this.symbols[x];
                     //sqrt(x)
-                    if (sym.group === FN && !sym.args[0].isConstant()) return false;
-                    if (!sym.contains(v) && !sym.isConstant(true)) return false;
+                    if (sym.group === FN && !sym.args[0].isConstant()) {
+                        return false;
+                    }
+                    if (!sym.contains(v) && !sym.isConstant(true)) {
+                        return false;
+                    }
                 }
                 return true;
             }
@@ -3811,15 +4076,21 @@ var nerdamer = (function (imports) {
             //this should handle cases such as x^2*t
             if (this.isComposite() || (g === CB && multivariate)) {
                 //fail if we're not checking for multivariate polynomials
-                if (!multivariate && vars.length > 1) return false;
+                if (!multivariate && vars.length > 1) {
+                    return false;
+                }
                 //loop though the symbols and check if they qualify
                 for (var x in this.symbols) {
                     //we've already the symbols if we're not checking for multivariates at this point
                     //so we check the sub-symbols
-                    if (!this.symbols[x].isPoly(multivariate)) return false;
+                    if (!this.symbols[x].isPoly(multivariate)) {
+                        return false;
+                    }
                 }
                 return true;
-            } else return false;
+            } else {
+                return false;
+            }
 
             /*
              //all tests must have passed so we must be dealing with a polynomial
@@ -3827,14 +4098,16 @@ var nerdamer = (function (imports) {
              */
         },
         //removes the requested variable from the symbol and returns the remainder
-        stripVar: function (x, exclude_x) {
-            var retval;
-            if ((this.group === PL || this.group === S) && this.value === x)
+        stripVar(x, exclude_x) {
+            let retval;
+            if ((this.group === PL || this.group === S) && this.value === x) {
                 retval = new NerdamerSymbol(exclude_x ? 0 : this.multiplier);
-            else if (this.group === CB && this.isLinear()) {
+            } else if (this.group === CB && this.isLinear()) {
                 retval = new NerdamerSymbol(1);
-                this.each(function (s) {
-                    if (!s.contains(x, true)) retval = _.multiply(retval, s.clone());
+                this.each(s => {
+                    if (!s.contains(x, true)) {
+                        retval = _.multiply(retval, s.clone());
+                    }
                 });
                 retval.multiplier = retval.multiplier.multiply(this.multiplier);
             } else if (this.group === CP && !this.isLinear()) {
@@ -3843,53 +4116,56 @@ var nerdamer = (function (imports) {
                 retval = new NerdamerSymbol(0);
                 this.each(function (s) {
                     if (!s.contains(x)) {
-                        var t = s.clone();
+                        const t = s.clone();
                         t.multiplier = t.multiplier.multiply(this.multiplier);
                         retval = _.add(retval, t);
                     }
                 });
                 //BIG TODO!!! It doesn't make much sense
-                if (retval.equals(0)) retval = new NerdamerSymbol(this.multiplier);
+                if (retval.equals(0)) {
+                    retval = new NerdamerSymbol(this.multiplier);
+                }
             } else if (this.group === EX && this.power.contains(x, true)) {
                 retval = new NerdamerSymbol(this.multiplier);
             } else if (this.group === FN && this.contains(x)) {
                 retval = new NerdamerSymbol(this.multiplier);
-            } else
-                //wth? This should technically be the multiplier.
-                //Unfortunately this method wasn't very well thought out :`(.
-                //should be: retval = new NerdamerSymbol(this.multiplier);
-                //use: ((1+x^2)*sqrt(-1+x^2))^(-1) for correction.
-                //this will break a bunch of unit tests so be ready to for the long haul
+            } else //wth? This should technically be the multiplier.
+            //Unfortunately this method wasn't very well thought out :`(.
+            //should be: retval = new NerdamerSymbol(this.multiplier);
+            //use: ((1+x^2)*sqrt(-1+x^2))^(-1) for correction.
+            //this will break a bunch of unit tests so be ready to for the long haul
+            {
                 retval = this.clone();
+            }
 
             return retval;
         },
         //returns symbol in array form with x as base e.g. a*x^2+b*x+c = [c, b, a].
-        toArray: function (v, arr) {
+        toArray(v, arr) {
             arr = arr || {
                 arr: [],
-                add: function (x, idx) {
-                    var e = this.arr[idx];
+                add(x, idx) {
+                    const e = this.arr[idx];
                     this.arr[idx] = e ? _.add(e, x) : x;
                 },
             };
-            var g = this.group;
+            const g = this.group;
 
             if (g === S && this.contains(v)) {
                 arr.add(new NerdamerSymbol(this.multiplier), this.power);
             } else if (g === CB) {
-                var a = this.stripVar(v),
+                const a = this.stripVar(v),
                     x = _.divide(this.clone(), a.clone());
-                var p = x.isConstant() ? 0 : x.power;
+                const p = x.isConstant() ? 0 : x.power;
                 arr.add(a, p);
             } else if (g === PL && this.value === v) {
-                this.each(function (x, p) {
+                this.each((x, p) => {
                     arr.add(x.stripVar(v), p);
                 });
             } else if (g === CP) {
                 //the logic: they'll be broken into symbols so e.g. (x^2+x)+1 or (a*x^2+b*x+c)
                 //each case is handled above
-                this.each(function (x) {
+                this.each(x => {
                     x.toArray(v, arr);
                 });
             } else if (this.contains(v)) {
@@ -3899,25 +4175,35 @@ var nerdamer = (function (imports) {
             }
             //fill the holes
             arr = arr.arr; //keep only the array since we don't need the object anymore
-            for (var i = 0; i < arr.length; i++) if (!arr[i]) arr[i] = new NerdamerSymbol(0);
+            for (let i = 0; i < arr.length; i++) {
+                if (!arr[i]) {
+                    arr[i] = new NerdamerSymbol(0);
+                }
+            }
             return arr;
         },
         //checks to see if a symbol contans a function
-        hasFunc: function (v) {
-            var fn_group = this.group === FN || this.group === EX;
-            if ((fn_group && !v) || (fn_group && this.contains(v))) return true;
+        hasFunc(v) {
+            const fn_group = this.group === FN || this.group === EX;
+            if ((fn_group && !v) || (fn_group && this.contains(v))) {
+                return true;
+            }
             if (this.symbols) {
-                for (var x in this.symbols) {
-                    if (this.symbols[x].hasFunc(v)) return true;
+                for (const x in this.symbols) {
+                    if (this.symbols[x].hasFunc(v)) {
+                        return true;
+                    }
                 }
             }
             return false;
         },
-        sub: function (a, b) {
+        sub(a, b) {
             a = !isSymbol(a) ? _.parse(a) : a.clone();
             b = !isSymbol(b) ? _.parse(b) : b.clone();
-            if (a.group === N || a.group === P) err('Cannot substitute a number. Must be a variable');
-            var same_pow = false,
+            if (a.group === N || a.group === P) {
+                err('Cannot substitute a number. Must be a variable');
+            }
+            let same_pow = false,
                 a_is_unit_multiplier = a.multiplier.equals(1),
                 m = this.multiplier.clone(),
                 retval;
@@ -3939,36 +4225,42 @@ var nerdamer = (function (imports) {
                         retval = b;
                         same_pow = true;
                     }
-                    if (a.multiplier.equals(this.multiplier)) m = new Frac(1);
+                    if (a.multiplier.equals(this.multiplier)) {
+                        m = new Frac(1);
+                    }
                 }
             }
             //the next thing is to handle CB
             else if (this.group === CB || this.previousGroup === CB) {
                 retval = new NerdamerSymbol(1);
-                this.each(function (x) {
-                    var subbed = _.parse(x.sub(a, b)); //parse it again for safety
+                this.each(x => {
+                    const subbed = _.parse(x.sub(a, b)); //parse it again for safety
                     retval = _.multiply(retval, subbed);
                 });
             } else if (this.isComposite()) {
-                var symbol = this.clone();
+                const symbol = this.clone();
 
                 if (a.isComposite() && symbol.isComposite() && symbol.isLinear() && a.isLinear()) {
-                    var find = function (stack, needle) {
-                        for (var x in stack.symbols) {
-                            var sym = stack.symbols[x];
+                    const find = function (stack, needle) {
+                        for (const x in stack.symbols) {
+                            const sym = stack.symbols[x];
                             //if the symbol equals the needle or it's within the sub-symbols we're done
-                            if ((sym.isComposite() && find(sym, needle)) || sym.equals(needle)) return true;
+                            if ((sym.isComposite() && find(sym, needle)) || sym.equals(needle)) {
+                                return true;
+                            }
                         }
                         return false;
                     };
                     //go fish
-                    for (var x in a.symbols) {
-                        if (!find(symbol, a.symbols[x])) return symbol.clone();
+                    for (const x in a.symbols) {
+                        if (!find(symbol, a.symbols[x])) {
+                            return symbol.clone();
+                        }
                     }
                     retval = _.add(_.subtract(symbol.clone(), a), b);
                 } else {
                     retval = new NerdamerSymbol(0);
-                    symbol.each(function (x) {
+                    symbol.each(x => {
                         retval = _.add(retval, x.sub(a, b));
                     });
                 }
@@ -3976,10 +4268,12 @@ var nerdamer = (function (imports) {
                 // the parsed value could be a function so parse and sub
                 retval = _.parse(this.value).sub(a, b);
             } else if (this.group === FN) {
-                var nargs = [];
-                for (var i = 0; i < this.args.length; i++) {
-                    var arg = this.args[i];
-                    if (!isSymbol(arg)) arg = _.parse(arg);
+                const nargs = [];
+                for (let i = 0; i < this.args.length; i++) {
+                    let arg = this.args[i];
+                    if (!isSymbol(arg)) {
+                        arg = _.parse(arg);
+                    }
                     nargs.push(arg.sub(a, b));
                 }
                 retval = _.symfunction(this.fname, nargs);
@@ -3988,7 +4282,7 @@ var nerdamer = (function (imports) {
             if (retval) {
                 if (!same_pow) {
                     //substitute the power
-                    var p = this.group === EX ? this.power.sub(a, b) : _.parse(this.power);
+                    const p = this.group === EX ? this.power.sub(a, b) : _.parse(this.power);
                     //now raise the symbol to that power
                     retval = _.pow(retval, p);
                 }
@@ -4002,36 +4296,46 @@ var nerdamer = (function (imports) {
             //if all else fails
             return this.clone();
         },
-        isMonomial: function () {
-            if (this.group === S) return true;
+        isMonomial() {
+            if (this.group === S) {
+                return true;
+            }
             if (this.group === CB) {
-                for (var x in this.symbols) if (this.symbols[x].group !== S) return false;
-            } else return false;
+                for (const x in this.symbols) {
+                    if (this.symbols[x].group !== S) {
+                        return false;
+                    }
+                }
+            } else {
+                return false;
+            }
             return true;
         },
-        isPi: function () {
+        isPi() {
             return this.group === S && this.value === 'pi';
         },
-        sign: function () {
+        sign() {
             return this.multiplier.sign();
         },
-        isE: function () {
+        isE() {
             return this.value === 'e';
         },
-        isSQRT: function () {
+        isSQRT() {
             return this.fname === SQRT;
         },
-        isConstant: function (check_all, check_symbols) {
+        isConstant(check_all, check_symbols) {
             if (check_symbols && this.group === CB) {
-                for (var x in this.symbols) {
-                    if (this.symbols[x].isConstant(true)) return true;
+                for (const x in this.symbols) {
+                    if (this.symbols[x].isConstant(true)) {
+                        return true;
+                    }
                 }
             }
 
             if (check_all === 'functions' && this.isComposite()) {
-                var isConstant = true;
+                let isConstant = true;
 
-                this.each(function (x) {
+                this.each(x => {
                     if (!x.isConstant(check_all, check_symbols)) {
                         isConstant = false;
                     }
@@ -4045,23 +4349,32 @@ var nerdamer = (function (imports) {
             }
 
             if (check_all && this.group === FN) {
-                for (var i = 0; i < this.args.length; i++) {
-                    if (!this.args[i].isConstant(check_all)) return false;
+                for (let i = 0; i < this.args.length; i++) {
+                    if (!this.args[i].isConstant(check_all)) {
+                        return false;
+                    }
                 }
                 return true;
             }
 
-            if (check_all) return isNumericSymbol(this);
+            if (check_all) {
+                return isNumericSymbol(this);
+            }
             return this.value === CONST_HASH;
         },
         //the symbols is imaginary if
         //1. n*i
         //2. a+b*i
         //3. a*i
-        isImaginary: function () {
-            if (this.imaginary) return true;
-            else if (this.symbols) {
-                for (var x in this.symbols) if (this.symbols[x].isImaginary()) return true;
+        isImaginary() {
+            if (this.imaginary) {
+                return true;
+            } else if (this.symbols) {
+                for (const x in this.symbols) {
+                    if (this.symbols[x].isImaginary()) {
+                        return true;
+                    }
+                }
             }
             return false;
         },
@@ -4070,24 +4383,27 @@ var nerdamer = (function (imports) {
          *
          * @returns {NerdamerSymbol}
          */
-        realpart: function () {
+        realpart() {
             if (this.isConstant()) {
                 return this.clone();
-            } else if (this.imaginary) return new NerdamerSymbol(0);
-            else if (this.isComposite()) {
-                var retval = new NerdamerSymbol(0);
-                this.each(function (x) {
+            } else if (this.imaginary) {
+                return new NerdamerSymbol(0);
+            } else if (this.isComposite()) {
+                let retval = new NerdamerSymbol(0);
+                this.each(x => {
                     retval = _.add(retval, x.realpart());
                 });
                 return retval;
-            } else if (this.isImaginary()) return new NerdamerSymbol(0);
+            } else if (this.isImaginary()) {
+                return new NerdamerSymbol(0);
+            }
             return this.clone();
         },
         /*
          * Return imaginary part of a symbol
          * @returns {NerdamerSymbol}
          */
-        imagpart: function () {
+        imagpart() {
             if (this.group === S && this.isImaginary()) {
                 let x = this;
                 if (this.power.isNegative()) {
@@ -4098,42 +4414,57 @@ var nerdamer = (function (imports) {
                 return new NerdamerSymbol(x.multiplier);
             }
             if (this.isComposite()) {
-                var retval = new NerdamerSymbol(0);
-                this.each(function (x) {
+                let retval = new NerdamerSymbol(0);
+                this.each(x => {
                     retval = _.add(retval, x.imagpart());
                 });
                 return retval;
             }
-            if (this.group === CB) return this.stripVar(Settings.IMAGINARY);
+            if (this.group === CB) {
+                return this.stripVar(Settings.IMAGINARY);
+            }
             return new NerdamerSymbol(0);
         },
-        isInteger: function () {
+        isInteger() {
             return this.isConstant() && this.multiplier.isInteger();
         },
-        isLinear: function (wrt) {
+        isLinear(wrt) {
             if (wrt) {
-                if (this.isConstant()) return true;
+                if (this.isConstant()) {
+                    return true;
+                }
                 // If this symbol doesn't contain the variable (including in exponents), it's constant with respect to it
-                if (!this.contains(wrt, true)) return true;
+                if (!this.contains(wrt, true)) {
+                    return true;
+                }
                 if (this.group === S) {
-                    if (this.value === wrt) return this.power.equals(1);
-                    else return true;
+                    if (this.value === wrt) {
+                        return this.power.equals(1);
+                    } else {
+                        return true;
+                    }
                 }
 
                 if (this.isComposite() && this.power.equals(1)) {
-                    for (var x in this.symbols) {
-                        if (!this.symbols[x].isLinear(wrt)) return false;
+                    for (const x in this.symbols) {
+                        if (!this.symbols[x].isLinear(wrt)) {
+                            return false;
+                        }
                     }
                     return true;
                 }
 
                 if (this.group === CB) {
                     // If the variable doesn't exist in this term, it's constant wrt that variable, hence linear
-                    if (!this.symbols[wrt]) return true;
+                    if (!this.symbols[wrt]) {
+                        return true;
+                    }
                     return this.symbols[wrt].isLinear(wrt);
                 }
                 return false;
-            } else return this.power.equals(1);
+            } else {
+                return this.power.equals(1);
+            }
         },
         /**
          * Checks to see if a symbol has a function by a specified name or within a specified list
@@ -4141,24 +4472,32 @@ var nerdamer = (function (imports) {
          * @param {string | string[]} names
          * @returns {boolean}
          */
-        containsFunction: function (names) {
-            if (typeof names === 'string') names = [names];
-            if (this.group === FN && names.indexOf(this.fname) !== -1) return true;
+        containsFunction(names) {
+            if (typeof names === 'string') {
+                names = [names];
+            }
+            if (this.group === FN && names.indexOf(this.fname) !== -1) {
+                return true;
+            }
             if (this.symbols) {
-                for (var x in this.symbols) {
-                    if (this.symbols[x].containsFunction(names)) return true;
+                for (const x in this.symbols) {
+                    if (this.symbols[x].containsFunction(names)) {
+                        return true;
+                    }
                 }
             }
             return false;
         },
-        multiplyPower: function (p2) {
+        multiplyPower(p2) {
             //leave out 1
-            if (this.group === N && this.multiplier.equals(1)) return this;
+            if (this.group === N && this.multiplier.equals(1)) {
+                return this;
+            }
 
-            var p1 = this.power;
+            let p1 = this.power;
 
             if (this.group !== EX && p2.group === N) {
-                var p = p2.multiplier;
+                const p = p2.multiplier;
                 if (this.group === N && !p.isInteger()) {
                     this.convert(P);
                 }
@@ -4181,7 +4520,7 @@ var nerdamer = (function (imports) {
 
             return this;
         },
-        setPower: function (p, retainSign) {
+        setPower(p, retainSign) {
             //leave out 1
             if (this.group === N && this.multiplier.equals(1)) {
                 return this;
@@ -4192,9 +4531,11 @@ var nerdamer = (function (imports) {
                 if (this.group === N) {
                     this.multiplier = new Frac(this.value);
                     this.value = CONST_HASH;
-                } else this.power = p;
+                } else {
+                    this.power = p;
+                }
             } else {
-                var isSymbolic = false;
+                let isSymbolic = false;
                 if (isSymbol(p)) {
                     if (p.group === N) {
                         //p should be the multiplier instead
@@ -4203,9 +4544,11 @@ var nerdamer = (function (imports) {
                         isSymbolic = true;
                     }
                 }
-                var group = isSymbolic ? EX : P;
+                const group = isSymbolic ? EX : P;
                 this.power = p;
-                if (this.group === N && group) this.convert(group, retainSign);
+                if (this.group === N && group) {
+                    this.convert(group, retainSign);
+                }
             }
 
             return this;
@@ -4215,8 +4558,10 @@ var nerdamer = (function (imports) {
          *
          * @returns {boolean}
          */
-        isInverse: function () {
-            if (this.group === EX) return this.power.multiplier.lessThan(0);
+        isInverse() {
+            if (this.group === EX) {
+                return this.power.multiplier.lessThan(0);
+            }
             return this.power < 0;
         },
         /**
@@ -4226,8 +4571,8 @@ var nerdamer = (function (imports) {
          * @param {NerdamerSymbol} c
          * @returns {NerdamerSymbol}
          */
-        clone: function (c) {
-            var clone = c || new NerdamerSymbol(0),
+        clone(c) {
+            let clone = c || new NerdamerSymbol(0),
                 //list of properties excluding power as this may be a symbol and would also need to be a clone.
                 properties = [
                     'value',
@@ -4244,7 +4589,7 @@ var nerdamer = (function (imports) {
                 i;
             if (this.symbols) {
                 clone.symbols = {};
-                for (var x in this.symbols) {
+                for (const x in this.symbols) {
                     clone.symbols[x] = this.symbols[x].clone();
                 }
             }
@@ -4258,9 +4603,13 @@ var nerdamer = (function (imports) {
             clone.power = this.power.clone();
             clone.multiplier = this.multiplier.clone();
             //add back the flag to track if this symbol is a conversion symbol
-            if (this.isConversion) clone.isConversion = this.isConversion;
+            if (this.isConversion) {
+                clone.isConversion = this.isConversion;
+            }
 
-            if (this.isUnit) clone.isUnit = this.isUnit;
+            if (this.isUnit) {
+                clone.isUnit = this.isUnit;
+            }
 
             return clone;
         },
@@ -4270,7 +4619,7 @@ var nerdamer = (function (imports) {
          * @param {boolean} keepSign Keep the multiplier as negative if the multiplier is negative and keepSign is true
          * @returns {NerdamerSymbol}
          */
-        toUnitMultiplier: function (keepSign) {
+        toUnitMultiplier(keepSign) {
             this.multiplier.num = new bigInt(this.multiplier.num.isNegative() && keepSign ? -1 : 1);
             this.multiplier.den = new bigInt(1);
             return this;
@@ -4280,7 +4629,7 @@ var nerdamer = (function (imports) {
          *
          * @returns {NerdamerSymbol}
          */
-        toLinear: function () {
+        toLinear() {
             // Do nothing if it's already linear
             if (this.power.equals(1)) {
                 return this;
@@ -4294,17 +4643,19 @@ var nerdamer = (function (imports) {
          * @param {Function} fn
          * @param {boolean} deep If true it will itterate over the sub-symbols their symbols as well
          */
-        each: function (fn, deep) {
+        each(fn, deep) {
             if (!this.symbols) {
                 fn.call(this, this, this.value);
             } else {
-                for (var x in this.symbols) {
-                    var sym = this.symbols[x];
+                for (const x in this.symbols) {
+                    const sym = this.symbols[x];
                     if (sym.group === PL && deep) {
-                        for (var y in sym.symbols) {
+                        for (const y in sym.symbols) {
                             fn.call(x, sym.symbols[y], y);
                         }
-                    } else fn.call(this, sym, x);
+                    } else {
+                        fn.call(this, sym, x);
+                    }
                 }
             }
         },
@@ -4314,9 +4665,10 @@ var nerdamer = (function (imports) {
          *
          * @returns {string | number}
          */
-        valueOf: function () {
-            if (this.group === N) return this.multiplier.valueOf();
-            else if (this.power === 0) {
+        valueOf() {
+            if (this.group === N) {
+                return this.multiplier.valueOf();
+            } else if (this.power === 0) {
                 return 1;
             } else if (this.multiplier === 0) {
                 return 0;
@@ -4337,19 +4689,25 @@ var nerdamer = (function (imports) {
          * @param {boolean} all
          * @returns {boolean}
          */
-        contains: function (variable, all) {
+        contains(variable, all) {
             //contains expects a string
             variable = String(variable);
-            var g = this.group;
-            if (this.value === variable) return true;
+            const g = this.group;
+            if (this.value === variable) {
+                return true;
+            }
             if (this.symbols) {
-                for (var x in this.symbols) {
-                    if (this.symbols[x].contains(variable, all)) return true;
+                for (const x in this.symbols) {
+                    if (this.symbols[x].contains(variable, all)) {
+                        return true;
+                    }
                 }
             }
             if (g === FN || this.previousGroup === FN) {
-                for (var i = 0; i < this.args.length; i++) {
-                    if (this.args[i].contains(variable, all)) return true;
+                for (let i = 0; i < this.args.length; i++) {
+                    if (this.args[i].contains(variable, all)) {
+                        return true;
+                    }
                 }
             }
 
@@ -4358,7 +4716,9 @@ var nerdamer = (function (imports) {
                 if (all && this.power.contains(variable, all)) {
                     return true;
                 }
-                if (this.value === variable) return true;
+                if (this.value === variable) {
+                    return true;
+                }
             }
 
             return this.value === variable;
@@ -4368,9 +4728,11 @@ var nerdamer = (function (imports) {
          *
          * @returns {boolean}
          */
-        negate: function () {
+        negate() {
             this.multiplier.negate();
-            if (this.group === CP || this.group === PL) this.distributeMultiplier();
+            if (this.group === CP || this.group === PL) {
+                this.distributeMultiplier();
+            }
             return this;
         },
         /**
@@ -4380,18 +4742,20 @@ var nerdamer = (function (imports) {
          * @param {boolean} all
          * @returns {boolean}
          */
-        invert: function (power_only, all) {
+        invert(power_only, all) {
             //invert the multiplier
-            if (!power_only) this.multiplier = this.multiplier.invert();
+            if (!power_only) {
+                this.multiplier = this.multiplier.invert();
+            }
             //invert the rest
             if (isSymbol(this.power)) {
                 this.power.negate();
             } else if (this.group === CB && all) {
-                this.each(function (x) {
-                    return x.invert();
-                });
+                this.each(x => x.invert());
             } else {
-                if (this.power && this.group !== N) this.power.negate();
+                if (this.power && this.group !== N) {
+                    this.power.negate();
+                }
             }
             return this;
         },
@@ -4403,11 +4767,11 @@ var nerdamer = (function (imports) {
          * @param {boolean} all
          * @returns {NerdamerSymbol}
          */
-        distributeMultiplier: function (all) {
-            var is_one = all ? this.power.absEquals(1) : this.power.equals(1);
+        distributeMultiplier(all) {
+            const is_one = all ? this.power.absEquals(1) : this.power.equals(1);
             if (this.symbols && is_one && this.group !== CB && !this.multiplier.equals(1)) {
-                for (var x in this.symbols) {
-                    var s = this.symbols[x];
+                for (const x in this.symbols) {
+                    const s = this.symbols[x];
                     s.multiplier = s.multiplier.multiply(this.multiplier);
                     s.distributeMultiplier();
                 }
@@ -4421,11 +4785,11 @@ var nerdamer = (function (imports) {
          *
          * @returns {NerdamerSymbol}
          */
-        distributeExponent: function () {
+        distributeExponent() {
             if (!this.power.equals(1)) {
-                var p = this.power;
-                for (var x in this.symbols) {
-                    var s = this.symbols[x];
+                const p = this.power;
+                for (const x in this.symbols) {
+                    const s = this.symbols[x];
                     if (s.group === EX) {
                         s.power = _.multiply(s.power, new NerdamerSymbol(p));
                     } else {
@@ -4447,10 +4811,10 @@ var nerdamer = (function (imports) {
          * @param {number} group
          * @param {string} imaginary
          */
-        convert: function (group, imaginary) {
+        convert(group, imaginary) {
             if (group > FN) {
                 //make a clone of this symbol;
-                var cp = this.clone();
+                const cp = this.clone();
 
                 //attach a symbols object and upgrade the group
                 this.symbols = {};
@@ -4473,7 +4837,9 @@ var nerdamer = (function (imports) {
 
                 //the symbol may originate from the symbol i but this property no longer holds true
                 //after copying
-                if (this.isImgSymbol) delete this.isImgSymbol;
+                if (this.isImgSymbol) {
+                    delete this.isImgSymbol;
+                }
 
                 this.toLinear();
                 //attach a clone of this symbol to the symbols object using its proper key
@@ -4485,19 +4851,25 @@ var nerdamer = (function (imports) {
             } else if (group === EX) {
                 //1^x is just one so check and make sure
                 if (!(this.group === N && this.multiplier.equals(1))) {
-                    if (this.group !== EX) this.previousGroup = this.group;
+                    if (this.group !== EX) {
+                        this.previousGroup = this.group;
+                    }
                     if (this.group === N) {
                         this.value = this.multiplier.num.toString();
                         this.toUnitMultiplier();
                     }
                     //update the hash to reflect the accurate hash
-                    else this.value = text(this, 'hash');
+                    else {
+                        this.value = text(this, 'hash');
+                    }
 
                     this.group = EX;
                 }
             } else if (group === N) {
-                var m = this.multiplier.toDecimal();
-                if (this.symbols) this.symbols = undefined;
+                const m = this.multiplier.toDecimal();
+                if (this.symbols) {
+                    this.symbols = undefined;
+                }
                 new NerdamerSymbol(this.group === P ? m * Math.pow(this.value, this.power) : m).clone(this);
             } else if (group === P && this.group === N) {
                 this.value = imaginary ? this.multiplier.num.toString() : Math.abs(this.multiplier.num.toString());
@@ -4517,17 +4889,19 @@ var nerdamer = (function (imports) {
          * @param {NerdamerSymbol} symbol
          * @param {string} action
          */
-        insert: function (symbol, action) {
+        insert(symbol, action) {
             //this check can be removed but saves a lot of aggravation when trying to hunt down
             //a bug. If left, you will instantly know that the error can only be between 2 symbols.
-            if (!isSymbol(symbol)) err('Object ' + symbol + ' is not of type NerdamerSymbol!');
+            if (!isSymbol(symbol)) {
+                err(`Object ${symbol} is not of type NerdamerSymbol!`);
+            }
             if (this.symbols) {
-                var group = this.group;
+                const group = this.group;
                 if (group > FN) {
-                    var key = symbol.keyForGroup(group);
-                    var existing = key in this.symbols ? this.symbols[key] : false; //check if there's already a symbol there
+                    const key = symbol.keyForGroup(group);
+                    const existing = key in this.symbols ? this.symbols[key] : false; //check if there's already a symbol there
                     if (action === 'add') {
-                        var hash = key;
+                        const hash = key;
                         if (existing) {
                             //add them together using the parser
                             this.symbols[hash] = _.add(existing, symbol);
@@ -4583,7 +4957,9 @@ var nerdamer = (function (imports) {
                     }
 
                     //clean up
-                    if (this.length === 0) this.convert(N);
+                    if (this.length === 0) {
+                        this.convert(N);
+                    }
                     //update the hash
                     if (this.group === CP || this.group === CB) {
                         this.updateHash();
@@ -4594,17 +4970,21 @@ var nerdamer = (function (imports) {
             return this;
         },
         //the insert method for addition
-        attach: function (symbol) {
+        attach(symbol) {
             if (isArray(symbol)) {
-                for (var i = 0; i < symbol.length; i++) this.insert(symbol[i], 'add');
+                for (let i = 0; i < symbol.length; i++) {
+                    this.insert(symbol[i], 'add');
+                }
                 return this;
             }
             return this.insert(symbol, 'add');
         },
         //the insert method for multiplication
-        combine: function (symbol) {
+        combine(symbol) {
             if (isArray(symbol)) {
-                for (var i = 0; i < symbol.length; i++) this.insert(symbol[i], 'multiply');
+                for (let i = 0; i < symbol.length; i++) {
+                    this.insert(symbol[i], 'multiply');
+                }
                 return this;
             }
             return this.insert(symbol, 'multiply');
@@ -4613,15 +4993,19 @@ var nerdamer = (function (imports) {
          * This method should be called after any major "surgery" on a symbol. It updates the hash of the symbol for
          * example if the fname of a function has changed it will update the hash of the symbol.
          */
-        updateHash: function () {
-            if (this.group === N) return;
+        updateHash() {
+            if (this.group === N) {
+                return;
+            }
 
             if (this.group === FN) {
-                var contents = '',
+                let contents = '',
                     args = this.args,
                     is_parens = this.fname === PARENTHESIS;
-                for (var i = 0; i < args.length; i++) contents += (i === 0 ? '' : ',') + text(args[i]);
-                var fn_name = is_parens ? '' : this.fname;
+                for (let i = 0; i < args.length; i++) {
+                    contents += (i === 0 ? '' : ',') + text(args[i]);
+                }
+                const fn_name = is_parens ? '' : this.fname;
                 this.value = fn_name + (is_parens ? contents : inBrackets(contents));
             } else if (!(this.group === S || this.group === PL)) {
                 this.value = text(this, 'hash');
@@ -4633,40 +5017,62 @@ var nerdamer = (function (imports) {
          *
          * @param {number} group
          */
-        keyForGroup: function (group) {
-            var g = this.group;
-            var key;
+        keyForGroup(group) {
+            const g = this.group;
+            let key;
 
             if (g === N) {
                 key = this.value;
             } else if (g === S || g === P) {
-                if (group === PL) key = this.power.toDecimal();
-                else key = this.value;
+                if (group === PL) {
+                    key = this.power.toDecimal();
+                } else {
+                    key = this.value;
+                }
             } else if (g === FN) {
-                if (group === PL) key = this.power.toDecimal();
-                else key = text(this, 'hash');
+                if (group === PL) {
+                    key = this.power.toDecimal();
+                } else {
+                    key = text(this, 'hash');
+                }
             } else if (g === PL) {
                 //if the order is reversed then we'll assume multiplication
                 //TODO: possible future dilemma
-                if (group === CB) key = text(this, 'hash');
-                else if (group === CP) {
-                    if (this.power.equals(1)) key = this.value;
-                    else key = inBrackets(text(this, 'hash')) + Settings.POWER_OPERATOR + this.power.toDecimal();
-                } else if (group === PL) key = this.power.toString();
-                else key = this.value;
+                if (group === CB) {
+                    key = text(this, 'hash');
+                } else if (group === CP) {
+                    if (this.power.equals(1)) {
+                        key = this.value;
+                    } else {
+                        key = inBrackets(text(this, 'hash')) + Settings.POWER_OPERATOR + this.power.toDecimal();
+                    }
+                } else if (group === PL) {
+                    key = this.power.toString();
+                } else {
+                    key = this.value;
+                }
                 return key;
             } else if (g === CP) {
                 if (group === CP) {
                     key = text(this, 'hash');
                 }
-                if (group === PL) key = this.power.toDecimal();
-                else key = this.value;
+                if (group === PL) {
+                    key = this.power.toDecimal();
+                } else {
+                    key = this.value;
+                }
             } else if (g === CB) {
-                if (group === PL) key = this.power.toDecimal();
-                else key = text(this, 'hash');
+                if (group === PL) {
+                    key = this.power.toDecimal();
+                } else {
+                    key = text(this, 'hash');
+                }
             } else if (g === EX) {
-                if (group === PL) key = text(this.power);
-                else key = text(this, 'hash');
+                if (group === PL) {
+                    key = text(this.power);
+                } else {
+                    key = text(this, 'hash');
+                }
             }
 
             return key;
@@ -4682,18 +5088,23 @@ var nerdamer = (function (imports) {
          * @param {boolean} expand_symbol
          * @returns {Array}
          */
-        collectSymbols: function (fn, opt, sort_fn, expand_symbol) {
-            var collected = [];
-            if (!this.symbols) collected.push(this);
-            else {
-                for (var x in this.symbols) {
-                    var symbol = this.symbols[x];
+        collectSymbols(fn, opt, sort_fn, expand_symbol) {
+            let collected = [];
+            if (!this.symbols) {
+                collected.push(this);
+            } else {
+                for (const x in this.symbols) {
+                    const symbol = this.symbols[x];
                     if (expand_symbol && (symbol.group === PL || symbol.group === CP)) {
                         collected = collected.concat(symbol.collectSymbols());
-                    } else collected.push(fn ? fn(symbol, opt) : symbol);
+                    } else {
+                        collected.push(fn ? fn(symbol, opt) : symbol);
+                    }
                 }
             }
-            if (sort_fn === null) sort_fn = undefined; //WTF Firefox? Seriously?
+            if (sort_fn === null) {
+                sort_fn = undefined;
+            } //WTF Firefox? Seriously?
 
             return collected.sort(sort_fn); //sort hopefully gives us some sort of consistency
         },
@@ -4707,18 +5118,23 @@ var nerdamer = (function (imports) {
          * @param {boolean} expand_symbol
          * @returns {Array}
          */
-        collectSummandSymbols: function (fn, opt, sort_fn, expand_symbol) {
-            var collected = [];
-            if (!this.symbols || this.group === CB) collected.push(this);
-            else {
-                for (var x in this.symbols) {
-                    var symbol = this.symbols[x];
+        collectSummandSymbols(fn, opt, sort_fn, expand_symbol) {
+            let collected = [];
+            if (!this.symbols || this.group === CB) {
+                collected.push(this);
+            } else {
+                for (const x in this.symbols) {
+                    const symbol = this.symbols[x];
                     if (expand_symbol && (symbol.group === PL || symbol.group === CP)) {
                         collected = collected.concat(symbol.collectSymbols());
-                    } else collected.push(fn ? fn(symbol, opt) : symbol);
+                    } else {
+                        collected.push(fn ? fn(symbol, opt) : symbol);
+                    }
                 }
             }
-            if (sort_fn === null) sort_fn = undefined; //WTF Firefox? Seriously?
+            if (sort_fn === null) {
+                sort_fn = undefined;
+            } //WTF Firefox? Seriously?
 
             return collected.sort(sort_fn); //sort hopefully gives us some sort of consistency
         },
@@ -4728,7 +5144,7 @@ var nerdamer = (function (imports) {
          * @param {string} option
          * @returns {string}
          */
-        latex: function (option) {
+        latex(option) {
             return LaTeX.latex(this, option);
         },
         /**
@@ -4737,7 +5153,7 @@ var nerdamer = (function (imports) {
          * @param {string} option
          * @returns {string}
          */
-        text: function (option) {
+        text(option) {
             return text(this, option);
         },
         /**
@@ -4745,25 +5161,28 @@ var nerdamer = (function (imports) {
          *
          * @param {boolean} abs Compares the absolute value
          */
-        isOne: function (abs) {
-            var f = abs ? 'absEquals' : 'equals';
-            if (this.group === N) return this.multiplier[f](1);
-            else return this.power.equals(0);
+        isOne(abs) {
+            const f = abs ? 'absEquals' : 'equals';
+            if (this.group === N) {
+                return this.multiplier[f](1);
+            } else {
+                return this.power.equals(0);
+            }
         },
-        isComposite: function () {
-            var g = this.group,
+        isComposite() {
+            const g = this.group,
                 pg = this.previousGroup;
             return g === CP || g === PL || pg === PL || pg === CP;
         },
-        isCombination: function () {
-            var g = this.group,
+        isCombination() {
+            const g = this.group,
                 pg = this.previousGroup;
             return g === CB || pg === CB;
         },
-        lessThan: function (n) {
+        lessThan(n) {
             return this.multiplier.lessThan(n);
         },
-        greaterThan: function (n) {
+        greaterThan(n) {
             if (!isSymbol(n)) {
                 n = new NerdamerSymbol(n);
             }
@@ -4781,35 +5200,40 @@ var nerdamer = (function (imports) {
          * the symbol doesn't have have an exclusive denominator and has to be found by looking at the actual symbols
          * themselves.
          */
-        getDenom: function () {
-            var retval, symbol;
+        getDenom() {
+            let retval, symbol;
             symbol = this.clone();
             //e.g. 1/(x*(x+1))
-            if (this.group === CB && this.power.lessThan(0)) symbol = _.expand(symbol);
+            if (this.group === CB && this.power.lessThan(0)) {
+                symbol = _.expand(symbol);
+            }
 
             //if the symbol already is the denominator... DONE!!!
             if (symbol.power.lessThan(0) || (symbol.group === EX && symbol.power.multiplier.lessThan(0))) {
-                var d = _.parse(symbol.multiplier.den);
+                const d = _.parse(symbol.multiplier.den);
                 retval = symbol.toUnitMultiplier();
                 retval.power.negate();
                 retval = _.multiply(d, retval); //put back the coeff
             } else if (symbol.group === CB) {
                 retval = _.parse(symbol.multiplier.den);
-                for (var x in symbol.symbols) {
-                    var s = symbol.symbols[x];
-                    if (s.power < 0 || (s.group === EX && s.power.multiplier.lessThan(0)))
+                for (const x in symbol.symbols) {
+                    const s = symbol.symbols[x];
+                    if (s.power < 0 || (s.group === EX && s.power.multiplier.lessThan(0))) {
                         retval = _.multiply(retval, symbol.symbols[x].clone().invert());
+                    }
                 }
             } else {
                 retval = _.parse(symbol.multiplier.den);
             }
             return retval;
         },
-        getNum: function () {
-            var retval, symbol;
+        getNum() {
+            let retval, symbol;
             symbol = this.clone();
             //e.g. 1/(x*(x+1))
-            if (symbol.group === CB && symbol.power.lessThan(0)) symbol = _.expand(symbol);
+            if (symbol.group === CB && symbol.power.lessThan(0)) {
+                symbol = _.expand(symbol);
+            }
             //if the symbol already is the denominator... DONE!!!
             if (
                 (symbol.power.greaterThan(0) && symbol.group !== CB) ||
@@ -4818,7 +5242,7 @@ var nerdamer = (function (imports) {
                 retval = _.multiply(_.parse(symbol.multiplier.num), symbol.toUnitMultiplier());
             } else if (symbol.group === CB) {
                 retval = _.parse(symbol.multiplier.num);
-                symbol.each(function (x) {
+                symbol.each(x => {
                     if (x.power > 0 || (x.group === EX && x.power.multiplier > 0)) {
                         retval = _.multiply(retval, x.clone());
                     }
@@ -4832,7 +5256,7 @@ var nerdamer = (function (imports) {
             }
             return retval;
         },
-        toString: function () {
+        toString() {
             return this.text();
         },
     };
@@ -4841,9 +5265,9 @@ var nerdamer = (function (imports) {
     //Uses modified Shunting-yard algorithm. http://en.wikipedia.org/wiki/Shunting-yard_algorithm
     function Parser() {
         //Point to the local parser instead of the global one
-        var _ = this;
-        var bin = {};
-        var preprocessors = { names: [], actions: [] };
+        const _ = this;
+        const bin = {};
+        const preprocessors = { names: [], actions: [] };
 
         //Parser.classes ===============================================================
         function Slice(upper, lower) {
@@ -4854,17 +5278,21 @@ var nerdamer = (function (imports) {
             return this.start.isConstant() && this.end.isConstant();
         };
         Slice.prototype.text = function () {
-            return text(this.start) + ':' + text(this.end);
+            return `${text(this.start)}:${text(this.end)}`;
         };
 
         function Token(node, node_type, column) {
             this.type = node_type;
             this.value = node;
-            if (column !== undefined) this.column = column + 1;
+            if (column !== undefined) {
+                this.column = column + 1;
+            }
             if (node_type === Token.OPERATOR) {
                 //copy everything over from the operator
-                var operator = operators[node];
-                for (var x in operator) this[x] = operator[x];
+                const operator = operators[node];
+                for (const x in operator) {
+                    this[x] = operator[x];
+                }
             } else if (node_type === Token.FUNCTION) {
                 this.precedence = Token.MAX_PRECEDENCE; //leave enough roon
                 this.leftAssoc = false;
@@ -4874,7 +5302,9 @@ var nerdamer = (function (imports) {
             return this.value;
         };
         Token.prototype.toString = function () {
-            if (this.is_prefix) return '`' + this.value;
+            if (this.is_prefix) {
+                return `\`${this.value}`;
+            }
             return this.value;
         };
         //some constants
@@ -4886,46 +5316,46 @@ var nerdamer = (function (imports) {
         Token.MAX_PRECEDENCE = 999;
         //create link to classes
         this.classes = {
-            Collection: Collection,
-            Slice: Slice,
-            Token: Token,
+            Collection,
+            Slice,
+            Token,
         };
         //Parser.modules ===============================================================
         //object for functions which handle complex number
         var complex = {
             prec: undefined,
-            cos: function (r, i) {
-                var re, im;
+            cos(r, i) {
+                let re, im;
                 re = _.parse(Math.cos(r) * Math.cosh(i));
                 im = _.parse(Math.sin(r) * Math.sinh(i));
                 return _.subtract(re, _.multiply(im, NerdamerSymbol.imaginary()));
             },
-            sin: function (r, i) {
-                var re, im;
+            sin(r, i) {
+                let re, im;
                 re = _.parse(Math.sin(r) * Math.cosh(i));
                 im = _.parse(Math.cos(r) * Math.sinh(i));
                 return _.subtract(re, _.multiply(im, NerdamerSymbol.imaginary()));
             },
-            tan: function (r, i) {
-                var re, im;
+            tan(r, i) {
+                let re, im;
                 re = _.parse(Math.sin(2 * r) / (Math.cos(2 * r) + Math.cosh(2 * i)));
                 im = _.parse(Math.sinh(2 * i) / (Math.cos(2 * r) + Math.cosh(2 * i)));
                 return _.add(re, _.multiply(im, NerdamerSymbol.imaginary()));
             },
-            sec: function (r, i) {
-                var t = this.removeDen(this.cos(r, i));
+            sec(r, i) {
+                const t = this.removeDen(this.cos(r, i));
                 return _.subtract(t[0], _.multiply(t[1], NerdamerSymbol.imaginary()));
             },
-            csc: function (r, i) {
-                var t = this.removeDen(this.sin(r, i));
+            csc(r, i) {
+                const t = this.removeDen(this.sin(r, i));
                 return _.add(t[0], _.multiply(t[1], NerdamerSymbol.imaginary()));
             },
-            cot: function (r, i) {
-                var t = this.removeDen(this.tan(r, i));
+            cot(r, i) {
+                const t = this.removeDen(this.tan(r, i));
                 return _.subtract(t[0], _.multiply(t[1], NerdamerSymbol.imaginary()));
             },
-            acos: function (r, i) {
-                var symbol, sq, a, b, c, squared;
+            acos(r, i) {
+                let symbol, sq, a, b, c, squared;
                 symbol = this.fromArray([r, i]);
                 squared = _.pow(symbol.clone(), new NerdamerSymbol(2));
                 sq = _.expand(squared); //z*z
@@ -4934,16 +5364,16 @@ var nerdamer = (function (imports) {
                 c = log(b);
                 return _.expand(_.multiply(NerdamerSymbol.imaginary().negate(), c));
             },
-            asin: function (r, i) {
+            asin(r, i) {
                 return _.subtract(_.parse('pi/2'), this.acos(r, i));
             },
-            atan: function (r, i) {
+            atan(r, i) {
                 // Handle i and -i
                 if (r.equals(0) && (i.equals(1) || i.equals(-1))) {
                     // Just copy Wolfram Alpha for now. The parenthesis
                     return _.parse(`${NerdamerSymbol.infinity()}*${Settings.IMAGINARY}*${i}`);
                 }
-                var a, b, c, symbol;
+                let a, b, c, symbol;
                 symbol = complex.fromArray([r, i]);
                 a = _.expand(_.multiply(NerdamerSymbol.imaginary(), symbol.clone()));
                 b = log(_.expand(_.subtract(new NerdamerSymbol(1), a.clone())));
@@ -4952,89 +5382,89 @@ var nerdamer = (function (imports) {
                     _.multiply(_.divide(NerdamerSymbol.imaginary(), new NerdamerSymbol(2)), _.subtract(b, c))
                 );
             },
-            asec: function (r, i) {
-                var d = this.removeDen([r, i]);
+            asec(r, i) {
+                const d = this.removeDen([r, i]);
                 d[1].negate();
                 return this.acos.apply(this, d);
             },
-            acsc: function (r, i) {
-                var d = this.removeDen([r, i]);
+            acsc(r, i) {
+                const d = this.removeDen([r, i]);
                 d[1].negate();
                 return this.asin.apply(this, d);
             },
-            acot: function (r, i) {
-                var d = this.removeDen([r, i]);
+            acot(r, i) {
+                const d = this.removeDen([r, i]);
                 d[1].negate();
                 return this.atan.apply(this, d);
             },
             //Hyperbolic trig
-            cosh: function (r, i) {
-                var re, im;
+            cosh(r, i) {
+                let re, im;
                 re = _.parse(Math.cosh(r) * Math.cos(i));
                 im = _.parse(Math.sinh(r) * Math.sin(i));
                 return _.add(re, _.multiply(im, NerdamerSymbol.imaginary()));
             },
-            sinh: function (r, i) {
-                var re, im;
+            sinh(r, i) {
+                let re, im;
                 re = _.parse(Math.sinh(r) * Math.cos(i));
                 im = _.parse(Math.cosh(r) * Math.sin(i));
                 return _.add(re, _.multiply(im, NerdamerSymbol.imaginary()));
             },
-            tanh: function (r, i) {
-                var re, im;
+            tanh(r, i) {
+                let re, im;
                 re = _.parse(Math.sinh(2 * r) / (Math.cos(2 * i) + Math.cosh(2 * r)));
                 im = _.parse(Math.sin(2 * i) / (Math.cos(2 * i) + Math.cosh(2 * r)));
                 return _.subtract(re, _.multiply(im, NerdamerSymbol.imaginary()));
             },
-            sech: function (r, i) {
-                var t = this.removeDen(this.cosh(r, i));
+            sech(r, i) {
+                const t = this.removeDen(this.cosh(r, i));
                 return _.subtract(t[0], _.multiply(t[1], NerdamerSymbol.imaginary()));
             },
-            csch: function (r, i) {
-                var t = this.removeDen(this.sinh(r, i));
+            csch(r, i) {
+                const t = this.removeDen(this.sinh(r, i));
                 return _.subtract(t[0], _.multiply(t[1], NerdamerSymbol.imaginary()));
             },
-            coth: function (r, i) {
-                var t = this.removeDen(this.tanh(r, i));
+            coth(r, i) {
+                const t = this.removeDen(this.tanh(r, i));
                 return _.add(t[0], _.multiply(t[1], NerdamerSymbol.imaginary()));
             },
-            acosh: function (r, i) {
-                var a, b, z;
+            acosh(r, i) {
+                let a, b, z;
                 z = this.fromArray([r, i]);
                 a = sqrt(_.add(z.clone(), new NerdamerSymbol(1)));
                 b = sqrt(_.subtract(z.clone(), new NerdamerSymbol(1)));
                 return _.expand(log(_.add(z, _.expand(_.multiply(a, b)))));
             },
-            asinh: function (r, i) {
-                var a, z;
+            asinh(r, i) {
+                let a, z;
                 z = this.fromArray([r, i]);
                 a = sqrt(_.add(new NerdamerSymbol(1), _.expand(_.pow(z.clone(), new NerdamerSymbol(2)))));
                 return _.expand(log(_.add(z, a)));
             },
-            atanh: function (r, i) {
-                var a, b, z;
+            atanh(r, i) {
+                let a, b, z;
                 z = this.fromArray([r, i]);
                 a = log(_.add(z.clone(), new NerdamerSymbol(1)));
                 b = log(_.subtract(new NerdamerSymbol(1), z));
                 return _.expand(_.divide(_.subtract(a, b), new NerdamerSymbol(2)));
             },
-            asech: function (r, i) {
-                var t = this.removeDen([r, i]);
+            asech(r, i) {
+                const t = this.removeDen([r, i]);
                 t[1].negate();
                 return this.acosh.apply(this, t);
             },
-            acsch: function (r, i) {
-                var t = this.removeDen([r, i]);
+            acsch(r, i) {
+                const t = this.removeDen([r, i]);
                 t[1].negate();
                 return this.asinh.apply(this, t);
             },
-            acoth: function (r, i) {
-                var t = this.removeDen([r, i]);
+            acoth(r, i) {
+                const t = this.removeDen([r, i]);
                 t[1].negate();
                 return this.atanh.apply(this, t);
             },
-            sqrt: function (symbol) {
-                var re, im, h, a, d;
+            sqrt(symbol) {
+                let re, im, h, a, d;
                 re = symbol.realpart();
                 im = symbol.imagpart();
                 h = NerdamerSymbol.hyp(re, im);
@@ -5042,8 +5472,8 @@ var nerdamer = (function (imports) {
                 d = sqrt(_.multiply(new NerdamerSymbol(2), a.clone()));
                 return _.add(_.divide(a.clone(), d.clone()), _.multiply(_.divide(im, d), NerdamerSymbol.imaginary()));
             },
-            log: function (r, i) {
-                var re, im, phi;
+            log(r, i) {
+                let re, im, phi;
                 re = log(NerdamerSymbol.hyp(r, i));
                 phi = Settings.USE_BIG
                     ? NerdamerSymbol(bigDec.atan2(i.multiplier.toDecimal(), r.multiplier.toDecimal()))
@@ -5079,8 +5509,8 @@ var nerdamer = (function (imports) {
 
                 // return _.add(_.parse(Math2.erf(re.toString())), _.multiply(k, _.add(a, b)));
             },
-            removeDen: function (symbol) {
-                var den, r, i, re, im;
+            removeDen(symbol) {
+                let den, r, i, re, im;
                 if (isArray(symbol)) {
                     r = symbol[0];
                     i = symbol[1];
@@ -5094,20 +5524,22 @@ var nerdamer = (function (imports) {
                 im = _.parse(i / den);
                 return [re, im];
             },
-            fromArray: function (arr) {
+            fromArray(arr) {
                 return _.add(arr[0], _.multiply(NerdamerSymbol.imaginary(), arr[1]));
             },
-            evaluate: function (symbol, f) {
-                var re, im, sign;
+            evaluate(symbol, f) {
+                let re, im, sign;
 
                 sign = symbol.power.sign();
                 //remove it from under the denominator
                 symbol.power = symbol.power.abs();
                 //expand
-                if (symbol.power.greaterThan(1)) symbol = _.expand(symbol);
+                if (symbol.power.greaterThan(1)) {
+                    symbol = _.expand(symbol);
+                }
                 //remove the denominator
                 if (sign < 0) {
-                    var d = this.removeDen(symbol);
+                    const d = this.removeDen(symbol);
                     re = d[0];
                     im = d[1];
                 } else {
@@ -5115,7 +5547,9 @@ var nerdamer = (function (imports) {
                     im = symbol.imagpart();
                 }
 
-                if (re.isConstant('all') && im.isConstant('all')) return this[f].call(this, re, im);
+                if (re.isConstant('all') && im.isConstant('all')) {
+                    return this[f].call(this, re, im);
+                }
 
                 return _.symfunction(f, [symbol]);
             },
@@ -5123,11 +5557,15 @@ var nerdamer = (function (imports) {
         //object for functions which handle trig
         var trig = (this.trig = {
             //container for trigonometric function
-            cos: function (symbol) {
-                if (symbol.equals('pi') && symbol.multiplier.den.equals(2)) return new NerdamerSymbol(0);
+            cos(symbol) {
+                if (symbol.equals('pi') && symbol.multiplier.den.equals(2)) {
+                    return new NerdamerSymbol(0);
+                }
 
                 if (Settings.PARSE2NUMBER) {
-                    if (symbol.equals(new NerdamerSymbol(Settings.PI / 2))) return new NerdamerSymbol(0);
+                    if (symbol.equals(new NerdamerSymbol(Settings.PI / 2))) {
+                        return new NerdamerSymbol(0);
+                    }
                     if (symbol.isConstant()) {
                         if (Settings.USE_BIG) {
                             return new NerdamerSymbol(bigDec.cos(symbol.multiplier.toDecimal()));
@@ -5139,9 +5577,11 @@ var nerdamer = (function (imports) {
                         return complex.evaluate(symbol, 'cos');
                     }
                 }
-                if (symbol.equals(0)) return new NerdamerSymbol(1);
+                if (symbol.equals(0)) {
+                    return new NerdamerSymbol(1);
+                }
 
-                var retval,
+                let retval,
                     c = false,
                     q = getQuadrant(symbol.multiplier.toDecimal()),
                     m = symbol.multiplier.abs();
@@ -5152,10 +5592,11 @@ var nerdamer = (function (imports) {
                     if (isInt(m)) {
                         retval = new NerdamerSymbol(even(m) ? 1 : -1);
                     } else {
-                        var n = Number(m.num),
+                        const n = Number(m.num),
                             d = Number(m.den);
-                        if (d === 2) retval = new NerdamerSymbol(0);
-                        else if (d === 3) {
+                        if (d === 2) {
+                            retval = new NerdamerSymbol(0);
+                        } else if (d === 3) {
                             retval = _.parse('1/2');
                             c = true;
                         } else if (d === 4) {
@@ -5164,17 +5605,23 @@ var nerdamer = (function (imports) {
                         } else if (d === 6) {
                             retval = _.parse('sqrt(3)/2');
                             c = true;
-                        } else retval = _.symfunction('cos', [symbol]);
+                        } else {
+                            retval = _.symfunction('cos', [symbol]);
+                        }
                     }
                 }
 
-                if (c && (q === 2 || q === 3)) retval.negate();
+                if (c && (q === 2 || q === 3)) {
+                    retval.negate();
+                }
 
-                if (!retval) retval = _.symfunction('cos', [symbol]);
+                if (!retval) {
+                    retval = _.symfunction('cos', [symbol]);
+                }
 
                 return retval;
             },
-            sin: function (symbol) {
+            sin(symbol) {
                 if (Settings.PARSE2NUMBER) {
                     if (symbol.isConstant()) {
                         if (symbol % Math.PI === 0) {
@@ -5187,24 +5634,29 @@ var nerdamer = (function (imports) {
 
                         return new NerdamerSymbol(Math.sin(symbol.valueOf()));
                     }
-                    if (symbol.isImaginary()) return complex.evaluate(symbol, 'sin');
+                    if (symbol.isImaginary()) {
+                        return complex.evaluate(symbol, 'sin');
+                    }
                 }
 
-                if (symbol.equals(0)) return new NerdamerSymbol(0);
+                if (symbol.equals(0)) {
+                    return new NerdamerSymbol(0);
+                }
 
-                var retval,
+                let retval,
                     c = false,
                     q = getQuadrant(symbol.multiplier.toDecimal()),
                     sign = symbol.multiplier.sign(),
                     m = symbol.multiplier.abs();
                 symbol.multiplier = m;
-                if (symbol.equals('pi')) retval = new NerdamerSymbol(0);
-                else if (symbol.isPi() && symbol.isLinear()) {
+                if (symbol.equals('pi')) {
+                    retval = new NerdamerSymbol(0);
+                } else if (symbol.isPi() && symbol.isLinear()) {
                     //return for 0 for multiples of pi
                     if (isInt(m)) {
                         retval = new NerdamerSymbol(0);
                     } else {
-                        var n = m.num,
+                        const n = m.num,
                             d = m.den;
                         if (d == 2) {
                             retval = new NerdamerSymbol(1);
@@ -5218,17 +5670,23 @@ var nerdamer = (function (imports) {
                         } else if (d == 6) {
                             retval = _.parse('1/2');
                             c = true;
-                        } else retval = _.multiply(new NerdamerSymbol(sign), _.symfunction('sin', [symbol]));
+                        } else {
+                            retval = _.multiply(new NerdamerSymbol(sign), _.symfunction('sin', [symbol]));
+                        }
                     }
                 }
 
-                if (!retval) retval = _.multiply(new NerdamerSymbol(sign), _.symfunction('sin', [symbol]));
+                if (!retval) {
+                    retval = _.multiply(new NerdamerSymbol(sign), _.symfunction('sin', [symbol]));
+                }
 
-                if (c && (q === 3 || q === 4)) retval.negate();
+                if (c && (q === 3 || q === 4)) {
+                    retval.negate();
+                }
 
                 return retval;
             },
-            tan: function (symbol) {
+            tan(symbol) {
                 if (Settings.PARSE2NUMBER) {
                     if (symbol % Math.PI === 0 && symbol.isLinear()) {
                         return new NerdamerSymbol(0);
@@ -5240,9 +5698,11 @@ var nerdamer = (function (imports) {
 
                         return new NerdamerSymbol(Math.tan(symbol.valueOf()));
                     }
-                    if (symbol.isImaginary()) return complex.evaluate(symbol, 'tan');
+                    if (symbol.isImaginary()) {
+                        return complex.evaluate(symbol, 'tan');
+                    }
                 }
-                var retval,
+                let retval,
                     c = false,
                     q = getQuadrant(symbol.multiplier.toDecimal()),
                     m = symbol.multiplier;
@@ -5254,10 +5714,11 @@ var nerdamer = (function (imports) {
                     if (isInt(m)) {
                         retval = new NerdamerSymbol(0);
                     } else {
-                        var n = m.num,
+                        const n = m.num,
                             d = m.den;
-                        if (d == 2) throw new UndefinedError('tan is undefined for ' + symbol.toString());
-                        else if (d == 3) {
+                        if (d == 2) {
+                            throw new UndefinedError(`tan is undefined for ${symbol.toString()}`);
+                        } else if (d == 3) {
                             retval = _.parse('sqrt(3)');
                             c = true;
                         } else if (d == 4) {
@@ -5266,17 +5727,23 @@ var nerdamer = (function (imports) {
                         } else if (d == 6) {
                             retval = _.parse('1/sqrt(3)');
                             c = true;
-                        } else retval = _.symfunction('tan', [symbol]);
+                        } else {
+                            retval = _.symfunction('tan', [symbol]);
+                        }
                     }
                 }
 
-                if (!retval) retval = _.symfunction('tan', [symbol]);
+                if (!retval) {
+                    retval = _.symfunction('tan', [symbol]);
+                }
 
-                if (c && (q === 2 || q === 4)) retval.negate();
+                if (c && (q === 2 || q === 4)) {
+                    retval.negate();
+                }
 
                 return retval;
             },
-            sec: function (symbol) {
+            sec(symbol) {
                 if (Settings.PARSE2NUMBER) {
                     if (symbol.isConstant()) {
                         if (Settings.USE_BIG) {
@@ -5287,11 +5754,13 @@ var nerdamer = (function (imports) {
 
                         return new NerdamerSymbol(Math2.sec(symbol.valueOf()));
                     }
-                    if (symbol.isImaginary()) return complex.evaluate(symbol, 'sec');
+                    if (symbol.isImaginary()) {
+                        return complex.evaluate(symbol, 'sec');
+                    }
                     return _.parse(format('1/cos({0})', symbol));
                 }
 
-                var retval,
+                let retval,
                     c = false,
                     q = getQuadrant(symbol.multiplier.toDecimal()),
                     m = symbol.multiplier.abs();
@@ -5302,10 +5771,11 @@ var nerdamer = (function (imports) {
                     if (isInt(m)) {
                         retval = new NerdamerSymbol(even(m) ? 1 : -1);
                     } else {
-                        var n = m.num,
+                        const n = m.num,
                             d = m.den;
-                        if (d == 2) throw new UndefinedError('sec is undefined for ' + symbol.toString());
-                        else if (d == 3) {
+                        if (d == 2) {
+                            throw new UndefinedError(`sec is undefined for ${symbol.toString()}`);
+                        } else if (d == 3) {
                             retval = new NerdamerSymbol(2);
                             c = true;
                         } else if (d == 4) {
@@ -5314,17 +5784,23 @@ var nerdamer = (function (imports) {
                         } else if (d == 6) {
                             retval = _.parse('2/sqrt(3)');
                             c = true;
-                        } else retval = _.symfunction('sec', [symbol]);
+                        } else {
+                            retval = _.symfunction('sec', [symbol]);
+                        }
                     }
                 }
 
-                if (c && (q === 2 || q === 3)) retval.negate();
+                if (c && (q === 2 || q === 3)) {
+                    retval.negate();
+                }
 
-                if (!retval) retval = _.symfunction('sec', [symbol]);
+                if (!retval) {
+                    retval = _.symfunction('sec', [symbol]);
+                }
 
                 return retval;
             },
-            csc: function (symbol) {
+            csc(symbol) {
                 if (Settings.PARSE2NUMBER) {
                     if (symbol.isConstant()) {
                         if (Settings.USE_BIG) {
@@ -5335,11 +5811,13 @@ var nerdamer = (function (imports) {
 
                         return new NerdamerSymbol(Math2.csc(symbol.valueOf()));
                     }
-                    if (symbol.isImaginary()) return complex.evaluate(symbol, 'csc');
+                    if (symbol.isImaginary()) {
+                        return complex.evaluate(symbol, 'csc');
+                    }
                     return _.parse(format('1/sin({0})', symbol));
                 }
 
-                var retval,
+                let retval,
                     c = false,
                     q = getQuadrant(symbol.multiplier.toDecimal()),
                     sign = symbol.multiplier.sign(),
@@ -5350,9 +5828,9 @@ var nerdamer = (function (imports) {
                 if (symbol.isPi() && symbol.isLinear()) {
                     //return for 0 for multiples of pi
                     if (isInt(m)) {
-                        throw new UndefinedError('csc is undefined for ' + symbol.toString());
+                        throw new UndefinedError(`csc is undefined for ${symbol.toString()}`);
                     } else {
-                        var n = m.num,
+                        const n = m.num,
                             d = m.den;
                         if (d == 2) {
                             retval = new NerdamerSymbol(1);
@@ -5366,17 +5844,23 @@ var nerdamer = (function (imports) {
                         } else if (d == 6) {
                             retval = new NerdamerSymbol(2);
                             c = true;
-                        } else retval = _.multiply(new NerdamerSymbol(sign), _.symfunction('csc', [symbol]));
+                        } else {
+                            retval = _.multiply(new NerdamerSymbol(sign), _.symfunction('csc', [symbol]));
+                        }
                     }
                 }
 
-                if (!retval) retval = _.multiply(new NerdamerSymbol(sign), _.symfunction('csc', [symbol]));
+                if (!retval) {
+                    retval = _.multiply(new NerdamerSymbol(sign), _.symfunction('csc', [symbol]));
+                }
 
-                if (c && (q === 3 || q === 4)) retval.negate();
+                if (c && (q === 3 || q === 4)) {
+                    retval.negate();
+                }
 
                 return retval;
             },
-            cot: function (symbol) {
+            cot(symbol) {
                 if (Settings.PARSE2NUMBER) {
                     if (symbol % (Math.PI / 2) === 0) {
                         return new NerdamerSymbol(0);
@@ -5390,10 +5874,12 @@ var nerdamer = (function (imports) {
 
                         return new NerdamerSymbol(Math2.cot(symbol.valueOf()));
                     }
-                    if (symbol.isImaginary()) return complex.evaluate(symbol, 'cot');
+                    if (symbol.isImaginary()) {
+                        return complex.evaluate(symbol, 'cot');
+                    }
                     return _.parse(format('1/tan({0})', symbol));
                 }
-                var retval,
+                let retval,
                     c = false,
                     q = getQuadrant(symbol.multiplier.toDecimal()),
                     m = symbol.multiplier;
@@ -5403,12 +5889,13 @@ var nerdamer = (function (imports) {
                 if (symbol.isPi() && symbol.isLinear()) {
                     //return 0 for all multiples of pi
                     if (isInt(m)) {
-                        throw new UndefinedError('cot is undefined for ' + symbol.toString());
+                        throw new UndefinedError(`cot is undefined for ${symbol.toString()}`);
                     } else {
-                        var n = m.num,
+                        const n = m.num,
                             d = m.den;
-                        if (d == 2) retval = new NerdamerSymbol(0);
-                        else if (d == 3) {
+                        if (d == 2) {
+                            retval = new NerdamerSymbol(0);
+                        } else if (d == 3) {
                             retval = _.parse('1/sqrt(3)');
                             c = true;
                         } else if (d == 4) {
@@ -5417,22 +5904,28 @@ var nerdamer = (function (imports) {
                         } else if (d == 6) {
                             retval = _.parse('sqrt(3)');
                             c = true;
-                        } else retval = _.symfunction('cot', [symbol]);
+                        } else {
+                            retval = _.symfunction('cot', [symbol]);
+                        }
                     }
                 }
 
-                if (!retval) retval = _.symfunction('cot', [symbol]);
+                if (!retval) {
+                    retval = _.symfunction('cot', [symbol]);
+                }
 
-                if (c && (q === 2 || q === 4)) retval.negate();
+                if (c && (q === 2 || q === 4)) {
+                    retval.negate();
+                }
 
                 return retval;
             },
-            acos: function (symbol) {
+            acos(symbol) {
                 if (Settings.PARSE2NUMBER) {
                     if (symbol.isConstant()) {
                         // Handle values in the complex domain
                         if (symbol.gt(1) || symbol.lt(-1)) {
-                            var x = symbol.toString();
+                            const x = symbol.toString();
                             return expand(evaluate(`pi/2-asin(${x})`));
                         }
                         // Handle big numbers
@@ -5442,17 +5935,19 @@ var nerdamer = (function (imports) {
 
                         return new NerdamerSymbol(Math.acos(symbol.valueOf()));
                     }
-                    if (symbol.isImaginary()) return complex.evaluate(symbol, 'acos');
+                    if (symbol.isImaginary()) {
+                        return complex.evaluate(symbol, 'acos');
+                    }
                 }
                 return _.symfunction('acos', arguments);
             },
-            asin: function (symbol) {
+            asin(symbol) {
                 if (Settings.PARSE2NUMBER) {
                     if (symbol.isConstant()) {
                         // Handle values in the complex domain
                         if (symbol.gt(1) || symbol.lt(-1)) {
-                            var i = Settings.IMAGINARY;
-                            var x = symbol.multiplier.toDecimal();
+                            const i = Settings.IMAGINARY;
+                            const x = symbol.multiplier.toDecimal();
                             return expand(evaluate(`${i}*log(sqrt(1-${x}^2)-${i}*${x})`));
                         }
                         // Handle big numbers
@@ -5462,14 +5957,17 @@ var nerdamer = (function (imports) {
 
                         return new NerdamerSymbol(Math.asin(symbol.valueOf()));
                     }
-                    if (symbol.isImaginary()) return complex.evaluate(symbol, 'asin');
+                    if (symbol.isImaginary()) {
+                        return complex.evaluate(symbol, 'asin');
+                    }
                 }
                 return _.symfunction('asin', arguments);
             },
-            atan: function (symbol) {
-                var retval;
-                if (symbol.equals(0)) retval = new NerdamerSymbol(0);
-                else if (Settings.PARSE2NUMBER) {
+            atan(symbol) {
+                let retval;
+                if (symbol.equals(0)) {
+                    retval = new NerdamerSymbol(0);
+                } else if (Settings.PARSE2NUMBER) {
                     if (symbol.isConstant()) {
                         // Handle big numbers
                         if (Settings.USE_BIG) {
@@ -5478,13 +5976,18 @@ var nerdamer = (function (imports) {
 
                         return new NerdamerSymbol(Math.atan(symbol.valueOf()));
                     }
-                    if (symbol.isImaginary()) return complex.evaluate(symbol, 'atan');
+                    if (symbol.isImaginary()) {
+                        return complex.evaluate(symbol, 'atan');
+                    }
                     return _.symfunction('atan', arguments);
-                } else if (symbol.equals(-1)) retval = _.parse('-pi/4');
-                else retval = _.symfunction('atan', arguments);
+                } else if (symbol.equals(-1)) {
+                    retval = _.parse('-pi/4');
+                } else {
+                    retval = _.symfunction('atan', arguments);
+                }
                 return retval;
             },
-            asec: function (symbol) {
+            asec(symbol) {
                 if (Settings.PARSE2NUMBER) {
                     if (symbol.equals(0)) {
                         throw new OutOfFunctionDomainError('Input is out of the domain of sec!');
@@ -5498,28 +6001,34 @@ var nerdamer = (function (imports) {
                 }
                 return _.symfunction('asec', arguments);
             },
-            acsc: function (symbol) {
+            acsc(symbol) {
                 if (Settings.PARSE2NUMBER) {
                     if (symbol.isConstant()) {
                         return trig.asin(symbol.invert());
                     }
 
-                    if (symbol.isImaginary()) return complex.evaluate(symbol, 'acsc');
+                    if (symbol.isImaginary()) {
+                        return complex.evaluate(symbol, 'acsc');
+                    }
                 }
                 return _.symfunction('acsc', arguments);
             },
-            acot: function (symbol) {
+            acot(symbol) {
                 if (Settings.PARSE2NUMBER) {
                     if (symbol.isConstant()) {
                         return new _.add(_.parse('pi/2'), trig.atan(symbol).negate());
                     }
 
-                    if (symbol.isImaginary()) return complex.evaluate(symbol, 'acot');
+                    if (symbol.isImaginary()) {
+                        return complex.evaluate(symbol, 'acot');
+                    }
                 }
                 return _.symfunction('acot', arguments);
             },
-            atan2: function (a, b) {
-                if (a.equals(0) && b.equals(0)) throw new UndefinedError('atan2 is undefined for 0, 0');
+            atan2(a, b) {
+                if (a.equals(0) && b.equals(0)) {
+                    throw new UndefinedError('atan2 is undefined for 0, 0');
+                }
 
                 if (Settings.PARSE2NUMBER && a.isConstant() && b.isConstant()) {
                     return new NerdamerSymbol(Math.atan2(a, b));
@@ -5528,12 +6037,14 @@ var nerdamer = (function (imports) {
             },
         });
         //object for functions which handle hyperbolic trig
-        var trigh = (this.trigh = {
+        const trigh = (this.trigh = {
             //container for hyperbolic trig function
-            cosh: function (symbol) {
-                var retval;
+            cosh(symbol) {
+                let retval;
                 if (Settings.PARSE2NUMBER) {
-                    if (symbol.isConstant()) return new NerdamerSymbol(Math.cosh(symbol.valueOf()));
+                    if (symbol.isConstant()) {
+                        return new NerdamerSymbol(Math.cosh(symbol.valueOf()));
+                    }
                     if (symbol.isImaginary()) {
                         return complex.evaluate(symbol, 'cosh');
                     }
@@ -5541,10 +6052,12 @@ var nerdamer = (function (imports) {
 
                 return (retval = _.symfunction('cosh', arguments));
             },
-            sinh: function (symbol) {
-                var retval;
+            sinh(symbol) {
+                let retval;
                 if (Settings.PARSE2NUMBER) {
-                    if (symbol.isConstant()) return new NerdamerSymbol(Math.sinh(symbol.valueOf()));
+                    if (symbol.isConstant()) {
+                        return new NerdamerSymbol(Math.sinh(symbol.valueOf()));
+                    }
                     if (symbol.isImaginary()) {
                         return complex.evaluate(symbol, 'sinh');
                     }
@@ -5552,10 +6065,12 @@ var nerdamer = (function (imports) {
 
                 return (retval = _.symfunction('sinh', arguments));
             },
-            tanh: function (symbol) {
-                var retval;
+            tanh(symbol) {
+                let retval;
                 if (Settings.PARSE2NUMBER) {
-                    if (symbol.isConstant()) return new NerdamerSymbol(Math.tanh(symbol.valueOf()));
+                    if (symbol.isConstant()) {
+                        return new NerdamerSymbol(Math.tanh(symbol.valueOf()));
+                    }
                     if (symbol.isImaginary()) {
                         return complex.evaluate(symbol, 'tanh');
                     }
@@ -5563,8 +6078,8 @@ var nerdamer = (function (imports) {
 
                 return (retval = _.symfunction('tanh', arguments));
             },
-            sech: function (symbol) {
-                var retval;
+            sech(symbol) {
+                let retval;
                 if (Settings.PARSE2NUMBER) {
                     if (symbol.isConstant()) {
                         return new NerdamerSymbol(Math.sech(symbol.valueOf()));
@@ -5577,10 +6092,12 @@ var nerdamer = (function (imports) {
 
                 return (retval = _.symfunction('sech', arguments));
             },
-            csch: function (symbol) {
-                var retval;
+            csch(symbol) {
+                let retval;
                 if (Settings.PARSE2NUMBER) {
-                    if (symbol.isConstant()) return new NerdamerSymbol(Math.csch(symbol.valueOf()));
+                    if (symbol.isConstant()) {
+                        return new NerdamerSymbol(Math.csch(symbol.valueOf()));
+                    }
                     if (symbol.isImaginary()) {
                         return complex.evaluate(symbol, 'csch');
                     }
@@ -5589,10 +6106,12 @@ var nerdamer = (function (imports) {
 
                 return (retval = _.symfunction('csch', arguments));
             },
-            coth: function (symbol) {
-                var retval;
+            coth(symbol) {
+                let retval;
                 if (Settings.PARSE2NUMBER) {
-                    if (symbol.isConstant()) return new NerdamerSymbol(Math.coth(symbol.valueOf()));
+                    if (symbol.isConstant()) {
+                        return new NerdamerSymbol(Math.coth(symbol.valueOf()));
+                    }
                     if (symbol.isImaginary()) {
                         return complex.evaluate(symbol, 'coth');
                     }
@@ -5601,36 +6120,44 @@ var nerdamer = (function (imports) {
 
                 return (retval = _.symfunction('coth', arguments));
             },
-            acosh: function (symbol) {
-                var retval;
-                if (Settings.PARSE2NUMBER && symbol.isImaginary()) retval = complex.evaluate(symbol, 'acosh');
-                else if (Settings.PARSE2NUMBER)
-                    retval = evaluate(_.parse(format(Settings.LOG + '(({0})+sqrt(({0})^2-1))', symbol.toString())));
-                else retval = _.symfunction('acosh', arguments);
+            acosh(symbol) {
+                let retval;
+                if (Settings.PARSE2NUMBER && symbol.isImaginary()) {
+                    retval = complex.evaluate(symbol, 'acosh');
+                } else if (Settings.PARSE2NUMBER) {
+                    retval = evaluate(_.parse(format(`${Settings.LOG}(({0})+sqrt(({0})^2-1))`, symbol.toString())));
+                } else {
+                    retval = _.symfunction('acosh', arguments);
+                }
                 return retval;
             },
-            asinh: function (symbol) {
-                var retval;
-                if (Settings.PARSE2NUMBER && symbol.isImaginary()) retval = complex.evaluate(symbol, 'asinh');
-                else if (Settings.PARSE2NUMBER)
-                    retval = evaluate(_.parse(format(Settings.LOG + '(({0})+sqrt(({0})^2+1))', symbol.toString())));
-                else retval = _.symfunction('asinh', arguments);
+            asinh(symbol) {
+                let retval;
+                if (Settings.PARSE2NUMBER && symbol.isImaginary()) {
+                    retval = complex.evaluate(symbol, 'asinh');
+                } else if (Settings.PARSE2NUMBER) {
+                    retval = evaluate(_.parse(format(`${Settings.LOG}(({0})+sqrt(({0})^2+1))`, symbol.toString())));
+                } else {
+                    retval = _.symfunction('asinh', arguments);
+                }
                 return retval;
             },
-            atanh: function (symbol) {
-                var retval;
-                if (Settings.PARSE2NUMBER && symbol.isImaginary()) retval = complex.evaluate(symbol, 'atanh');
-                else if (Settings.PARSE2NUMBER) {
-                    retval = evaluate(
-                        _.parse(format('(1/2)*' + Settings.LOG + '((1+({0}))/(1-({0})))', symbol.toString()))
-                    );
-                } else retval = _.symfunction('atanh', arguments);
+            atanh(symbol) {
+                let retval;
+                if (Settings.PARSE2NUMBER && symbol.isImaginary()) {
+                    retval = complex.evaluate(symbol, 'atanh');
+                } else if (Settings.PARSE2NUMBER) {
+                    retval = evaluate(_.parse(format(`(1/2)*${Settings.LOG}((1+({0}))/(1-({0})))`, symbol.toString())));
+                } else {
+                    retval = _.symfunction('atanh', arguments);
+                }
                 return retval;
             },
-            asech: function (symbol) {
-                var retval;
-                if (Settings.PARSE2NUMBER && symbol.isImaginary()) retval = complex.evaluate(symbol, 'asech');
-                else if (Settings.PARSE2NUMBER)
+            asech(symbol) {
+                let retval;
+                if (Settings.PARSE2NUMBER && symbol.isImaginary()) {
+                    retval = complex.evaluate(symbol, 'asech');
+                } else if (Settings.PARSE2NUMBER) {
                     retval = evaluate(
                         log(
                             _.add(
@@ -5639,23 +6166,30 @@ var nerdamer = (function (imports) {
                             )
                         )
                     );
-                else retval = _.symfunction('asech', arguments);
+                } else {
+                    retval = _.symfunction('asech', arguments);
+                }
                 return retval;
             },
-            acsch: function (symbol) {
-                var retval;
-                if (Settings.PARSE2NUMBER && symbol.isImaginary()) retval = complex.evaluate(symbol, 'acsch');
-                else if (Settings.PARSE2NUMBER)
-                    retval = evaluate(_.parse(format(Settings.LOG + '((1+sqrt(1+({0})^2))/({0}))', symbol.toString())));
-                else retval = _.symfunction('acsch', arguments);
+            acsch(symbol) {
+                let retval;
+                if (Settings.PARSE2NUMBER && symbol.isImaginary()) {
+                    retval = complex.evaluate(symbol, 'acsch');
+                } else if (Settings.PARSE2NUMBER) {
+                    retval = evaluate(_.parse(format(`${Settings.LOG}((1+sqrt(1+({0})^2))/({0}))`, symbol.toString())));
+                } else {
+                    retval = _.symfunction('acsch', arguments);
+                }
                 return retval;
             },
-            acoth: function (symbol) {
-                var retval;
-                if (Settings.PARSE2NUMBER && symbol.isImaginary()) retval = complex.evaluate(symbol, 'acoth');
-                else if (Settings.PARSE2NUMBER) {
-                    if (symbol.equals(1)) retval = NerdamerSymbol.infinity();
-                    else
+            acoth(symbol) {
+                let retval;
+                if (Settings.PARSE2NUMBER && symbol.isImaginary()) {
+                    retval = complex.evaluate(symbol, 'acoth');
+                } else if (Settings.PARSE2NUMBER) {
+                    if (symbol.equals(1)) {
+                        retval = NerdamerSymbol.infinity();
+                    } else {
                         retval = evaluate(
                             _.divide(
                                 log(
@@ -5667,7 +6201,10 @@ var nerdamer = (function (imports) {
                                 new NerdamerSymbol(2)
                             )
                         );
-                } else retval = _.symfunction('acoth', arguments);
+                    }
+                } else {
+                    retval = _.symfunction('acoth', arguments);
+                }
                 return retval;
             },
         });
@@ -5682,7 +6219,7 @@ var nerdamer = (function (imports) {
                 prefix: true,
                 postfix: false,
                 leftAssoc: true,
-                operation: function (e) {
+                operation(e) {
                     return e; //bypass the slash
                 },
             },
@@ -5693,7 +6230,7 @@ var nerdamer = (function (imports) {
                 prefix: false,
                 postfix: true,
                 leftAssoc: true,
-                operation: function (e) {
+                operation(e) {
                     return _.symfunction(Settings.DOUBLEFACTORIAL, [e]); //wrap it in a factorial function
                 },
             },
@@ -5704,7 +6241,7 @@ var nerdamer = (function (imports) {
                 prefix: false,
                 postfix: true,
                 leftAssoc: true,
-                operation: function (e) {
+                operation(e) {
                     return factorial(e); //wrap it in a factorial function
                 },
             },
@@ -5734,7 +6271,7 @@ var nerdamer = (function (imports) {
                 overloaded: true,
                 overloadAction: 'mod',
                 overloadLeftAssoc: false,
-                operation: function (x) {
+                operation(x) {
                     return _.divide(x, new NerdamerSymbol(100));
                 },
             },
@@ -5761,7 +6298,7 @@ var nerdamer = (function (imports) {
                 prefix: true,
                 postfix: false,
                 leftAssoc: false,
-                operation: function (x) {
+                operation(x) {
                     return x;
                 },
             },
@@ -5772,7 +6309,7 @@ var nerdamer = (function (imports) {
                 prefix: true,
                 postfix: false,
                 leftAssoc: false,
-                operation: function (x) {
+                operation(x) {
                     return x;
                 },
             },
@@ -5783,7 +6320,7 @@ var nerdamer = (function (imports) {
                 prefix: true,
                 postfix: false,
                 leftAssoc: false,
-                operation: function (x) {
+                operation(x) {
                     return x.negate();
                 },
             },
@@ -5862,7 +6399,7 @@ var nerdamer = (function (imports) {
             },
         };
         //brackets
-        var brackets = {
+        const brackets = {
             '(': {
                 type: 'round',
                 id: 1,
@@ -5904,7 +6441,7 @@ var nerdamer = (function (imports) {
         };
         // Supported functions.
         // Format: function_name: [mapped_function, number_of_parameters]
-        var functions = (this.functions = {
+        const functions = (this.functions = {
             cos: [trig.cos, 1],
             sin: [trig.sin, 1],
             tan: [trig.tan, 1],
@@ -6018,14 +6555,16 @@ var nerdamer = (function (imports) {
         //error handler
         this.error = err;
         //this function is used to comb through the function modules and find a function given its name
-        var findFunction = function (fname) {
-            var fmodules = Settings.FUNCTION_MODULES,
+        const findFunction = function (fname) {
+            const fmodules = Settings.FUNCTION_MODULES,
                 l = fmodules.length;
-            for (var i = 0; i < l; i++) {
-                var fmodule = fmodules[i];
-                if (fname in fmodule) return fmodule[fname];
+            for (let i = 0; i < l; i++) {
+                const fmodule = fmodules[i];
+                if (fname in fmodule) {
+                    return fmodule[fname];
+                }
             }
-            err('The function ' + fname + ' is undefined!');
+            err(`The function ${fname} is undefined!`);
         };
 
         /**
@@ -6035,7 +6574,9 @@ var nerdamer = (function (imports) {
          * @param {Function} with_what
          */
         this.override = function (which, with_what) {
-            if (!bin[which]) bin[which] = [];
+            if (!bin[which]) {
+                bin[which] = [];
+            }
             bin[which].push(this[which]);
             this[which] = with_what;
         };
@@ -6046,7 +6587,9 @@ var nerdamer = (function (imports) {
          * @param {string} what
          */
         this.restore = function (what) {
-            if (this[what]) this[what] = bin[what].pop();
+            if (this[what]) {
+                this[what] = bin[what].pop();
+            }
         };
 
         /**
@@ -6058,13 +6601,16 @@ var nerdamer = (function (imports) {
          * @param {boolean} force_call
          */
         this.extend = function (what, with_what, force_call) {
-            var _ = this,
+            const _ = this,
                 extended = this[what];
             if (typeof extended === 'function' && typeof with_what === 'function') {
-                var f = this[what];
+                const f = this[what];
                 this[what] = function (a, b) {
-                    if (isSymbol(a) && isSymbol(b) && !force_call) return f.call(_, a, b);
-                    else return with_what.call(_, a, b, f);
+                    if (isSymbol(a) && isSymbol(b) && !force_call) {
+                        return f.call(_, a, b);
+                    } else {
+                        return with_what.call(_, a, b, f);
+                    }
                 };
             }
         };
@@ -6080,9 +6626,11 @@ var nerdamer = (function (imports) {
          */
         this.symfunction = function (fn_name, params) {
             //call the proper function and return the result;
-            var f = new NerdamerSymbol(fn_name);
+            const f = new NerdamerSymbol(fn_name);
             f.group = FN;
-            if (typeof params === 'object') params = [].slice.call(params); //ensure an array
+            if (typeof params === 'object') {
+                params = [].slice.call(params);
+            } //ensure an array
             f.args = params;
             f.fname = fn_name === PARENTHESIS ? '' : fn_name;
             f.updateHash();
@@ -6099,27 +6647,35 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         this.callfunction = function (fn_name, args, allowed_args) {
-            var fn_settings = functions[fn_name];
+            const fn_settings = functions[fn_name];
 
-            if (!fn_settings) err('Nerdamer currently does not support the function ' + fn_name);
+            if (!fn_settings) {
+                err(`Nerdamer currently does not support the function ${fn_name}`);
+            }
 
-            var num_allowed_args = fn_settings[1] || allowed_args, //get the number of allowed arguments
+            let num_allowed_args = fn_settings[1] || allowed_args, //get the number of allowed arguments
                 fn = fn_settings[0], //get the mapped function
                 retval;
             //We want to be able to call apply on the arguments or create a symfunction. Both require
             //an array so make sure to wrap the argument in an array.
-            if (!(args instanceof Array)) args = args !== undefined ? [args] : [];
+            if (!(args instanceof Array)) {
+                args = args !== undefined ? [args] : [];
+            }
 
             if (num_allowed_args !== -1) {
-                var is_array = isArray(num_allowed_args),
+                const is_array = isArray(num_allowed_args),
                     min_args = is_array ? num_allowed_args[0] : num_allowed_args,
                     max_args = is_array ? num_allowed_args[1] : num_allowed_args,
                     num_args = args.length;
 
-                var error_msg = fn_name + ' requires a {0} of {1} arguments. {2} provided!';
+                const error_msg = `${fn_name} requires a {0} of {1} arguments. {2} provided!`;
 
-                if (num_args < min_args) err(format(error_msg, 'minimum', min_args, num_args));
-                if (num_args > max_args) err(format(error_msg, 'maximum', max_args, num_args));
+                if (num_args < min_args) {
+                    err(format(error_msg, 'minimum', min_args, num_args));
+                }
+                if (num_args > max_args) {
+                    err(format(error_msg, 'maximum', max_args, num_args));
+                }
             }
 
             /*
@@ -6131,7 +6687,7 @@ var nerdamer = (function (imports) {
              *     they are expecting a symbolic output.
              */
             //check if arguments are all numers
-            var numericArgs = allNumbers(args);
+            const numericArgs = allNumbers(args);
             //Big number support. Check if Big number is requested and the arguments are all numeric and, not imaginary
             //            if (Settings.USE_BIG && numericArgs) {
             //                retval = Big[fn_name].apply(undefined, args);
@@ -6141,8 +6697,11 @@ var nerdamer = (function (imports) {
                 // Call JS function
                 //Remember assumption 1. No function defined so it MUST be numeric in nature
                 fn = findFunction(fn_name);
-                if (Settings.PARSE2NUMBER && numericArgs) retval = bigConvert(fn.apply(fn, args));
-                else retval = _.symfunction(fn_name, args);
+                if (Settings.PARSE2NUMBER && numericArgs) {
+                    retval = bigConvert(fn.apply(fn, args));
+                } else {
+                    retval = _.symfunction(fn_name, args);
+                }
             } else {
                 // Call nerdamer function
                 //Remember assumption 2. The function is defined so it MUST handle all aspects including numeric values
@@ -6159,16 +6718,16 @@ var nerdamer = (function (imports) {
         this.operator_filter_regex = (function () {
             //we only want the operators which are singular since those are the ones
             //that nerdamer uses anyway
-            var ostr =
-                '^\\' +
-                Object.keys(operators)
-                    .filter(function (x) {
-                        if (x.length === 1) return x;
-                    })
-                    .join('\\');
+            const ostr = `^\\${Object.keys(operators)
+                .filter(x => {
+                    if (x.length === 1) {
+                        return x;
+                    }
+                })
+                .join('\\')}`;
             //create a regex which captures all spaces between characters except those
             //have an operator on one end
-            return new RegExp('([' + ostr + '])\\s+([' + ostr + '])');
+            return new RegExp(`([${ostr}])\\s+([${ostr}])`);
         })();
 
         /**
@@ -6179,9 +6738,11 @@ var nerdamer = (function (imports) {
          * @param {boolean} shift
          */
         this.setOperator = function (operator, action, shift) {
-            var name = operator.operator; //take the name to be the symbol
+            const name = operator.operator; //take the name to be the symbol
             operators[name] = operator;
-            if (action) this[operator.action] = action;
+            if (action) {
+                this[operator.action] = action;
+            }
             //make the parser aware of the operator
             _[name] = operator.operation;
             //make the action available to the parser if infix
@@ -6190,12 +6751,14 @@ var nerdamer = (function (imports) {
             }
             //if this operator is exclusive then all successive operators should be shifted
             if (shift === 'over' || shift === 'under') {
-                var precedence = operator.precedence;
+                const precedence = operator.precedence;
 
-                for (var x in operators) {
-                    var o = operators[x];
-                    var condition = shift === 'over' ? o.precedence >= precedence : o.precedence > precedence;
-                    if (condition) o.precedence++;
+                for (const x in operators) {
+                    const o = operators[x];
+                    const condition = shift === 'over' ? o.precedence >= precedence : o.precedence > precedence;
+                    if (condition) {
+                        o.precedence++;
+                    }
                 }
             }
         };
@@ -6211,10 +6774,10 @@ var nerdamer = (function (imports) {
         };
 
         this.aliasOperator = function (o, n) {
-            var t = {};
-            var operator = operators[o];
+            const t = {};
+            const operator = operators[o];
             //copy everything over to the new operator
-            for (var x in operator) {
+            for (const x in operator) {
                 t[x] = operator[x];
             }
             //update the symbol
@@ -6241,7 +6804,7 @@ var nerdamer = (function (imports) {
          * sending to the parser
          * @param {string} e
          */
-        var prepare_expression = function (e) {
+        const prepare_expression = function (e) {
             /*
              * Since variables cannot start with a number, the assumption is made that when this occurs the
              * user intents for this to be a coefficient. The multiplication symbol in then added. The same goes for
@@ -6249,7 +6812,9 @@ var nerdamer = (function (imports) {
              */
             e = String(e);
             //apply preprocessors
-            for (var i = 0; i < preprocessors.actions.length; i++) e = preprocessors.actions[i].call(this, e);
+            for (let i = 0; i < preprocessors.actions.length; i++) {
+                e = preprocessors.actions[i].call(this, e);
+            }
 
             //e = e.split(' ').join('');//strip empty spaces
             //replace multiple spaces with one space
@@ -6258,13 +6823,9 @@ var nerdamer = (function (imports) {
             //only even bother to check if the string contains e. This regex is painfully slow and might need a better solution. e.g. hangs on (0.06/3650))^(365)
             if (/e/gi.test(e)) {
                 // negative numbers
-                e = e.replace(/\-+\d+\.?\d*e\+?\-?\d+/gi, function (x) {
-                    return scientificToDecimal(x);
-                });
+                e = e.replace(/\-+\d+\.?\d*e\+?\-?\d+/gi, x => scientificToDecimal(x));
                 // positive numbers that are not part of an identifier
-                e = e.replace(/(?<![A-Za-z])\d+\.?\d*e\+?\-?\d+/gi, function (x) {
-                    return scientificToDecimal(x);
-                });
+                e = e.replace(/(?<![A-Za-z])\d+\.?\d*e\+?\-?\d+/gi, x => scientificToDecimal(x));
             }
             //replace scientific numbers
 
@@ -6272,20 +6833,26 @@ var nerdamer = (function (imports) {
             e =
                 e
                     .replace(Settings.IMPLIED_MULTIPLICATION_REGEX, function () {
-                        var str = arguments[4],
+                        let str = arguments[4],
                             group1 = arguments[1],
                             group2 = arguments[2],
                             start = arguments[3],
                             first = str.charAt(start),
                             before = '',
                             d = '*';
-                        if (!first.match(/[\+\-\/\*]/)) before = str.charAt(start - 1);
-                        if (before.match(/[a-z]/i)) d = '';
+                        if (!first.match(/[\+\-\/\*]/)) {
+                            before = str.charAt(start - 1);
+                        }
+                        if (before.match(/[a-z]/i)) {
+                            d = '';
+                        }
                         return group1 + d + group2;
                     })
-                    .replace(/([a-z0-9_]+)/gi, function (match, a) {
+                    .replace(/([a-z0-9_]+)/gi, (match, a) => {
                         if (Settings.USE_MULTICHARACTER_VARS === false && !(a in functions)) {
-                            if (!isNaN(a)) return a;
+                            if (!isNaN(a)) {
+                                return a;
+                            }
                             return a.split('').join('*');
                         }
                         return a;
@@ -6294,17 +6861,20 @@ var nerdamer = (function (imports) {
                     .replace(/\)\(/g, ')*(') || '0';
             //replace x(x+a) with x*(x+a)
             while (true) {
-                var e_org = e; //store the original
-                e = e.replace(/([a-z0-9_]+)(\()|(\))([a-z0-9]+)/gi, function (match, a, b, c, d) {
-                    var g1 = a || c,
+                const e_org = e; //store the original
+                e = e.replace(/([a-z0-9_]+)(\()|(\))([a-z0-9]+)/gi, (match, a, b, c, d) => {
+                    const g1 = a || c,
                         g2 = b || d;
-                    if (g1 in functions)
-                        //create a passthrough for functions
+                    if (g1 in functions) //create a passthrough for functions
+                    {
                         return g1 + g2;
-                    return g1 + '*' + g2;
+                    }
+                    return `${g1}*${g2}`;
                 });
                 //if the original equals the replace we're done
-                if (e_org === e) break;
+                if (e_org === e) {
+                    break;
+                }
             }
             return e;
         };
@@ -6322,9 +6892,11 @@ var nerdamer = (function (imports) {
          */
         this.pretty_print = function (o) {
             if (Array.isArray(o)) {
-                var s = o.map(x => _.pretty_print(x)).join(', ');
-                if (o.type === 'vector') return 'vector<' + s + '>';
-                return '(' + s + ')';
+                const s = o.map(x => _.pretty_print(x)).join(', ');
+                if (o.type === 'vector') {
+                    return `vector<${s}>`;
+                }
+                return `(${s})`;
             }
             return o.toString();
         };
@@ -6337,11 +6909,11 @@ var nerdamer = (function (imports) {
 
         this.callPeekers = function (name) {
             if (Settings.callPeekers) {
-                var peekers = this.peekers[name];
+                const peekers = this.peekers[name];
                 //remove the first items and stringify
-                var args = arguments2Array(arguments).slice(1).map(stringify);
+                const args = arguments2Array(arguments).slice(1).map(stringify);
                 //call each one of the peekers
-                for (var i = 0; i < peekers.length; i++) {
+                for (let i = 0; i < peekers.length; i++) {
                     peekers[i].apply(null, args);
                 }
             }
@@ -6357,25 +6929,25 @@ var nerdamer = (function (imports) {
             //remove multiple white spaces and spaces at beginning and end of string
             e = e.trim().replace(/\s+/g, ' ');
             //remove spaces before and after brackets
-            for (var x in brackets) {
-                var regex = new RegExp(brackets[x].is_close ? '\\s+\\' + x : '\\' + x + '\\s+', 'g');
+            for (const x in brackets) {
+                const regex = new RegExp(brackets[x].is_close ? `\\s+\\${x}` : `\\${x}\\s+`, 'g');
                 e = e.replace(regex, x);
             }
 
-            var col = 0; //the column position
-            var L = e.length; //expression length
-            var lpos = 0; //marks beginning of next token
-            var tokens = []; //the tokens container
-            var scopes = [tokens]; //initiate with the tokens as the highest scope
-            var target = scopes[0]; //the target to which the tokens are added. This can swing up or down
-            var depth = 0;
-            var open_brackets = [];
-            var has_space = false; //marks if an open space character was found
-            var SPACE = ' ';
-            var EMPTY_STRING = '';
-            var COMMA = ',';
-            var MINUS = '-';
-            var MULT = '*';
+            let col = 0; //the column position
+            const L = e.length; //expression length
+            let lpos = 0; //marks beginning of next token
+            const tokens = []; //the tokens container
+            const scopes = [tokens]; //initiate with the tokens as the highest scope
+            let target = scopes[0]; //the target to which the tokens are added. This can swing up or down
+            let depth = 0;
+            const open_brackets = [];
+            let has_space = false; //marks if an open space character was found
+            const SPACE = ' ';
+            const EMPTY_STRING = '';
+            const COMMA = ',';
+            const MINUS = '-';
+            const MULT = '*';
             //Possible source of bug. Review
             /*
              //gets the next space
@@ -6395,8 +6967,8 @@ var nerdamer = (function (imports) {
              * @param {number} column
              * @returns {undefined}
              */
-            var addScope = function (scope_type, column) {
-                var new_scope = []; //create a new scope
+            const addScope = function (scope_type, column) {
+                const new_scope = []; //create a new scope
                 if (scope_type !== undefined) {
                     new_scope.type = scope_type;
                 }
@@ -6411,7 +6983,7 @@ var nerdamer = (function (imports) {
              *
              * @returns {undefined}
              */
-            var goUp = function () {
+            const goUp = function () {
                 scopes.pop(); //remove the scope from the scopes stack
                 target = scopes[--depth]; //point the above scope
             };
@@ -6421,11 +6993,11 @@ var nerdamer = (function (imports) {
              * @param {number} start_at
              * @returns {string}
              */
-            var get_operator_str = function (start_at) {
+            const get_operator_str = function (start_at) {
                 start_at = start_at !== undefined ? start_at : col;
                 //mark the end of the operator as the start since we're just going
                 //to be walking along the string
-                var end = start_at + 1;
+                let end = start_at + 1;
                 //just keep moving along
                 while (e.charAt(end++) in operators) {
                     // Intentionally empty - just advancing end pointer
@@ -6442,22 +7014,24 @@ var nerdamer = (function (imports) {
              * @param {string} operator_str
              * @returns {string[]}
              */
-            var chunkify = function (operator_str) {
-                var start = col - operator_str.length; //start of operator
-                var _operators = [];
-                var operator = operator_str.charAt(0);
+            const chunkify = function (operator_str) {
+                const start = col - operator_str.length; //start of operator
+                const _operators = [];
+                let operator = operator_str.charAt(0);
                 //grab the largest possible chunks but start at 2 since we already know
                 //that the first character is an operator
 
                 for (var i = 1, L = operator_str.length; i < L; i++) {
-                    var ch = operator_str.charAt(i);
-                    var o = operator + ch;
+                    const ch = operator_str.charAt(i);
+                    const o = operator + ch;
                     //since the operator now is undefined then the last operator
                     //was the largest possible combination.
                     if (!(o in operators)) {
                         _operators.push(new Token(operator, Token.OPERATOR, start + i));
                         operator = ch;
-                    } else operator = o; //now the operator is the larger chunk
+                    } else {
+                        operator = o;
+                    } //now the operator is the larger chunk
                 }
                 //add the last operator
                 _operators.push(new Token(operator, Token.OPERATOR, start + i));
@@ -6471,12 +7045,17 @@ var nerdamer = (function (imports) {
              * @param {string} token
              * @returns {undefined}
              */
-            var add_token = function (at, token) {
+            const add_token = function (at, token) {
                 //grab the token if we're not supplied one
-                if (token === undefined) token = e.substring(lpos, at);
+                if (token === undefined) {
+                    token = e.substring(lpos, at);
+                }
                 //only add it if it's not an empty string
-                if (token in _.units) target.push(new Token(token, Token.UNIT, lpos));
-                else if (token !== '') target.push(new Token(token, Token.VARIABLE_OR_LITERAL, lpos));
+                if (token in _.units) {
+                    target.push(new Token(token, Token.UNIT, lpos));
+                } else if (token !== '') {
+                    target.push(new Token(token, Token.VARIABLE_OR_LITERAL, lpos));
+                }
             };
             /**
              * Adds a function to the output
@@ -6484,7 +7063,7 @@ var nerdamer = (function (imports) {
              * @param {string} f
              * @returns {undefined}
              */
-            var add_function = function (f) {
+            const add_function = function (f) {
                 target.push(new Token(f, Token.FUNCTION, lpos));
             };
             /**
@@ -6493,7 +7072,7 @@ var nerdamer = (function (imports) {
              * @param {number} position
              * @returns {undefined}
              */
-            var set_last_position = function (position) {
+            const set_last_position = function (position) {
                 lpos = position + 1;
             };
             /**
@@ -6502,18 +7081,18 @@ var nerdamer = (function (imports) {
              *
              * @returns {undefined}
              */
-            var adjust_column_position = function () {
+            const adjust_column_position = function () {
                 lpos = lpos + operator_str.length - 2;
                 col = lpos - 1;
             };
             for (; col < L; col++) {
-                var ch = e.charAt(col);
+                const ch = e.charAt(col);
                 if (ch in operators) {
                     add_token(col);
                     //is the last token numeric?
-                    var last_token_is_numeric = target[0] && isNumber(target[0]);
+                    const last_token_is_numeric = target[0] && isNumber(target[0]);
                     //is this character multiplication?
-                    var is_multiplication = last_token_is_numeric && ch === MULT;
+                    const is_multiplication = last_token_is_numeric && ch === MULT;
                     //if we're in a new scope then go up by one but if the space
                     //is right befor an operator then it makes no sense to go up in scope
                     //consider sin -x. The last position = current position at the minus sign
@@ -6530,7 +7109,7 @@ var nerdamer = (function (imports) {
                     adjust_column_position();
                     target.push.apply(target, chunkify(operator_str));
                 } else if (ch in brackets) {
-                    var bracket = brackets[ch];
+                    const bracket = brackets[ch];
 
                     if (bracket.is_open) {
                         //mark the bracket
@@ -6547,19 +7126,23 @@ var nerdamer = (function (imports) {
                         addScope(bracket.maps_to, col);
                     } else if (bracket.is_close) {
                         //get the matching bracket
-                        var pair = open_brackets.pop();
+                        const pair = open_brackets.pop();
                         //throw errors accordingly
                         //missing open bracket
-                        if (!pair) throw new ParityError('Missing open bracket for bracket at: ' + (col + 1));
+                        if (!pair) {
+                            throw new ParityError(`Missing open bracket for bracket at: ${col + 1}`);
+                        }
                         //incorrect pair
-                        else if (pair[0].id !== bracket.id - 1) throw new ParityError('Parity error');
+                        else if (pair[0].id !== bracket.id - 1) {
+                            throw new ParityError('Parity error');
+                        }
 
                         add_token(col);
                         goUp();
                     }
                     set_last_position(col);
                 } else if (ch === SPACE) {
-                    var prev = e.substring(lpos, col); //look back
+                    const prev = e.substring(lpos, col); //look back
                     var nxt = e.charAt(col + 1); //look forward
                     if (has_space) {
                         if (prev in operators) {
@@ -6570,7 +7153,7 @@ var nerdamer = (function (imports) {
                             goUp(); //go up in scope if we're at a space
 
                             //assume multiplication if it's not an operator except for minus
-                            var is_operator = nxt in operators;
+                            const is_operator = nxt in operators;
 
                             if ((is_operator && operators[nxt].value === MINUS) || !is_operator) {
                                 target.push(new Token(MULT, Token.OPERATOR, col));
@@ -6602,8 +7185,9 @@ var nerdamer = (function (imports) {
                                 nxt !== EMPTY_STRING &&
                                 !(prev in operators) &&
                                 !(nxt in operators)
-                            )
+                            ) {
                                 target.push(new Token(MULT, Token.OPERATOR, col));
+                            }
                         }
                         //Possible source of bug. Review
                         /*
@@ -6624,8 +7208,8 @@ var nerdamer = (function (imports) {
             }
             //check that all brackets were closed
             if (open_brackets.length) {
-                var b = open_brackets.pop();
-                throw new ParityError('Missing closed bracket for bracket at ' + (b[1] + 1));
+                const b = open_brackets.pop();
+                throw new ParityError(`Missing closed bracket for bracket at ${b[1] + 1}`);
             }
             //add the last token
             add_token(col);
@@ -6638,28 +7222,34 @@ var nerdamer = (function (imports) {
          * @returns {Token[]}
          */
         this.toRPN = function (tokens) {
-            var fn = tokens.type;
-            var l = tokens.length,
+            const fn = tokens.type;
+            let l = tokens.length,
                 i;
-            var output = [];
-            var stack = [];
-            var prefixes = [];
-            var collapse = function (target, destination) {
-                while (target.length) destination.push(target.pop());
+            const output = [];
+            const stack = [];
+            const prefixes = [];
+            const collapse = function (target, destination) {
+                while (target.length) {
+                    destination.push(target.pop());
+                }
             };
             //mark all the prefixes and add them to the stack
             for (i = 0; i < l; i++) {
-                var token = tokens[i];
-                if (token.type !== Token.OPERATOR) break;
-                if (!token.prefix) throw new OperatorError('Not a prefix operator');
+                const token = tokens[i];
+                if (token.type !== Token.OPERATOR) {
+                    break;
+                }
+                if (!token.prefix) {
+                    throw new OperatorError('Not a prefix operator');
+                }
                 token.is_prefix = true;
                 stack.push(token);
             }
             //begin with remaining tokens
             for (; i < l; i++) {
-                var e = tokens[i];
+                const e = tokens[i];
                 if (e.type === Token.OPERATOR) {
-                    var operator = e;
+                    const operator = e;
 
                     //create the option for the operator being overloaded
                     if (operator.overloaded) {
@@ -6675,7 +7265,7 @@ var nerdamer = (function (imports) {
 
                     //if the stack is not empty
                     while (stack.length) {
-                        var last = stack[stack.length - 1];
+                        const last = stack[stack.length - 1];
                         //if (there is an operator at the top of the operator stack with greater precedence)
                         //or (the operator at the top of the operator stack has equal precedence and is left associative)) ~ wikipedia
                         //the !prefixes.length makes sure that the operator on stack isn't prematurely taken fromt he stack.
@@ -6684,28 +7274,31 @@ var nerdamer = (function (imports) {
                                 last.precedence > operator.precedence ||
                                 (!operator.leftAssoc && last.precedence === operator.precedence)
                             )
-                        )
+                        ) {
                             break;
+                        }
                         output.push(stack.pop());
                     }
 
                     //change the behavior of the operator if it's a vector and we've been asked to do so
-                    if ((fn === 'vector' || fn === 'set') && 'vectorFn' in operator)
+                    if ((fn === 'vector' || fn === 'set') && 'vectorFn' in operator) {
                         operator.action = operator.vectorFn;
+                    }
 
                     //if the operator is a postfix operator then we're ready to go since it belongs
                     //to the preceding token. However the output cannot be empty. It must have either
                     //an operator or a variable/literal
                     if (operator.postfix) {
-                        var previous = tokens[i - 1];
-                        if (!previous)
-                            throw new OperatorError("Unexpected prefix operator '" + e.value + "'! at " + e.column);
-                        else if (previous.type === Token.OPERATOR) {
+                        const previous = tokens[i - 1];
+                        if (!previous) {
+                            throw new OperatorError(`Unexpected prefix operator '${e.value}'! at ${e.column}`);
+                        } else if (previous.type === Token.OPERATOR) {
                             //a postfix can only be followed by a postfix
-                            if (!previous.postfix)
+                            if (!previous.postfix) {
                                 throw new OperatorError(
-                                    "Unexpected prefix operator '" + previous.value + "'! at " + previous.column
+                                    `Unexpected prefix operator '${previous.value}'! at ${previous.column}`
                                 );
+                            }
                         }
                     } else {
                         //we must be at an infix so point the operator this
@@ -6716,7 +7309,7 @@ var nerdamer = (function (imports) {
                             if (next_is_operator) {
                                 //if it's not a prefix operator then it not in the right place
                                 if (!next.prefix) {
-                                    throw new OperatorError('A prefix operator was expected at ' + next.column);
+                                    throw new OperatorError(`A prefix operator was expected at ${next.column}`);
                                 }
                                 //mark it as a confirmed prefix
                                 next.is_prefix = true;
@@ -6733,28 +7326,36 @@ var nerdamer = (function (imports) {
                     //or output there's no way of knowing this. I might be wrong so I welcome
                     //any discussion about this.
 
-                    if (operator.is_prefix)
-                        //ADD ALL EXCEPTIONS FOR ADDING TO PREFIX STACK HERE. !!!
+                    if (operator.is_prefix) //ADD ALL EXCEPTIONS FOR ADDING TO PREFIX STACK HERE. !!!
+                    {
                         prefixes.push(operator);
-                    else stack.push(operator);
+                    } else {
+                        stack.push(operator);
+                    }
                     //move the prefixes to the stack
                     while (prefixes.length) {
                         if (
                             operator.leftAssoc ||
                             (!operator.leftAssoc && prefixes[prefixes.length - 1].precedence >= operator.precedence)
-                        )
-                            //revisit for commas
+                        ) //revisit for commas
+                        {
                             stack.push(prefixes.pop());
-                        else break;
+                        } else {
+                            break;
+                        }
                     }
                 } else if (e.type === Token.VARIABLE_OR_LITERAL) {
                     //move prefixes to stack at beginning of scope
-                    if (output.length === 0) collapse(prefixes, stack);
+                    if (output.length === 0) {
+                        collapse(prefixes, stack);
+                    }
                     //done with token
                     output.push(e);
-                    var last_on_stack = stack[stack.length - 1];
+                    const last_on_stack = stack[stack.length - 1];
                     //then move all the prefixes to the output
-                    if (!last_on_stack || !last_on_stack.leftAssoc) collapse(prefixes, output);
+                    if (!last_on_stack || !last_on_stack.leftAssoc) {
+                        collapse(prefixes, output);
+                    }
                 } else if (e.type === Token.FUNCTION) {
                     stack.push(e);
                 } else if (e.type === Token.UNIT) {
@@ -6764,7 +7365,9 @@ var nerdamer = (function (imports) {
                 //if it's an additonal scope then put that into RPN form
                 if (Array.isArray(e)) {
                     output.push(this.toRPN(e));
-                    if (e.type) output.push(new Token(e.type, Token.FUNCTION, e.column)); //since it's hidden it needs no column
+                    if (e.type) {
+                        output.push(new Token(e.type, Token.FUNCTION, e.column));
+                    } //since it's hidden it needs no column
                 }
             }
             //collapse the remainder of the stack and prefixes to output
@@ -6785,7 +7388,9 @@ var nerdamer = (function (imports) {
                 substitutions = substitutions || {};
                 //prepare the substitutions.
                 //we first parse them out as-is
-                for (var x in substitutions) substitutions[x] = _.parse(substitutions[x], {});
+                for (const x in substitutions) {
+                    substitutions[x] = _.parse(substitutions[x], {});
+                }
 
                 //Although technically constants,
                 //pi and e are only available when evaluating the expression so add to the subs.
@@ -6794,12 +7399,16 @@ var nerdamer = (function (imports) {
                 if (Settings.PARSE2NUMBER) {
                     //use the value provided if the individual for some strange reason prefers this.
                     //one reason could be to sub e but not pi or vice versa
-                    if (!('e' in substitutions)) substitutions.e = new NerdamerSymbol(Settings.E);
-                    if (!('pi' in substitutions)) substitutions.pi = new NerdamerSymbol(Settings.PI);
+                    if (!('e' in substitutions)) {
+                        substitutions.e = new NerdamerSymbol(Settings.E);
+                    }
+                    if (!('pi' in substitutions)) {
+                        substitutions.pi = new NerdamerSymbol(Settings.PI);
+                    }
                 }
 
-                var Q = [];
-                for (var i = 0, l = rpn.length; i < l; i++) {
+                const Q = [];
+                for (let i = 0, l = rpn.length; i < l; i++) {
                     var e = rpn[i];
 
                     //Arrays indicate a new scope so parse that out
@@ -6809,26 +7418,31 @@ var nerdamer = (function (imports) {
 
                     if (e) {
                         if (e.type === Token.OPERATOR) {
-                            if (e.is_prefix || e.postfix)
-                                //resolve the operation assocated with the prefix
+                            if (e.is_prefix || e.postfix) //resolve the operation assocated with the prefix
+                            {
                                 Q.push(e.operation(Q.pop()));
-                            else {
-                                var b = Q.pop();
-                                var a = Q.pop();
+                            } else {
+                                let b = Q.pop();
+                                let a = Q.pop();
                                 //Throw an error if the RH value is empty. This cannot be a postfix since we already checked
-                                if (typeof a === 'undefined')
-                                    throw new OperatorError(e + ' is not a valid postfix operator at ' + e.column);
+                                if (typeof a === 'undefined') {
+                                    throw new OperatorError(`${e} is not a valid postfix operator at ${e.column}`);
+                                }
 
-                                var is_comma = e.action === 'comma';
+                                const is_comma = e.action === 'comma';
                                 //convert Sets to Vectors on all operations at this point. Sets are only recognized functions or individually
-                                if (a instanceof Set && !is_comma) a = Vector.fromSet(a);
+                                if (a instanceof Set && !is_comma) {
+                                    a = Vector.fromSet(a);
+                                }
 
-                                if (b instanceof Set && !is_comma) b = Vector.fromSet(b);
+                                if (b instanceof Set && !is_comma) {
+                                    b = Vector.fromSet(b);
+                                }
 
                                 //call all the pre-operators
                                 this.callPeekers('pre_operator', a, b, e);
 
-                                var ans = _[e.action](a, b);
+                                const ans = _[e.action](a, b);
 
                                 //call all the pre-operators
                                 this.callPeekers('post_operator', ans, a, b, e);
@@ -6836,29 +7450,31 @@ var nerdamer = (function (imports) {
                                 Q.push(ans);
                             }
                         } else if (e.type === Token.FUNCTION) {
-                            var args = Q.pop();
-                            var parent = args.parent; //make a note of the parent
-                            if (!(args instanceof Collection)) args = Collection.create(args);
+                            let args = Q.pop();
+                            const parent = args.parent; //make a note of the parent
+                            if (!(args instanceof Collection)) {
+                                args = Collection.create(args);
+                            }
                             //the return value may be a vector. If it is then we check
                             //Q to see if there's another vector on the stack. If it is then
                             //we check if has elements. If it does then we know that we're dealing
                             //with an "getter" object and return the requested values
 
                             //call the function. This is the _.callfunction method in nerdamer
-                            var fn_name = e.value;
-                            var fn_args = args.getItems();
+                            const fn_name = e.value;
+                            const fn_args = args.getItems();
 
                             //call the pre-function peekers
                             this.callPeekers('pre_function', fn_name, fn_args);
 
-                            var ret = _.callfunction(fn_name, fn_args);
+                            const ret = _.callfunction(fn_name, fn_args);
 
                             //call the post-function peekers
                             this.callPeekers('post_function', ret, fn_name, fn_args);
 
-                            var last = Q[Q.length - 1];
-                            var next = rpn[i + 1];
-                            var next_is_comma = next && next.type === Token.OPERATOR && next.value === ',';
+                            const last = Q[Q.length - 1];
+                            const next = rpn[i + 1];
+                            const next_is_comma = next && next.type === Token.OPERATOR && next.value === ',';
 
                             // if(!next_is_comma && ret instanceof Vector && last && last.elements && !(last instanceof Collection)) {
                             //     //remove the item from the queue
@@ -6896,17 +7512,22 @@ var nerdamer = (function (imports) {
                             // }
                             // else {
                             //extend the parent reference
-                            if (parent) ret.parent = parent;
+                            if (parent) {
+                                ret.parent = parent;
+                            }
                             Q.push(ret);
                             // }
                         } else {
                             var subbed;
-                            var v = e.value;
+                            const v = e.value;
 
-                            if (v in Settings.ALIASES) e = _.parse(Settings.ALIASES[e]);
+                            if (v in Settings.ALIASES) {
+                                e = _.parse(Settings.ALIASES[e]);
+                            }
                             //wrap it in a symbol if need be
-                            else if (e.type === Token.VARIABLE_OR_LITERAL) e = new NerdamerSymbol(v);
-                            else if (e.type === Token.UNIT) {
+                            else if (e.type === Token.VARIABLE_OR_LITERAL) {
+                                e = new NerdamerSymbol(v);
+                            } else if (e.type === Token.UNIT) {
                                 e = new NerdamerSymbol(v);
                                 e.isUnit = true;
                             }
@@ -6930,14 +7551,16 @@ var nerdamer = (function (imports) {
                                 e = VARS[v].clone();
                             }
                             //make notation of what it was before
-                            if (subbed) e.subbed = subbed;
+                            if (subbed) {
+                                e.subbed = subbed;
+                            }
 
                             Q.push(e);
                         }
                     }
                 }
 
-                var retval = Q[0];
+                const retval = Q[0];
 
                 if (['undefined', 'string', 'number'].indexOf(typeof retval) !== -1) {
                     throw new UnexpectedTokenError('Unexpected token!');
@@ -6945,16 +7568,18 @@ var nerdamer = (function (imports) {
 
                 return retval;
             } catch (error) {
-                if (error.message === 'timeout') throw error;
-                var rethrowErrors = [OutOfFunctionDomainError];
+                if (error.message === 'timeout') {
+                    throw error;
+                }
+                const rethrowErrors = [OutOfFunctionDomainError];
                 // Rethrow certain errors in the same class to preserve them
-                rethrowErrors.forEach(function (E) {
+                rethrowErrors.forEach(E => {
                     if (error instanceof E) {
-                        throw new E(error.message + ': ' + e.column);
+                        throw new E(`${error.message}: ${e.column}`);
                     }
                 });
 
-                throw new ParseError(error.message + ': ' + e.column);
+                throw new ParseError(`${error.message}: ${e.column}`);
             }
         };
         /**
@@ -6978,44 +7603,38 @@ var nerdamer = (function (imports) {
         }
 
         Node.prototype.toString = function () {
-            var left = this.left ? this.left.toString() + '---' : '';
-            var right = this.right ? '---' + this.right.toString() : '';
-            return left + '(' + this.value + ')' + right;
+            const left = this.left ? `${this.left.toString()}---` : '';
+            const right = this.right ? `---${this.right.toString()}` : '';
+            return `${left}(${this.value})${right}`;
         };
 
         Node.prototype.toHTML = function (depth, indent) {
             depth = depth || 0;
             indent = typeof indent === 'undefined' ? 4 : indent;
-            var tab = function (n) {
+            const tab = function (n) {
                 return ' '.repeat(indent * n);
             };
             var html = '';
-            var left = this.left
-                ? tab(depth + 1) + '<li>\n' + this.left.toHTML(depth + 2, indent) + tab(depth + 1) + '</li> \n'
+            const left = this.left
+                ? `${tab(depth + 1)}<li>\n${this.left.toHTML(depth + 2, indent)}${tab(depth + 1)}</li> \n`
                 : '';
-            var right = this.right
-                ? tab(depth + 1) + '<li>\n' + this.right.toHTML(depth + 2, indent) + tab(depth + 1) + '</li>\n'
+            const right = this.right
+                ? `${tab(depth + 1)}<li>\n${this.right.toHTML(depth + 2, indent)}${tab(depth + 1)}</li>\n`
                 : '';
-            var html =
-                tab(depth) +
-                '<div class="' +
-                this.type.toLowerCase() +
-                '"><span>' +
-                this.value +
-                '</span></div>' +
-                tab(depth) +
-                '\n';
+            var html = `${tab(depth)}<div class="${this.type.toLowerCase()}"><span>${this.value}</span></div>${tab(
+                depth
+            )}\n`;
             if (left || right) {
-                html += tab(depth) + '<ul>\n' + left + right + tab(depth) + '</ul>\n';
+                html += `${tab(depth)}<ul>\n${left}${right}${tab(depth)}</ul>\n`;
             }
             html += '';
             return html;
         };
 
         this.tree = function (tokens) {
-            var Q = [];
-            for (var i = 0; i < tokens.length; i++) {
-                var e = tokens[i];
+            const Q = [];
+            for (let i = 0; i < tokens.length; i++) {
+                let e = tokens[i];
                 //Arrays indicate a new scope so parse that out
                 if (Array.isArray(e)) {
                     e = this.tree(e);
@@ -7026,7 +7645,7 @@ var nerdamer = (function (imports) {
                 if (e.type === Token.OPERATOR) {
                     if (e.is_prefix || e.postfix) {
                         //prefixes go to the left, postfix to the right
-                        var location = e.is_prefix ? 'left' : 'right';
+                        const location = e.is_prefix ? 'left' : 'right';
                         var last = Q.pop();
                         e = new Node(e);
                         e[location] = last;
@@ -7039,7 +7658,7 @@ var nerdamer = (function (imports) {
                     }
                 } else if (e.type === Token.FUNCTION) {
                     e = new Node(e);
-                    var args = Q.pop();
+                    const args = Q.pop();
                     e.right = args;
                     if (e.value === 'object') {
                         //check if Q has a value
@@ -7065,8 +7684,8 @@ var nerdamer = (function (imports) {
             e = prepare_expression(e);
             substitutions = substitutions || {};
             //three passes but easier to debug
-            var tokens = this.tokenize(e);
-            var rpn = this.toRPN(tokens);
+            const tokens = this.tokenize(e);
+            const rpn = this.toRPN(tokens);
             return this.parseRPN(rpn, substitutions);
         };
         /**
@@ -7076,18 +7695,18 @@ var nerdamer = (function (imports) {
          * @returns {Array}
          */
         this.toObject = function (expression_string) {
-            var objectify = function (tokens) {
-                var output = [];
-                for (var i = 0, l = tokens.length; i < l; i++) {
-                    var token = tokens[i];
-                    var v = token.value;
+            const objectify = function (tokens) {
+                const output = [];
+                for (let i = 0, l = tokens.length; i < l; i++) {
+                    const token = tokens[i];
+                    const v = token.value;
                     if (token.type === Token.VARIABLE_OR_LITERAL) {
                         output.push(new NerdamerSymbol(v));
                     } else if (token.type === Token.FUNCTION) {
                         //jump ahead since the next object are the arguments
                         i++;
                         //create a symbolic function and stick it on output
-                        var f = _.symfunction(v, objectify(tokens[i]));
+                        const f = _.symfunction(v, objectify(tokens[i]));
                         f.isConversion = true;
                         output.push(f);
                     } else if (token.type === Token.OPERATOR) {
@@ -7103,7 +7722,7 @@ var nerdamer = (function (imports) {
         };
 
         // A helper method for toTeX
-        var chunkAtCommas = function (arr) {
+        const chunkAtCommas = function (arr) {
             var j,
                 k = 0,
                 chunks = [[]];
@@ -7119,23 +7738,25 @@ var nerdamer = (function (imports) {
         };
 
         // Helper method for toTeX
-        var rem_brackets = function (str) {
-            return str.replace(/^\\left\((.+)\\right\)$/g, function (str, a) {
-                if (a) return a;
+        const rem_brackets = function (str) {
+            return str.replace(/^\\left\((.+)\\right\)$/g, (str, a) => {
+                if (a) {
+                    return a;
+                }
                 return str;
             });
         };
 
-        var remove_redundant_powers = function (arr) {
+        const remove_redundant_powers = function (arr) {
             // The filtered array
-            var narr = [];
+            const narr = [];
 
             while (arr.length) {
                 // Remove the element from the front
-                var e = arr.shift();
-                var next = arr[0];
-                var next_is_array = isArray(next);
-                var next_is_minus = next === '-';
+                const e = arr.shift();
+                const next = arr[0];
+                const next_is_array = isArray(next);
+                const next_is_minus = next === '-';
 
                 // Remove redundant plusses
                 if (e === '^') {
@@ -7155,10 +7776,10 @@ var nerdamer = (function (imports) {
                 if (e === '^' && ((next_is_array && next[0] === '-') || next_is_minus)) {
                     // If so:
                     // - Remove it from the new array, place a one and a division sign in that array and put it back
-                    var last = narr.pop();
+                    const last = narr.pop();
                     // Check if it's something multiplied by
-                    var before = narr[narr.length - 1];
-                    var before_last = '1';
+                    const before = narr[narr.length - 1];
+                    let before_last = '1';
 
                     if (before === '*') {
                         narr.pop();
@@ -7199,9 +7820,9 @@ var nerdamer = (function (imports) {
         this.toTeX = function (expression_or_obj, opt) {
             opt = opt || {};
             // Add decimal option as per issue #579. Consider passing an object to Latex.latex as option instead of string
-            var decimals = opt.decimals === true ? 'decimals' : undefined;
+            const decimals = opt.decimals === true ? 'decimals' : undefined;
 
-            var obj = typeof expression_or_obj === 'string' ? this.toObject(expression_or_obj) : expression_or_obj,
+            let obj = typeof expression_or_obj === 'string' ? this.toObject(expression_or_obj) : expression_or_obj,
                 TeX = [],
                 cdot = typeof opt.cdot === 'undefined' ? '\\cdot' : opt.cdot; //set omit cdot to true by default
 
@@ -7209,7 +7830,7 @@ var nerdamer = (function (imports) {
             obj = remove_redundant_powers(obj);
 
             if (isArray(obj)) {
-                var nobj = [],
+                let nobj = [],
                     a,
                     b;
                 //first handle ^
@@ -7218,7 +7839,7 @@ var nerdamer = (function (imports) {
 
                     if (obj[i + 1] === '^') {
                         b = obj[i + 2];
-                        nobj.push(LaTeX.braces(this.toTeX([a])) + '^' + LaTeX.braces(this.toTeX([b])));
+                        nobj.push(`${LaTeX.braces(this.toTeX([a]))}^${LaTeX.braces(this.toTeX([b]))}`);
                         i += 2;
                     } else {
                         nobj.push(a);
@@ -7228,7 +7849,7 @@ var nerdamer = (function (imports) {
             }
 
             for (var i = 0, l = obj.length; i < l; i++) {
-                var e = obj[i];
+                let e = obj[i];
 
                 // Convert * to cdot
                 if (e === '*') {
@@ -7241,61 +7862,54 @@ var nerdamer = (function (imports) {
                             f;
 
                         if (fname === SQRT) {
-                            f = '\\sqrt' + LaTeX.braces(this.toTeX(e.args));
+                            f = `\\sqrt${LaTeX.braces(this.toTeX(e.args))}`;
                         } else if (fname === ABS) {
                             f = LaTeX.brackets(this.toTeX(e.args), 'abs');
                         } else if (fname === PARENTHESIS) {
                             f = LaTeX.brackets(this.toTeX(e.args), 'parens');
                         } else if (fname === Settings.LOG10) {
-                            f = '\\' + Settings.LOG10_LATEX + '\\left( ' + this.toTeX(e.args) + '\\right)';
+                            f = `\\${Settings.LOG10_LATEX}\\left( ${this.toTeX(e.args)}\\right)`;
                         } else if (fname === Settings.LOG2) {
-                            f = '\\' + Settings.LOG2_LATEX + '\\left( ' + this.toTeX(e.args) + '\\right)';
+                            f = `\\${Settings.LOG2_LATEX}\\left( ${this.toTeX(e.args)}\\right)`;
                         } else if (fname === Settings.LOG1P) {
-                            f = '\\' + format(Settings.LOG1P_LATEX, this.toTeX(e.args)) + '';
+                            f = `\\${format(Settings.LOG1P_LATEX, this.toTeX(e.args))}`;
                         } else if (fname === 'integrate') {
                             /* Retrive [Expression, x] */
                             var chunks = chunkAtCommas(e.args);
                             /* Build TeX */
                             var expr = LaTeX.braces(this.toTeX(chunks[0])),
                                 dx = this.toTeX(chunks[1]);
-                            f = '\\int ' + expr + '\\, d' + dx;
+                            f = `\\int ${expr}\\, d${dx}`;
                         } else if (fname === 'defint') {
                             var chunks = chunkAtCommas(e.args),
                                 expr = LaTeX.braces(this.toTeX(chunks[0])),
                                 dx = this.toTeX(chunks[3]),
                                 lb = this.toTeX(chunks[1]),
                                 ub = this.toTeX(chunks[2]);
-                            f = '\\int\\limits_{' + lb + '}^{' + ub + '} ' + expr + '\\, d' + dx;
+                            f = `\\int\\limits_{${lb}}^{${ub}} ${expr}\\, d${dx}`;
                         } else if (fname === 'diff') {
                             var chunks = chunkAtCommas(e.args);
                             var dx = '',
                                 expr = LaTeX.braces(this.toTeX(chunks[0]));
                             /* Handle cases: one argument provided, we need to guess the variable, and assume n = 1 */
                             if (chunks.length === 1) {
-                                var vars = [];
+                                const vars = [];
                                 for (j = 0; j < chunks[0].length; j++) {
                                     if (chunks[0][j].group === 3) {
                                         vars.push(chunks[0][j].value);
                                     }
                                 }
                                 vars.sort();
-                                dx = vars.length > 0 ? '\\frac{d}{d ' + vars[0] + '}' : '\\frac{d}{d x}';
+                                dx = vars.length > 0 ? `\\frac{d}{d ${vars[0]}}` : '\\frac{d}{d x}';
                             } else if (chunks.length === 2) {
                                 /* If two arguments, we have expression and variable, we assume n = 1 */
-                                dx = '\\frac{d}{d ' + chunks[1] + '}';
+                                dx = `\\frac{d}{d ${chunks[1]}}`;
                             } else {
                                 /* If we have more than 2 arguments, we assume we've got everything */
-                                dx =
-                                    '\\frac{d^{' +
-                                    chunks[2] +
-                                    '}}{d ' +
-                                    this.toTeX(chunks[1]) +
-                                    '^{' +
-                                    chunks[2] +
-                                    '}}';
+                                dx = `\\frac{d^{${chunks[2]}}}{d ${this.toTeX(chunks[1])}^{${chunks[2]}}}`;
                             }
 
-                            f = dx + '\\left(' + expr + '\\right)';
+                            f = `${dx}\\left(${expr}\\right)`;
                         } else if (fname === 'sum' || fname === 'product') {
                             // Split e.args into 4 parts based on locations of , symbols.
                             var argSplit = [[], [], [], []],
@@ -7311,14 +7925,16 @@ var nerdamer = (function (imports) {
                             // Then build TeX string.
                             f =
                                 (fname === 'sum' ? '\\sum_' : '\\prod_') +
-                                LaTeX.braces(this.toTeX(argSplit[1]) + ' = ' + this.toTeX(argSplit[2]));
-                            f += '^' + LaTeX.braces(this.toTeX(argSplit[3])) + LaTeX.braces(this.toTeX(argSplit[0]));
+                                LaTeX.braces(`${this.toTeX(argSplit[1])} = ${this.toTeX(argSplit[2])}`);
+                            f += `^${LaTeX.braces(this.toTeX(argSplit[3]))}${LaTeX.braces(this.toTeX(argSplit[0]))}`;
                         } else if (fname === 'limit') {
-                            var args = chunkAtCommas(e.args).map(function (x) {
-                                if (Array.isArray(x)) return _.toTeX(x.join(''));
+                            const args = chunkAtCommas(e.args).map(x => {
+                                if (Array.isArray(x)) {
+                                    return _.toTeX(x.join(''));
+                                }
                                 return _.toTeX(String(x));
                             });
-                            f = '\\lim_' + LaTeX.braces(args[1] + '\\to ' + args[2]) + ' ' + LaTeX.braces(args[0]);
+                            f = `\\lim_${LaTeX.braces(`${args[1]}\\to ${args[2]}`)} ${LaTeX.braces(args[0])}`;
                         } else if (fname === FACTORIAL || fname === DOUBLEFACTORIAL) {
                             f = this.toTeX(e.args) + (fname === FACTORIAL ? '!' : '!!');
                         } else {
@@ -7333,8 +7949,11 @@ var nerdamer = (function (imports) {
                 } else if (isArray(e)) {
                     TeX.push(LaTeX.brackets(this.toTeX(e)));
                 } else {
-                    if (e === '/') TeX.push(LaTeX.frac(rem_brackets(TeX.pop()), rem_brackets(this.toTeX([obj[++i]]))));
-                    else TeX.push(e);
+                    if (e === '/') {
+                        TeX.push(LaTeX.frac(rem_brackets(TeX.pop()), rem_brackets(this.toTeX([obj[++i]]))));
+                    } else {
+                        TeX.push(e);
+                    }
                 }
             }
 
@@ -7358,13 +7977,16 @@ var nerdamer = (function (imports) {
             if (symbol.isInfinity) {
                 return NerdamerSymbol.infinity();
             }
-            if (symbol.multiplier.lessThan(0)) symbol.multiplier.negate();
+            if (symbol.multiplier.lessThan(0)) {
+                symbol.multiplier.negate();
+            }
 
             if (symbol.isImaginary()) {
-                var re = symbol.realpart();
-                var im = symbol.imagpart();
-                if (re.isConstant() && im.isConstant())
+                const re = symbol.realpart();
+                const im = symbol.imagpart();
+                if (re.isConstant() && im.isConstant()) {
                     return sqrt(_.add(_.pow(re, new NerdamerSymbol(2)), _.pow(im, new NerdamerSymbol(2))));
+                }
             } else if (isNumericSymbol(symbol) || even(symbol.power)) {
                 return symbol;
             }
@@ -7378,11 +8000,11 @@ var nerdamer = (function (imports) {
             }
 
             if (symbol.isComposite()) {
-                var ms = [];
-                symbol.each(function (x) {
+                const ms = [];
+                symbol.each(x => {
                     ms.push(x.multiplier);
                 });
-                var gcd = Math2.QGCD.apply(null, ms);
+                const gcd = Math2.QGCD.apply(null, ms);
                 if (gcd.lessThan(0)) {
                     symbol.multiplier = symbol.multiplier.multiply(new Frac(-1));
                     symbol.distributeMultiplier();
@@ -7390,7 +8012,7 @@ var nerdamer = (function (imports) {
             }
 
             //convert |n*x| to n*|x|
-            var m = _.parse(symbol.multiplier);
+            const m = _.parse(symbol.multiplier);
             symbol.toUnitMultiplier();
 
             return _.multiply(m, _.symfunction(ABS, [symbol]));
@@ -7402,18 +8024,18 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         function factorial(symbol) {
-            var retval;
+            let retval;
             if (isVector(symbol)) {
-                var V = new Vector();
-                symbol.each(function (x, i) {
+                const V = new Vector();
+                symbol.each((x, i) => {
                     //i start at one.
                     V.set(i - 1, factorial(x));
                 });
                 return V;
             }
             if (isMatrix(symbol)) {
-                var M = new Matrix();
-                symbol.each(function (x, i, j) {
+                const M = new Matrix();
+                symbol.each((x, i, j) => {
                     //i start at one.
                     M.set(i, j, factorial(x));
                 });
@@ -7429,10 +8051,10 @@ var nerdamer = (function (imports) {
                 retval = bigConvert(retval);
                 return retval;
             } else if (symbol.isConstant()) {
-                var den = symbol.getDenom();
+                const den = symbol.getDenom();
                 if (den.equals(2)) {
-                    var num = symbol.getNum();
-                    var a, b, c, n;
+                    const num = symbol.getNum();
+                    let a, b, c, n;
 
                     if (!symbol.multiplier.isNegative()) {
                         n = _.add(num, new NerdamerSymbol(1)).multiplier.divide(new Frac(2));
@@ -7461,15 +8083,11 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         function continued_fraction(symbol, n) {
-            var _symbol = evaluate(symbol);
+            const _symbol = evaluate(symbol);
             if (_symbol.isConstant()) {
-                var cf = Math2.continuedFraction(_symbol, n);
+                const cf = Math2.continuedFraction(_symbol, n);
                 //convert the fractions array to a new Vector
-                var fractions = Vector.fromArray(
-                    cf.fractions.map(function (x) {
-                        return new NerdamerSymbol(x);
-                    })
-                );
+                const fractions = Vector.fromArray(cf.fractions.map(x => new NerdamerSymbol(x)));
                 return Vector.fromArray([new NerdamerSymbol(cf.sign), new NerdamerSymbol(cf.whole), fractions]);
             }
             return _.symfunction('continued_fraction', arguments);
@@ -7481,7 +8099,7 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         function erf(symbol) {
-            var _symbol = evaluate(symbol);
+            const _symbol = evaluate(symbol);
 
             if (_symbol.isConstant()) {
                 return Math2.erf(_symbol);
@@ -7499,13 +8117,15 @@ var nerdamer = (function (imports) {
          */
         function mod(symbol1, symbol2) {
             if (symbol1.isConstant() && symbol2.isConstant()) {
-                var retval = new NerdamerSymbol(1);
+                const retval = new NerdamerSymbol(1);
                 retval.multiplier = retval.multiplier.multiply(symbol1.multiplier.mod(symbol2.multiplier));
                 return retval;
             }
             //try to see if division has remainder of zero
-            var r = _.divide(symbol1.clone(), symbol2.clone());
-            if (isInt(r)) return new NerdamerSymbol(0);
+            const r = _.divide(symbol1.clone(), symbol2.clone());
+            if (isInt(r)) {
+                return new NerdamerSymbol(0);
+            }
             return _.symfunction('mod', [symbol1, symbol2]);
         }
         /**
@@ -7517,8 +8137,14 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         function IF(condition, a, b) {
-            if (typeof condition !== 'boolean') if (isNumericSymbol(condition)) condition = !!Number(condition);
-            if (condition) return a;
+            if (typeof condition !== 'boolean') {
+                if (isNumericSymbol(condition)) {
+                    condition = !!Number(condition);
+                }
+            }
+            if (condition) {
+                return a;
+            }
             return b;
         }
         /**
@@ -7529,14 +8155,18 @@ var nerdamer = (function (imports) {
         function is_in(obj, item) {
             if (isMatrix(obj)) {
                 for (var i = 0, l = obj.rows(); i < l; i++) {
-                    for (var j = 0, l2 = obj.cols(); j < l2; j++) {
-                        var element = obj.elements[i][j];
-                        if (element.equals(item)) return new NerdamerSymbol(1);
+                    for (let j = 0, l2 = obj.cols(); j < l2; j++) {
+                        const element = obj.elements[i][j];
+                        if (element.equals(item)) {
+                            return new NerdamerSymbol(1);
+                        }
                     }
                 }
             } else if (obj.elements) {
                 for (var i = 0, l = obj.elements.length; i < l; i++) {
-                    if (obj.elements[i].equals(item)) return new NerdamerSymbol(1);
+                    if (obj.elements[i].equals(item)) {
+                        return new NerdamerSymbol(1);
+                    }
                 }
             }
 
@@ -7593,7 +8223,7 @@ var nerdamer = (function (imports) {
         }
 
         function nroots(symbol) {
-            var a, b;
+            let a, b;
             if (symbol.group === FN && symbol.fname === '') {
                 a = NerdamerSymbol.unwrapPARENS(_.parse(symbol).toLinear());
                 b = _.parse(symbol.power);
@@ -7604,30 +8234,29 @@ var nerdamer = (function (imports) {
 
             if (a && b && a.group === N && b.group === N) {
                 var _roots = [];
-                var parts = NerdamerSymbol.toPolarFormArray(symbol);
-                var r = _.parse(a).abs().toString();
+                const parts = NerdamerSymbol.toPolarFormArray(symbol);
+                const r = _.parse(a).abs().toString();
                 //https://en.wikipedia.org/wiki/De_Moivre%27s_formula
                 var x = arg(a).toString();
-                var n = b.multiplier.den.toString();
-                var p = b.multiplier.num.toString();
+                const n = b.multiplier.den.toString();
+                const p = b.multiplier.num.toString();
 
-                var formula = '(({0})^({1})*(cos({3})+({2})*sin({3})))^({4})';
-                for (var i = 0; i < n; i++) {
-                    var t = evaluate(_.parse(format('(({0})+2*pi*({1}))/({2})', x, i, n))).multiplier.toDecimal();
+                const formula = '(({0})^({1})*(cos({3})+({2})*sin({3})))^({4})';
+                for (let i = 0; i < n; i++) {
+                    const t = evaluate(_.parse(format('(({0})+2*pi*({1}))/({2})', x, i, n))).multiplier.toDecimal();
                     _roots.push(evaluate(_.parse(format(formula, r, n, Settings.IMAGINARY, t, p))));
                 }
                 return Vector.fromArray(_roots);
             } else if (symbol.isConstant(true)) {
-                var sign = symbol.sign();
+                const sign = symbol.sign();
                 var x = evaluate(symbol.abs());
-                var root = _.sqrt(x);
+                const root = _.sqrt(x);
 
                 var _roots = [root.clone(), root.negate()];
 
-                if (sign < 0)
-                    _roots = _roots.map(function (x) {
-                        return _.multiply(x, NerdamerSymbol.imaginary());
-                    });
+                if (sign < 0) {
+                    _roots = _roots.map(x => _.multiply(x, NerdamerSymbol.imaginary()));
+                }
             } else {
                 _roots = [_.parse(symbol)];
             }
@@ -7643,9 +8272,9 @@ var nerdamer = (function (imports) {
          */
         function rationalize(symbol) {
             if (symbol.isComposite()) {
-                var retval = new NerdamerSymbol(0);
-                var num, den, retnum, retden, a, b, n, d;
-                symbol.each(function (x) {
+                let retval = new NerdamerSymbol(0);
+                let num, den, retnum, retden, a, b, n, d;
+                symbol.each(x => {
                     num = x.getNum();
                     den = x.getDenom();
                     retnum = retval.getNum();
@@ -7680,9 +8309,11 @@ var nerdamer = (function (imports) {
                 return _.symfunction(SQRT, [symbol]);
             }
 
-            if (symbol.fname === '' && symbol.power.equals(1)) symbol = symbol.args[0];
+            if (symbol.fname === '' && symbol.power.equals(1)) {
+                symbol = symbol.args[0];
+            }
 
-            var is_negative = symbol.multiplier.sign() < 0;
+            const is_negative = symbol.multiplier.sign() < 0;
 
             if (Settings.PARSE2NUMBER) {
                 if (symbol.isConstant() && !is_negative) {
@@ -7694,7 +8325,7 @@ var nerdamer = (function (imports) {
                 }
             }
 
-            var img,
+            let img,
                 retval,
                 isConstant = symbol.isConstant();
 
@@ -7710,11 +8341,13 @@ var nerdamer = (function (imports) {
             //if the symbol is already sqrt then it's that symbol^(1/4) and we can unwrap it
             else if (symbol.fname === SQRT) {
                 var s = symbol.args[0];
-                var ms = symbol.multiplier;
+                const ms = symbol.multiplier;
                 s.setPower(symbol.power.multiply(new Frac(0.25)));
                 retval = s;
                 //grab the multiplier
-                if (!ms.equals(1)) retval = _.multiply(sqrt(_.parse(ms)), retval);
+                if (!ms.equals(1)) {
+                    retval = _.multiply(sqrt(_.parse(ms)), retval);
+                }
             }
             //if the symbol is a fraction then we don't keep can unwrap it. For instance
             //no need to keep sqrt(x^(1/3))
@@ -7722,14 +8355,14 @@ var nerdamer = (function (imports) {
                 symbol.setPower(symbol.power.multiply(new Frac(0.5)));
                 retval = symbol;
             } else if (symbol.multiplier < 0 && symbol.group === S) {
-                var a = _.parse(symbol.multiplier).negate();
-                var b = _.parse(symbol).toUnitMultiplier().negate();
+                const a = _.parse(symbol.multiplier).negate();
+                const b = _.parse(symbol).toUnitMultiplier().negate();
                 retval = _.multiply(_.symfunction(Settings.SQRT, [b]), sqrt(a));
             } else {
                 //Related to issue #401. Since sqrt(a)*sqrt(b^-1) relates in issues, we'll change the form
                 //to sqrt(a)*sqrt(b)^1 for better simplification
                 //the sign of the power
-                var sign = symbol.power.sign();
+                const sign = symbol.power.sign();
                 //remove the sign
                 symbol.power = symbol.power.abs();
 
@@ -7740,7 +8373,7 @@ var nerdamer = (function (imports) {
                     symbol.multiplier = symbol.multiplier.abs();
                 }
 
-                var q = symbol.multiplier.toDecimal(),
+                let q = symbol.multiplier.toDecimal(),
                     qa = Math.abs(q),
                     t = Math.sqrt(qa);
 
@@ -7749,14 +8382,14 @@ var nerdamer = (function (imports) {
                 if (isInt(t)) {
                     m = new NerdamerSymbol(t);
                 } else if (isInt(q)) {
-                    var factors = Math2.ifactor(q);
-                    var tw = 1;
+                    const factors = Math2.ifactor(q);
+                    let tw = 1;
                     for (var x in factors) {
                         var n = factors[x],
                             nn = n - (n % 2); //get out the whole numbers
                         if (nn) {
                             //if there is a whole number ...
-                            var w = Math.pow(x, nn);
+                            const w = Math.pow(x, nn);
                             tw *= Math.pow(x, nn / 2); //add to total wholes
                             q /= w; //reduce the number by the wholes
                         }
@@ -7764,19 +8397,19 @@ var nerdamer = (function (imports) {
                     m = _.multiply(_.symfunction(SQRT, [new NerdamerSymbol(q)]), new NerdamerSymbol(tw));
                 } else {
                     //reduce the numerator and denominator using prime factorization
-                    var c = [new NerdamerSymbol(symbol.multiplier.num), new NerdamerSymbol(symbol.multiplier.den)];
-                    var r = [new NerdamerSymbol(1), new NerdamerSymbol(1)];
-                    var sq = [new NerdamerSymbol(1), new NerdamerSymbol(1)];
+                    const c = [new NerdamerSymbol(symbol.multiplier.num), new NerdamerSymbol(symbol.multiplier.den)];
+                    const r = [new NerdamerSymbol(1), new NerdamerSymbol(1)];
+                    const sq = [new NerdamerSymbol(1), new NerdamerSymbol(1)];
                     for (var i = 0; i < 2; i++) {
                         var n = c[i];
                         //get the prime factors and loop through each.
-                        pfactor(n).each(function (x) {
+                        pfactor(n).each(x => {
                             x = NerdamerSymbol.unwrapPARENS(x);
-                            var b = x.clone().toLinear();
-                            var p = Number(x.power);
+                            const b = x.clone().toLinear();
+                            const p = Number(x.power);
                             //We'll consider it safe to use the native Number since 2^1000 is already a pretty huge number
-                            var rem = p % 2; //get the remainder. This will be 1 if 3 since sqrt(n^2) = n where n is positive
-                            var w = (p - rem) / 2; //get the whole numbers of n/2
+                            const rem = p % 2; //get the remainder. This will be 1 if 3 since sqrt(n^2) = n where n is positive
+                            const w = (p - rem) / 2; //get the whole numbers of n/2
                             r[i] = _.multiply(r[i], _.pow(b, new NerdamerSymbol(w)));
                             sq[i] = _.multiply(sq[i], sqrt(_.pow(b, new NerdamerSymbol(rem))));
                         });
@@ -7797,11 +8430,17 @@ var nerdamer = (function (imports) {
                 }
 
                 //put back the sign that was removed earlier
-                if (sign < 0) retval.power.negate();
+                if (sign < 0) {
+                    retval.power.negate();
+                }
 
-                if (m) retval = _.multiply(m, retval);
+                if (m) {
+                    retval = _.multiply(m, retval);
+                }
 
-                if (img) retval = _.multiply(img, retval);
+                if (img) {
+                    retval = _.multiply(img, retval);
+                }
             }
 
             if (is_negative && Settings.PARSE2NUMBER && retval.text() !== original.text()) {
@@ -7819,13 +8458,13 @@ var nerdamer = (function (imports) {
          */
         function cbrt(symbol) {
             if (!symbol.isConstant(true)) {
-                var retval;
+                let retval;
 
-                var n = symbol.power / 3;
+                const n = symbol.power / 3;
                 //take the cube root of the multplier
-                var m = _.pow(_.parse(symbol.multiplier), new NerdamerSymbol(1 / 3));
+                const m = _.pow(_.parse(symbol.multiplier), new NerdamerSymbol(1 / 3));
                 //strip the multiplier
-                var sym = symbol.toUnitMultiplier();
+                const sym = symbol.toUnitMultiplier();
 
                 //simplify the power
                 if (isInt(n)) {
@@ -7833,7 +8472,7 @@ var nerdamer = (function (imports) {
                 } else {
                     if (sym.group === CB) {
                         retval = new NerdamerSymbol(1);
-                        sym.each(function (x) {
+                        sym.each(x => {
                             retval = _.multiply(retval, cbrt(x));
                         });
                     } else {
@@ -7870,7 +8509,9 @@ var nerdamer = (function (imports) {
             }
 
             //Stop computation if it negative and even since we have an imaginary result
-            if (num < 0 && even(p)) throw new Error('Cannot calculate nthroot of negative number for even powers');
+            if (num < 0 && even(p)) {
+                throw new Error('Cannot calculate nthroot of negative number for even powers');
+            }
 
             //return non numeric values unevaluated
             if (!num.isConstant(true)) {
@@ -7883,13 +8524,15 @@ var nerdamer = (function (imports) {
             }
 
             //default is to return a big value
-            if (typeof asbig === 'undefined') asbig = true;
+            if (typeof asbig === 'undefined') {
+                asbig = true;
+            }
 
             prec = prec || 25;
 
-            var sign = num.sign();
+            const sign = num.sign();
             var retval;
-            var ans;
+            let ans;
 
             if (sign < 0) {
                 num = abs(num); //remove the sign
@@ -7916,30 +8559,36 @@ var nerdamer = (function (imports) {
         function pfactor(symbol) {
             //Fix issue #458 | nerdamer("sqrt(1-(3.3333333550520926e-7)^2)").evaluate().text()
             //More Big Number issues >:(
-            if (symbol.greaterThan(9.999999999998891e41) || symbol.equals(-1)) return symbol;
+            if (symbol.greaterThan(9.999999999998891e41) || symbol.equals(-1)) {
+                return symbol;
+            }
             //Fix issue #298
-            if (symbol.equals(Math.PI)) return new NerdamerSymbol(Math.PI);
+            if (symbol.equals(Math.PI)) {
+                return new NerdamerSymbol(Math.PI);
+            }
             //evaluate the symbol to merge constants
             symbol = evaluate(symbol.clone());
 
             if (symbol.isConstant()) {
                 var retval = new NerdamerSymbol(1);
-                var m = symbol.toString();
+                const m = symbol.toString();
                 if (isInt(m)) {
-                    var factors = Math2.ifactor(m);
-                    for (var factor in factors) {
-                        var p = factors[factor];
+                    const factors = Math2.ifactor(m);
+                    for (const factor in factors) {
+                        const p = factors[factor];
                         retval = _.multiply(
                             retval,
                             _.symfunction('parens', [new NerdamerSymbol(factor).setPower(new Frac(p))])
                         );
                     }
                 } else {
-                    var n = pfactor(new NerdamerSymbol(symbol.multiplier.num));
-                    var d = pfactor(new NerdamerSymbol(symbol.multiplier.den));
+                    const n = pfactor(new NerdamerSymbol(symbol.multiplier.num));
+                    const d = pfactor(new NerdamerSymbol(symbol.multiplier.den));
                     retval = _.multiply(_.symfunction('parens', [n]), _.symfunction('parens', [d]).invert());
                 }
-            } else retval = _.symfunction('pfactor', arguments);
+            } else {
+                retval = _.symfunction('pfactor', arguments);
+            }
             return retval;
         }
 
@@ -7970,8 +8619,8 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         function conjugate(symbol) {
-            var re = symbol.realpart();
-            var im = symbol.imagpart();
+            const re = symbol.realpart();
+            const im = symbol.imagpart();
             return _.add(re, _.multiply(im.negate(), NerdamerSymbol.imaginary()));
         }
 
@@ -7982,9 +8631,11 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         function arg(symbol) {
-            var re = symbol.realpart();
-            var im = symbol.imagpart();
-            if (re.isConstant() && im.isConstant()) return new NerdamerSymbol(Math.atan2(im, re));
+            const re = symbol.realpart();
+            const im = symbol.imagpart();
+            if (re.isConstant() && im.isConstant()) {
+                return new NerdamerSymbol(Math.atan2(im, re));
+            }
             return _.symfunction('atan2', [im, re]);
         }
 
@@ -7995,8 +8646,8 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         function arg(symbol) {
-            var re = symbol.realpart();
-            var im = symbol.imagpart();
+            const re = symbol.realpart();
+            const im = symbol.imagpart();
             if (re.isConstant() && im.isConstant()) {
                 // right angles
                 if (im.equals(0) && re.equals(1)) {
@@ -8034,7 +8685,7 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         function polarform(symbol) {
-            var p, r, e, theta;
+            let p, r, e, theta;
             p = NerdamerSymbol.toPolarFormArray(symbol);
             theta = p[1];
             r = p[0];
@@ -8050,9 +8701,9 @@ var nerdamer = (function (imports) {
          */
         function rectform(symbol) {
             //TODO: e^((i*pi)/4)
-            var original = symbol.clone();
+            const original = symbol.clone();
             try {
-                var f, p, q, s, h, d, n;
+                let f, p, q, s, h, d, n;
                 f = decompose_fn(symbol, 'e', true);
                 p = _.divide(f.x.power, NerdamerSymbol.imaginary());
                 q = evaluate(trig.tan(p));
@@ -8067,19 +8718,23 @@ var nerdamer = (function (imports) {
                     return original;
                 }
             } catch (e) {
-                if (e.message === 'timeout') throw e;
+                if (e.message === 'timeout') {
+                    throw e;
+                }
                 return original;
             }
         }
 
         function symMinMax(f, args) {
-            args.map(function (x) {
+            args.map(x => {
                 x.numVal = evaluate(x).multiplier;
             });
-            var l, a, b, a_val, b_val;
+            let l, a, b, a_val, b_val;
             while (true) {
                 l = args.length;
-                if (l < 2) return args[0];
+                if (l < 2) {
+                    return args[0];
+                }
                 a = args.pop();
                 b = args[l - 2];
                 if (f === 'min' ? a.numVal < b.numVal : a.numVal > b.numVal) {
@@ -8095,10 +8750,16 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         function max() {
-            var args = [].slice.call(arguments);
-            if (allSame(args)) return args[0];
-            if (allNumbers(args)) return new NerdamerSymbol(Math.max.apply(null, args));
-            if (Settings.SYMBOLIC_MIN_MAX && allConstants(args)) return symMinMax('max', args);
+            const args = [].slice.call(arguments);
+            if (allSame(args)) {
+                return args[0];
+            }
+            if (allNumbers(args)) {
+                return new NerdamerSymbol(Math.max.apply(null, args));
+            }
+            if (Settings.SYMBOLIC_MIN_MAX && allConstants(args)) {
+                return symMinMax('max', args);
+            }
             return _.symfunction('max', args);
         }
 
@@ -8108,10 +8769,16 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         function min() {
-            var args = [].slice.call(arguments);
-            if (allSame(args)) return args[0];
-            if (allNumbers(args)) return new NerdamerSymbol(Math.min.apply(null, args));
-            if (Settings.SYMBOLIC_MIN_MAX && allConstants(args)) return symMinMax('min', args);
+            const args = [].slice.call(arguments);
+            if (allSame(args)) {
+                return args[0];
+            }
+            if (allNumbers(args)) {
+                return new NerdamerSymbol(Math.min.apply(null, args));
+            }
+            if (Settings.SYMBOLIC_MIN_MAX && allConstants(args)) {
+                return symMinMax('min', args);
+            }
             return _.symfunction('min', args);
         }
 
@@ -8122,28 +8789,38 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         function sign(x) {
-            if (x.isConstant(true)) return new NerdamerSymbol(Math.sign(evaluate(x)));
+            if (x.isConstant(true)) {
+                return new NerdamerSymbol(Math.sign(evaluate(x)));
+            }
             return _.symfunction('sign', arguments);
         }
 
         function sort(symbol, opt) {
             opt = opt ? opt.toString() : 'asc';
-            var getval = function (e) {
-                if (e.group === N) return e.multiplier;
+            const getval = function (e) {
+                if (e.group === N) {
+                    return e.multiplier;
+                }
                 if (e.group === FN) {
-                    if (e.fname === '') return getval(e.args[0]);
+                    if (e.fname === '') {
+                        return getval(e.args[0]);
+                    }
                     return e.fname;
                 }
-                if (e.group === S) return e.power;
+                if (e.group === S) {
+                    return e.power;
+                }
 
                 return e.value;
             };
-            var symbols = isVector(symbol) ? symbol.elements : symbol.collectSymbols();
+            const symbols = isVector(symbol) ? symbol.elements : symbol.collectSymbols();
             return new Vector(
-                symbols.sort(function (a, b) {
-                    var aval = getval(a),
+                symbols.sort((a, b) => {
+                    const aval = getval(a),
                         bval = getval(b);
-                    if (opt === 'desc') return bval - aval;
+                    if (opt === 'desc') {
+                        return bval - aval;
+                    }
                     return aval - bval;
                 })
             );
@@ -8161,7 +8838,7 @@ var nerdamer = (function (imports) {
                 return new NerdamerSymbol(0);
             }
 
-            var retval;
+            let retval;
 
             if (symbol.fname === SQRT && symbol.multiplier.equals(1)) {
                 retval = _.divide(log(symbol.args[0]), new NerdamerSymbol(2));
@@ -8176,7 +8853,7 @@ var nerdamer = (function (imports) {
 
             //log(0) is undefined so complain
             if (symbol.equals(0)) {
-                throw new UndefinedError(Settings.LOG + '(0) is undefined!');
+                throw new UndefinedError(`${Settings.LOG}(0) is undefined!`);
             }
 
             //deal with imaginary values
@@ -8185,8 +8862,8 @@ var nerdamer = (function (imports) {
             }
 
             if (symbol.isConstant() && typeof base !== 'undefined' && base.isConstant()) {
-                var log_sym = Math.log(symbol);
-                var log_base = Math.log(base);
+                const log_sym = Math.log(symbol);
+                const log_base = Math.log(base);
                 retval = new NerdamerSymbol(log_sym / log_base);
             } else if (
                 (symbol.group === EX && symbol.power.multiplier.lessThan(0)) ||
@@ -8196,17 +8873,20 @@ var nerdamer = (function (imports) {
                 //move the negative outside but keep the positive inside :)
                 retval = log(symbol).negate();
             } else if (symbol.value === 'e' && symbol.multiplier.equals(1)) {
-                var p = symbol.power;
+                const p = symbol.power;
                 retval = isSymbol(p) ? p : new NerdamerSymbol(p);
             } else if (symbol.group === FN && symbol.fname === 'exp') {
                 var s = symbol.args[0];
-                if (symbol.multiplier.equals(1)) retval = _.multiply(s, new NerdamerSymbol(symbol.power));
-                else retval = _.symfunction(Settings.LOG, [symbol]);
+                if (symbol.multiplier.equals(1)) {
+                    retval = _.multiply(s, new NerdamerSymbol(symbol.power));
+                } else {
+                    retval = _.symfunction(Settings.LOG, [symbol]);
+                }
             } else if (Settings.PARSE2NUMBER && isNumericSymbol(symbol)) {
                 // Parse for safety.
                 symbol = _.parse(symbol);
 
-                var img_part;
+                let img_part;
                 if (symbol.multiplier.lessThan(0)) {
                     symbol.negate();
                     img_part = _.multiply(new NerdamerSymbol(Math.PI), new NerdamerSymbol('i'));
@@ -8247,9 +8927,9 @@ var nerdamer = (function (imports) {
          * @returns {undefined}
          */
         function round(x, s) {
-            var sIsConstant = (s && s.isConstant()) || typeof s === 'undefined';
+            const sIsConstant = (s && s.isConstant()) || typeof s === 'undefined';
             if (x.isConstant() && sIsConstant) {
-                var v, e, exp, retval;
+                let v, e, exp, retval;
                 v = x;
                 //round the coefficient of then number but not the actual decimal value
                 //we know this because a negative number was passed
@@ -8278,15 +8958,22 @@ var nerdamer = (function (imports) {
          * @returns {number}
          */
         function getQuadrant(m) {
-            var v = m % 2,
+            let v = m % 2,
                 quadrant;
 
-            if (v < 0) v = 2 + v; //put it in terms of pi
+            if (v < 0) {
+                v = 2 + v;
+            } //put it in terms of pi
 
-            if (v >= 0 && v <= 0.5) quadrant = 1;
-            else if (v > 0.5 && v <= 1) quadrant = 2;
-            else if (v > 1 && v <= 1.5) quadrant = 3;
-            else quadrant = 4;
+            if (v >= 0 && v <= 0.5) {
+                quadrant = 1;
+            } else if (v > 0.5 && v <= 1) {
+                quadrant = 2;
+            } else if (v > 1 && v <= 1.5) {
+                quadrant = 3;
+            } else {
+                quadrant = 4;
+            }
             return quadrant;
         }
 
@@ -8297,22 +8984,26 @@ var nerdamer = (function (imports) {
          */
         function bigConvert(n) {
             if (!isFinite(n)) {
-                var sign = Math.sign(n);
-                var r = new NerdamerSymbol(String(Math.abs(n)));
+                const sign = Math.sign(n);
+                const r = new NerdamerSymbol(String(Math.abs(n)));
                 r.multiplier = r.multiplier.multiply(new Frac(sign));
                 return r;
             }
-            if (isSymbol(n)) return n;
+            if (isSymbol(n)) {
+                return n;
+            }
             if (typeof n === 'number') {
                 try {
                     n = Frac.simple(n);
                 } catch (e) {
-                    if (e.message === 'timeout') throw e;
+                    if (e.message === 'timeout') {
+                        throw e;
+                    }
                     n = new Frac(n);
                 }
             }
 
-            var symbol = new NerdamerSymbol(0);
+            const symbol = new NerdamerSymbol(0);
             symbol.multiplier = n;
             return symbol;
         }
@@ -8320,16 +9011,16 @@ var nerdamer = (function (imports) {
             // handle functions with numeric values
             // handle denominator within denominator
             // handle trig simplifications
-            var g = symbol.group,
+            let g = symbol.group,
                 retval;
             //Now let's get to work
             if (g === CP) {
-                var num = symbol.getNum(),
+                let num = symbol.getNum(),
                     den = symbol.getDenom() || new NerdamerSymbol(1),
                     p = Number(symbol.power),
                     factor = new NerdamerSymbol(1);
                 if (Math.abs(p) === 1) {
-                    den.each(function (x) {
+                    den.each(x => {
                         if (x.group === CB) {
                             factor = _.multiply(factor, clean(x.getDenom()));
                         } else if (x.power.lessThan(0)) {
@@ -8337,40 +9028,39 @@ var nerdamer = (function (imports) {
                         }
                     });
 
-                    var new_den = new NerdamerSymbol(0);
+                    let new_den = new NerdamerSymbol(0);
                     //now divide out the factor and add to new den
-                    den.each(function (x) {
+                    den.each(x => {
                         new_den = _.add(_.divide(x, factor.clone()), new_den);
                     });
 
                     factor.invert(); //invert so it can be added to the top
-                    var new_num;
+                    let new_num;
                     if (num.isComposite()) {
                         new_num = new NerdamerSymbol(0);
-                        num.each(function (x) {
+                        num.each(x => {
                             new_num = _.add(_.multiply(clean(x), factor.clone()), new_num);
                         });
-                    } else new_num = _.multiply(factor, num);
+                    } else {
+                        new_num = _.multiply(factor, num);
+                    }
 
                     retval = _.divide(new_num, new_den);
                 }
             } else if (g === CB) {
                 retval = new NerdamerSymbol(1);
-                symbol.each(function (x) {
+                symbol.each(x => {
                     retval = _.multiply(retval, _.clean(x));
                 });
             } else if (g === FN) {
-                if (symbol.args.length === 1 && symbol.args[0].isConstant())
-                    retval = block(
-                        'PARSE2NUMBER',
-                        function () {
-                            return _.parse(symbol);
-                        },
-                        true
-                    );
+                if (symbol.args.length === 1 && symbol.args[0].isConstant()) {
+                    retval = block('PARSE2NUMBER', () => _.parse(symbol), true);
+                }
             }
 
-            if (!retval) retval = symbol;
+            if (!retval) {
+                retval = symbol;
+            }
 
             return retval;
         }
@@ -8396,9 +9086,7 @@ var nerdamer = (function (imports) {
         // Old expand
         function expand(symbol, opt) {
             if (Array.isArray(symbol)) {
-                return symbol.map(function (x) {
-                    return expand(x, opt);
-                });
+                return symbol.map(x => expand(x, opt));
             }
             if (symbol.expand) {
                 return symbol.expand(opt);
@@ -8407,7 +9095,7 @@ var nerdamer = (function (imports) {
             //deal with parenthesis
             if (symbol.group === FN && symbol.fname === '') {
                 var f = expand(symbol.args[0], opt);
-                var x = expand(_.pow(f, _.parse(symbol.power)), opt);
+                const x = expand(_.pow(f, _.parse(symbol.power)), opt);
                 return _.multiply(_.parse(symbol.multiplier), x).distributeMultiplier();
             }
             // We cannot expand these groups so no need to waste time. Just return and be done.
@@ -8415,36 +9103,36 @@ var nerdamer = (function (imports) {
                 return symbol; //nothing to do
             }
 
-            var original = symbol.clone();
+            const original = symbol.clone();
 
             // Set up a try-catch block. If anything goes wrong then we simply return the original symbol
             try {
                 // Store the power and multiplier
-                var m = symbol.multiplier.toString();
-                var p = Number(symbol.power);
-                var retval = symbol;
+                const m = symbol.multiplier.toString();
+                const p = Number(symbol.power);
+                let retval = symbol;
 
                 // Handle (a+b)^2 | (x+x^2)^2
                 if (symbol.isComposite() && isInt(symbol.power) && symbol.power > 0) {
-                    var n = p - 1;
+                    const n = p - 1;
                     // Strip the expression of it's multiplier and power. We'll call it f. The power will be p and the multiplier m.
                     var f = new NerdamerSymbol(0);
 
-                    symbol.each(function (x) {
+                    symbol.each(x => {
                         f = _.add(f, expand(_.parse(x), opt));
                     });
 
-                    var expanded = _.parse(f);
+                    let expanded = _.parse(f);
 
-                    for (var i = 0; i < n; i++) {
+                    for (let i = 0; i < n; i++) {
                         expanded = mix(expanded, f, opt);
                     }
 
                     retval = _.multiply(_.parse(m), expanded).distributeMultiplier();
                 } else if (symbol.group === FN && opt.expand_functions === true) {
-                    var args = [];
+                    const args = [];
                     // Expand function the arguments
-                    symbol.args.forEach(function (x) {
+                    symbol.args.forEach(x => {
                         args.push(expand(x, opt));
                     });
                     // Put back the power and multiplier
@@ -8461,7 +9149,7 @@ var nerdamer = (function (imports) {
                     retval = expand(symbol, opt);
                     retval.invert();
                 } else if (symbol.group === CB) {
-                    var rank = function (s) {
+                    const rank = function (s) {
                         switch (s.group) {
                             case CP:
                                 return 0;
@@ -8477,15 +9165,13 @@ var nerdamer = (function (imports) {
                     };
                     // Consider (a+b)(c+d). The result will be (a*c+a*d)+(b*c+b*d).
                     // We start by moving collecting the symbols. We want others>FN>CB>PL>CP
-                    var symbols = symbol
+                    const symbols = symbol
                         .collectSymbols()
-                        .sort(function (a, b) {
-                            return rank(b) - rank(a);
-                        })
+                        .sort((a, b) => rank(b) - rank(a))
                         // Distribute the power to each symbol and expand
-                        .map(function (s) {
-                            var x = _.pow(s, _.parse(p));
-                            var e = expand(x, opt);
+                        .map(s => {
+                            const x = _.pow(s, _.parse(p));
+                            const e = expand(x, opt);
                             return e;
                         });
 
@@ -8493,7 +9179,7 @@ var nerdamer = (function (imports) {
 
                     // If the first symbols isn't a composite then we're done
                     if (f.isComposite() && f.isLinear()) {
-                        symbols.forEach(function (s) {
+                        symbols.forEach(s => {
                             f = mix(f, s, opt);
                         });
 
@@ -8512,7 +9198,7 @@ var nerdamer = (function (imports) {
                     } else {
                         // Just multiply back in the expanded form of each
                         retval = f;
-                        symbols.forEach(function (s) {
+                        symbols.forEach(s => {
                             retval = _.multiply(retval, s);
                         });
                         // Put back the multiplier
@@ -8530,7 +9216,9 @@ var nerdamer = (function (imports) {
                 // Final cleanup and return
                 return retval;
             } catch (e) {
-                if (e.message === 'timeout') throw e;
+                if (e.message === 'timeout') {
+                    throw e;
+                }
                 return original;
             }
         }
@@ -8553,7 +9241,9 @@ var nerdamer = (function (imports) {
          * @returns {Vector | NerdamerSymbol}
          */
         function vecget(vector, index) {
-            if (index.isConstant() && isInt(index)) return vector.elements[index];
+            if (index.isConstant() && isInt(index)) {
+                return vector.elements[index];
+            }
             return _.symfunction('vecget', arguments);
         }
 
@@ -8571,13 +9261,11 @@ var nerdamer = (function (imports) {
 
             tolerance = Number(tolerance);
             //place algebraic solutions first
-            vector.elements.sort(function (a, b) {
-                return b.group - a.group;
-            });
+            vector.elements.sort((a, b) => b.group - a.group);
             //depending on the start point we may have duplicates so we need to clean those up a bit.
             //start by creating an object with the solution and the numeric value. This way we don't destroy algebraic values
-            vector.elements = removeDuplicates(vector.elements, function (a, b) {
-                var diff = Number(_.subtract(evaluate(a), evaluate(b)).abs());
+            vector.elements = removeDuplicates(vector.elements, (a, b) => {
+                const diff = Number(_.subtract(evaluate(a), evaluate(b)).abs());
                 return diff <= tolerance;
             });
 
@@ -8593,37 +9281,48 @@ var nerdamer = (function (imports) {
          * @returns {Vector}
          */
         function vecset(vector, index, value) {
-            if (!index.isConstant) return _.symfunction('vecset', arguments);
+            if (!index.isConstant) {
+                return _.symfunction('vecset', arguments);
+            }
             vector.elements[index] = value;
             return vector;
         }
 
         function matget(matrix, i, j) {
-            if (i.isConstant() && j.isConstant()) return matrix.elements[i][j];
+            if (i.isConstant() && j.isConstant()) {
+                return matrix.elements[i][j];
+            }
             return _.symfunction('matget', arguments);
         }
 
         function matgetrow(matrix, i) {
-            if (i.isConstant()) return new Matrix(matrix.elements[i]);
+            if (i.isConstant()) {
+                return new Matrix(matrix.elements[i]);
+            }
             return _.symfunction('matgetrow', arguments);
         }
 
         function matsetrow(matrix, i, x) {
             //handle symbolics
-            if (!i.isConstant()) return _.symfunction('matsetrow', arguments);
-            if (matrix.elements[i].length !== x.elements.length)
+            if (!i.isConstant()) {
+                return _.symfunction('matsetrow', arguments);
+            }
+            if (matrix.elements[i].length !== x.elements.length) {
                 throw new DimensionError('Matrix row must match row dimensions!');
-            var M = matrix.clone();
+            }
+            const M = matrix.clone();
             M.elements[i] = x.clone().elements;
             return M;
         }
 
         function matgetcol(matrix, col_index) {
             //handle symbolics
-            if (!col_index.isConstant()) return _.symfunction('matgetcol', arguments);
+            if (!col_index.isConstant()) {
+                return _.symfunction('matgetcol', arguments);
+            }
             col_index = Number(col_index);
-            var M = Matrix.fromArray([]);
-            matrix.each(function (x, i, j) {
+            const M = Matrix.fromArray([]);
+            matrix.each((x, i, j) => {
                 if (j === col_index) {
                     M.elements.push([x.clone()]);
                 }
@@ -8633,11 +9332,14 @@ var nerdamer = (function (imports) {
 
         function matsetcol(matrix, j, col) {
             //handle symbolics
-            if (!j.isConstant()) return _.symfunction('matsetcol', arguments);
+            if (!j.isConstant()) {
+                return _.symfunction('matsetcol', arguments);
+            }
             j = Number(j);
-            if (matrix.rows() !== col.elements.length)
+            if (matrix.rows() !== col.elements.length) {
                 throw new DimensionError('Matrix column length must match number of rows!');
-            col.each(function (x, i) {
+            }
+            col.each((x, i) => {
                 matrix.set(i - 1, j, x.elements[0].clone());
             });
             return matrix;
@@ -8671,10 +9373,14 @@ var nerdamer = (function (imports) {
         }
 
         function size(symbol) {
-            var retval;
-            if (isMatrix(symbol)) retval = [new NerdamerSymbol(symbol.cols()), new NerdamerSymbol(symbol.rows())];
-            else if (isVector(symbol) || isSet(symbol)) retval = new NerdamerSymbol(symbol.elements.length);
-            else err('size expects a matrix or a vector');
+            let retval;
+            if (isMatrix(symbol)) {
+                retval = [new NerdamerSymbol(symbol.cols()), new NerdamerSymbol(symbol.rows())];
+            } else if (isVector(symbol) || isSet(symbol)) {
+                retval = new NerdamerSymbol(symbol.elements.length);
+            } else {
+                err('size expects a matrix or a vector');
+            }
             return retval;
         }
 
@@ -8686,7 +9392,9 @@ var nerdamer = (function (imports) {
                 vec2 = new Vector(vec2);
             }
 
-            if (isVector(vec1) && isVector(vec2)) return vec1.dot(vec2);
+            if (isVector(vec1) && isVector(vec2)) {
+                return vec1.dot(vec2);
+            }
 
             return _.multiply(vec1.clone(), vec2.clone());
             // err('function dot expects 2 vectors');
@@ -8700,19 +9408,25 @@ var nerdamer = (function (imports) {
                 vec2 = new Vector(vec2);
             }
 
-            if (isVector(vec1) && isVector(vec2)) return vec1.cross(vec2);
+            if (isVector(vec1) && isVector(vec2)) {
+                return vec1.cross(vec2);
+            }
 
             return _.multiply(vec1.clone(), vec2.clone());
             // err('function cross expects 2 vectors');
         }
 
         function transpose(mat) {
-            if (isMatrix(mat)) return mat.transpose();
+            if (isMatrix(mat)) {
+                return mat.transpose();
+            }
             err('function transpose expects a matrix');
         }
 
         function invert(mat) {
-            if (isMatrix(mat)) return mat.invert();
+            if (isMatrix(mat)) {
+                return mat.invert();
+            }
             err('invert expects a matrix');
         }
 
@@ -8742,7 +9456,7 @@ var nerdamer = (function (imports) {
         }
         function primes(a, b) {
             b ??= a;
-            let primes = PRIMES.slice(a, b).map(p => new NerdamerSymbol(p));
+            const primes = PRIMES.slice(a, b).map(p => new NerdamerSymbol(p));
             if (primes.length === 1) {
                 return primes[0];
             }
@@ -8753,7 +9467,7 @@ var nerdamer = (function (imports) {
         }
 
         function print() {
-            arguments2Array(arguments).map(function (x) {
+            arguments2Array(arguments).map(x => {
                 console.log(x.toString());
             });
         }
@@ -8761,12 +9475,14 @@ var nerdamer = (function (imports) {
         function testSQRT(symbol) {
             //wrap the symbol in sqrt. This eliminates one more check down the line.
             if (!isSymbol(symbol.power) && symbol.power.absEquals(0.5)) {
-                var sign = symbol.power.sign();
+                const sign = symbol.power.sign();
                 //don't devide the power directly. Notice the use of toString. This makes it possible
                 //to use a bigNumber library in the future
-                var retval = sqrt(symbol.group === P ? new NerdamerSymbol(symbol.value) : symbol.toLinear());
+                const retval = sqrt(symbol.group === P ? new NerdamerSymbol(symbol.value) : symbol.toLinear());
                 //place back the sign of the power
-                if (sign < 0) retval.invert();
+                if (sign < 0) {
+                    retval.invert();
+                }
                 return retval;
             }
             return symbol;
@@ -8775,9 +9491,9 @@ var nerdamer = (function (imports) {
         //try to reduce a symbol by pulling its power
         function testPow(symbol) {
             if (symbol.group === P) {
-                var v = symbol.value;
+                const v = symbol.value;
 
-                var fct = primeFactors(v)[0];
+                const fct = primeFactors(v)[0];
 
                 //safety
                 if (!fct) {
@@ -8785,14 +9501,19 @@ var nerdamer = (function (imports) {
                     return symbol;
                 }
 
-                var n = new Frac(Math.log(v) / Math.log(fct)),
+                const n = new Frac(Math.log(v) / Math.log(fct)),
                     p = n.multiply(symbol.power);
 
                 //we don't want a more complex number than before
-                if (p.den > symbol.power.den) return symbol;
+                if (p.den > symbol.power.den) {
+                    return symbol;
+                }
 
-                if (isInt(p)) symbol = NerdamerSymbol(Math.pow(fct, p));
-                else symbol = new NerdamerSymbol(fct).setPower(p);
+                if (isInt(p)) {
+                    symbol = NerdamerSymbol(Math.pow(fct, p));
+                } else {
+                    symbol = new NerdamerSymbol(fct).setPower(p);
+                }
             }
 
             return symbol;
@@ -8822,11 +9543,12 @@ var nerdamer = (function (imports) {
 
         //Parser.methods ===============================================================
         this.addPreprocessor = function (name, action, order, shift_cells) {
-            var names = preprocessors.names;
-            var actions = preprocessors.actions;
-            if (typeof action !== 'function')
-                //the person probably forgot to specify a name
-                throw new PreprocessorError('Incorrect parameters. Function expected!');
+            const names = preprocessors.names;
+            const actions = preprocessors.actions;
+            if (typeof action !== 'function') //the person probably forgot to specify a name
+            {
+                throw new Error('Incorrect parameters. Function expected!');
+            }
             if (!order) {
                 names.push(name);
                 actions.push(action);
@@ -8842,9 +9564,9 @@ var nerdamer = (function (imports) {
         };
 
         this.getPreprocessors = function () {
-            var preprocessors = {};
-            for (var i = 0, l = preprocessors.names.length; i < l; i++) {
-                var name = preprocessors.names[i];
+            const preprocessors = {};
+            for (let i = 0, l = preprocessors.names.length; i < l; i++) {
+                const name = preprocessors.names[i];
                 preprocessors[name] = {
                     order: i,
                     action: preprocessors.actions[i],
@@ -8854,7 +9576,7 @@ var nerdamer = (function (imports) {
         };
 
         this.removePreprocessor = function (name, shift_cells) {
-            var i = preprocessors.names.indexOf(name);
+            const i = preprocessors.names.indexOf(name);
             if (shift_cells) {
                 remove(preprocessors.names, i);
                 remove(preprocessors.actions, i);
@@ -8866,10 +9588,10 @@ var nerdamer = (function (imports) {
 
         //The loader for functions which are not part of Math2
         this.mapped_function = function () {
-            var subs = {},
+            const subs = {},
                 params = this.params;
 
-            for (var i = 0; i < params.length; i++) {
+            for (let i = 0; i < params.length; i++) {
                 subs[params[i]] = String(arguments[i]);
             }
 
@@ -8883,7 +9605,7 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         this.add = function (a, b) {
-            var aIsSymbol = isSymbol(a),
+            let aIsSymbol = isSymbol(a),
                 bIsSymbol = isSymbol(b);
             //we're dealing with two symbols
             if (aIsSymbol && bIsSymbol) {
@@ -8894,15 +9616,17 @@ var nerdamer = (function (imports) {
                 //handle Infinity
                 //https://www.encyclopediaofmath.org/index.php/Infinity
                 if (a.isInfinity || b.isInfinity) {
-                    var aneg = a.multiplier.lessThan(0),
+                    const aneg = a.multiplier.lessThan(0),
                         bneg = b.multiplier.lessThan(0);
 
                     if (a.isInfinity && b.isInfinity && aneg !== bneg) {
-                        throw new UndefinedError('(' + a + ')+(' + b + ') is not defined!');
+                        throw new UndefinedError(`(${a})+(${b}) is not defined!`);
                     }
 
-                    var inf = NerdamerSymbol.infinity();
-                    if (bneg) inf.negate();
+                    const inf = NerdamerSymbol.infinity();
+                    if (bneg) {
+                        inf.negate();
+                    }
                     return inf;
                 }
 
@@ -8916,15 +9640,19 @@ var nerdamer = (function (imports) {
                 }
 
                 //no need to waste time on zeroes
-                if (a.multiplier.equals(0)) return b;
-                if (b.multiplier.equals(0)) return a;
+                if (a.multiplier.equals(0)) {
+                    return b;
+                }
+                if (b.multiplier.equals(0)) {
+                    return a;
+                }
 
                 if (a.isConstant() && b.isConstant() && Settings.PARSE2NUMBER) {
                     var result = new NerdamerSymbol(a.multiplier.add(b.multiplier).toDecimal(Settings.PRECISION));
                     return result;
                 }
 
-                var g1 = a.group,
+                let g1 = a.group,
                     g2 = b.group,
                     ap = a.power.toString(),
                     bp = b.power.toString();
@@ -8957,8 +9685,12 @@ var nerdamer = (function (imports) {
                     h2,
                     result;
 
-                if (aIsComposite) h1 = text(a, 'hash');
-                if (bIsComposite) h2 = text(b, 'hash');
+                if (aIsComposite) {
+                    h1 = text(a, 'hash');
+                }
+                if (bIsComposite) {
+                    h2 = text(b, 'hash');
+                }
 
                 if (g1 === CP && g2 === CP && b.isLinear() && !a.isLinear() && h1 !== h2) {
                     return this.add(b, a);
@@ -8970,14 +9702,16 @@ var nerdamer = (function (imports) {
                     v2 = h2;
                 }
 
-                var PN = g1 === P && g2 === N,
+                const PN = g1 === P && g2 === N,
                     PNEQ = a.value === b.multiplier.toString(),
                     valEQ = v1 === v2 || (h1 === h2 && h1 !== undefined) || (PN && PNEQ);
 
                 //equal values, equal powers
                 if (valEQ && powEQ && g1 === g2) {
                     //make sure to convert N to something P can work with
-                    if (PN) b = b.convert(P); //CL
+                    if (PN) {
+                        b = b.convert(P);
+                    } //CL
 
                     //handle PL
                     if (g1 === PL && (g2 === S || g2 === P)) {
@@ -8990,7 +9724,9 @@ var nerdamer = (function (imports) {
                                 var x = b.symbols[s];
                                 result.attach(x);
                             }
-                        } else result.multiplier = result.multiplier.add(b.multiplier);
+                        } else {
+                            result.multiplier = result.multiplier.add(b.multiplier);
+                        }
                     }
                 }
                 //equal values uneven powers
@@ -9005,11 +9741,13 @@ var nerdamer = (function (imports) {
                         result.value = g1 === PL ? h1 : v1;
                     }
                 } else if (aIsComposite && a.isLinear()) {
-                    var canIterate = g1 === g2,
+                    let canIterate = g1 === g2,
                         bothPL = g1 === PL && g2 === PL;
 
                     //we can only iterate group PL if they values match
-                    if (bothPL) canIterate = a.value === b.value;
+                    if (bothPL) {
+                        canIterate = a.value === b.value;
+                    }
                     //distribute the multiplier over the entire symbol
                     a.distributeMultiplier();
 
@@ -9044,7 +9782,9 @@ var nerdamer = (function (imports) {
                     }
                 }
 
-                if (result.multiplier.equals(0)) result = new NerdamerSymbol(0);
+                if (result.multiplier.equals(0)) {
+                    result = new NerdamerSymbol(0);
+                }
 
                 //make sure to remove unnecessary wraps
                 if (result.length === 1) {
@@ -9065,11 +9805,11 @@ var nerdamer = (function (imports) {
                     aIsSymbol = t;
                 }
 
-                var bIsMatrix = isMatrix(b);
+                const bIsMatrix = isMatrix(b);
 
                 if (aIsSymbol && bIsMatrix) {
                     var M = new Matrix();
-                    b.eachElement(function (e, i, j) {
+                    b.eachElement((e, i, j) => {
                         M.set(i, j, _.add(a.clone(), e));
                     });
 
@@ -9078,13 +9818,13 @@ var nerdamer = (function (imports) {
                     if (isMatrix(a) && bIsMatrix) {
                         b = a.add(b);
                     } else if (aIsSymbol && isVector(b)) {
-                        b.each(function (x, i) {
+                        b.each((x, i) => {
                             i--;
                             b.elements[i] = _.add(a.clone(), b.elements[i]);
                         });
                     } else {
                         if (isVector(a) && isVector(b)) {
-                            b.each(function (x, i) {
+                            b.each((x, i) => {
                                 i--;
                                 b.elements[i] = _.add(a.elements[i], b.elements[i]);
                             });
@@ -9095,8 +9835,8 @@ var nerdamer = (function (imports) {
                             if (b.elements.length === a.rows()) {
                                 var M = new Matrix(),
                                     l = a.cols();
-                                b.each(function (e, i) {
-                                    var row = [];
+                                b.each((e, i) => {
+                                    const row = [];
                                     if (isVector(e)) {
                                         for (var j = 0; j < l; j++) {
                                             row.push(_.add(a.elements[i - 1][j].clone(), e.elements[j].clone()));
@@ -9109,7 +9849,9 @@ var nerdamer = (function (imports) {
                                     M.elements.push(row);
                                 });
                                 return M;
-                            } else err('Dimensions must match!');
+                            } else {
+                                err('Dimensions must match!');
+                            }
                         }
                     }
                 }
@@ -9135,29 +9877,30 @@ var nerdamer = (function (imports) {
                 return this.add(a, b.negate());
             } else {
                 if (bIsSymbol && isVector(a)) {
-                    b = a.map(function (x) {
-                        return _.subtract(x, b.clone());
-                    });
+                    b = a.map(x => _.subtract(x, b.clone()));
                 } else if (aIsSymbol && isVector(b)) {
-                    b = b.map(function (x) {
-                        return _.subtract(a.clone(), x);
-                    });
+                    b = b.map(x => _.subtract(a.clone(), x));
                 } else if ((isVector(a) && isVector(b)) || (isCollection(a) && isCollection(b))) {
-                    if (a.dimensions() === b.dimensions()) b = a.subtract(b);
-                    else _.error('Unable to subtract vectors/collections. Dimensions do not match.');
+                    if (a.dimensions() === b.dimensions()) {
+                        b = a.subtract(b);
+                    } else {
+                        _.error('Unable to subtract vectors/collections. Dimensions do not match.');
+                    }
                 } else if (isMatrix(a) && isVector(b)) {
                     if (b.elements.length === a.rows()) {
                         var M = new Matrix(),
                             l = a.cols();
-                        b.each(function (e, i) {
-                            var row = [];
-                            for (var j = 0; j < l; j++) {
+                        b.each((e, i) => {
+                            const row = [];
+                            for (let j = 0; j < l; j++) {
                                 row.push(_.subtract(a.elements[i - 1][j].clone(), e.clone()));
                             }
                             M.elements.push(row);
                         });
                         return M;
-                    } else err('Dimensions must match!');
+                    } else {
+                        err('Dimensions must match!');
+                    }
                 } else if (isVector(a) && isMatrix(b)) {
                     var M = b.clone().negate();
                     return _.add(M, a);
@@ -9165,13 +9908,13 @@ var nerdamer = (function (imports) {
                     b = a.subtract(b);
                 } else if (isMatrix(a) && bIsSymbol) {
                     var M = new Matrix();
-                    a.each(function (x, i, j) {
+                    a.each((x, i, j) => {
                         M.set(i, j, _.subtract(x, b.clone()));
                     });
                     b = M;
                 } else if (aIsSymbol && isMatrix(b)) {
                     var M = new Matrix();
-                    b.each(function (x, i, j) {
+                    b.each((x, i, j) => {
                         M.set(i, j, _.subtract(a.clone(), x));
                     });
                     b = M;
@@ -9187,7 +9930,7 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         this.multiply = function (a, b) {
-            var aIsSymbol = isSymbol(a),
+            let aIsSymbol = isSymbol(a),
                 bIsSymbol = isSymbol(b);
             //we're dealing with function assignment here
             if (aIsSymbol && b instanceof Collection) {
@@ -9209,7 +9952,9 @@ var nerdamer = (function (imports) {
 
                 //handle Infinty
                 if (a.isInfinity || b.isInfinity) {
-                    if (a.equals(0) || b.equals(0)) throw new UndefinedError(a + '*' + b + ' is undefined!');
+                    if (a.equals(0) || b.equals(0)) {
+                        throw new UndefinedError(`${a}*${b} is undefined!`);
+                    }
                     //x/infinity
                     if (b.power.lessThan(0)) {
                         if (!a.isInfinity) {
@@ -9222,14 +9967,18 @@ var nerdamer = (function (imports) {
                     var sign = a.multiplier.multiply(b.multiplier).sign(),
                         inf = NerdamerSymbol.infinity();
                     if (a.isConstant() || b.isConstant() || (a.isInfinity && b.isInfinity)) {
-                        if (sign < 0) inf.negate();
+                        if (sign < 0) {
+                            inf.negate();
+                        }
 
                         return inf;
                     }
                 }
 
                 //the quickies
-                if (a.multiplier.equals(0) || b.multiplier.equals(0)) return new NerdamerSymbol(0);
+                if (a.multiplier.equals(0) || b.multiplier.equals(0)) {
+                    return new NerdamerSymbol(0);
+                }
 
                 if (a.isOne()) {
                     return b.clone();
@@ -9285,7 +10034,9 @@ var nerdamer = (function (imports) {
                     return retval;
                 }
 
-                if (b.group > a.group && !(b.group === CP)) return this.multiply(b, a);
+                if (b.group > a.group && !(b.group === CP)) {
+                    return this.multiply(b, a);
+                }
                 //correction for PL/CB dilemma
                 if (a.group === CB && b.group === PL && a.value === b.value) {
                     var t = a;
@@ -9293,7 +10044,7 @@ var nerdamer = (function (imports) {
                     b = t; //swap
                 }
 
-                var g1 = a.group,
+                let g1 = a.group,
                     g2 = b.group,
                     bnum = b.multiplier.num,
                     bden = b.multiplier.den;
@@ -9306,8 +10057,8 @@ var nerdamer = (function (imports) {
                     !a.args[0].multiplier.lessThan(0)
                 ) {
                     //unwrap sqrt
-                    var a_pow = a.power;
-                    var a_multiplier = _.parse(a.multiplier);
+                    const a_pow = a.power;
+                    const a_multiplier = _.parse(a.multiplier);
                     a = _.multiply(a_multiplier, a.args[0].clone());
                     a.setPower(new Frac(0.5).multiply(a_pow));
                     g1 = a.group;
@@ -9336,10 +10087,10 @@ var nerdamer = (function (imports) {
 
                 //further simplification of sqrt
                 if (g1 === FN && g2 === FN) {
-                    var u = a.args[0].clone();
-                    var v = b.args[0].clone();
+                    const u = a.args[0].clone();
+                    const v = b.args[0].clone();
                     if (a.fname === SQRT && b.fname === SQRT && a.isLinear() && b.isLinear()) {
-                        var q = _.divide(u, v).invert();
+                        const q = _.divide(u, v).invert();
                         if (q.gt(1) && isInt(q)) {
                             //b contains a factor a which can be moved to a
                             result = _.multiply(a.args[0].clone(), sqrt(q.clone()));
@@ -9357,7 +10108,7 @@ var nerdamer = (function (imports) {
                         b.power < 0
                     ) {
                         //assume that n = positive
-                        var d = _.subtract(u.clone(), v.clone());
+                        const d = _.subtract(u.clone(), v.clone());
 
                         //if it's not numeric then we don't know if we can simplify so just return
                         if (d.isConstant()) {
@@ -9413,7 +10164,7 @@ var nerdamer = (function (imports) {
                     !(g1 === PL && (g2 === S || g2 === P || g2 === FN)) &&
                     !(g1 === PL && g2 === CB)
                 ) {
-                    var p1 = a.power,
+                    const p1 = a.power,
                         p2 = b.power,
                         isSymbolP1 = isSymbol(p1),
                         isSymbolP2 = isSymbol(p2),
@@ -9421,7 +10172,7 @@ var nerdamer = (function (imports) {
                     //TODO: this needs cleaning up
                     if (g1 === PL && g2 !== PL && b.previousGroup !== PL && p1.equals(1)) {
                         result = new NerdamerSymbol(0);
-                        a.each(function (x) {
+                        a.each(x => {
                             result = _.add(result, _.multiply(x, b.clone()));
                         }, true);
                     } else {
@@ -9436,14 +10187,18 @@ var nerdamer = (function (imports) {
                               : p1.add(p2);
 
                         //eliminate zero power values and convert them to numbers
-                        if (result.power.equals(0)) result = result.convert(N);
+                        if (result.power.equals(0)) {
+                            result = result.convert(N);
+                        }
 
                         //properly convert to EX
-                        if (toEX) result.convert(EX);
+                        if (toEX) {
+                            result.convert(EX);
+                        }
 
                         //take care of imaginaries
                         if (a.imaginary && b.imaginary) {
-                            var isEven = even(result.power % 2);
+                            const isEven = even(result.power % 2);
                             if (isEven) {
                                 result = new NerdamerSymbol(1);
                                 m.negate();
@@ -9451,16 +10206,20 @@ var nerdamer = (function (imports) {
                         }
 
                         //cleanup: this causes the LaTeX generator to get confused as to how to render the symbol
-                        if (result.group !== EX && result.previousGroup) result.previousGroup = undefined;
+                        if (result.group !== EX && result.previousGroup) {
+                            result.previousGroup = undefined;
+                        }
                         //the sign for b is floating around. Remember we are assuming that the odd variable will carry
                         //the sign but this isn't true if they're equals symbols
                         result.multiplier = result.multiplier.multiply(b.multiplier);
                     }
                 } else if (g1 === CB && a.isLinear()) {
-                    if (g2 === CB) b.distributeExponent();
+                    if (g2 === CB) {
+                        b.distributeExponent();
+                    }
                     if (g2 === CB && b.isLinear()) {
                         for (var s in b.symbols) {
-                            var x = b.symbols[s];
+                            const x = b.symbols[s];
                             result = result.combine(x);
                         }
                         result.multiplier = result.multiplier.multiply(b.multiplier);
@@ -9474,7 +10233,7 @@ var nerdamer = (function (imports) {
                             result.distributeExponent();
                             result.combine(b);
                         } else if (!b.isOne()) {
-                            var bm = b.multiplier.clone();
+                            const bm = b.multiplier.clone();
                             b.toUnitMultiplier();
                             result = NerdamerSymbol.shell(CB).combine([result, b]);
                             //transfer the multiplier to the outside
@@ -9486,7 +10245,7 @@ var nerdamer = (function (imports) {
                 }
 
                 if (result.group === P) {
-                    var logV = Math.log(result.value),
+                    const logV = Math.log(result.value),
                         n1 = Math.log(bnum) / logV,
                         n2 = Math.log(bden) / logV,
                         ndiv = m.num / bnum,
@@ -9511,25 +10270,31 @@ var nerdamer = (function (imports) {
                 }
 
                 //reduce square root
-                var ps = result.power.toString();
+                const ps = result.power.toString();
                 if (even(ps) && result.fname === SQRT) {
                     //grab the sign of the symbol
                     sign = sign * result.sign();
-                    var p = result.power;
+                    const p = result.power;
                     result = result.args[0];
                     result = _.multiply(
                         new NerdamerSymbol(m),
                         _.pow(result, new NerdamerSymbol(p.divide(new Frac(2))))
                     );
                     //flip it back to the correct sign
-                    if (sign < 0) result.negate();
+                    if (sign < 0) {
+                        result.negate();
+                    }
                 } else {
                     result.multiplier = result.multiplier.multiply(m).multiply(sign);
-                    if (result.group === CP && result.isImaginary()) result.distributeMultiplier();
+                    if (result.group === CP && result.isImaginary()) {
+                        result.distributeMultiplier();
+                    }
                 }
 
                 //back convert group P to a simpler group N if possible
-                if (result.group === P && isInt(result.power.toDecimal())) result = result.convert(N);
+                if (result.group === P && isInt(result.power.toDecimal())) {
+                    result = result.convert(N);
+                }
 
                 return result;
             } else {
@@ -9544,11 +10309,11 @@ var nerdamer = (function (imports) {
                     aIsSymbol = t;
                 }
 
-                var isMatrixB = isMatrix(b),
+                const isMatrixB = isMatrix(b),
                     isMatrixA = isMatrix(a);
                 if (aIsSymbol && isMatrixB) {
                     var M = new Matrix();
-                    b.eachElement(function (e, i, j) {
+                    b.eachElement((e, i, j) => {
                         M.set(i, j, _.multiply(a.clone(), e));
                     });
 
@@ -9557,13 +10322,13 @@ var nerdamer = (function (imports) {
                     if (isMatrixA && isMatrixB) {
                         b = a.multiply(b);
                     } else if (aIsSymbol && isVector(b)) {
-                        b.each(function (x, i) {
+                        b.each((x, i) => {
                             i--;
                             b.elements[i] = _.multiply(a.clone(), b.elements[i]);
                         });
                     } else {
                         if (isVector(a) && isVector(b)) {
-                            b.each(function (x, i) {
+                            b.each((x, i) => {
                                 i--;
                                 b.elements[i] = _.multiply(a.elements[i], b.elements[i]);
                             });
@@ -9574,15 +10339,17 @@ var nerdamer = (function (imports) {
                             if (b.elements.length === a.rows()) {
                                 var M = new Matrix(),
                                     l = a.cols();
-                                b.each(function (e, i) {
-                                    var row = [];
-                                    for (var j = 0; j < l; j++) {
+                                b.each((e, i) => {
+                                    const row = [];
+                                    for (let j = 0; j < l; j++) {
                                         row.push(_.multiply(a.elements[i - 1][j].clone(), e.clone()));
                                     }
                                     M.elements.push(row);
                                 });
                                 return M;
-                            } else err('Dimensions must match!');
+                            } else {
+                                err('Dimensions must match!');
+                            }
                         }
                     }
                 }
@@ -9598,7 +10365,7 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         this.divide = function (a, b) {
-            var aIsSymbol = isSymbol(a),
+            const aIsSymbol = isSymbol(a),
                 bIsSymbol = isSymbol(b);
 
             if (aIsSymbol && bIsSymbol) {
@@ -9606,8 +10373,10 @@ var nerdamer = (function (imports) {
                 if (a.unit || b.unit) {
                     return _.Unit.divide(a, b);
                 }
-                var result;
-                if (b.equals(0)) throw new DivisionByZero('Division by zero not allowed!');
+                let result;
+                if (b.equals(0)) {
+                    throw new DivisionByZero('Division by zero not allowed!');
+                }
 
                 if (a.isConstant() && b.isConstant()) {
                     result = a.clone();
@@ -9619,41 +10388,37 @@ var nerdamer = (function (imports) {
                 return result;
             } else {
                 //******* Vectors & Matrices *********//
-                var isVectorA = isVector(a),
+                const isVectorA = isVector(a),
                     isVectorB = isVector(b);
                 if (aIsSymbol && isVectorB) {
-                    b = b.map(function (x) {
-                        return _.divide(a.clone(), x);
-                    });
+                    b = b.map(x => _.divide(a.clone(), x));
                 } else if (isVectorA && bIsSymbol) {
-                    b = a.map(function (x) {
-                        return _.divide(x, b.clone());
-                    });
+                    b = a.map(x => _.divide(x, b.clone()));
                 } else if (isVectorA && isVectorB) {
                     if (a.dimensions() === b.dimensions()) {
-                        b = b.map(function (x, i) {
-                            return _.divide(a.elements[--i], x);
-                        });
-                    } else _.error('Cannot divide vectors. Dimensions do not match!');
+                        b = b.map((x, i) => _.divide(a.elements[--i], x));
+                    } else {
+                        _.error('Cannot divide vectors. Dimensions do not match!');
+                    }
                 } else {
-                    var isMatrixA = isMatrix(a),
+                    const isMatrixA = isMatrix(a),
                         isMatrixB = isMatrix(b);
                     if (isMatrixA && bIsSymbol) {
                         var M = new Matrix();
-                        a.eachElement(function (x, i, j) {
+                        a.eachElement((x, i, j) => {
                             M.set(i, j, _.divide(x, b.clone()));
                         });
                         b = M;
                     } else if (aIsSymbol && isMatrixB) {
                         var M = new Matrix();
-                        b.eachElement(function (x, i, j) {
+                        b.eachElement((x, i, j) => {
                             M.set(i, j, _.divide(a.clone(), x));
                         });
                         b = M;
                     } else if (isMatrixA && isMatrixB) {
                         var M = new Matrix();
                         if (a.rows() === b.rows() && a.cols() === b.cols()) {
-                            a.eachElement(function (x, i, j) {
+                            a.eachElement((x, i, j) => {
                                 M.set(i, j, _.divide(x, b.elements[i][j]));
                             });
                             b = M;
@@ -9663,7 +10428,7 @@ var nerdamer = (function (imports) {
                     } else if (isMatrixA && isVectorB) {
                         if (a.cols() === b.dimensions()) {
                             var M = new Matrix();
-                            a.eachElement(function (x, i, j) {
+                            a.eachElement((x, i, j) => {
                                 M.set(i, j, _.divide(x, b.elements[i].clone()));
                             });
                             b = M;
@@ -9683,7 +10448,7 @@ var nerdamer = (function (imports) {
          * @returns {NerdamerSymbol}
          */
         this.pow = function (a, b) {
-            var aIsSymbol = isSymbol(a),
+            const aIsSymbol = isSymbol(a),
                 bIsSymbol = isSymbol(b);
             if (aIsSymbol && bIsSymbol) {
                 //it has units then it's the Unit module's problem
@@ -9694,42 +10459,62 @@ var nerdamer = (function (imports) {
                 // Handle abs
                 if (a.group === FN && a.fname === ABS && even(b)) {
                     var m = a.multiplier.clone();
-                    var raised = _.pow(a.args[0], b);
+                    const raised = _.pow(a.args[0], b);
                     raised.multiplier = m;
                     return raised;
                 }
 
                 // Handle infinity
                 if (a.isInfinity || b.isInfinity) {
-                    if (a.isInfinity && b.isInfinity) throw new UndefinedError('(' + a + ')^(' + b + ') is undefined!');
+                    if (a.isInfinity && b.isInfinity) {
+                        throw new UndefinedError(`(${a})^(${b}) is undefined!`);
+                    }
 
                     if (a.isConstant() && b.isInfinity) {
                         if (a.equals(0)) {
-                            if (b.lessThan(0)) throw new UndefinedError('0^Infinity is undefined!');
+                            if (b.lessThan(0)) {
+                                throw new UndefinedError('0^Infinity is undefined!');
+                            }
                             return new NerdamerSymbol(0);
                         }
-                        if (a.equals(1)) throw new UndefinedError('1^' + b.toString() + ' is undefined!');
+                        if (a.equals(1)) {
+                            throw new UndefinedError(`1^${b.toString()} is undefined!`);
+                        }
                         //a^-oo
-                        if (b.lessThan(0)) return new NerdamerSymbol(0);
+                        if (b.lessThan(0)) {
+                            return new NerdamerSymbol(0);
+                        }
                         //a^oo
-                        if (!a.lessThan(0)) return NerdamerSymbol.infinity();
+                        if (!a.lessThan(0)) {
+                            return NerdamerSymbol.infinity();
+                        }
                     }
 
                     if (a.isInfinity && b.isConstant()) {
-                        if (b.equals(0)) throw new UndefinedError(a + '^0 is undefined!');
-                        if (b.lessThan(0)) return new NerdamerSymbol(0);
+                        if (b.equals(0)) {
+                            throw new UndefinedError(`${a}^0 is undefined!`);
+                        }
+                        if (b.lessThan(0)) {
+                            return new NerdamerSymbol(0);
+                        }
                         return _.multiply(NerdamerSymbol.infinity(), _.pow(new NerdamerSymbol(a.sign()), b.clone()));
                     }
                 }
 
-                var aIsZero = a.equals(0);
-                var bIsZero = b.equals(0);
-                if (aIsZero && bIsZero) throw new UndefinedError('0^0 is undefined!');
+                const aIsZero = a.equals(0);
+                const bIsZero = b.equals(0);
+                if (aIsZero && bIsZero) {
+                    throw new UndefinedError('0^0 is undefined!');
+                }
 
                 // Return 0 right away if possible
-                if (aIsZero && b.isConstant() && b.multiplier.greaterThan(0)) return new NerdamerSymbol(0);
+                if (aIsZero && b.isConstant() && b.multiplier.greaterThan(0)) {
+                    return new NerdamerSymbol(0);
+                }
 
-                if (bIsZero) return new NerdamerSymbol(1);
+                if (bIsZero) {
+                    return new NerdamerSymbol(1);
+                }
 
                 var bIsConstant = b.isConstant(),
                     aIsConstant = a.isConstant(),
@@ -9738,8 +10523,9 @@ var nerdamer = (function (imports) {
                     result = a.clone();
 
                 // 0^0, 1/0, etc. Complain.
-                if (aIsConstant && bIsConstant && a.equals(0) && b.lessThan(0))
+                if (aIsConstant && bIsConstant && a.equals(0) && b.lessThan(0)) {
                     throw new UndefinedError('Division by zero is not allowed!');
+                }
 
                 // Compute imaginary numbers right away
                 if (Settings.PARSE2NUMBER && aIsConstant && bIsConstant && a.sign() < 0 && evenFraction(b)) {
@@ -9795,16 +10581,19 @@ var nerdamer = (function (imports) {
                 }
 
                 if (aIsConstant && bIsConstant && Settings.PARSE2NUMBER) {
-                    var c;
+                    let c;
                     //remove the sign
                     if (sign < 0) {
                         a.negate();
-                        if (b.multiplier.den.equals(2))
-                            //we know that the numerator has to be odd and therefore it's i
+                        if (b.multiplier.den.equals(2)) //we know that the numerator has to be odd and therefore it's i
+                        {
                             c = new NerdamerSymbol(Settings.IMAGINARY);
-                        else if (isInt(b.multiplier)) {
-                            if (even(b.multiplier)) c = new NerdamerSymbol(1);
-                            else c = new NerdamerSymbol(-1);
+                        } else if (isInt(b.multiplier)) {
+                            if (even(b.multiplier)) {
+                                c = new NerdamerSymbol(1);
+                            } else {
+                                c = new NerdamerSymbol(-1);
+                            }
                         } else if (!even(b.multiplier.den)) {
                             c = new NerdamerSymbol(Math.pow(sign, b.multiplier.num));
                         } else {
@@ -9822,21 +10611,27 @@ var nerdamer = (function (imports) {
                         result = new NerdamerSymbol(ad.pow(bd).toFixed());
                     }
                     //put the back sign
-                    if (c) result = _.multiply(result, c);
+                    if (c) {
+                        result = _.multiply(result, c);
+                    }
                 } else if (bIsInt && !m.equals(1)) {
-                    var abs_b = b.abs();
+                    const abs_b = b.abs();
                     // Provide fall back to JS until big number implementation is improved
                     if (abs_b.gt(Settings.MAX_EXP)) {
-                        if (b.sign() < 0) return new NerdamerSymbol(0);
+                        if (b.sign() < 0) {
+                            return new NerdamerSymbol(0);
+                        }
                         return NerdamerSymbol.infinity();
                     } else {
                         var p = b.multiplier.toDecimal();
-                        var sgn = Math.sign(p);
+                        const sgn = Math.sign(p);
                         p = Math.abs(p);
-                        var multiplier = new Frac(1);
+                        const multiplier = new Frac(1);
                         multiplier.num = m.num.pow(p);
                         multiplier.den = m.den.pow(p);
-                        if (sgn < 0) multiplier.invert();
+                        if (sgn < 0) {
+                            multiplier.invert();
+                        }
                         //multiplying is justified since after mulltiplyPower if it was of group P it will now be of group N
                         result.multiplier = result.multiplier.multiply(multiplier);
                     }
@@ -9858,8 +10653,8 @@ var nerdamer = (function (imports) {
                             var aa = a.clone();
                             aa.multiplier.negate();
                             result = _.pow(_.symfunction(PARENTHESIS, [new NerdamerSymbol(sign)]), b.clone());
-                            var _a = _.pow(new NerdamerSymbol(aa.multiplier.num), b.clone());
-                            var _b = _.pow(new NerdamerSymbol(aa.multiplier.den), b.clone());
+                            const _a = _.pow(new NerdamerSymbol(aa.multiplier.num), b.clone());
+                            const _b = _.pow(new NerdamerSymbol(aa.multiplier.den), b.clone());
                             var r = _.divide(_a, _b);
                             result = _.multiply(result, r);
                         }
@@ -9878,10 +10673,10 @@ var nerdamer = (function (imports) {
                          else {
                          */
                         var aa = a.clone().toLinear();
-                        var a1 = _.pow(aa.clone(), re);
-                        var log_a = log(aa.clone());
-                        var b1 = trig.cos(_.multiply(im.clone(), log_a));
-                        var c1 = _.multiply(trig.sin(_.multiply(im, log(aa))), NerdamerSymbol.imaginary());
+                        const a1 = _.pow(aa.clone(), re);
+                        const log_a = log(aa.clone());
+                        const b1 = trig.cos(_.multiply(im.clone(), log_a));
+                        const c1 = _.multiply(trig.sin(_.multiply(im, log(aa))), NerdamerSymbol.imaginary());
                         result = _.multiply(a1, _.add(b1, c1));
                         result = _.expand(_.parse(result));
                         /*
@@ -9906,7 +10701,7 @@ var nerdamer = (function (imports) {
                                 }
                             } else {
                                 //assume i = sqrt(-1) -> (-1)^(1/2)
-                                var nr = b.multiplier.multiply(Frac.quick(1, 2)),
+                                const nr = b.multiplier.multiply(Frac.quick(1, 2)),
                                     //the denominator denotes the power so raise to it. It will turn positive it round
                                     tn = Math.pow(-1, nr.num);
                                 result = even(nr.den)
@@ -9916,7 +10711,9 @@ var nerdamer = (function (imports) {
                         }
                         //ensure that the sign is carried by the symbol and not the multiplier
                         //this enables us to check down the line if the multiplier can indeed be transferred
-                        if (sign < 0 && !neg_num) result.negate();
+                        if (sign < 0 && !neg_num) {
+                            result.negate();
+                        }
 
                         //retain the absolute value
                         if (bIsConstant && a.group !== EX) {
@@ -9941,13 +10738,15 @@ var nerdamer = (function (imports) {
                                     );
                                 }
                                 //quick workaround. Revisit
-                                if (Settings.POSITIVE_MULTIPLIERS && result.fname === ABS) result = result.args[0];
+                                if (Settings.POSITIVE_MULTIPLIERS && result.fname === ABS) {
+                                    result = result.args[0];
+                                }
                             }
                         }
                         //multiply out sqrt
                         if (b.equals(2) && result.group === CB) {
-                            var _result = new NerdamerSymbol(1);
-                            result.each(function (sym) {
+                            let _result = new NerdamerSymbol(1);
+                            result.each(sym => {
                                 _result = _.multiply(_result, _.pow(sym, b));
                             });
                             result = _result;
@@ -9964,8 +10763,8 @@ var nerdamer = (function (imports) {
 
                 // Reduce square root
                 if (result.fname === SQRT) {
-                    var isEX = result.group === EX;
-                    var t = isEX ? result.power.multiplier.toString() : result.power.toString();
+                    const isEX = result.group === EX;
+                    const t = isEX ? result.power.multiplier.toString() : result.power.toString();
                     if (even(t)) {
                         var pt = isEX
                                 ? _.divide(result.power, new NerdamerSymbol(2))
@@ -9991,18 +10790,16 @@ var nerdamer = (function (imports) {
                 return result;
             } else {
                 if (isVector(a) && bIsSymbol) {
-                    a = a.map(function (x) {
-                        return _.pow(x, b.clone());
-                    });
+                    a = a.map(x => _.pow(x, b.clone()));
                 } else if (isMatrix(a) && bIsSymbol) {
                     var M = new Matrix();
-                    a.eachElement(function (x, i, j) {
+                    a.eachElement((x, i, j) => {
                         M.set(i, j, _.pow(x, b.clone()));
                     });
                     a = M;
                 } else if (aIsSymbol && isMatrix(b)) {
                     var M = new Matrix();
-                    b.eachElement(function (x, i, j) {
+                    b.eachElement((x, i, j) => {
                         M.set(i, j, _.pow(a.clone(), x));
                     });
                     a = M;
@@ -10013,7 +10810,9 @@ var nerdamer = (function (imports) {
         // Gets called when the parser finds the , operator.
         // Commas return a Collector object which is roughly an array
         this.comma = function (a, b) {
-            if (!(a instanceof Collection)) a = Collection.create(a);
+            if (!(a instanceof Collection)) {
+                a = Collection.create(a);
+            }
             a.append(b);
             return a;
         };
@@ -10028,7 +10827,9 @@ var nerdamer = (function (imports) {
         // The equality setter
         this.equals = function (a, b) {
             // Equality can only be set for group S so complain it's not
-            if (a.group !== S && !a.isLinear()) err('Cannot set equality for ' + a.toString());
+            if (a.group !== S && !a.isLinear()) {
+                err(`Cannot set equality for ${a.toString()}`);
+            }
             VARS[a.value] = b.clone();
             return b;
         };
@@ -10039,29 +10840,29 @@ var nerdamer = (function (imports) {
         // Set variable
         this.assign = function (a, b) {
             if (a instanceof Collection && b instanceof Collection) {
-                a.elements.map(function (x, i) {
-                    return _.assign(x, b.elements[i]);
-                });
+                a.elements.map((x, i) => _.assign(x, b.elements[i]));
                 return Vector.fromArray(b.elements);
             }
             if (a.parent) {
                 // It's referring to the parent instead. The current item can be discarded
-                var e = a.parent;
+                const e = a.parent;
                 e.elements[e.getter] = b;
                 delete e.getter;
                 return e;
             }
 
-            if (a.group !== S) throw new NerdamerValueError('Cannot complete operation. Incorrect LH value for ' + a);
+            if (a.group !== S) {
+                throw new NerdamerValueError(`Cannot complete operation. Incorrect LH value for ${a}`);
+            }
             VARS[a.value] = b;
             return b;
         };
         this.function_assign = function (a, b) {
-            var f = a.elements.pop();
+            const f = a.elements.pop();
             return setFunction(f, a.elements, b);
         };
         // Function to quickly convert bools to Symbols
-        var bool2Symbol = function (x) {
+        const bool2Symbol = function (x) {
             return new NerdamerSymbol(x === true ? 1 : 0);
         };
         //check for equality
@@ -10093,6 +10894,10 @@ var nerdamer = (function (imports) {
             return this.symfunction(DOUBLEFACTORIAL, [a]);
         };
     }
+
+    //inits ========================================================================
+    const _ = new Parser(); //nerdamer's parser
+
     /* "STATIC" */
     // converts a number to a fraction.
     var Fraction = {
@@ -10103,17 +10908,17 @@ var nerdamer = (function (imports) {
          * @param {object} opts
          * @returns {Array} - An array containing the denominator and the numerator
          */
-        convert: function (value, opts) {
-            var frac;
+        convert(value, opts) {
+            let frac;
             if (value === 0) {
                 frac = [0, 1];
             } else {
                 if (Math.abs(value) < 1e-6 || Math.abs(value) > 1e20) {
-                    var qc = this.quickConversion(Number(value));
+                    const qc = this.quickConversion(Number(value));
                     if (qc[1] <= 1e16) {
-                        var abs = Math.abs(value);
-                        var sign = value / abs;
-                        frac = this.fullConversion(abs.toFixed((qc[1] + '').length - 1));
+                        const abs = Math.abs(value);
+                        const sign = value / abs;
+                        frac = this.fullConversion(abs.toFixed(`${qc[1]}`.length - 1));
                         frac[0] = frac[0] * sign;
                     } else {
                         frac = qc;
@@ -10130,17 +10935,17 @@ var nerdamer = (function (imports) {
          * @param {number} value
          * @returns {Array} - An array containing the denominator and the numerator
          */
-        quickConversion: function (value) {
-            var stripSign = function (s) {
+        quickConversion(value) {
+            const stripSign = function (s) {
                 // Explicitely convert to a string
                 if (typeof s !== 'string') {
                     s = s.toString();
                 }
 
-                var sign = '';
+                let sign = '';
 
                 // Remove and store the sign
-                var start = s.charAt(0);
+                const start = s.charAt(0);
                 if (start === '-') {
                     s = s.substr(1, s.length);
                     sign = '-';
@@ -10150,7 +10955,7 @@ var nerdamer = (function (imports) {
                 }
 
                 return {
-                    sign: sign,
+                    sign,
                     value: s,
                 };
             };
@@ -10162,23 +10967,23 @@ var nerdamer = (function (imports) {
                 }
 
                 // Split the value into the sign and the value
-                var nparts = stripSign(value);
+                const nparts = stripSign(value);
 
                 // Split it at the decimal. We'll refer to it as the coeffient parts
-                var cparts = nparts.value.split('.');
+                const cparts = nparts.value.split('.');
 
                 // Combine the entire number by removing leading zero and adding the decimal part
                 // This would be teh same as moving the decimal point to the end
-                var num;
+                let num;
                 // We're dealing with integers
                 if (cparts.length === 1) {
                     num = cparts[0];
                 } else {
                     num = cparts[0] + cparts[1];
                 }
-                var n = cparts[1] ? cparts[1].length : 0;
+                const n = cparts[1] ? cparts[1].length : 0;
                 // Generate the padding for the zeros
-                var den = `1${'0'.repeat(n)}`;
+                const den = `1${'0'.repeat(n)}`;
 
                 if (num !== '0') {
                     num = num.replace(/^0+/, '');
@@ -10196,12 +11001,12 @@ var nerdamer = (function (imports) {
          * @param {number} dec
          * @returns {Array} - An array containing the denominator and the numerator
          */
-        fullConversion: function (dec) {
+        fullConversion(dec) {
             // this doesn't work for values approaching as small as epsilon
-            var epsilon = Math.abs(dec) > 1e10 ? 1e-16 : 1e-30;
-            var done = false;
+            const epsilon = Math.abs(dec) > 1e10 ? 1e-16 : 1e-30;
+            let done = false;
             // you can adjust the epsilon to a larger number if you don't need very high precision
-            var n1 = 0,
+            let n1 = 0,
                 d1 = 1,
                 n2 = 1,
                 d2 = 0,
@@ -10211,21 +11016,21 @@ var nerdamer = (function (imports) {
             // This fixes floating-point precision errors in reciprocals (e.g., 1/1e-15 = 999999999999999.9).
             // We use ~45x Number.EPSILON to allow for accumulated rounding errors.
             // This is independent of Settings.PRECISION since we're dealing with IEEE 754 double limits.
-            var roundingEpsilon = 1e-14; // ~45 * Number.EPSILON (2.2e-16)
+            const roundingEpsilon = 1e-14; // ~45 * Number.EPSILON (2.2e-16)
             while (!done) {
                 n++;
                 // For very large q values, round to nearest integer if within floating-point error
                 var a;
                 if (Math.abs(q) > 1e10) {
-                    var rounded = Math.round(q);
-                    var relDiff = Math.abs(q - rounded) / Math.abs(rounded);
+                    const rounded = Math.round(q);
+                    const relDiff = Math.abs(q - rounded) / Math.abs(rounded);
                     a = relDiff < roundingEpsilon ? rounded : Math.floor(q);
                 } else {
                     a = Math.floor(q);
                 }
                 var num = n1 + a * n2;
                 var den = d1 + a * d2;
-                var e = q - a;
+                const e = q - a;
                 if (e < epsilon) {
                     done = true;
                 }
@@ -10247,10 +11052,21 @@ var nerdamer = (function (imports) {
     var LaTeX = {
         parser: (function () {
             // create a parser and strip it from everything except the items that you need
-            var keep = ['classes', 'setOperator', 'getOperators', 'getBrackets', 'tokenize', 'toRPN', 'tree', 'units'];
-            var parser = new Parser();
-            for (var x in parser) {
-                if (keep.indexOf(x) === -1) delete parser[x];
+            const keep = [
+                'classes',
+                'setOperator',
+                'getOperators',
+                'getBrackets',
+                'tokenize',
+                'toRPN',
+                'tree',
+                'units',
+            ];
+            const parser = new Parser();
+            for (const x in parser) {
+                if (keep.indexOf(x) === -1) {
+                    delete parser[x];
+                }
             }
             // declare the operators
             parser.setOperator({
@@ -10260,7 +11076,7 @@ var nerdamer = (function (imports) {
                 prefix: true,
                 postfix: false,
                 leftAssoc: true,
-                operation: function (e) {
+                operation(e) {
                     return e; // bypass the slash
                 },
             });
@@ -10271,12 +11087,12 @@ var nerdamer = (function (imports) {
                 prefix: true,
                 postfix: false,
                 leftAssoc: true,
-                operation: function (e) {
+                operation(e) {
                     return e; // bypass the slash
                 },
             });
             // have braces not map to anything. We want them to be return as-is
-            var brackets = parser.getBrackets();
+            const brackets = parser.getBrackets();
             brackets['{'].maps_to = undefined;
             return parser;
         })(),
@@ -10284,28 +11100,32 @@ var nerdamer = (function (imports) {
         dot: ' \\cdot ',
         // grab a list of supported functions but remove the excluded ones found in exclFN
 
-        latex: function (symbol, option) {
+        latex(symbol, option) {
             // it might be an array
             if (symbol.clone) {
                 symbol = symbol.clone(); // leave original as-is
             }
-            if (symbol instanceof _.classes.Collection) symbol = symbol.elements;
+            if (symbol instanceof _.classes.Collection) {
+                symbol = symbol.elements;
+            }
 
             if (isArray(symbol)) {
-                var LaTeXArray = [];
+                const LaTeXArray = [];
                 for (var i = 0; i < symbol.length; i++) {
-                    var sym = symbol[i];
+                    let sym = symbol[i];
                     //This way I can generate LaTeX on an array of strings.
-                    if (!isSymbol(sym)) sym = _.parse(sym);
+                    if (!isSymbol(sym)) {
+                        sym = _.parse(sym);
+                    }
                     LaTeXArray.push(this.latex(sym, option));
                 }
                 return this.brackets(LaTeXArray.join(', '), 'square');
             } else if (isMatrix(symbol)) {
                 var TeX = '\\begin{pmatrix}\n';
                 for (var i = 0; i < symbol.elements.length; i++) {
-                    var rowTeX = [],
+                    const rowTeX = [],
                         e = symbol.elements[i];
-                    for (var j = 0; j < e.length; j++) {
+                    for (let j = 0; j < e.length; j++) {
                         rowTeX.push(this.latex(e[j], option));
                     }
                     TeX += rowTeX.join(' & ');
@@ -10318,16 +11138,14 @@ var nerdamer = (function (imports) {
             } else if (isVector(symbol)) {
                 var TeX = '\\left[';
                 for (var i = 0; i < symbol.elements.length; i++) {
-                    TeX +=
-                        this.latex(symbol.elements[i], option) + ' ' + (i !== symbol.elements.length - 1 ? ',\\,' : '');
+                    TeX += `${this.latex(symbol.elements[i], option)} ${i !== symbol.elements.length - 1 ? ',\\,' : ''}`;
                 }
                 TeX += '\\right]';
                 return TeX;
             } else if (isSet(symbol)) {
                 var TeX = '\\{';
                 for (var i = 0; i < symbol.elements.length; i++) {
-                    TeX +=
-                        this.latex(symbol.elements[i], option) + ' ' + (i !== symbol.elements.length - 1 ? ',\\,' : '');
+                    TeX += `${this.latex(symbol.elements[i], option)} ${i !== symbol.elements.length - 1 ? ',\\,' : ''}`;
                 }
                 TeX += '\\}';
                 return TeX;
@@ -10335,7 +11153,7 @@ var nerdamer = (function (imports) {
 
             symbol = symbol.clone();
 
-            var decimal = option === 'decimal' || option === 'decimals',
+            const decimal = option === 'decimal' || option === 'decimals',
                 power = symbol.power,
                 invert = isNegative(power),
                 negative = symbol.multiplier.lessThan(0);
@@ -10346,38 +11164,46 @@ var nerdamer = (function (imports) {
                 symbol.multiplier = symbol.multiplier.abs();
 
                 // if the user wants the result in decimal format then return it as such by placing it at the top part
-                var m_array;
+                let m_array;
 
                 if (decimal) {
-                    var m = String(symbol.multiplier.toDecimal());
+                    const m = String(symbol.multiplier.toDecimal());
                     // if(String(m) === '1' && !decimal) m = '';
                     m_array = [m, ''];
                 } else {
                     m_array = [symbol.multiplier.num, symbol.multiplier.den];
                 }
                 // get the value as a two part array
-                var v_array = this.value(symbol, invert, option, negative),
+                let v_array = this.value(symbol, invert, option, negative),
                     p;
                 // make it all positive since we know whether to push the power to the numerator or denominator already.
-                if (invert) power.negate();
+                if (invert) {
+                    power.negate();
+                }
                 // the power is simple since it requires no additional formatting. We can get it to a
                 // string right away. pass in true to neglect unit powers
                 if (decimal) {
                     p = isSymbol(power) ? LaTeX.latex(power, option) : String(power.toDecimal());
-                    if (String(p) === '1') p = '';
+                    if (String(p) === '1') {
+                        p = '';
+                    }
                 }
                 // get the latex representation
-                else if (isSymbol(power)) p = this.latex(power, option);
+                else if (isSymbol(power)) {
+                    p = this.latex(power, option);
+                }
                 // get it as a fraction
-                else p = this.formatFrac(power, true);
+                else {
+                    p = this.formatFrac(power, true);
+                }
                 // use this array to specify if the power is getting attached to the top or the bottom
-                var p_array = ['', ''],
+                const p_array = ['', ''],
                     // stick it to the top or the bottom. If it's negative then the power gets placed on the bottom
                     index = invert ? 1 : 0;
                 p_array[index] = p;
 
                 // special case group P and decimal
-                var retval = (negative ? '-' : '') + this.set(m_array, v_array, p_array, symbol.group === CB);
+                const retval = (negative ? '-' : '') + this.set(m_array, v_array, p_array, symbol.group === CB);
 
                 return retval.replace(/\+\-/gi, '-');
             }
@@ -10457,8 +11283,8 @@ var nerdamer = (function (imports) {
             tanh: '\\tanh',
         },
         // get the raw value of the symbol as an array
-        value: function (symbol, inverted, option, negative) {
-            var group = symbol.group,
+        value(symbol, inverted, option, negative) {
+            const group = symbol.group,
                 previousGroup = symbol.previousGroup,
                 v = ['', ''],
                 index = inverted ? 1 : 0;
@@ -10473,10 +11299,12 @@ var nerdamer = (function (imports) {
                 previousGroup === N
             ) {
                 var value = this.formatSubscripts(symbol.value);
-                if (value.replace) value = value.replace(/(.+)_$/, '$1\\_');
+                if (value.replace) {
+                    value = value.replace(/(.+)_$/, '$1\\_');
+                }
                 // split it so we can check for instances of alpha as well as alpha_b
-                var t_varray = String(value).split('_');
-                var greek = this.greek[t_varray[0]];
+                const t_varray = String(value).split('_');
+                const greek = this.greek[t_varray[0]];
                 if (greek) {
                     t_varray[0] = greek;
                     value = t_varray.join('_');
@@ -10495,33 +11323,28 @@ var nerdamer = (function (imports) {
                 for (var i = 0; i < symbol.args.length; i++) {
                     var arg = symbol.args[i],
                         item;
-                    if (typeof arg === 'string') item = arg;
-                    else {
+                    if (typeof arg === 'string') {
+                        item = arg;
+                    } else {
                         item = this.latex(arg, option);
                     }
                     input.push(item);
                 }
 
                 if (fname === SQRT) {
-                    v[index] = '\\sqrt' + this.braces(input.join(','));
+                    v[index] = `\\sqrt${this.braces(input.join(','))}`;
                 } else if (fname === ABS) {
                     v[index] = this.brackets(input.join(','), 'abs');
                 } else if (fname === PARENTHESIS) {
                     v[index] = this.brackets(input.join(','), 'parens');
                 } else if (fname === 'limit') {
-                    v[index] = ' \\lim\\limits_{' + input[1] + ' \\to ' + input[2] + '} ' + input[0];
+                    v[index] = ` \\lim\\limits_{${input[1]} \\to ${input[2]}} ${input[0]}`;
                 } else if (fname === 'integrate') {
-                    v[index] = '\\int' + this.braces(input[0]) + this.braces('d' + input[1]);
+                    v[index] = `\\int${this.braces(input[0])}${this.braces(`d${input[1]}`)}`;
                 } else if (fname === 'defint') {
-                    v[index] =
-                        '\\int\\limits_' +
-                        this.braces(input[1]) +
-                        '^' +
-                        this.braces(input[2]) +
-                        ' ' +
-                        input[0] +
-                        ' d' +
-                        input[3];
+                    v[index] = `\\int\\limits_${this.braces(input[1])}^${this.braces(input[2])} ${input[0]} d${
+                        input[3]
+                    }`;
                 } else if (fname === FACTORIAL || fname === DOUBLEFACTORIAL) {
                     var arg = symbol.args[0];
                     if (arg.power.equals(1) && (arg.isComposite() || arg.isCombination())) {
@@ -10529,74 +11352,61 @@ var nerdamer = (function (imports) {
                     }
                     v[index] = input[0] + (fname === FACTORIAL ? '!' : '!!');
                 } else if (fname === 'floor') {
-                    v[index] = '\\left \\lfloor' + this.braces(input[0]) + '\\right \\rfloor';
+                    v[index] = `\\left \\lfloor${this.braces(input[0])}\\right \\rfloor`;
                 } else if (fname === 'ceil') {
-                    v[index] = '\\left \\lceil' + this.braces(input[0]) + '\\right \\rceil';
+                    v[index] = `\\left \\lceil${this.braces(input[0])}\\right \\rceil`;
                 }
                 // capture log(a, b)
                 else if (fname === Settings.LOG && input.length > 1) {
                     v[index] =
-                        '\\mathrm' + this.braces(Settings.LOG) + '_' + this.braces(input[1]) + this.brackets(input[0]);
+                        `\\mathrm${this.braces(Settings.LOG)}_${this.braces(input[1])}${this.brackets(input[0])}`;
                 }
                 // capture log(a, b)
                 else if (fname === Settings.LOG10) {
-                    v[index] = '\\mathrm' + this.braces(Settings.LOG) + '_' + this.braces(10) + this.brackets(input[0]);
+                    v[index] = `\\mathrm${this.braces(Settings.LOG)}_${this.braces(10)}${this.brackets(input[0])}`;
                 } else if (fname === Settings.LOG2) {
-                    v[index] = '\\mathrm' + this.braces(Settings.LOG) + '_' + this.braces(2) + this.brackets(input[0]);
+                    v[index] = `\\mathrm${this.braces(Settings.LOG)}_${this.braces(2)}${this.brackets(input[0])}`;
                 } else if (fname === Settings.LOG1P) {
-                    v[index] = '\\ln' + this.brackets('1 + ' + input[0]);
+                    v[index] = `\\ln${this.brackets(`1 + ${input[0]}`)}`;
                 } else if (fname === 'sum') {
                     var a = input[0],
                         b = input[1],
                         c = input[2],
                         d = input[3];
-                    v[index] =
-                        '\\sum\\limits_{' +
-                        this.braces(b) +
-                        '=' +
-                        this.braces(c) +
-                        '}^' +
-                        this.braces(d) +
-                        ' ' +
-                        this.braces(a) +
-                        '';
+                    v[index] = `\\sum\\limits_{${this.braces(b)}=${this.braces(c)}}^${this.braces(d)} ${this.braces(
+                        a
+                    )}`;
                 } else if (fname === 'product') {
                     var a = input[0],
                         b = input[1],
                         c = input[2],
                         d = input[3];
-                    v[index] =
-                        '\\prod\\limits_{' +
-                        this.braces(b) +
-                        '=' +
-                        this.braces(c) +
-                        '}^' +
-                        this.braces(d) +
-                        ' ' +
-                        this.braces(a) +
-                        '';
+                    v[index] = `\\prod\\limits_{${this.braces(b)}=${this.braces(c)}}^${this.braces(d)} ${this.braces(
+                        a
+                    )}`;
                 } else if (fname === 'nthroot') {
-                    v[index] = '\\sqrt[' + input[1] + ']' + this.braces(input[0]);
+                    v[index] = `\\sqrt[${input[1]}]${this.braces(input[0])}`;
                 } else if (fname === 'mod') {
-                    v[index] = input[0] + ' \\bmod ' + input[1];
+                    v[index] = `${input[0]} \\bmod ${input[1]}`;
                 } else if (fname === 'realpart') {
-                    v[index] = '\\operatorname{Re}' + this.brackets(input[0]);
+                    v[index] = `\\operatorname{Re}${this.brackets(input[0])}`;
                 } else if (fname === 'imagpart') {
-                    v[index] = '\\operatorname{Im}' + this.brackets(input[0]);
+                    v[index] = `\\operatorname{Im}${this.brackets(input[0])}`;
                 } else {
-                    var name = fname !== '' ? '\\mathrm' + this.braces(fname.replace(/_/g, '\\_')) : '';
-                    if (symbol.isConversion) v[index] = name + this.brackets(input.join(''), 'parens');
-                    else v[index] = name + this.brackets(input.join(','), 'parens');
+                    var name = fname !== '' ? `\\mathrm${this.braces(fname.replace(/_/g, '\\_'))}` : '';
+                    if (symbol.isConversion) {
+                        v[index] = name + this.brackets(input.join(''), 'parens');
+                    } else {
+                        v[index] = name + this.brackets(input.join(','), 'parens');
+                    }
                 }
             } else if (symbol.isComposite()) {
-                var collected = symbol.collectSymbols().sort(
+                const collected = symbol.collectSymbols().sort(
                         group === CP || previousGroup === CP
-                            ? function (a, b) {
-                                  return b.group - a.group;
-                              }
-                            : function (a, b) {
-                                  var x = isSymbol(a.power) ? -1 : a.power;
-                                  var y = isSymbol(b.power) ? -1 : b.power;
+                            ? (a, b) => b.group - a.group
+                            : (a, b) => {
+                                  const x = isSymbol(a.power) ? -1 : a.power;
+                                  const y = isSymbol(b.power) ? -1 : b.power;
                                   return y - x;
                               }
                     ),
@@ -10612,22 +11422,24 @@ var nerdamer = (function (imports) {
                         ? this.brackets(value, 'parens')
                         : value;
             } else if (group === CB || previousGroup === EX || previousGroup === CB) {
-                if (group === CB) symbol.distributeExponent();
+                if (group === CB) {
+                    symbol.distributeExponent();
+                }
                 // This almost feels a little like cheating but I need to know if I should be wrapping the symbol
                 // in brackets or not. We'll do this by checking the value of the numerator and then comparing it
                 // to whether the symbol value is "simple" or not.
-                var denominator = [],
+                const denominator = [],
                     numerator = [];
                 // Generate a profile
-                var den_map = [],
+                let den_map = [],
                     num_map = [],
                     num_c = 0,
                     den_c = 0;
-                var setBrackets = function (container, map, counter) {
+                const setBrackets = function (container, map, counter) {
                     if (counter > 1 && map.length > 0) {
-                        var l = map.length;
-                        for (var i = 0; i < l; i++) {
-                            var idx = map[i],
+                        const l = map.length;
+                        for (let i = 0; i < l; i++) {
+                            const idx = map[i],
                                 item = container[idx];
                             if (!(/^\\left\(.+\\right\)\^\{.+\}$/g.test(item) || /^\\left\(.+\\right\)$/g.test(item))) {
                                 container[idx] = LaTeX.brackets(item, 'parens');
@@ -10638,16 +11450,17 @@ var nerdamer = (function (imports) {
                 };
 
                 // Generate latex for each of them
-                symbol.each(function (x) {
-                    var isDenom = isNegative(x.power),
+                symbol.each(x => {
+                    let isDenom = isNegative(x.power),
                         laTex;
 
                     if (isDenom) {
                         laTex = LaTeX.latex(x.invert(), option);
                         den_c++;
                         if (x.isComposite()) {
-                            if (symbol.multiplier.den != 1 && Math.abs(x.power) == 1)
+                            if (symbol.multiplier.den != 1 && Math.abs(x.power) == 1) {
                                 laTex = LaTeX.brackets(laTex, 'parens');
+                            }
                             den_map.push(denominator.length); // make a note of where the composite was found
                         }
 
@@ -10656,8 +11469,9 @@ var nerdamer = (function (imports) {
                         laTex = LaTeX.latex(x, option);
                         num_c++;
                         if (x.isComposite()) {
-                            if (symbol.multiplier.num != 1 && Math.abs(x.power) == 1)
+                            if (symbol.multiplier.num != 1 && Math.abs(x.power) == 1) {
                                 laTex = LaTeX.brackets(laTex, 'parens');
+                            }
                             num_map.push(numerator.length); // make a note of where the composite was found
                         }
                         numerator.push(laTex);
@@ -10674,12 +11488,14 @@ var nerdamer = (function (imports) {
 
             return v;
         },
-        set: function (m, v, p, combine_power) {
-            var isBracketed = function (v) {
+        set(m, v, p, combine_power) {
+            const isBracketed = function (v) {
                 return /^\\left\(.+\\right\)$/.test(v);
             };
             // format the power if it exists
-            if (p) p = this.formatP(p);
+            if (p) {
+                p = this.formatP(p);
+            }
             // group CB will have to be wrapped since the power applies to both it's numerator and denominator
             if (combine_power) {
                 // POSSIBLE BUG: If powers for group CB format wrong, investigate this since I might have overlooked something
@@ -10691,40 +11507,56 @@ var nerdamer = (function (imports) {
 
             // merge v and p. Not that v MUST be first since the order matters
             v = this.merge(v, p);
-            var mn = m[0],
+            let mn = m[0],
                 md = m[1],
                 vn = v[0],
                 vd = v[1];
             // filters
             // if the top has a variable but the numerator is one drop it
-            if (vn && Number(mn) === 1) mn = '';
+            if (vn && Number(mn) === 1) {
+                mn = '';
+            }
             // if denominator is 1 drop it always
-            if (Number(md) === 1) md = '';
+            if (Number(md) === 1) {
+                md = '';
+            }
             // prepare the top portion but check that it's not already bracketed. If it is then leave out the cdot
-            var top = this.join(mn, vn, !isBracketed(vn) ? this.dot : '');
+            const top = this.join(mn, vn, !isBracketed(vn) ? this.dot : '');
 
             // prepare the bottom portion but check that it's not already bracketed. If it is then leave out the cdot
-            var bottom = this.join(md, vd, !isBracketed(vd) ? this.dot : '');
+            const bottom = this.join(md, vd, !isBracketed(vd) ? this.dot : '');
             // format the power if it exists
             // make it a fraction if both top and bottom exists
             if (top && bottom) {
-                var frac = this.frac(top, bottom);
-                if (combine_power && tp) frac = this.brackets(frac) + tp;
+                let frac = this.frac(top, bottom);
+                if (combine_power && tp) {
+                    frac = this.brackets(frac) + tp;
+                }
                 return frac;
             }
             // otherwise only the top exists so return that
-            else return top;
+            else {
+                return top;
+            }
         },
-        merge: function (a, b) {
-            var r = [];
-            for (var i = 0; i < 2; i++) r[i] = a[i] + b[i];
+        merge(a, b) {
+            const r = [];
+            for (let i = 0; i < 2; i++) {
+                r[i] = a[i] + b[i];
+            }
             return r;
         },
         // joins together two strings if both exist
-        join: function (n, d, glue) {
-            if (!n && !d) return '';
-            if (n && !d) return n;
-            if (d && !n) return d;
+        join(n, d, glue) {
+            if (!n && !d) {
+                return '';
+            }
+            if (n && !d) {
+                return n;
+            }
+            if (d && !n) {
+                return d;
+            }
             return n + glue + d;
         },
         /**
@@ -10733,26 +11565,28 @@ var nerdamer = (function (imports) {
          * @param {string} v
          * @returns {string}
          */
-        formatSubscripts: function (v) {
+        formatSubscripts(v) {
             // Split it at the underscore
-            var arr = v.toString().split('_');
+            const arr = v.toString().split('_');
 
-            var name = '';
+            let name = '';
 
             // Loop over all entries except the first one
             while (arr.length > 1) {
                 // Wrap all in braces except for the last one
                 if (arr.length > 0) {
-                    name = '_' + this.braces(arr.pop() + name);
+                    name = `_${this.braces(arr.pop() + name)}`;
                 }
             }
 
             return arr[0] + name;
         },
-        formatP: function (p_array) {
-            for (var i = 0; i < 2; i++) {
-                var p = p_array[i];
-                if (p) p_array[i] = '^' + this.braces(p);
+        formatP(p_array) {
+            for (let i = 0; i < 2; i++) {
+                const p = p_array[i];
+                if (p) {
+                    p_array[i] = `^${this.braces(p)}`;
+                }
             }
             return p_array;
         },
@@ -10762,32 +11596,36 @@ var nerdamer = (function (imports) {
          * @param {Frac} f
          * @param {boolean} is_pow
          */
-        formatFrac: function (f, is_pow) {
-            var n = f.num.toString(),
+        formatFrac(f, is_pow) {
+            const n = f.num.toString(),
                 d = f.den.toString();
             // no need to have x^1
-            if (is_pow && n === '1' && d === '1') return '';
+            if (is_pow && n === '1' && d === '1') {
+                return '';
+            }
             // no need to have x/1
-            if (d === '1') return n;
+            if (d === '1') {
+                return n;
+            }
             return this.frac(n, d);
         },
-        frac: function (n, d) {
-            return '\\frac' + this.braces(n) + this.braces(d);
+        frac(n, d) {
+            return `\\frac${this.braces(n)}${this.braces(d)}`;
         },
-        braces: function (e) {
-            return '{' + e + '}';
+        braces(e) {
+            return `{${e}}`;
         },
-        brackets: function (e, typ) {
+        brackets(e, typ) {
             typ = typ || 'parens';
-            var bracketTypes = {
+            const bracketTypes = {
                 parens: ['(', ')'],
                 square: ['[', ']'],
                 brace: ['{', '}'],
                 abs: ['|', '|'],
                 angle: ['\\langle', '\\rangle'],
             };
-            var bracket = bracketTypes[typ];
-            return '\\left' + bracket[0] + e + '\\right' + bracket[1];
+            const bracket = bracketTypes[typ];
+            return `\\left${bracket[0]}${e}\\right${bracket[1]}`;
         },
         /**
          * Removes extreneous tokens
@@ -10795,8 +11633,8 @@ var nerdamer = (function (imports) {
          * @param {Tokens[]} tokens
          * @returns {Tokens[]}
          */
-        filterTokens: function (tokens) {
-            var filtered = [];
+        filterTokens(tokens) {
+            const filtered = [];
 
             // Copy over the type of the scope
             if (isArray(tokens)) {
@@ -10804,10 +11642,10 @@ var nerdamer = (function (imports) {
             }
 
             // the items that need to be disposed
-            var d = ['\\', 'left', 'right', 'big', 'Big', 'large', 'Large'];
-            for (var i = 0, l = tokens.length; i < l; i++) {
-                var token = tokens[i];
-                var next_token = tokens[i + 1];
+            const d = ['\\', 'left', 'right', 'big', 'Big', 'large', 'Large'];
+            for (let i = 0, l = tokens.length; i < l; i++) {
+                const token = tokens[i];
+                const next_token = tokens[i + 1];
                 if (token.value === '\\' && next_token.value === '\\') {
                     filtered.push(token);
                 } else if (isArray(token)) {
@@ -10823,23 +11661,23 @@ var nerdamer = (function (imports) {
          * @param {Tokens[]} rpn
          * @returns {string}
          */
-        parse: function (raw_tokens) {
+        parse(raw_tokens) {
             var i, l;
-            var retval = '';
-            var tokens = this.filterTokens(raw_tokens);
-            var replace = {
+            let retval = '';
+            const tokens = this.filterTokens(raw_tokens);
+            const replace = {
                 cdot: '',
                 times: '',
                 infty: 'Infinity',
             };
             // get the next token
-            var next = function (n) {
+            const next = function (n) {
                 return tokens[typeof n === 'undefined' ? ++i : (i += n)];
             };
-            var parse_next = function () {
+            const parse_next = function () {
                 return LaTeX.parse(next());
             };
-            var get = function (token) {
+            const get = function (token) {
                 if (token in replace) {
                     return replace[token];
                 }
@@ -10862,18 +11700,18 @@ var nerdamer = (function (imports) {
 
             // start parsing the tokens
             for (i = 0, l = tokens.length; i < l; i++) {
-                var token = tokens[i];
+                const token = tokens[i];
                 // fractions
                 if (token.value === 'frac') {
                     // parse and wrap it in brackets
-                    var n = parse_next();
-                    var d = parse_next();
-                    retval += n + '/' + d;
+                    const n = parse_next();
+                    const d = parse_next();
+                    retval += `${n}/${d}`;
                 } else if (token.value in LaTeX.symbols) {
                     if (token.value === SQRT && tokens[i + 1].type === 'vector' && tokens[i + 2].type === 'Set') {
-                        var base = parse_next();
-                        var expr = parse_next();
-                        retval += expr + '^' + inBrackets('1/' + base);
+                        const base = parse_next();
+                        const expr = parse_next();
+                        retval += `${expr}^${inBrackets(`1/${base}`)}`;
                     } else {
                         retval += token.value + parse_next();
                     }
@@ -10884,7 +11722,7 @@ var nerdamer = (function (imports) {
                     // get the variable of integration
                     var dx = next().value;
                     dx = get(dx.substring(1, dx.length));
-                    retval += 'integrate' + inBrackets(f + ',' + dx);
+                    retval += `integrate${inBrackets(`${f},${dx}`)}`;
                 } else if (token.value === 'int_') {
                     var l = parse_next(); // lower
                     i++; // skip the ^
@@ -10913,7 +11751,7 @@ var nerdamer = (function (imports) {
                         i++;
                         var dx = next().value;
                     }
-                    retval += 'defint' + inBrackets(f + ',' + l + ',' + u + ',' + dx);
+                    retval += `defint${inBrackets(`${f},${l},${u},${dx}`)}`;
                 } else if (token.value && token.value.startsWith('int_')) {
                     // var l = parse_next(); // lower
                     var l = token.value.replace('int_', '');
@@ -10944,22 +11782,22 @@ var nerdamer = (function (imports) {
                         i++;
                         var dx = next().value;
                     }
-                    retval += 'defint' + inBrackets(f + ',' + l + ',' + u + ',' + dx);
+                    retval += `defint${inBrackets(`${f},${l},${u},${dx}`)}`;
                 } else if (token.value === 'mathrm') {
                     var f = tokens[++i][0].value;
                     retval += f + parse_next();
                 }
                 // sum and product
                 else if (token.value === 'sum_' || token.value === 'prod_') {
-                    var fn = token.value === 'sum_' ? 'sum' : 'product';
+                    const fn = token.value === 'sum_' ? 'sum' : 'product';
                     var nxt = next();
                     i++; // skip the caret
-                    var end = parse_next();
+                    const end = parse_next();
                     var f = parse_next();
                     retval += fn + inBrackets([f, get(nxt[0]), get(nxt[2]), get(end)].join(','));
                 } else if (token.value === 'lim_') {
                     var nxt = next();
-                    retval += 'limit' + inBrackets([parse_next(), get(nxt[0]), get(nxt[2])].join(','));
+                    retval += `limit${inBrackets([parse_next(), get(nxt[0]), get(nxt[2])].join(','))}`;
                 } else if (token.value === 'begin') {
                     var nxt = next();
                     if (Array.isArray(nxt)) {
@@ -10993,9 +11831,11 @@ var nerdamer = (function (imports) {
     //Vector =======================================================================
     function Vector(v) {
         this.multiplier = new Frac(1);
-        if (isVector(v)) this.elements = v.items.slice(0);
-        else if (isArray(v)) this.elements = v.slice(0);
-        else if (isMatrix(v)) {
+        if (isVector(v)) {
+            this.elements = v.items.slice(0);
+        } else if (isArray(v)) {
+            this.elements = v.slice(0);
+        } else if (isMatrix(v)) {
             if (v.elements.length === 1) {
                 this.elements = [...v.elements[0]];
                 this.rowVector = true;
@@ -11003,7 +11843,9 @@ var nerdamer = (function (imports) {
                 this.elements = v.elements.map(row => row[0]);
                 this.rowVector = false;
             }
-        } else this.elements = [].slice.call(arguments);
+        } else {
+            this.elements = [].slice.call(arguments);
+        }
     }
     /*
      * Generates a pre-filled array
@@ -11012,9 +11854,11 @@ var nerdamer = (function (imports) {
      * @returns {*}
      */
     Vector.arrayPrefill = function (n, val) {
-        var a = [];
+        const a = [];
         val = val || 0;
-        for (var i = 0; i < n; i++) a[i] = val;
+        for (let i = 0; i < n; i++) {
+            a[i] = val;
+        }
         return a;
     };
     /**
@@ -11024,7 +11868,7 @@ var nerdamer = (function (imports) {
      * @returns {any}
      */
     Vector.fromArray = function (a) {
-        var v = new Vector();
+        const v = new Vector();
         v.elements = a;
         return v;
     };
@@ -11043,22 +11887,24 @@ var nerdamer = (function (imports) {
     Vector.prototype = {
         custom: true,
         // Returns element i of the vector
-        e: function (i) {
+        e(i) {
             return i < 1 || i > this.elements.length ? null : this.elements[i - 1];
         },
 
-        set: function (i, val) {
-            if (!isSymbol(val)) val = new NerdamerSymbol(val);
+        set(i, val) {
+            if (!isSymbol(val)) {
+                val = new NerdamerSymbol(val);
+            }
             this.elements[i] = val;
         },
 
         // Returns the number of elements the vector has
-        dimensions: function () {
+        dimensions() {
             return this.elements.length;
         },
 
         // Returns the modulus ('length') of the vector
-        modulus: function () {
+        modulus() {
             return block(
                 'SAFE',
                 function () {
@@ -11070,14 +11916,14 @@ var nerdamer = (function (imports) {
         },
 
         // Returns true iff the vector is equal to the argument
-        eql: function (vector) {
-            var n = this.elements.length;
-            var V = vector.elements || vector;
+        eql(vector) {
+            let n = this.elements.length;
+            const V = vector.elements || vector;
             if (n !== V.length) {
                 return false;
             }
             do {
-                if (Math.abs(_.subtract(this.elements[n - 1], V[n - 1]).valueOf()) > PRECISION) {
+                if (Math.abs(_.subtract(this.elements[n - 1], V[n - 1]).valueOf()) > Settings.PRECISION) {
                     return false;
                 }
             } while (--n);
@@ -11085,10 +11931,10 @@ var nerdamer = (function (imports) {
         },
 
         // Returns a clone of the vector
-        clone: function () {
-            var V = new Vector(),
+        clone() {
+            const V = new Vector(),
                 l = this.elements.length;
-            for (var i = 0; i < l; i++) {
+            for (let i = 0; i < l; i++) {
                 //Rule: all items within the vector must have a clone method.
                 V.elements.push(this.elements[i].clone());
             }
@@ -11096,15 +11942,15 @@ var nerdamer = (function (imports) {
             return V;
         },
 
-        expand: function (options) {
+        expand(options) {
             this.elements = this.elements.map(e => _.expand(e, options));
             return this;
         },
 
         // Maps the vector to another vector according to the given function
-        map: function (fn) {
-            var elements = [];
-            this.each(function (x, i) {
+        map(fn) {
+            const elements = [];
+            this.each((x, i) => {
                 elements.push(fn(x, i));
             });
 
@@ -11112,8 +11958,8 @@ var nerdamer = (function (imports) {
         },
 
         // Calls the iterator for each element of the vector in turn
-        each: function (fn) {
-            var n = this.elements.length,
+        each(fn) {
+            let n = this.elements.length,
                 k = n,
                 i;
             do {
@@ -11123,17 +11969,15 @@ var nerdamer = (function (imports) {
         },
 
         // Returns a new vector created by normalizing the receiver
-        toUnitVector: function () {
+        toUnitVector() {
             return block(
                 'SAFE',
                 function () {
-                    var r = this.modulus();
+                    const r = this.modulus();
                     if (r.valueOf() === 0) {
                         return this.clone();
                     }
-                    return this.map(function (x) {
-                        return _.divide(x, r);
-                    });
+                    return this.map(x => _.divide(x, r));
                 },
                 undefined,
                 this
@@ -11141,32 +11985,32 @@ var nerdamer = (function (imports) {
         },
 
         // Returns the angle between the vector and the argument (also a vector)
-        angleFrom: function (vector) {
+        angleFrom(vector) {
             return block(
                 'SAFE',
                 function () {
-                    var V = vector.elements || vector;
-                    var n = this.elements.length;
+                    const V = vector.elements || vector;
+                    const n = this.elements.length;
                     if (n !== V.length) {
                         return null;
                     }
-                    var dot = new NerdamerSymbol(0),
+                    let dot = new NerdamerSymbol(0),
                         mod1 = new NerdamerSymbol(0),
                         mod2 = new NerdamerSymbol(0);
                     // Work things out in parallel to save time
-                    this.each(function (x, i) {
+                    this.each((x, i) => {
                         dot = _.add(dot, _.multiply(x, V[i - 1]));
                         mod1 = _.add(mod1, _.multiply(x, x)); // will not conflict in safe block
                         mod2 = _.add(mod2, _.multiply(V[i - 1], V[i - 1])); // will not conflict in safe block
                     });
                     mod1 = _.pow(mod1, new NerdamerSymbol(0.5));
                     mod2 = _.pow(mod2, new NerdamerSymbol(0.5));
-                    var product = _.multiply(mod1, mod2);
+                    const product = _.multiply(mod1, mod2);
                     if (product.valueOf() === 0) {
                         return null;
                     }
-                    var theta = _.divide(dot, product);
-                    var theta_val = theta.valueOf();
+                    let theta = _.divide(dot, product);
+                    const theta_val = theta.valueOf();
                     if (theta_val < -1) {
                         theta = -1;
                     }
@@ -11181,35 +12025,33 @@ var nerdamer = (function (imports) {
         },
 
         // Returns true iff the vector is parallel to the argument
-        isParallelTo: function (vector) {
-            var angle = this.angleFrom(vector).valueOf();
-            return angle === null ? null : angle <= PRECISION;
+        isParallelTo(vector) {
+            const angle = this.angleFrom(vector).valueOf();
+            return angle === null ? null : angle <= Settings.PRECISION;
         },
 
         // Returns true iff the vector is antiparallel to the argument
-        isAntiparallelTo: function (vector) {
-            var angle = this.angleFrom(vector).valueOf();
-            return angle === null ? null : Math.abs(angle - Math.PI) <= PRECISION;
+        isAntiparallelTo(vector) {
+            const angle = this.angleFrom(vector).valueOf();
+            return angle === null ? null : Math.abs(angle - Math.PI) <= Settings.PRECISION;
         },
 
         // Returns true iff the vector is perpendicular to the argument
-        isPerpendicularTo: function (vector) {
-            var dot = this.dot(vector);
-            return dot === null ? null : Math.abs(dot) <= PRECISION;
+        isPerpendicularTo(vector) {
+            const dot = this.dot(vector);
+            return dot === null ? null : Math.abs(dot) <= Settings.PRECISION;
         },
 
         // Returns the result of adding the argument to the vector
-        add: function (vector) {
+        add(vector) {
             return block(
                 'SAFE',
                 function () {
-                    var V = vector.elements || vector;
+                    const V = vector.elements || vector;
                     if (this.elements.length !== V.length) {
                         return null;
                     }
-                    return this.map(function (x, i) {
-                        return _.add(x, V[i - 1]);
-                    });
+                    return this.map((x, i) => _.add(x, V[i - 1]));
                 },
                 undefined,
                 this
@@ -11217,17 +12059,15 @@ var nerdamer = (function (imports) {
         },
 
         // Returns the result of subtracting the argument from the vector
-        subtract: function (vector) {
+        subtract(vector) {
             return block(
                 'SAFE',
                 function () {
-                    var V = vector.elements || vector;
+                    const V = vector.elements || vector;
                     if (this.elements.length !== V.length) {
                         return null;
                     }
-                    return this.map(function (x, i) {
-                        return _.subtract(x, V[i - 1]);
-                    });
+                    return this.map((x, i) => _.subtract(x, V[i - 1]));
                 },
                 undefined,
                 this
@@ -11235,24 +12075,22 @@ var nerdamer = (function (imports) {
         },
 
         // Returns the result of multiplying the elements of the vector by the argument
-        multiply: function (k) {
-            return this.map(function (x) {
-                return x.clone() * k.clone();
-            });
+        multiply(k) {
+            return this.map(x => x.clone() * k.clone());
         },
 
-        x: function (k) {
+        x(k) {
             return this.multiply(k);
         },
 
         // Returns the scalar product of the vector with the argument
         // Both vectors must have equal dimensionality
-        dot: function (vector) {
+        dot(vector) {
             return block(
                 'SAFE',
                 function () {
-                    var V = vector.elements || vector;
-                    var product = new NerdamerSymbol(0),
+                    const V = vector.elements || vector;
+                    let product = new NerdamerSymbol(0),
                         n = this.elements.length;
                     if (n !== V.length) {
                         return null;
@@ -11269,16 +12107,16 @@ var nerdamer = (function (imports) {
 
         // Returns the vector product of the vector with the argument
         // Both vectors must have dimensionality 3
-        cross: function (vector) {
-            var B = vector.elements || vector;
+        cross(vector) {
+            const B = vector.elements || vector;
             if (this.elements.length !== 3 || B.length !== 3) {
                 return null;
             }
             const rowVector = this.rowVector && vector.rowVector;
-            var A = this.elements;
+            const A = this.elements;
             return block(
                 'SAFE',
-                function () {
+                () => {
                     const result = new Vector([
                         _.subtract(_.multiply(A[1], B[2]), _.multiply(A[2], B[1])),
                         _.subtract(_.multiply(A[2], B[0]), _.multiply(A[0], B[2])),
@@ -11292,13 +12130,13 @@ var nerdamer = (function (imports) {
             );
         },
 
-        toUnitMultiplier: function () {
+        toUnitMultiplier() {
             return this;
         },
 
         // Returns the (absolute) largest element of the vector
-        max: function () {
-            var m = 0,
+        max() {
+            let m = 0,
                 n = this.elements.length,
                 k = n,
                 i;
@@ -11310,16 +12148,16 @@ var nerdamer = (function (imports) {
             } while (--n);
             return m;
         },
-        magnitude: function () {
-            var magnitude = new NerdamerSymbol(0);
-            this.each(function (e) {
+        magnitude() {
+            let magnitude = new NerdamerSymbol(0);
+            this.each(e => {
                 magnitude = _.add(magnitude, _.pow(e, new NerdamerSymbol(2)));
             });
             return _.sqrt(magnitude);
         },
         // Returns the index of the first match found
-        indexOf: function (x) {
-            var index = null,
+        indexOf(x) {
+            let index = null,
                 n = this.elements.length,
                 k = n,
                 i;
@@ -11331,30 +12169,30 @@ var nerdamer = (function (imports) {
             } while (--n);
             return index;
         },
-        text_: function (x, options) {
-            let result = text(this, options);
+        text_(x, options) {
+            const result = text(this, options);
             return (this.rowVector ? '[' : '') + result + (this.rowVector ? ']' : '');
         },
-        text: function (x, options) {
-            let result = text(this, options);
+        text(x, options) {
+            const result = text(this, options);
             return (this.rowVector ? '[' : '') + result + (this.rowVector ? ']' : '');
         },
-        toString: function () {
+        toString() {
             return this.text();
         },
-        latex: function (option) {
-            var tex = [];
-            for (var i = 0; i < this.elements.length; i++) {
+        latex(option) {
+            const tex = [];
+            for (let i = 0; i < this.elements.length; i++) {
                 tex.push(LaTeX.latex.call(LaTeX, this.elements[i], option));
             }
-            return '[' + tex.join(', ') + ']';
+            return `[${tex.join(', ')}]`;
         },
     };
 
     //Matrix =======================================================================
     function Matrix() {
         this.multiplier = new Frac(1);
-        var m = arguments,
+        let m = arguments,
             l = m.length,
             i,
             el = [];
@@ -11364,13 +12202,19 @@ var nerdamer = (function (imports) {
                 el.push(m[i].slice(0));
             }
         } else {
-            var row, lw, rl;
+            let row, lw, rl;
             for (i = 0; i < l; i++) {
                 row = m[i];
-                if (isVector(row)) row = row.elements;
-                if (!isArray(row)) row = [row];
+                if (isVector(row)) {
+                    row = row.elements;
+                }
+                if (!isArray(row)) {
+                    row = [row];
+                }
                 rl = row.length;
-                if (lw && lw !== rl) err('Unable to create Matrix. Row dimensions do not match!');
+                if (lw && lw !== rl) {
+                    err('Unable to create Matrix. Row dimensions do not match!');
+                }
                 el.push(row);
                 lw = rl;
             }
@@ -11378,10 +12222,10 @@ var nerdamer = (function (imports) {
         this.elements = el;
     }
     Matrix.identity = function (n) {
-        var m = new Matrix();
-        for (var i = 0; i < n; i++) {
+        const m = new Matrix();
+        for (let i = 0; i < n; i++) {
             m.elements.push([]);
-            for (var j = 0; j < n; j++) {
+            for (let j = 0; j < n; j++) {
                 m.set(i, j, i === j ? new NerdamerSymbol(1) : new NerdamerSymbol(0));
             }
         }
@@ -11396,8 +12240,8 @@ var nerdamer = (function (imports) {
         return new F(arr);
     };
     Matrix.zeroMatrix = function (rows, cols) {
-        var m = new Matrix();
-        for (var i = 0; i < rows; i++) {
+        const m = new Matrix();
+        for (let i = 0; i < rows; i++) {
             m.elements.push(Vector.arrayPrefill(cols, new NerdamerSymbol(0)));
         }
         return m;
@@ -11405,42 +12249,50 @@ var nerdamer = (function (imports) {
     Matrix.prototype = {
         // needs be true to let the parser know not to try to cast it to a symbol
         custom: true,
-        get: function (row, column) {
-            if (!this.elements[row]) return undefined;
+        get(row, column) {
+            if (!this.elements[row]) {
+                return undefined;
+            }
             return this.elements[row][column];
         },
-        map: function (f, raw_values) {
-            var M = new Matrix();
-            this.each(function (e, i, j) {
+        map(f, raw_values) {
+            const M = new Matrix();
+            this.each((e, i, j) => {
                 M.set(i, j, f.call(M, e), raw_values);
             });
             return M;
         },
-        set: function (row, column, value, raw) {
-            if (!this.elements[row]) this.elements[row] = [];
+        set(row, column, value, raw) {
+            if (!this.elements[row]) {
+                this.elements[row] = [];
+            }
             this.elements[row][column] = raw ? value : isSymbol(value) ? value : new NerdamerSymbol(value);
         },
-        cols: function () {
+        cols() {
             return this.elements[0].length;
         },
-        rows: function () {
+        rows() {
             return this.elements.length;
         },
-        row: function (n) {
-            if (!n || n > this.cols()) return [];
+        row(n) {
+            if (!n || n > this.cols()) {
+                return [];
+            }
             return this.elements[n - 1];
         },
-        col: function (n) {
-            var nr = this.rows(),
+        col(n) {
+            const nr = this.rows(),
                 col = [];
-            if (n > this.cols() || !n) return col;
-            for (var i = 0; i < nr; i++) {
+            if (n > this.cols() || !n) {
+                return col;
+            }
+            for (let i = 0; i < nr; i++) {
                 col.push(this.elements[i][n - 1]);
             }
             return col;
         },
-        eachElement: function (fn) {
-            var nr = this.rows(),
+        eachElement(fn) {
+            let nr = this.rows(),
                 nc = this.cols(),
                 i,
                 j;
@@ -11451,12 +12303,12 @@ var nerdamer = (function (imports) {
             }
         },
         // ported from Sylvester.js
-        determinant: function () {
+        determinant() {
             if (!this.isSquare()) {
                 return null;
             }
-            var M = this.toRightTriangular();
-            var det = M.elements[0][0],
+            const M = this.toRightTriangular();
+            let det = M.elements[0][0],
                 n = M.elements.length - 1,
                 k = n,
                 i;
@@ -11466,65 +12318,69 @@ var nerdamer = (function (imports) {
             } while (--n);
             return det;
         },
-        isSquare: function () {
+        isSquare() {
             return this.elements.length === this.elements[0].length;
         },
-        isSingular: function () {
+        isSingular() {
             return this.isSquare() && this.determinant() === 0;
         },
-        augment: function (m) {
-            var r = this.rows(),
+        augment(m) {
+            const r = this.rows(),
                 rr = m.rows();
-            if (r !== rr) err("Cannot augment matrix. Rows don't match.");
-            for (var i = 0; i < r; i++) {
+            if (r !== rr) {
+                err("Cannot augment matrix. Rows don't match.");
+            }
+            for (let i = 0; i < r; i++) {
                 this.elements[i] = this.elements[i].concat(m.elements[i]);
             }
 
             return this;
         },
-        clone: function () {
-            var r = this.rows(),
+        clone() {
+            const r = this.rows(),
                 c = this.cols(),
                 m = new Matrix();
-            for (var i = 0; i < r; i++) {
+            for (let i = 0; i < r; i++) {
                 m.elements[i] = [];
-                for (var j = 0; j < c; j++) {
-                    var symbol = this.elements[i][j];
+                for (let j = 0; j < c; j++) {
+                    const symbol = this.elements[i][j];
                     m.elements[i][j] = isSymbol(symbol) ? symbol.clone() : symbol;
                 }
             }
             return m;
         },
-        toUnitMultiplier: function () {
+        toUnitMultiplier() {
             return this;
         },
-        expand: function (options) {
+        expand(options) {
             this.eachElement(e => _.expand(e, options));
             return this;
         },
-        evaluate: function (options) {
+        evaluate(options) {
             this.eachElement(e => _.evaluate(e, options));
             return this;
         },
 
         // ported from Sylvester.js
-        invert: function () {
-            if (!this.isSquare()) err('Matrix is not square!');
+        invert() {
+            if (!this.isSquare()) {
+                err('Matrix is not square!');
+            }
             return block(
                 'SAFE',
                 function () {
-                    var ni = this.elements.length,
+                    let ni = this.elements.length,
                         ki = ni,
                         i,
                         j;
-                    var imatrix = Matrix.identity(ni);
-                    var M = this.augment(imatrix).toRightTriangular();
-                    var np,
+                    const imatrix = Matrix.identity(ni);
+                    const M = this.augment(imatrix).toRightTriangular();
+                    let np,
                         kp = M.elements[0].length,
                         p,
                         els,
                         divisor;
-                    var inverse_elements = [],
+                    let inverse_elements = [],
                         new_element;
                     // Matrix is non-singular so there will be no zeros on the diagonal
                     // Cycle through rows from last to first
@@ -11570,7 +12426,7 @@ var nerdamer = (function (imports) {
             );
         },
         // ported from Sylvester.js
-        toRightTriangular: function () {
+        toRightTriangular() {
             return block(
                 'SAFE',
                 function () {
@@ -11605,7 +12461,7 @@ var nerdamer = (function (imports) {
                         var fel = M.elements[i][i];
                         if (fel.valueOf() !== 0) {
                             for (j = i + 1; j < k; j++) {
-                                var multiplier = _.divide(M.elements[j][i].clone(), M.elements[i][i].clone());
+                                const multiplier = _.divide(M.elements[j][i].clone(), M.elements[i][i].clone());
                                 els = [];
                                 np = kp;
                                 do {
@@ -11634,10 +12490,10 @@ var nerdamer = (function (imports) {
                 this
             );
         },
-        transpose: function () {
-            var rows = this.elements.length,
+        transpose() {
+            const rows = this.elements.length,
                 cols = this.elements[0].length;
-            var M = new Matrix(),
+            let M = new Matrix(),
                 ni = cols,
                 i,
                 nj,
@@ -11655,25 +12511,25 @@ var nerdamer = (function (imports) {
             return M;
         },
         // Returns true if the matrix can multiply the argument from the left
-        canMultiplyFromLeft: function (matrix) {
-            var l = isMatrix(matrix) ? matrix.elements.length : matrix.length;
+        canMultiplyFromLeft(matrix) {
+            const l = isMatrix(matrix) ? matrix.elements.length : matrix.length;
             // this.columns should equal matrix.rows
             return this.elements[0].length === l;
         },
-        sameSize: function (matrix) {
+        sameSize(matrix) {
             return this.rows() === matrix.rows() && this.cols() === matrix.cols();
         },
-        multiply: function (matrix) {
+        multiply(matrix) {
             return block(
                 'SAFE',
                 function () {
-                    var M = matrix.elements || matrix;
+                    const M = matrix.elements || matrix;
                     if (!this.canMultiplyFromLeft(M)) {
                         if (this.sameSize(matrix)) {
-                            var MM = new Matrix();
-                            var rows = this.rows();
+                            const MM = new Matrix();
+                            const rows = this.rows();
                             for (var i = 0; i < rows; i++) {
-                                var e = _.multiply(new Vector(this.elements[i]), new Vector(matrix.elements[i]));
+                                const e = _.multiply(new Vector(this.elements[i]), new Vector(matrix.elements[i]));
                                 MM.elements[i] = e.elements;
                             }
                             return MM;
@@ -11686,7 +12542,7 @@ var nerdamer = (function (imports) {
                         nj,
                         kj = M[0].length,
                         j;
-                    var cols = this.elements[0].length,
+                    let cols = this.elements[0].length,
                         elements = [],
                         sum,
                         nc,
@@ -11712,11 +12568,11 @@ var nerdamer = (function (imports) {
                 this
             );
         },
-        add: function (matrix, callback) {
-            var M = new Matrix();
+        add(matrix, callback) {
+            const M = new Matrix();
             if (this.sameSize(matrix)) {
-                this.eachElement(function (e, i, j) {
-                    var result = _.add(e.clone(), matrix.elements[i][j].clone());
+                this.eachElement((e, i, j) => {
+                    let result = _.add(e.clone(), matrix.elements[i][j].clone());
                     if (callback) {
                         result = callback.call(M, result, e, matrix.elements[i][j]);
                     }
@@ -11725,11 +12581,11 @@ var nerdamer = (function (imports) {
             }
             return M;
         },
-        subtract: function (matrix, callback) {
-            var M = new Matrix();
+        subtract(matrix, callback) {
+            const M = new Matrix();
             if (this.sameSize(matrix)) {
-                this.eachElement(function (e, i, j) {
-                    var result = _.subtract(e.clone(), matrix.elements[i][j].clone());
+                this.eachElement((e, i, j) => {
+                    let result = _.subtract(e.clone(), matrix.elements[i][j].clone());
                     if (callback) {
                         result = callback.call(M, result, e, matrix.elements[i][j]);
                     }
@@ -11738,49 +12594,45 @@ var nerdamer = (function (imports) {
             }
             return M;
         },
-        negate: function () {
-            this.each(function (e) {
-                return e.negate();
-            });
+        negate() {
+            this.each(e => e.negate());
             return this;
         },
-        toVector: function () {
+        toVector() {
             if (this.rows() === 1 || this.cols() === 1) {
-                var v = new Vector();
+                const v = new Vector();
                 v.elements = this.elements;
                 return v;
             }
             return this;
         },
-        toString: function (newline, to_decimal) {
-            var l = this.rows(),
+        toString(newline, to_decimal) {
+            const l = this.rows(),
                 s = [];
             newline = newline === undefined ? '\n' : newline;
-            for (var i = 0; i < l; i++) {
+            for (let i = 0; i < l; i++) {
                 s.push(
-                    '[' +
-                        this.elements[i]
-                            .map(function (x) {
-                                var v = to_decimal ? x.multiplier.toDecimal() : x.toString();
-                                return x !== undefined ? v : '';
-                            })
-                            .join(',') +
-                        ']'
+                    `[${this.elements[i]
+                        .map(x => {
+                            const v = to_decimal ? x.multiplier.toDecimal() : x.toString();
+                            return x !== undefined ? v : '';
+                        })
+                        .join(',')}]`
                 );
             }
-            return 'matrix' + inBrackets(s.join(','));
+            return `matrix${inBrackets(s.join(','))}`;
         },
-        text: function () {
-            return 'matrix(' + this.elements.map(row => '[' + row.toString('') + ']') + ')';
+        text() {
+            return `matrix(${this.elements.map(row => `[${row.toString('')}]`)})`;
         },
-        latex: function (option) {
-            var cols = this.cols(),
+        latex(option) {
+            const cols = this.cols(),
                 elements = this.elements;
-            return format('\\begin{vmatrix}{0}\\end{vmatrix}', function () {
-                var tex = [];
-                for (var row in elements) {
-                    var row_tex = [];
-                    for (var i = 0; i < cols; i++) {
+            return format('\\begin{vmatrix}{0}\\end{vmatrix}', () => {
+                const tex = [];
+                for (const row in elements) {
+                    const row_tex = [];
+                    for (let i = 0; i < cols; i++) {
                         row_tex.push(LaTeX.latex.call(LaTeX, elements[row][i], option));
                     }
                     tex.push(row_tex.join(' & '));
@@ -11795,11 +12647,13 @@ var nerdamer = (function (imports) {
     function Set(set) {
         this.elements = [];
         // if the first object isn't an array, convert it to one.
-        if (!isVector(set)) set = Vector.fromArray(arguments);
+        if (!isVector(set)) {
+            set = Vector.fromArray(arguments);
+        }
 
         if (set) {
-            var elements = set.elements;
-            for (var i = 0, l = elements.length; i < l; i++) {
+            const elements = set.elements;
+            for (let i = 0, l = elements.length; i < l; i++) {
                 this.add(elements[i]);
             }
         }
@@ -11815,50 +12669,54 @@ var nerdamer = (function (imports) {
     };
 
     Set.prototype = {
-        add: function (x) {
-            if (!this.contains(x)) this.elements.push(x.clone());
+        add(x) {
+            if (!this.contains(x)) {
+                this.elements.push(x.clone());
+            }
         },
-        contains: function (x) {
-            for (var i = 0; i < this.elements.length; i++) {
-                var e = this.elements[i];
-                if (x.equals(e)) return true;
+        contains(x) {
+            for (let i = 0; i < this.elements.length; i++) {
+                const e = this.elements[i];
+                if (x.equals(e)) {
+                    return true;
+                }
             }
             return false;
         },
-        each: function (f) {
-            var elements = this.elements;
-            var set = new Set();
-            for (var i = 0, l = elements.length; i < l; i++) {
-                var e = elements[i];
+        each(f) {
+            const elements = this.elements;
+            const set = new Set();
+            for (let i = 0, l = elements.length; i < l; i++) {
+                const e = elements[i];
                 f.call(this, e, set, i);
             }
             return set;
         },
-        clone: function () {
-            var set = new Set();
-            this.each(function (e) {
+        clone() {
+            const set = new Set();
+            this.each(e => {
                 set.add(e.clone());
             });
             return set;
         },
-        union: function (set) {
-            var _union = this.clone();
-            set.each(function (e) {
+        union(set) {
+            const _union = this.clone();
+            set.each(e => {
                 _union.add(e);
             });
 
             return _union;
         },
-        difference: function (set) {
-            var diff = this.clone();
-            set.each(function (e) {
+        difference(set) {
+            const diff = this.clone();
+            set.each(e => {
                 diff.remove(e);
             });
             return diff;
         },
-        remove: function (element) {
-            for (var i = 0, l = this.elements.length; i < l; i++) {
-                var e = this.elements[i];
+        remove(element) {
+            for (let i = 0, l = this.elements.length; i < l; i++) {
+                const e = this.elements[i];
                 if (e.equals(element)) {
                     remove(this.elements, i);
                     return true;
@@ -11866,10 +12724,10 @@ var nerdamer = (function (imports) {
             }
             return false;
         },
-        intersection: function (set) {
-            var _intersection = new Set();
-            var A = this;
-            set.each(function (e) {
+        intersection(set) {
+            const _intersection = new Set();
+            const A = this;
+            set.each(e => {
                 if (A.contains(e)) {
                     _intersection.add(e);
                 }
@@ -11877,20 +12735,20 @@ var nerdamer = (function (imports) {
 
             return _intersection;
         },
-        intersects: function (set) {
+        intersects(set) {
             return this.intersection(set).elements.length > 0;
         },
-        is_subset: function (set) {
-            var elements = set.elements;
-            for (var i = 0, l = elements.length; i < l; i++) {
+        is_subset(set) {
+            const elements = set.elements;
+            for (let i = 0, l = elements.length; i < l; i++) {
                 if (!this.contains(elements[i])) {
                     return false;
                 }
             }
             return true;
         },
-        toString: function () {
-            return '{' + this.elements.join(',') + '}';
+        toString() {
+            return `{${this.elements.join(',')}}`;
         },
     };
 
@@ -11909,7 +12767,7 @@ var nerdamer = (function (imports) {
             Li: {
                 'Math2.Ei': Math2.Ei,
                 'Math2.bigLog': Math2.bigLog,
-                Frac: Frac,
+                Frac,
             },
             Ci: {
                 'Math2.factorial': Math2.factorial,
@@ -11924,20 +12782,20 @@ var nerdamer = (function (imports) {
                 'Math2.factorial': Math2.factorial,
             },
             Chi: {
-                isInt: isInt,
-                nround: nround,
+                isInt,
+                nround,
                 'Math2.num_integrate': Math2.num_integrate,
             },
             factor: {
                 'Math2.ifactor': Math2.ifactor,
-                NerdamerSymbol: NerdamerSymbol,
+                NerdamerSymbol,
             },
             num_integrate: {
                 'Math2.simpson': Math2.simpson,
-                nround: nround,
+                nround,
             },
             fib: {
-                even: even,
+                even,
             },
         },
         /* Some functions need to be made numeric safe. Build checks if there's a
@@ -11945,153 +12803,179 @@ var nerdamer = (function (imports) {
          */
         reformat: {
             // this simply extends the build function
-            diff: function (symbol, deps) {
-                var v = symbol.args[1].toString();
-                var f = 'var f = ' + Build.build(symbol.args[0].toString(), [v]) + ';';
-                deps[1] += 'var diff = ' + Math2.diff.toString() + ';';
+            diff(symbol, deps) {
+                const v = symbol.args[1].toString();
+                const f = `var f = ${Build.build(symbol.args[0].toString(), [v])};`;
+                let diffStr = Math2.diff.toString();
+                // Handle ES6 method shorthand
+                if (!diffStr.startsWith('function') && !diffStr.startsWith('(') && !diffStr.startsWith('async')) {
+                    diffStr = 'function ' + diffStr;
+                }
+                deps[1] += `var diff = ${diffStr};`;
                 deps[1] += f;
 
-                return ['diff(f)(' + v + ')', deps];
+                return [`diff(f)(${v})`, deps];
             },
         },
-        getProperName: function (f) {
-            var map = {
+        getProperName(f) {
+            const map = {
                 continued_fraction: 'continuedFraction',
             };
             return map[f] || f;
         },
         // assumes that dependences are at max 2 levels
-        compileDependencies: function (f, deps) {
+        compileDependencies(f, deps) {
             // grab the predefined dependiences
-            var dependencies = Build.dependencies[f];
+            const dependencies = Build.dependencies[f];
 
             // the dependency string
-            var dep_string = deps && deps[1] ? deps[1] : '';
+            let dep_string = deps && deps[1] ? deps[1] : '';
 
             // the functions to be replaced
-            var replacements = deps && deps[0] ? deps[0] : {};
+            const replacements = deps && deps[0] ? deps[0] : {};
 
             // loop through them and add them to the list
-            for (var x in dependencies) {
-                if (typeof dependencies[x] === 'object') continue; // skip object
-                var components = x.split('.'); //Math.f becomes f
+            for (const x in dependencies) {
+                if (typeof dependencies[x] === 'object') {
+                    continue;
+                } // skip object
+                const components = x.split('.'); //Math.f becomes f
                 // if the function isn't part of an object then reference the function itself
-                dep_string +=
-                    'var ' + (components.length > 1 ? components[1] : components[0]) + '=' + dependencies[x] + ';';
+                let depValue = dependencies[x];
+                // If it's a function, convert method shorthand to function expression
+                if (typeof depValue === 'function') {
+                    let fnStr = depValue.toString();
+                    // Handle ES6 method shorthand like "gamma(z) { ... }" -> "function gamma(z) { ... }"
+                    if (!fnStr.startsWith('function') && !fnStr.startsWith('(') && !fnStr.startsWith('async')) {
+                        fnStr = 'function ' + fnStr;
+                    }
+                    depValue = fnStr;
+                }
+                dep_string += `var ${components.length > 1 ? components[1] : components[0]}=${depValue};`;
                 replacements[x] = components.pop();
             }
 
             return [replacements, dep_string];
         },
-        getArgsDeps: function (symbol, dependencies) {
-            var args = symbol.args;
-            for (var i = 0; i < args.length; i++) {
-                symbol.args[i].each(function (x) {
-                    if (x.group === FN) dependencies = Build.compileDependencies(x.fname, dependencies);
+        getArgsDeps(symbol, dependencies) {
+            const args = symbol.args;
+            for (let i = 0; i < args.length; i++) {
+                symbol.args[i].each(x => {
+                    if (x.group === FN) {
+                        dependencies = Build.compileDependencies(x.fname, dependencies);
+                    }
                 });
             }
             return dependencies;
         },
-        build: function (symbol, arg_array) {
-            symbol = block(
-                'PARSE2NUMBER',
-                function () {
-                    return _.parse(symbol);
-                },
-                true
-            );
-            var args = variables(symbol);
-            var supplements = [];
-            var dependencies = [];
-            var ftext = function (symbol, xports) {
+        build(symbol, arg_array) {
+            symbol = block('PARSE2NUMBER', () => _.parse(symbol), true);
+            let args = variables(symbol);
+            const supplements = [];
+            let dependencies = [];
+            const ftext = function (symbol, xports) {
                 //Fix for #545 - Parentheses confuse build.
                 if (symbol.fname === '') {
                     symbol = NerdamerSymbol.unwrapPARENS(symbol);
                 }
                 xports = xports || [];
-                var c = [],
+                let c = [],
                     group = symbol.group,
                     prefix = '';
 
-                var ftext_complex = function (group) {
-                        var d = group === CB ? '*' : '+',
+                const ftext_complex = function (group) {
+                        const d = group === CB ? '*' : '+',
                             cc = [];
 
-                        for (var x in symbol.symbols) {
-                            var sym = symbol.symbols[x],
+                        for (const x in symbol.symbols) {
+                            let sym = symbol.symbols[x],
                                 ft = ftext(sym, xports)[0];
                             // wrap it in brackets if it's group PL or CP
-                            if (sym.isComposite()) ft = inBrackets(ft);
+                            if (sym.isComposite()) {
+                                ft = inBrackets(ft);
+                            }
                             cc.push(ft);
                         }
-                        var retval = cc.join(d);
+                        let retval = cc.join(d);
                         retval = retval && !symbol.multiplier.equals(1) ? inBrackets(retval) : retval;
                         return retval;
                     },
                     ftext_function = function (bn) {
-                        var retval;
-                        if (bn in Math) retval = 'Math.' + bn;
-                        else {
+                        let retval;
+                        if (bn in Math) {
+                            retval = `Math.${bn}`;
+                        } else {
                             bn = Build.getProperName(bn);
                             if (supplements.indexOf(bn) === -1) {
                                 // make sure you're not adding the function twice
                                 //Math2 functions aren't part of the standard javascript
                                 //Math library and must be exported.
-                                xports.push('var ' + bn + ' = ' + Math2[bn].toString() + '; ');
+                                let fnStr = Math2[bn].toString();
+                                // Handle ES6 method shorthand like "factorial(x) { ... }" -> "function factorial(x) { ... }"
+                                if (
+                                    !fnStr.startsWith('function') &&
+                                    !fnStr.startsWith('(') &&
+                                    !fnStr.startsWith('async')
+                                ) {
+                                    fnStr = 'function ' + fnStr;
+                                }
+                                xports.push(`var ${bn} = ${fnStr}; `);
                                 supplements.push(bn);
                             }
                             retval = bn;
                         }
-                        retval =
-                            retval +
-                            inBrackets(
-                                symbol.args
-                                    .map(function (x) {
-                                        return ftext(x, xports)[0];
-                                    })
-                                    .join(',')
-                            );
+                        retval = retval + inBrackets(symbol.args.map(x => ftext(x, xports)[0]).join(','));
 
                         return retval;
                     };
 
                 // the multiplier
-                if (group === N) c.push(symbol.multiplier.toDecimal());
-                else if (symbol.multiplier.equals(-1)) prefix = '-';
-                else if (!symbol.multiplier.equals(1)) c.push(symbol.multiplier.toDecimal());
+                if (group === N) {
+                    c.push(symbol.multiplier.toDecimal());
+                } else if (symbol.multiplier.equals(-1)) {
+                    prefix = '-';
+                } else if (!symbol.multiplier.equals(1)) {
+                    c.push(symbol.multiplier.toDecimal());
+                }
                 // the value
-                var value;
+                let value;
 
-                if (group === S || group === P) value = symbol.value;
-                else if (group === FN) {
+                if (group === S || group === P) {
+                    value = symbol.value;
+                } else if (group === FN) {
                     dependencies = Build.compileDependencies(symbol.fname, dependencies);
                     dependencies = Build.getArgsDeps(symbol, dependencies);
                     if (Build.reformat[symbol.fname]) {
-                        var components = Build.reformat[symbol.fname](symbol, dependencies);
+                        const components = Build.reformat[symbol.fname](symbol, dependencies);
                         dependencies = components[1];
                         value = components[0];
                     } else {
                         value = ftext_function(symbol.fname);
                     }
                 } else if (group === EX) {
-                    var pg = symbol.previousGroup;
-                    if (pg === N || pg === S) value = symbol.value;
-                    else if (pg === FN) {
+                    const pg = symbol.previousGroup;
+                    if (pg === N || pg === S) {
+                        value = symbol.value;
+                    } else if (pg === FN) {
                         value = ftext_function(symbol.fname);
                         dependencies = Build.compileDependencies(symbol.fname, dependencies);
                         dependencies = Build.getArgsDeps(symbol, dependencies);
-                    } else value = ftext_complex(symbol.previousGroup);
+                    } else {
+                        value = ftext_complex(symbol.previousGroup);
+                    }
                 } else {
                     value = ftext_complex(symbol.group);
                 }
 
                 if (symbol.group !== N && !symbol.power.equals(1)) {
-                    var pow = ftext(_.parse(symbol.power));
+                    const pow = ftext(_.parse(symbol.power));
                     xports.push(pow[1]);
-                    value = 'Math.pow' + inBrackets(value + ',' + pow[0]);
+                    value = `Math.pow${inBrackets(`${value},${pow[0]}`)}`;
                 }
 
-                if (value) c.push(prefix + value);
+                if (value) {
+                    c.push(prefix + value);
+                }
 
                 return [c.join('*'), xports.join('').replace(/\n+\s+/g, ' ')];
             };
@@ -12110,16 +12994,16 @@ var nerdamer = (function (imports) {
                 args = arg_array;
             }
 
-            var f_array = ftext(symbol);
+            const f_array = ftext(symbol);
 
             // make all the substitutions;
-            for (var x in dependencies[0]) {
-                var alias = dependencies[0][x];
+            for (const x in dependencies[0]) {
+                const alias = dependencies[0][x];
                 f_array[1] = f_array[1].replace(x, alias);
                 dependencies[1] = dependencies[1].replace(x, alias);
             }
 
-            var f = new Function(args, (dependencies[1] || '') + f_array[1] + ' return ' + f_array[0] + ';');
+            const f = new Function(args, `${(dependencies[1] || '') + f_array[1]} return ${f_array[0]};`);
 
             return f;
         },
@@ -12132,107 +13016,109 @@ var nerdamer = (function (imports) {
         reserveNames(_.functions);
         _.initConstants();
         //bug fix for error but needs to be revisited
-        if (!_.error) _.error = err;
+        if (!_.error) {
+            _.error = err;
+        }
 
         //Store the log and log10 functions
         Settings.LOG_FNS = {
-            log: _.functions['log'],
-            log10: _.functions['log10'],
+            log: _.functions.log,
+            log10: _.functions.log10,
         };
     })();
 
     /* END FINALIZE */
 
     //Core =========================================================================
-    var Utils = {
-        allSame: allSame,
-        allNumeric: allNumeric,
-        arguments2Array: arguments2Array,
-        armTimeout: armTimeout,
-        arrayAddSlices: arrayAddSlices,
-        arrayClone: arrayClone,
-        arrayMax: arrayMax,
-        arrayMin: arrayMin,
-        arrayEqual: arrayEqual,
-        arrayUnique: arrayUnique,
-        arrayGetVariables: arrayGetVariables,
-        arraySum: arraySum,
-        block: block,
+    const Utils = {
+        allSame,
+        allNumeric,
+        arguments2Array,
+        armTimeout,
+        arrayAddSlices,
+        arrayClone,
+        arrayMax,
+        arrayMin,
+        arrayEqual,
+        arrayUnique,
+        arrayGetVariables,
+        arraySum,
+        block,
         build: Build.build,
-        checkTimeout: checkTimeout,
-        clearU: clearU,
-        comboSort: comboSort,
-        compare: compare,
-        convertToVector: convertToVector,
-        customError: customError,
-        customType: customType,
-        decompose_fn: decompose_fn,
-        disarmTimeout: disarmTimeout,
-        each: each,
-        evaluate: evaluate,
-        even: even,
-        evenFraction: evenFraction,
-        fillHoles: fillHoles,
-        firstObject: firstObject,
-        format: format,
-        generatePrimes: generatePrimes,
-        getCoeffs: getCoeffs,
-        getU: getU,
-        importFunctions: importFunctions,
-        inBrackets: inBrackets,
-        isArray: isArray,
-        isExpression: isExpression,
-        isFraction: isFraction,
-        isInt: isInt,
-        isMatrix: isMatrix,
-        isNegative: isNegative,
-        isNumericSymbol: isNumericSymbol,
-        isPrime: isPrime,
-        isReserved: isReserved,
-        isSymbol: isSymbol,
-        isVariableSymbol: isVariableSymbol,
-        isVector: isVector,
-        isCollection: isCollection,
-        keys: keys,
-        knownVariable: knownVariable,
-        nroots: nroots,
-        remove: remove,
-        reserveNames: reserveNames,
-        range: range,
+        checkTimeout,
+        clearU,
+        comboSort,
+        compare,
+        convertToVector,
+        customError,
+        customType,
+        decompose_fn,
+        disarmTimeout,
+        each,
+        evaluate,
+        even,
+        evenFraction,
+        fillHoles,
+        firstObject,
+        format,
+        generatePrimes,
+        getCoeffs,
+        getU,
+        importFunctions,
+        inBrackets,
+        isArray,
+        isExpression,
+        isFraction,
+        isInt,
+        isMatrix,
+        isNegative,
+        isNumericSymbol,
+        isPrime,
+        isReserved,
+        isSymbol,
+        isVariableSymbol,
+        isVector,
+        isCollection,
+        keys,
+        knownVariable,
+        nroots,
+        remove,
+        reserveNames,
+        range,
         round: nround,
-        sameSign: sameSign,
-        scientificToDecimal: scientificToDecimal,
-        separate: separate,
-        stringReplace: stringReplace,
-        text: text,
-        validateName: validateName,
-        variables: variables,
-        warn: warn,
+        sameSign,
+        scientificToDecimal,
+        separate,
+        stringReplace,
+        text,
+        validateName,
+        variables,
+        warn,
     };
 
     //This contains all the parts of nerdamer and enables nerdamer's internal functions
     //to be used.
     var C = {
         groups: Groups,
-        NerdamerSymbol: NerdamerSymbol,
-        Expression: Expression,
-        Collection: Collection,
-        Frac: Frac,
-        Vector: Vector,
-        Matrix: Matrix,
-        Parser: Parser,
-        Scientific: Scientific,
-        Fraction: Fraction,
-        Math2: Math2,
-        LaTeX: LaTeX,
-        Utils: Utils,
+        NerdamerSymbol,
+        Expression,
+        Collection,
+        Frac,
+        Vector,
+        Matrix,
+        Parser,
+        Scientific,
+        Fraction,
+        Math2,
+        LaTeX,
+        Utils,
         PARSER: _,
-        PARENTHESIS: PARENTHESIS,
-        Settings: Settings,
-        err: err,
-        bigInt: bigInt,
-        bigDec: bigDec,
-        exceptions: exceptions,
+        PARENTHESIS,
+        Settings,
+        err,
+        bigInt,
+        bigDec,
+        exceptions,
     };
 
     //libExports ===================================================================
@@ -12243,11 +13129,11 @@ var nerdamer = (function (imports) {
      * @param {number} location A specific location in the equation list to insert the evaluated expression
      * @returns {Expression}
      */
-    var libExports = function (expression, subs, option, location) {
+    const libExports = function (expression, subs, option, location) {
         armTimeout();
         try {
             // Initiate the numer flag
-            var numer = false;
+            let numer = false;
 
             // Is the user declaring a function? Try to add user function
             if (setFunction(expression)) {
@@ -12265,7 +13151,7 @@ var nerdamer = (function (imports) {
                 option = typeof option === 'undefined' ? [] : [option];
             }
 
-            option.forEach(function (o) {
+            option.forEach(o => {
                 // Turn on the numer flag if requested
                 if (o === 'numer') {
                     numer = true;
@@ -12273,7 +13159,7 @@ var nerdamer = (function (imports) {
                 }
                 // Wrap it in a function if requested. This only holds true for
                 // functions that take a single argument which is the expression
-                var f = _.functions[option];
+                const f = _.functions[option];
                 // If there's a function and it takes a single argument, then wrap
                 // the expression in it
                 if (f && f[1] === 1) {
@@ -12281,13 +13167,7 @@ var nerdamer = (function (imports) {
                 }
             });
 
-            var e = block(
-                'PARSE2NUMBER',
-                function () {
-                    return _.parse(expression, subs);
-                },
-                numer || Settings.PARSE2NUMBER
-            );
+            const e = block('PARSE2NUMBER', () => _.parse(expression, subs), numer || Settings.PARSE2NUMBER);
 
             if (location) {
                 EXPRESSIONS[location - 1] = e;
@@ -12329,22 +13209,14 @@ var nerdamer = (function (imports) {
      */
     libExports.convertFromLaTeX = function (e) {
         // convert x_2a => x_2 a
-        e = e.replace(/_([A-Za-z0-9])/g, (...g) => {
-            return g[0] + ' ';
-        });
+        e = e.replace(/_([A-Za-z0-9])/g, (...g) => `${g[0]} `);
         // convert x^2 => x^{2}
-        e = e.replace(/\^([A-Za-z0-9])/g, (...g) => {
-            return '^{' + g[1] + '}';
-        });
+        e = e.replace(/\^([A-Za-z0-9])/g, (...g) => `^{${g[1]}}`);
         // convert \frac12 => \frac{1}2
-        e = e.replace(/(\\[A-Za-z]+)(\d)/g, (...g) => {
-            return g[1] + '{' + g[2] + '}';
-        });
+        e = e.replace(/(\\[A-Za-z]+)(\d)/g, (...g) => `${g[1]}{${g[2]}}`);
         // convert \frac{1}2 => \frac{1}{2}
-        e = e.replace(/(\\[A-Za-z]+{.*?})(\d)/g, (...g) => {
-            return g[1] + '{' + g[2] + '}';
-        });
-        var txt = LaTeX.parse(_.tokenize(e));
+        e = e.replace(/(\\[A-Za-z]+{.*?})(\d)/g, (...g) => `${g[1]}{${g[2]}}`);
+        const txt = LaTeX.parse(_.tokenize(e));
         return new Expression(_.parse(txt));
     };
 
@@ -12359,8 +13231,10 @@ var nerdamer = (function (imports) {
             try {
                 return C[add_on].version;
             } catch (e) {
-                if (e.message === 'timeout') throw e;
-                return 'No module named ' + add_on + ' found!';
+                if (e.message === 'timeout') {
+                    throw e;
+                }
+                return `No module named ${add_on} found!`;
             }
         }
         return version;
@@ -12387,7 +13261,9 @@ var nerdamer = (function (imports) {
             if (value === 'delete' || value === '') {
                 delete _.CONSTANTS[constant];
             } else {
-                if (isNaN(value)) throw new NerdamerTypeError('Constant must be a number!');
+                if (isNaN(value)) {
+                    throw new NerdamerTypeError('Constant must be a number!');
+                }
                 _.CONSTANTS[constant] = value;
             }
         }
@@ -12477,7 +13353,7 @@ var nerdamer = (function (imports) {
         } else if (equation_number === 'first') {
             EXPRESSIONS.shift();
         } else {
-            var index = !equation_number ? EXPRESSIONS.length : equation_number - 1;
+            const index = !equation_number ? EXPRESSIONS.length : equation_number - 1;
             keep_EXPRESSIONS_fixed === true ? (EXPRESSIONS[index] = undefined) : remove(EXPRESSIONS, index);
         }
         return this;
@@ -12496,9 +13372,9 @@ var nerdamer = (function (imports) {
      * @returns {Array}
      */
     libExports.expressions = function (asObject, asLaTeX, option) {
-        var result = asObject ? {} : [];
-        for (var i = 0; i < EXPRESSIONS.length; i++) {
-            var eq = asLaTeX ? LaTeX.latex(EXPRESSIONS[i], option) : text(EXPRESSIONS[i], option);
+        const result = asObject ? {} : [];
+        for (let i = 0; i < EXPRESSIONS.length; i++) {
+            const eq = asLaTeX ? LaTeX.latex(EXPRESSIONS[i], option) : text(EXPRESSIONS[i], option);
             asObject ? (result[i + 1] = eq) : result.push(eq);
         }
         return result;
@@ -12510,21 +13386,21 @@ var nerdamer = (function (imports) {
      * @returns {Array}
      */
     libExports.functions = function (asObject, option) {
-        var result = asObject ? {} : [];
-        for (var i = 0; i < USER_FUNCTIONS.length; i++) {
+        const result = asObject ? {} : [];
+        for (let i = 0; i < USER_FUNCTIONS.length; i++) {
             var params, body;
-            var fnName = USER_FUNCTIONS[i];
-            var fnDef = _.functions[fnName][2];
+            const fnName = USER_FUNCTIONS[i];
+            const fnDef = _.functions[fnName][2];
             if (fnDef) {
                 ({ params, body } = fnDef);
             } else {
-                var fnString = C.Math2[fnName].toString();
+                const fnString = C.Math2[fnName].toString();
                 [, params] = /\((.*?)\)/.exec(fnString);
                 params = params.split(',').map(x => x.trim());
                 body = '{JavaScript}';
             }
-            var fn = fnName + '(' + params.join(', ') + ')=' + body;
-            var eq = text(fn, option);
+            const fn = `${fnName}(${params.join(', ')})=${body}`;
+            const eq = text(fn, option);
             asObject ? (result[i + 1] = eq) : result.push(eq);
         }
         return result;
@@ -12532,30 +13408,38 @@ var nerdamer = (function (imports) {
 
     //the method for registering modules
     libExports.register = function (obj) {
-        var core = this.getCore();
+        const core = this.getCore();
 
         if (isArray(obj)) {
             for (var i = 0; i < obj.length; i++) {
-                if (obj) this.register(obj[i]);
+                if (obj) {
+                    this.register(obj[i]);
+                }
             }
         } else if (obj && Settings.exclude.indexOf(obj.name) === -1) {
             //make sure all the dependencies are available
             if (obj.dependencies) {
-                for (var i = 0; i < obj.dependencies.length; i++)
-                    if (!core[obj.dependencies[i]])
+                for (var i = 0; i < obj.dependencies.length; i++) {
+                    if (!core[obj.dependencies[i]]) {
                         throw new Error(format('{0} requires {1} to be loaded!', obj.name, obj.dependencies[i]));
+                    }
+                }
             }
             //if no parent object is provided then the function does not have an address and cannot be called directly
-            var parent_obj = obj.parent,
+            const parent_obj = obj.parent,
                 fn = obj.build.call(core); //call constructor to get function
             if (parent_obj) {
-                if (!core[parent_obj]) core[obj.parent] = {};
+                if (!core[parent_obj]) {
+                    core[obj.parent] = {};
+                }
 
-                var ref_obj = parent_obj === 'nerdamer' ? this : core[parent_obj];
+                const ref_obj = parent_obj === 'nerdamer' ? this : core[parent_obj];
                 //attach the function to the core
                 ref_obj[obj.name] = fn;
             }
-            if (obj.visible) _.functions[obj.name] = [fn, obj.numargs]; //make the function available
+            if (obj.visible) {
+                _.functions[obj.name] = [fn, obj.numargs];
+            } //make the function available
         }
     };
 
@@ -12574,7 +13458,9 @@ var nerdamer = (function (imports) {
             validateName(varname);
             return RESERVED.indexOf(varname) === -1;
         } catch (e) {
-            if (e.message === 'timeout') throw e;
+            if (e.message === 'timeout') {
+                throw e;
+            }
             return false;
         }
     };
@@ -12598,9 +13484,12 @@ var nerdamer = (function (imports) {
     libExports.setVar = function (v, val) {
         validateName(v);
         //check if it's not already a constant
-        if (v in _.CONSTANTS) err('Cannot set value for constant ' + v);
-        if (val === 'delete' || val === '') delete VARS[v];
-        else {
+        if (v in _.CONSTANTS) {
+            err(`Cannot set value for constant ${v}`);
+        }
+        if (val === 'delete' || val === '') {
+            delete VARS[v];
+        } else {
             VARS[v] = isSymbol(val) ? val : _.parse(val);
         }
         return this;
@@ -12642,10 +13531,11 @@ var nerdamer = (function (imports) {
      */
     libExports.getVars = function (output, option) {
         output = output || 'text';
-        var variables = {};
-        if (output === 'object') variables = VARS;
-        else {
-            for (var v in VARS) {
+        let variables = {};
+        if (output === 'object') {
+            variables = VARS;
+        } else {
+            for (const v in VARS) {
                 if (output === 'latex') {
                     variables[v] = VARS[v].latex(option);
                 } else if (output === 'text') {
@@ -12665,13 +13555,16 @@ var nerdamer = (function (imports) {
     libExports.set = function (setting, value) {
         //current options:
         //PARSE2NUMBER, suppress_errors
-        if (typeof setting === 'object')
-            for (var x in setting) {
+        if (typeof setting === 'object') {
+            for (const x in setting) {
                 libExports.set(x, setting[x]);
             }
+        }
 
-        var disallowed = ['SAFE'];
-        if (disallowed.indexOf(setting) !== -1) err('Cannot modify setting: ' + setting);
+        const disallowed = ['SAFE'];
+        if (disallowed.indexOf(setting) !== -1) {
+            err(`Cannot modify setting: ${setting}`);
+        }
 
         if (setting === 'PRECISION') {
             bigDec.set({ precision: value });
@@ -12687,17 +13580,21 @@ var nerdamer = (function (imports) {
             //set log10 as log
             Settings.LOG10 = 'log';
             //point the functions in the right direction
-            _.functions['log'] = Settings.LOG_FNS.log10; //log is now log10
+            _.functions.log = Settings.LOG_FNS.log10; //log is now log10
             //the log10 function must be explicitly set
-            _.functions['log'][0] = function (x) {
-                if (x.isConstant()) return new NerdamerSymbol(Math.log10(x));
+            _.functions.log[0] = function (x) {
+                if (x.isConstant()) {
+                    return new NerdamerSymbol(Math.log10(x));
+                }
                 return _.symfunction(Settings.LOG10, [x]);
             };
-            _.functions['LN'] = Settings.LOG_FNS.log; //LN is now log
+            _.functions.LN = Settings.LOG_FNS.log; //LN is now log
 
             //remove log10
-            delete _.functions['log10'];
-        } else Settings[setting] = value;
+            delete _.functions.log10;
+        } else {
+            Settings[setting] = value;
+        }
     };
 
     /**
@@ -12717,24 +13614,26 @@ var nerdamer = (function (imports) {
      */
     libExports.updateAPI = function (override) {
         //Map internal functions to external ones
-        var linker = function (fname) {
+        const linker = function (fname) {
             return function () {
-                var args = [].slice.call(arguments);
-                for (var i = 0; i < args.length; i++) args[i] = _.parse(args[i]);
-                return new Expression(
-                    block('PARSE2NUMBER', function () {
-                        return _.callfunction(fname, args);
-                    })
-                );
+                const args = [].slice.call(arguments);
+                for (let i = 0; i < args.length; i++) {
+                    args[i] = _.parse(args[i]);
+                }
+                return new Expression(block('PARSE2NUMBER', () => _.callfunction(fname, args)));
             };
         };
         //perform the mapping
-        for (var x in _.functions) if (!(x in libExports) || override) libExports[x] = linker(x);
+        for (const x in _.functions) {
+            if (!(x in libExports) || override) {
+                libExports[x] = linker(x);
+            }
+        }
     };
 
     libExports.replaceFunction = function (name, fn, num_args) {
-        var existing = _.functions[name];
-        var new_num_args = typeof num_args === 'undefined' ? existing[1] : num_args;
+        const existing = _.functions[name];
+        const new_num_args = typeof num_args === 'undefined' ? existing[1] : num_args;
         _.functions[name] = [fn.call(undefined, existing[0], C), new_num_args];
     };
 
@@ -12755,22 +13654,22 @@ var nerdamer = (function (imports) {
     };
 
     libExports.htmlTree = function (expression, indent) {
-        var tree = this.tree(expression);
+        const tree = this.tree(expression);
 
         return (
-            '<div class="tree">\n' +
-            '    <ul>\n' +
-            '        <li>\n' +
-            tree.toHTML(3, indent) +
-            '\n' +
-            '        </li>\n' +
-            '    </ul>\n' +
-            '</div>'
+            `<div class="tree">\n` +
+            `    <ul>\n` +
+            `        <li>\n${tree.toHTML(3, indent)}\n` +
+            `        </li>\n` +
+            `    </ul>\n` +
+            `</div>`
         );
     };
 
     libExports.addPeeker = function (name, f) {
-        if (_.peekers[name]) _.peekers[name].push(f);
+        if (_.peekers[name]) {
+            _.peekers[name].push(f);
+        }
     };
 
     libExports.removePeeker = function (name, f) {
@@ -12780,9 +13679,7 @@ var nerdamer = (function (imports) {
     libExports.parse = function (e) {
         return String(e)
             .split(';')
-            .map(function (x) {
-                return _.parse(x);
-            });
+            .map(x => _.parse(x));
     };
 
     libExports.updateAPI();
