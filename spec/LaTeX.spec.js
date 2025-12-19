@@ -1,7 +1,5 @@
 /* global expect */
 
-'use strict';
-
 const nerdamer = require('../nerdamer.core.js');
 
 describe('TeX features', () => {
@@ -225,11 +223,11 @@ describe('TeX features', () => {
         ];
 
         for (let i = 0; i < testCases.length; ++i) {
-            // when
+            // When
             const teX = nerdamer(testCases[i].given).toTeX();
             const decimalTex = nerdamer(testCases[i].given).toTeX('decimal');
 
-            // then
+            // Then
             expect(teX).toEqual(testCases[i].TeX, `for formula ${testCases[i].given}`);
             expect(decimalTex).toEqual(testCases[i].decimalTeX, `for formula ${testCases[i].given}`);
         }
@@ -237,42 +235,42 @@ describe('TeX features', () => {
 
     /** #36: Weird results with sqrt */
     it('should render square roots properly', () => {
-        // given
+        // Given
         const formula = '2*sqrt(x)';
 
-        // when
+        // When
         const teX = nerdamer(formula).toTeX();
 
-        // then
+        // Then
         expect(teX).toEqual('2 \\cdot \\sqrt{x}');
     });
 
     /** #39: Terms multiplied in brackets not rendered correctly */
     it('should render parentheses', () => {
-        // given
+        // Given
         const formula = '(x+1)*(x+2)';
 
-        // when
+        // When
         const teX = nerdamer(formula).toTeX();
 
-        // then
+        // Then
         expect(teX).toEqual('\\left(x+1\\right) \\cdot \\left(x+2\\right)');
     });
 
     /** #41: Latex output should use descending order */
     it('should use descending order of polynomials', () => {
-        // given
+        // Given
         const formula = 'x^2+x+1';
 
-        // when
+        // When
         const teX = nerdamer(formula).toTeX();
 
-        // then
+        // Then
         expect(teX).toEqual('x^{2}+x+1');
     });
 
     it('should support Greek letters', () => {
-        // given
+        // Given
         const testCases = [
             {
                 given: 'alpha + beta',
@@ -289,10 +287,10 @@ describe('TeX features', () => {
         ];
 
         for (let i = 0; i < testCases.length; ++i) {
-            // when
+            // When
             const teX = nerdamer(testCases[i].given).toTeX();
 
-            // then
+            // Then
             expect(teX).toEqual(testCases[i].expected);
         }
     });
@@ -312,7 +310,7 @@ describe('TeX features', () => {
     });
 
     it('should display integrals', () => {
-        // given
+        // Given
         const testCases = [
             {
                 given: 'defint(log(2cos(x/2)),-π,π,x)',
@@ -325,10 +323,10 @@ describe('TeX features', () => {
         ];
 
         for (let i = 0; i < testCases.length; ++i) {
-            // when
+            // When
             const teX = nerdamer(testCases[i].given).toTeX();
 
-            // then
+            // Then
             expect(teX).toEqual(testCases[i].expected);
         }
     });

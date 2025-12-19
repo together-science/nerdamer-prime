@@ -1,9 +1,7 @@
 /* global expect */
 
-'use strict';
-
 const utils = require('./support/utils');
-const parse = utils.parse;
+const { parse } = utils;
 const _$ = utils.toFixed;
 
 describe('Basic operations', () => {

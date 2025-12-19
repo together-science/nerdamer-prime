@@ -37,7 +37,7 @@ describe('Nerdamer AST Introspection Tests', () => {
         }
 
         // Helper function to get method parameters
-        function getMethodParameters(methodDeclaration: any): Array<{ name: string; type: string; optional: boolean }> {
+        function getMethodParameters(methodDeclaration: any): { name: string; type: string; optional: boolean }[] {
             if (!methodDeclaration.getParameters) {
                 return [];
             }
@@ -92,7 +92,7 @@ describe('Nerdamer AST Introspection Tests', () => {
         }
 
         // Helper function to generate test arguments for methods
-        function generateTestArguments(parameters: Array<{ name: string; type: string; optional: boolean }>): any[] {
+        function generateTestArguments(parameters: { name: string; type: string; optional: boolean }[]): any[] {
             const testExpr = nerdamerRuntime('x + 1');
             const args: any[] = [];
 
@@ -253,7 +253,7 @@ describe('Nerdamer AST Introspection Tests', () => {
         // Helper function to get function parameters
         function getFunctionParameters(
             functionDeclaration: any
-        ): Array<{ name: string; type: string; optional: boolean; rest: boolean }> {
+        ): { name: string; type: string; optional: boolean; rest: boolean }[] {
             if (!functionDeclaration.getParameters) {
                 return [];
             }
@@ -316,9 +316,9 @@ describe('Nerdamer AST Introspection Tests', () => {
                 void: v => v === undefined,
                 NerdamerExpression: isProperNerdamerExpression,
                 'NerdamerCore.Vector': v =>
-                    v && typeof v === 'object' && typeof v.toString === 'function' && v.symbol && v.symbol.group === 8,
+                    v && typeof v === 'object' && typeof v.toString === 'function' && v.symbol?.group === 8,
                 'NerdamerCore.Matrix': v =>
-                    v && typeof v === 'object' && typeof v.toString === 'function' && v.symbol && v.symbol.group === 8,
+                    v && typeof v === 'object' && typeof v.toString === 'function' && v.symbol?.group === 8,
                 'NerdamerCore.Set': v => v && typeof v === 'object' && typeof v.toString === 'function',
                 NerdamerEquation: v => v && typeof v === 'object' && v.LHS && v.RHS,
                 'typeof nerdamer': v => typeof v === 'function',
@@ -326,7 +326,7 @@ describe('Nerdamer AST Introspection Tests', () => {
 
             // Special handling for overloaded functions
             if (functionName === 'supported') {
-                // supported() with no args returns string[], with string arg returns boolean
+                // Supported() with no args returns string[], with string arg returns boolean
                 if (Array.isArray(actualValue)) {
                     return declaredType === 'string[]' || (typeMap['string[]']?.(actualValue) ?? false);
                 }
@@ -384,7 +384,7 @@ describe('Nerdamer AST Introspection Tests', () => {
 
         // Helper function to generate test arguments for nerdamerPrime functions
         function generatePrimeTestArguments(
-            parameters: Array<{ name: string; type: string; optional: boolean; rest: boolean }>
+            parameters: { name: string; type: string; optional: boolean; rest: boolean }[]
         ): any[] {
             const testExpr = nerdamerRuntime('x + 1');
             const args: any[] = [];
@@ -542,10 +542,10 @@ describe('Nerdamer AST Introspection Tests', () => {
                         // Known functions that work correctly despite arity differences
                         // These use arguments object or have internal params for recursion
                         const knownWorkingFunctions = new Set([
-                            'matset', // uses arguments, works with 4 params
-                            'sum', // uses arguments, works with 4 params
-                            'product', // uses arguments, works with 4 params
-                            'solveEquations', // internal recursion params, works with 1-2 params
+                            'matset', // Uses arguments, works with 4 params
+                            'sum', // Uses arguments, works with 4 params
+                            'product', // Uses arguments, works with 4 params
+                            'solveEquations', // Internal recursion params, works with 1-2 params
                         ]);
 
                         // Skip validation for known working functions
@@ -723,7 +723,7 @@ describe('Nerdamer AST Introspection Tests', () => {
                 const fullText = jsDoc.getFullText();
                 if (typeof fullText === 'string') {
                     // Parse @test-valid-args
-                    const validArgsMatch = fullText.match(/@test-valid-args\s*(\[.*?\])/);
+                    const validArgsMatch = /@test-valid-args\s*(\[.*?\])/.exec(fullText);
                     if (validArgsMatch?.[1]) {
                         try {
                             metadata.validArgs = JSON.parse(validArgsMatch[1]);
@@ -733,7 +733,7 @@ describe('Nerdamer AST Introspection Tests', () => {
                     }
 
                     // Parse @test-invalid-args
-                    const invalidArgsMatch = fullText.match(/@test-invalid-args\s*(\[.*?\])/);
+                    const invalidArgsMatch = /@test-invalid-args\s*(\[.*?\])/.exec(fullText);
                     if (invalidArgsMatch?.[1]) {
                         try {
                             metadata.invalidArgs = JSON.parse(invalidArgsMatch[1]);
@@ -782,7 +782,7 @@ describe('Nerdamer AST Introspection Tests', () => {
         // Helper function to get function parameters
         function getFunctionParameters(
             functionDeclaration: any
-        ): Array<{ name: string; type: string; optional: boolean; rest: boolean }> {
+        ): { name: string; type: string; optional: boolean; rest: boolean }[] {
             if (!functionDeclaration.getParameters) {
                 return [];
             }
@@ -1012,8 +1012,8 @@ describe('Nerdamer AST Introspection Tests', () => {
                             console.log(`  Comment content:`, comment);
 
                             if (typeof comment === 'string') {
-                                const validMatch = comment.match(/@test-valid-args\s*\[(.*?)\]/);
-                                const invalidMatch = comment.match(/@test-invalid-args\s*\[(.*?)\]/);
+                                const validMatch = /@test-valid-args\s*\[(.*?)\]/.exec(comment);
+                                const invalidMatch = /@test-invalid-args\s*\[(.*?)\]/.exec(comment);
                                 console.log(`  Valid args match:`, validMatch);
                                 console.log(`  Invalid args match:`, invalidMatch);
                             }

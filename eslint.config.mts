@@ -454,20 +454,6 @@ const typescriptRuleOverrides: Linter.RulesRecord = {
 };
 
 // =============================================================================
-// Test File Rules
-// =============================================================================
-
-/** Relaxed TypeScript rules for test files. */
-const testFileTypescriptOverrides: Linter.RulesRecord = {
-    '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/no-non-null-assertion': 'off',
-    '@typescript-eslint/no-unsafe-assignment': 'off',
-    '@typescript-eslint/no-unsafe-call': 'off',
-    '@typescript-eslint/no-unsafe-member-access': 'off',
-    '@typescript-eslint/no-unsafe-return': 'off',
-};
-
-// =============================================================================
 // Export Configuration
 // =============================================================================
 
@@ -691,7 +677,12 @@ export default defineConfig([
         files: ['spec-dts/**/*.ts'],
         rules: {
             // Relax rules for type specification tests
-            ...testFileTypescriptOverrides,
+            '@typescript-eslint/no-explicit-any': 'off',
+            '@typescript-eslint/no-non-null-assertion': 'off',
+            '@typescript-eslint/no-unsafe-assignment': 'off',
+            '@typescript-eslint/no-unsafe-call': 'off',
+            '@typescript-eslint/no-unsafe-member-access': 'off',
+            '@typescript-eslint/no-unsafe-return': 'off',
             '@typescript-eslint/no-unsafe-argument': 'off',
             '@typescript-eslint/no-unnecessary-condition': 'off',
             '@typescript-eslint/no-unnecessary-type-assertion': 'off',

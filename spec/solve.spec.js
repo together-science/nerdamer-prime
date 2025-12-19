@@ -1,11 +1,9 @@
 /* global expect */
 
-'use strict';
-
 const nerdamer = require('../nerdamer.core.js');
 require('../Solve');
 
-// describe("profiler", () => {
+// Describe("profiler", () => {
 //     it("start", async function() {
 //         console.profile();
 //     });
@@ -13,7 +11,7 @@ require('../Solve');
 
 describe('Solve', () => {
     it('debug problem of the day', () => {
-        // expect(nerdamer('x^3+x^2-4x-4=y').solveFor('x').toString()).toEqual('');
+        // Expect(nerdamer('x^3+x^2-4x-4=y').solveFor('x').toString()).toEqual('');
     });
     it('should solve correctly', () => {
         expect(nerdamer('solve(x=y/3416.3333333333344, y)').toString()).toEqual('[(1073228064103962/314146179365)*x]');
@@ -55,7 +53,7 @@ describe('Solve', () => {
         expect(nerdamer('solve(a*log(x^2-4)-4,x)').toString()).toEqual('[(1/2)*sqrt(16+4*e^(4*a^(-1))),(-1/2)*sqrt(16+4*e^(4*a^(-1)))]');
         expect(nerdamer('solve(x/(x^2+2*x+1)+4,x)').toString()).toEqual('[(1/8)*sqrt(17)-9/8,(-1/8)*sqrt(17)-9/8]');
         expect(nerdamer('solve((a*x^2+1),x)').toString()).toEqual('[a^(-1)*sqrt(-a),-a^(-1)*sqrt(-a)]');
-        expect(nerdamer('solve(sqrt(x)-2x+x^2,x)').toString()).toEqual('[0,832040/2178309,1]' /*[(-1/2)*sqrt(5)+3/2,0,832040/2178309,1]'*/);
+        expect(nerdamer('solve(sqrt(x)-2x+x^2,x)').toString()).toEqual('[0,832040/2178309,1]' /* [(-1/2)*sqrt(5)+3/2,0,832040/2178309,1]'*/);
         expect(nerdamer('solve((2x+x^2)^2-x,x)').toString()).toEqual(
             '[0,((-1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)+((1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)-4/3,(((-1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)+((1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)-4/3)*((1/2)*i*sqrt(3)+1/2),(((-1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)+((1/6)*sqrt(3)^(-1)*sqrt(59)+43/54)^(1/3)-4/3)*((1/2)*i*sqrt(3)+1/2)^2]'
         );
@@ -102,7 +100,7 @@ describe('Solve', () => {
         expect(nerdamer('solve(10000000=10^(x+1), x)').toString()).toEqual('[6]');
         expect(nerdamer('solve(m=(34141034228515471851/614756350000000000000000000)*(3631430813109509/100837351+51955423*log(5+m)), m)').toString()).toEqual('[-89048725/18140732,145224097/14865809]');
         expect(nerdamer('(5-3y)/(5+y)=(1-9y)/(3y-7)').solveFor('y').toString()).toEqual('1/2');
-        // np issue #26
+        // Np issue #26
         // expect(nerdamer("solve(h=1/2*(9.81)*m*s^(-2)*t^2, t)").evaluate().text()).toEqual("[0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1),-0.4515236409857309*s*sqrt(h)*sqrt(m)^(-1)]");
         // like:
         expect(nerdamer('solve(h=1/2*(9.81)*t^2, t)').evaluate().text()).toEqual('[(-35364869/78323405)*sqrt(h),(35364869/78323405)*sqrt(h)]');
@@ -121,10 +119,10 @@ describe('Solve', () => {
         expect(nerdamer.solveEquations(['x/(45909438.9 + 0 + x)=0', '45909438.9+0+x=45909438.9']).toString()).toEqual('x,0');
         expect(nerdamer.solveEquations(['a=1']).toString()).toEqual('a,1');
         expect(nerdamer.solveEquations(['x=5', '0.6=1-(x/(10+y))']).toString()).toEqual('x,5,y,2.5');
-        // np issue #13
+        // Np issue #13
         expect(nerdamer.solveEquations(['0=a*c', '0=b'], ['a', 'b']).toString()).toEqual('a,0,b,0');
     });
-    //#55: nerdamer.solveEquation quits working
+    // #55: nerdamer.solveEquation quits working
     it('should handle text("fractions") without later impact', () => {
         expect(nerdamer.solveEquations('x+1=2', 'x').toString()).toEqual('1');
         expect(nerdamer('x=1').text('fractions')).toEqual('x=1');
@@ -133,7 +131,7 @@ describe('Solve', () => {
     it('should parse equations correctly', () => {
         expect(nerdamer('-(a+1)=(a+3)^2').toString()).toEqual('-1-a=(3+a)^2');
     });
-    //NOTE: contains duplicates
+    // NOTE: contains duplicates
     it('should solve functions with factorials', () => {
         // Bug: And I don't believe the expected solution is correct, see Wolfram Alpha
         // expect(nerdamer('solve(x!-x^2,x)').text('decimals', 20)).toEqual('[-2.200391782610595,-4.010232827899529,-2.938361683501947,1,1.000000000000001,3.562382285390900,3.562382285390896,0.9999999999999910,1.000000000000000]');
@@ -158,11 +156,11 @@ describe('Solve', () => {
     });
     it('regression tests', () => {
         expect(nerdamer('solve(a^2-a-1=0,a)').toString()).toEqual('[(1/2)*sqrt(5)+1/2,(-1/2)*sqrt(5)+1/2]');
-        // issue #26
+        // Issue #26
         expect(nerdamer('solve(h=(981/200)*baseunit_m*baseunit_s^(-2)*t^2, t)').text()).toEqual('[(-10/327)*baseunit_m^(-1)*baseunit_s*sqrt(218)*sqrt(baseunit_m)*sqrt(h),(10/327)*baseunit_m^(-1)*baseunit_s*sqrt(218)*sqrt(baseunit_m)*sqrt(h)]');
         expect(nerdamer('solve(abs(a-b)=0, a)').toString()).toEqual('[b]');
         expect(nerdamer('solve(abs(a-b)=5, a)').toString()).toEqual('[-5+b,-(-5-b)]');
-        // issue #43
+        // Issue #43
         expect(nerdamer('solve(x-6/x - 1 = 0,x)').toString()).toEqual('[-2,3]');
         expect(nerdamer('solve(x^2-x-6=0,x)').toString()).toEqual('[-2,3]');
         expect(nerdamer('solve((x^2-x-6)*e^2=0,x)').toString()).toEqual('[-2,3]');
@@ -182,10 +180,10 @@ describe('Solve', () => {
         expect(nerdamer.solve('(x^2-x-6)*e^(x^2)=0', 'x').toString()).toEqual('[-2,3]');
         expect(nerdamer('y=-y+2+8*a').solveFor('y').toString()).toEqual('1+4*a');
 
-        // issue 52
+        // Issue 52
         expect(nerdamer.solveEquations(['x*(b+1)+y=1', 'x+y=6'], ['x', 'y']).toString()).toEqual('x,((-(1+b)^(-1)+1)^(-1)*(1+b)^(-1)+1)*(1+b)^(-1)-6*(-(1+b)^(-1)+1)^(-1)*(1+b)^(-1),y,-(-(1+b)^(-1)+1)^(-1)*(1+b)^(-1)+6*(-(1+b)^(-1)+1)^(-1)');
 
-        // issue #54
+        // Issue #54
         expect(
             nerdamer('x=y')
                 .solveFor('x')
@@ -254,12 +252,12 @@ describe('Solve', () => {
             const result = nerdamer('solve(0=(365152319648560825/8)*s*t+(981/200)*t^2,t)').toString();
             const elapsed = Date.now() - start;
             expect(elapsed).toBeLessThan(500); // Should be fast like simple quadratics
-            expect(result).toContain('0'); // t=0 is one solution
+            expect(result).toContain('0'); // T=0 is one solution
         });
     });
 });
 
-// describe("profiler", () => {
+// Describe("profiler", () => {
 //     it("stop", async function() {
 //         console.profileEnd();
 //     });

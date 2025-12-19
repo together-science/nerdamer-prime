@@ -1,7 +1,5 @@
 /* global expect */
 
-'use strict';
-
 const nerdamer = require('../nerdamer.core.js');
 require('../Extra');
 

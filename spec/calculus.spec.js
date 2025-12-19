@@ -1,9 +1,7 @@
 /* global expect */
 
-'use strict';
-
 const nerdamer = require('../nerdamer.core.js');
-const round = nerdamer.getCore().Utils.round;
+const { round } = nerdamer.getCore().Utils;
 
 describe('Calculus', () => {
     it('should differentiate correctly', () => {
@@ -45,17 +43,17 @@ describe('Calculus', () => {
         expect(nerdamer('diff(sinc(a*x^3+b),x)').toString()).toEqual('3*((a*x^3+b)*cos(a*x^3+b)-sin(a*x^3+b))*(a*x^3+b)^(-2)*a*x^2');
         expect(nerdamer('diff(sqrt(e^x + a),x)').toString()).toEqual('(1/2)*(a+e^x)^(-1/2)*e^x');
 
-        // issue #
+        // Issue #
         expect(nerdamer('diff(3asin(x),x)').toString()).toEqual('3*sqrt(-x^2+1)^(-1)');
         expect(nerdamer('diff(5acos(x),x)').toString()).toEqual('-5*sqrt(-x^2+1)^(-1)');
         expect(nerdamer('diff(7atan(x),x)').toString()).toEqual('7*(1+x^2)^(-1)');
 
-        // equations
+        // Equations
         expect(nerdamer('diff(3asin(x)=x,x)').toString()).toEqual('3*sqrt(-x^2+1)^(-1)=1');
     });
 
     /*
-    todo: cover all function differentiation, with scalars:
+    Todo: cover all function differentiation, with scalars:
         case LOG:
         case COS:
         case SIN:
@@ -134,7 +132,7 @@ describe('Calculus', () => {
         expect(nerdamer('limit(x/(x+1)^2, x, -1)').toString()).toEqual('-Infinity');
         expect(nerdamer('limit(log(x),x, 0)').toString()).toEqual('-Infinity');
         expect(nerdamer('limit((3*sin(x)-sin(2*x))/(x-sin(x)),x,0)').toString()).toEqual('Infinity');
-        // issue #12
+        // Issue #12
         expect(nerdamer('limit((2sin(x)-sin(2x))/(x-sin(x)),x,0)').toString()).toEqual('6');
     });
 

@@ -175,7 +175,7 @@ type SolveResult =
  * @internal
  */
 interface CoreExpressionBase {
-    toString(): string;
+    toString: () => string;
     /**
      * Gets the string representation of the expression.
      *
@@ -206,9 +206,9 @@ interface CoreExpressionBase {
      * @param option Pass in the string 'decimals' to always get back numbers as decimals. Pass in the string
      *   'fractions' to always get back numbers as fractions. Defaults to decimals.
      */
-    text(option?: OutputType): string;
-    latex(option?: OutputType): string;
-    valueOf(): number | string;
+    text: (option?: OutputType) => string;
+    latex: (option?: OutputType) => string;
+    valueOf: () => number | string;
 }
 
 /**
@@ -231,10 +231,10 @@ interface NerdamerExpression extends CoreExpressionBase {
     symbol: nerdamerPrime.NerdamerCore.NerdamerSymbol;
 
     // Basic methods
-    variables(): string[];
+    variables: () => string[];
 
     /** Checks if the expression contains an integral */
-    hasIntegral(): boolean;
+    hasIntegral: () => boolean;
 
     /**
      * Performs an arithmetic operation on this expression.
@@ -245,10 +245,10 @@ interface NerdamerExpression extends CoreExpressionBase {
      * @param other The other operand
      * @returns A new expression with the result of the operation
      */
-    operation(
+    operation: (
         operationType: 'add' | 'subtract' | 'multiply' | 'divide' | 'pow',
         other: ExpressionParam
-    ): NerdamerExpression;
+    ) => NerdamerExpression;
     /**
      * Forces evaluation of the expression.
      *
@@ -259,7 +259,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      *     // force function calls with evaluate:
      *     x.evaluate().toString(); // == 127690464/128901187
      */
-    evaluate(substitutions?: Record<string, ExpressionParam>): NerdamerExpression;
+    evaluate: (substitutions?: Record<string, ExpressionParam>) => NerdamerExpression;
 
     /**
      * Checks to see if the expression's value equals a number. Compares the direct value returned. The function will
@@ -271,7 +271,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      *     nerdamer('sqrt(5)').evaluate().isNumber();
      *     // true
      */
-    isNumber(): boolean;
+    isNumber: () => boolean;
 
     /**
      * Checks if a number evaluates to an imaginary number
@@ -282,10 +282,10 @@ interface NerdamerExpression extends CoreExpressionBase {
      *     nerdamer('sqrt(5)+8').isImaginary();
      *     // false
      */
-    isImaginary(): boolean;
-    isInfinity(): boolean;
-    isFraction(): boolean;
-    isPolynomial(): boolean;
+    isImaginary: () => boolean;
+    isInfinity: () => boolean;
+    isFraction: () => boolean;
+    isPolynomial: () => boolean;
 
     // Expression operations
     /**
@@ -297,13 +297,13 @@ interface NerdamerExpression extends CoreExpressionBase {
      *     nerdamer('(x+y)*(x-5)*x').expand();
      *     // -5*x*y-5*x^2+x^3+x^2*y
      */
-    expand(): NerdamerExpression;
+    expand: () => NerdamerExpression;
     /**
      * Simplifies the expression.
      *
      * @throws An Error if the computation exceeds the configured TIMEOUT duration.
      */
-    simplify(): NerdamerExpression;
+    simplify: () => NerdamerExpression;
 
     /**
      * Sets this expression equal to another expression, creating an equation.
@@ -325,7 +325,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      * @param other The expression to set equal to (becomes the RHS)
      * @returns A NerdamerEquation with this expression as LHS and other as RHS
      */
-    equals(other: ExpressionParam): NerdamerEquation;
+    equals: (other: ExpressionParam) => NerdamerEquation;
 
     /**
      * Attempts to solve an equation.
@@ -337,7 +337,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      * @param variable The variable to solve for.
      * @throws An Error if the computation exceeds the configured TIMEOUT duration.
      */
-    solveFor(variable: string): NerdamerExpression[];
+    solveFor: (variable: string) => NerdamerExpression[];
 
     /**
      * Substitutes a given value for another given value
@@ -345,10 +345,10 @@ interface NerdamerExpression extends CoreExpressionBase {
      * @param variable The variable being substituted.
      * @param value The value to substitute for.
      */
-    sub(variable: string, value: ExpressionParam): NerdamerExpression;
-    each(callback: (symbol: nerdamerPrime.NerdamerCore.NerdamerSymbol, index?: number | string) => void): void;
-    contains(variable: string): boolean;
-    hasFunction(name: string): boolean;
+    sub: (variable: string, value: ExpressionParam) => NerdamerExpression;
+    each: (callback: (symbol: nerdamerPrime.NerdamerCore.NerdamerSymbol, index?: number | string) => void) => void;
+    contains: (variable: string) => boolean;
+    hasFunction: (name: string) => boolean;
 
     // Arithmetic operations
     /**
@@ -357,7 +357,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      * @example
      *     nerdamer('x').add(3);
      */
-    add(other: ExpressionParam): NerdamerExpression;
+    add: (other: ExpressionParam) => NerdamerExpression;
 
     /**
      * Subtracts a value from an expression
@@ -365,7 +365,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      * @example
      *     nerdamer('x').subtract(3);
      */
-    subtract(other: ExpressionParam): NerdamerExpression;
+    subtract: (other: ExpressionParam) => NerdamerExpression;
 
     /**
      * Multiplies an expression by a value
@@ -373,7 +373,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      * @example
      *     nerdamer('x').multiply(3);
      */
-    multiply(other: ExpressionParam): NerdamerExpression;
+    multiply: (other: ExpressionParam) => NerdamerExpression;
 
     /**
      * Divides an expression by a value
@@ -381,7 +381,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      * @example
      *     nerdamer('9*x').divide(3);
      */
-    divide(other: ExpressionParam): NerdamerExpression;
+    divide: (other: ExpressionParam) => NerdamerExpression;
 
     /**
      * Raises an expression to a power
@@ -389,7 +389,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      * @example
      *     nerdamer('x').pow(3);
      */
-    pow(exponent: ExpressionParam): NerdamerExpression;
+    pow: (exponent: ExpressionParam) => NerdamerExpression;
 
     // Comparison operations
     /**
@@ -429,7 +429,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      * @param other The expression to compare with
      * @returns `true` if expressions are equal, `false` otherwise
      */
-    eq(other: ExpressionParam): boolean;
+    eq: (other: ExpressionParam) => boolean;
 
     /**
      * Checks if a value is less than another
@@ -442,7 +442,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      *
      * @param value The value being tested
      */
-    lt(other: ExpressionParam): boolean;
+    lt: (other: ExpressionParam) => boolean;
 
     /**
      * Checks if a value is greater than another
@@ -455,7 +455,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      *
      * @param value The value being tested
      */
-    gt(other: ExpressionParam): boolean;
+    gt: (other: ExpressionParam) => boolean;
 
     /**
      * Checks if a value is less than or equal to another
@@ -468,7 +468,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      *
      * @param value The value being tested
      */
-    lte(other: ExpressionParam): boolean;
+    lte: (other: ExpressionParam) => boolean;
 
     /**
      * Checks if a value is greater than or equal to another
@@ -481,21 +481,21 @@ interface NerdamerExpression extends CoreExpressionBase {
      *
      * @param value The value being tested
      */
-    gte(other: ExpressionParam): boolean;
+    gte: (other: ExpressionParam) => boolean;
 
     // Fraction operations
-    numerator(): NerdamerExpression;
-    denominator(): NerdamerExpression;
+    numerator: () => NerdamerExpression;
+    denominator: () => NerdamerExpression;
 
     // Conversion
     /** Gets expression as LaTeX */
-    toTeX(format?: OutputType): string;
+    toTeX: (format?: OutputType) => string;
 
     /** Gets expression as LaTeX */
-    latex(format?: OutputType): string;
+    latex: (format?: OutputType) => string;
 
     /** Forces the expression to displayed with decimals */
-    toDecimal(precision?: number): string;
+    toDecimal: (precision?: number) => string;
 
     /**
      * Generates a JavaScript function given the expression. This is perfect for plotting and filtering user input.
@@ -504,7 +504,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      *
      * @param args_array The argument array with the order in which they are preferred.
      */
-    buildFunction(variables?: string[]): (...args: number[]) => number;
+    buildFunction: (variables?: string[]) => (...args: number[]) => number;
 }
 
 /**
@@ -515,7 +515,7 @@ interface NerdamerEquation extends NerdamerExpression {
     LHS: NerdamerExpression;
     RHS: NerdamerExpression;
     /** Moves the RHS to the LHS to form an expression that equals zero. */
-    toLHS(expand?: boolean): NerdamerExpression;
+    toLHS: (expand?: boolean) => NerdamerExpression;
 }
 
 /**
@@ -556,7 +556,7 @@ interface NerdamerAddon {
     /** Whether this function is visible and can be called through nerdamer. Defaults to true. */
     visible?: boolean;
     /** Factory function that returns the actual implementation function. */
-    build(): (...args: number[]) => number;
+    build: () => (...args: number[]) => number;
 }
 
 // #endregion
@@ -2059,9 +2059,7 @@ declare namespace nerdamerPrime {
         }
 
         /** Constructor for Collection */
-        interface CollectionConstructor {
-            new (): Collection;
-        }
+        type CollectionConstructor = new () => Collection;
 
         /** Internal-use collection for function arguments. */
         interface Collection extends CoreExpressionBase {
@@ -3038,7 +3036,7 @@ declare namespace nerdamerPrime {
              * @param key If provided, returns the key instead of the value.
              * @param both If true, returns an object with both the key and value.
              */
-            firstObject<T>(obj: Record<string, T>, key?: null | undefined, both?: false): T;
+            firstObject<T>(obj: Record<string, T>, key?: null, both?: false): T;
             firstObject<T>(obj: Record<string, T>, key: string, both?: false): string;
             firstObject<T>(obj: Record<string, T>, key: null | undefined, both: true): { key: string; obj: T };
 
@@ -3431,22 +3429,22 @@ declare namespace nerdamerPrime {
             bigInt: any;
             bigDec: any;
             exceptions: {
-                DivisionByZero: { new (message?: string): DivisionByZero };
-                ParseError: { new (message?: string): ParseError };
-                UndefinedError: { new (message?: string): UndefinedError };
-                OutOfFunctionDomainError: { new (message?: string): OutOfFunctionDomainError };
-                MaximumIterationsReached: { new (message?: string): MaximumIterationsReached };
-                NerdamerTypeError: { new (message?: string): NerdamerTypeError };
-                ParityError: { new (message?: string): ParityError };
-                OperatorError: { new (message?: string): OperatorError };
-                OutOfRangeError: { new (message?: string): OutOfRangeError };
-                DimensionError: { new (message?: string): DimensionError };
-                InvalidVariableNameError: { new (message?: string): InvalidVariableNameError };
-                ValueLimitExceededError: { new (message?: string): ValueLimitExceededError };
-                NerdamerValueError: { new (message?: string): NerdamerValueError };
-                SolveError: { new (message?: string): SolveError };
-                InfiniteLoopError: { new (message?: string): InfiniteLoopError };
-                UnexpectedTokenError: { new (message?: string): UnexpectedTokenError };
+                DivisionByZero: new (message?: string) => DivisionByZero;
+                ParseError: new (message?: string) => ParseError;
+                UndefinedError: new (message?: string) => UndefinedError;
+                OutOfFunctionDomainError: new (message?: string) => OutOfFunctionDomainError;
+                MaximumIterationsReached: new (message?: string) => MaximumIterationsReached;
+                NerdamerTypeError: new (message?: string) => NerdamerTypeError;
+                ParityError: new (message?: string) => ParityError;
+                OperatorError: new (message?: string) => OperatorError;
+                OutOfRangeError: new (message?: string) => OutOfRangeError;
+                DimensionError: new (message?: string) => DimensionError;
+                InvalidVariableNameError: new (message?: string) => InvalidVariableNameError;
+                ValueLimitExceededError: new (message?: string) => ValueLimitExceededError;
+                NerdamerValueError: new (message?: string) => NerdamerValueError;
+                SolveError: new (message?: string) => SolveError;
+                InfiniteLoopError: new (message?: string) => InfiniteLoopError;
+                UnexpectedTokenError: new (message?: string) => UnexpectedTokenError;
             };
             Solve: Record<string, Function>;
             Calculus: Record<string, Function>;

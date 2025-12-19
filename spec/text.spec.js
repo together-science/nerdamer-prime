@@ -1,9 +1,7 @@
-'use strict';
-
 const nerdamer = require('../nerdamer.core.js');
 
 describe('The text function', () => {
-    // given
+    // Given
     const testCases = [
         {
             given: '6',
@@ -115,18 +113,18 @@ describe('The text function', () => {
 
     it('should give mixed fractions correctly', () => {
         for (let i = 0; i < testCases.length; ++i) {
-            // when
+            // When
             const text = nerdamer(testCases[i].given).text('mixed');
-            // then
+            // Then
             expect(text).toEqual(testCases[i].expected_mixed);
         }
     });
 
     it('should give recurring decimals correctly', () => {
         for (let i = 0; i < testCases.length; ++i) {
-            // when
+            // When
             const text = nerdamer(testCases[i].given).text('recurring');
-            // then
+            // Then
             expect(text).toEqual(testCases[i].expected_recurring);
         }
     });

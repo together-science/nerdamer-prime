@@ -1,7 +1,5 @@
 /* global expect */
 
-'use strict';
-
 const nerdamer = require('../nerdamer.core.js');
 require('../Algebra.js');
 require('../Calculus.js');
@@ -90,13 +88,13 @@ describe('Algebra', () => {
         });
 
         it('should evaluate abs() directly', () => {
-            // given
+            // Given
             const formula = 'abs(5*x^2)-x+11';
 
-            // when
+            // When
             const isPoly = nerdamer(formula).symbol.isPoly();
 
-            // then
+            // Then
             expect(isPoly).toBeTruthy();
         });
     });
@@ -137,36 +135,36 @@ describe('Algebra', () => {
     });
     /** #3: "(a-b)^2 - (b-a)^2" not simplifying. */
     it('should simplify to 0', () => {
-        // given
+        // Given
         const formula = '(a-b)^2-(b-a)^2';
 
-        // when
+        // When
         const result = nerdamer(formula, null, ['numer', 'expand']).toString();
 
-        // then
+        // Then
         expect(result).toBe('0');
     });
     /** #40: Expected more simple solution for factoring. */
     it('should use simple factor result', () => {
-        // given
+        // Given
         const formula = 'factor(x^2+x+1/4)';
 
-        // when
+        // When
         const result = nerdamer(formula).toString();
 
-        // then
+        // Then
         expect(result).toBe('(1/4)*(1+2*x)^2');
     });
 
     /** #43: Formula not expanded. */
     it('should expand formula', () => {
-        // given
+        // Given
         const formula = 'expand((x+5)(x-3)-x^2)';
 
-        // when
+        // When
         const result = nerdamer(formula).toString();
 
-        // then
+        // Then
         expect(result).toBe('-15+2*x');
     });
     it('should factor correctly', () => {
@@ -210,7 +208,7 @@ describe('Algebra', () => {
         expect(nerdamer('factor((-b*c+5*a)*(b*c)^(-1))').toString()).toEqual('(-b*c+5*a)*(b*c)^(-1)');
     });
     it('should not have any regression to factor', () => {
-        //this test will absolutely break as factor improves enough to factor this expression. For now it just serves as a safeguard
+        // This test will absolutely break as factor improves enough to factor this expression. For now it just serves as a safeguard
         expect(nerdamer('factor(x^a+2x^(a-1)+1x^(a-2))').toString()).toEqual('2*x^(-1+a)+x^(-2+a)+x^a');
     });
     it('should correctly determine the polynomial degree', () => {
@@ -300,20 +298,20 @@ describe('Algebra', () => {
         expect(nerdamer('simplify(cos(pi/2))').toString()).toEqual('0');
         expect(nerdamer('simplify(sin(2)+1)').toString()).toEqual('180783971/94686123');
         expect(nerdamer('simplify(sqrt((sin(1/6)+1)^2+3*cos(1/6)^2))').toString()).toEqual('sqrt(1+2*sin(1/6)+sin(1/6)^2+3*cos(1/6)^2)');
-        // also test the non-string API
+        // Also test the non-string API
         expect(nerdamer('(log((s))+log(2)) - (log((s*2)))').simplify().toString()).toEqual('0');
         expect(nerdamer('(log((s))-log(2)) - (log((s/2)))').simplify().toString()).toEqual('0');
         expect(nerdamer('1+sin(x)+1').simplify().toString()).toEqual('2+sin(x)');
         expect(nerdamer('sqrt(55225+64)').simplify().evaluate().text()).toEqual('235.1361307838504051194');
         expect(nerdamer('(1/5)*sqrt(55225*sin(0)^2+55225*cos(0)^2+64)').simplify().evaluate().text()).toEqual('47.0272261567700838463');
         expect(nerdamer('log(2*((a+b)^7))').simplify().toString()).toEqual('49180508/70952475+7*log(a+b)');
-        // should simplify twice in a row and not lose the minus!
+        // Should simplify twice in a row and not lose the minus!
         expect(nerdamer('-sqrt(h)*sqrt(m)^(-1)').simplify().simplify().text()).toEqual('-sqrt(h)*sqrt(m)^(-1)');
         expect(nerdamer('(530678210/1662132951)*s*(-sqrt(h))*sqrt(m)^(-1)').simplify().simplify().text('fractions')).toEqual('(-530678210/1662132951)*s*sqrt(h)*sqrt(m)^(-1)');
-        // simplify nested fractions correctly
+        // Simplify nested fractions correctly
         expect(nerdamer('((1/b)/((a/b)+(1/b)))').simplify().text()).toEqual('(1+a)^(-1)');
         expect(nerdamer('((a/b)+(1/b))').simplify().text()).toEqual('(1+a)*b^(-1)');
-        // simplify must preserve signs of certain terms
+        // Simplify must preserve signs of certain terms
         expect(nerdamer('(1-y)^2').simplify().text()).toBe('(-y+1)^2');
         expect(nerdamer('48-48*(x/100)').simplify().text()).toBe('0.48*(-x+100)');
         expect(nerdamer('-sqrt(12/5)').simplify().evaluate().text()).toBe('-1.5491933384829665247');
@@ -378,9 +376,9 @@ describe('Algebra', () => {
     });
 
     it('regression tests', () => {
-        // issue #7 - everything becomes 1
+        // Issue #7 - everything becomes 1
         expect(nerdamer('log(0.01s)/(-239263565+51955423log(s))-1').simplify().text()).not.toEqual('1');
-        // simplify issue unlogged 12/10/2023
+        // Simplify issue unlogged 12/10/2023
         expect(nerdamer('(-1/2)*sqrt(5)+1/2').simplify().text()).toBe('-0.6180339887498949600');
     });
 

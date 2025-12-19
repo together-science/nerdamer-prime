@@ -1,10 +1,8 @@
-'use strict';
-
 const nerdamer = require('../nerdamer.core.js');
 const utils = require('./support/utils');
 const _ = utils.toFixed;
 const core = nerdamer.getCore();
-const round = core.Utils.round;
+const { round } = core.Utils;
 
 describe('Logarithms', () => {
     it('should evaluate natural logarithm log(x)', () => {

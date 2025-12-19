@@ -1,7 +1,5 @@
 /* global expect */
 
-'use strict';
-
 /**
  * Regression tests for coeffs() function with irrational constants.
  *
@@ -85,7 +83,7 @@ describe('Coefficients with irrational constants', () => {
 
     describe('Utils.getCoeffs preserves irrationals correctly', () => {
         it('should preserve pi in Utils.getCoeffs', () => {
-            const Utils = nerdamer.getCore().Utils;
+            const { Utils } = nerdamer.getCore();
             const sym = nerdamer('pi*x+1').symbol;
             const coeffs = Utils.getCoeffs(sym, 'x');
 
@@ -94,7 +92,7 @@ describe('Coefficients with irrational constants', () => {
         });
 
         it('should preserve e in Utils.getCoeffs', () => {
-            const Utils = nerdamer.getCore().Utils;
+            const { Utils } = nerdamer.getCore();
             const sym = nerdamer('e*y+1').symbol;
             const coeffs = Utils.getCoeffs(sym, 'y');
 
@@ -103,7 +101,7 @@ describe('Coefficients with irrational constants', () => {
         });
 
         it('should preserve sqrt(2) in Utils.getCoeffs', () => {
-            const Utils = nerdamer.getCore().Utils;
+            const { Utils } = nerdamer.getCore();
             const sym = nerdamer('sqrt(2)*z+1').symbol;
             const coeffs = Utils.getCoeffs(sym, 'z');
 
@@ -112,7 +110,7 @@ describe('Coefficients with irrational constants', () => {
         });
 
         it('should preserve multiple irrationals in Utils.getCoeffs', () => {
-            const Utils = nerdamer.getCore().Utils;
+            const { Utils } = nerdamer.getCore();
             const sym = nerdamer('pi*x+e*y-sqrt(2)').symbol;
 
             const coeffsX = Utils.getCoeffs(sym, 'x');

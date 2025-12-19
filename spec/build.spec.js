@@ -1,14 +1,12 @@
 /* global expect */
 
-'use strict';
-
 const nerdamer = require('../nerdamer.core.js');
 
 describe('build', () => {
     const values = [2.1, 3.3, 1];
 
     it('should honor argument order', () => {
-        // given
+        // Given
         const testCases = [
             {
                 given: '-x^2+1',
@@ -115,12 +113,12 @@ describe('build', () => {
         ];
 
         for (let i = 0; i < testCases.length; ++i) {
-            // when
+            // When
             const parsed = nerdamer(testCases[i].given);
             const f1 = parsed.buildFunction();
             const f2 = parsed.buildFunction(testCases[i].params);
 
-            // then
+            // Then
             expect(f1.apply(null, values)).toEqual(testCases[i].one_expected);
             expect(f2.apply(null, values)).toEqual(testCases[i].two_expected);
         }

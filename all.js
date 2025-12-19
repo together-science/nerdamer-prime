@@ -12,5 +12,5 @@ require('./Calculus.js');
 require('./Solve.js');
 require('./Extra.js');
 
-//export nerdamer
+// Export nerdamer
 module.exports = nerdamer;
