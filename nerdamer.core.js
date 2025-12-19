@@ -9956,9 +9956,7 @@ var nerdamer = (function (imports) {
                     im = a.imagpart();
                     if (re.isConstant('all') && im.isConstant('all')) {
                         phi = Settings.USE_BIG
-                            ? Symbol(
-                                  bigDec.atan2(i.multiplier.toDecimal(), r.multiplier.toDecimal()).times(b.toString())
-                              )
+                            ? bigDec.atan2(im.multiplier.toDecimal(), re.multiplier.toDecimal()).times(b.toString())
                             : Math.atan2(im, re) * b;
                         theta = new Symbol(phi);
                         r = _.pow(Symbol.hyp(re, im), b);
