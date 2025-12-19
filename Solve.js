@@ -400,7 +400,9 @@ if (typeof module !== 'undefined') {
                 const y = vars[1];
 
                 // We can now get the two points for y
-                const y_points = solve(_.parse(b, knownVariable(x, solve(_.parse(a), x)[0])), y).map(x => x.toString());
+                const y_points = solve(_.parse(b, knownVariable(x, solve(_.parse(a), x)[0])), y).map(pt =>
+                    pt.toString()
+                );
 
                 // Since we now know y we can get the two x points from the first equation
                 const x_points = [solve(_.parse(a, knownVariable(y, y_points[0])))[0].toString()];
@@ -736,8 +738,8 @@ if (typeof module !== 'undefined') {
                     // Strip the variables from the symbol so we're left with only the zeroth coefficient
                     // start with the symbol and remove each variable and its coefficient
                     var num = e.clone();
-                    vars.map(e => {
-                        num = num.stripVar(e, true);
+                    vars.map(varName => {
+                        num = num.stripVar(varName, true);
                     });
                     c.set(i, 0, num.negate());
                 }
@@ -1634,8 +1636,8 @@ if (typeof module !== 'undefined') {
                             if (min_p < 0) {
                                 var factor = _.parse(`${solve_for}^${Math.abs(min_p)}`);
                                 var corrected = new NerdamerSymbol(0);
-                                original.each(x => {
-                                    corrected = _.add(corrected, _.multiply(x.clone(), factor.clone()));
+                                original.each(origSym => {
+                                    corrected = _.add(corrected, _.multiply(origSym.clone(), factor.clone()));
                                 }, true);
                                 return corrected;
                             }
@@ -1648,10 +1650,10 @@ if (typeof module !== 'undefined') {
         };
 
         // Separate the equation
-        const separate = function (eq) {
+        const separate = function (equation) {
             let lhs = new NerdamerSymbol(0);
             let rhs = new NerdamerSymbol(0);
-            eq.each(x => {
+            equation.each(x => {
                 if (x.contains(solve_for, true)) {
                     lhs = _.add(lhs, x.clone());
                 } else {
@@ -1708,8 +1710,8 @@ if (typeof module !== 'undefined') {
                 core.Algebra.Factor.factorInner(eq, factors);
                 // If the equation has more than one symbolic factor then solve those individually
                 if (factors.getNumberSymbolics() > 1) {
-                    for (var x in factors.factors) {
-                        add_to_result(solve(factors.factors[x], solve_for));
+                    for (var factorKey in factors.factors) {
+                        add_to_result(solve(factors.factors[factorKey], solve_for));
                     }
                 } else {
                     var coeffs = core.Utils.getCoeffs(eq, solve_for);
@@ -1717,14 +1719,14 @@ if (typeof module !== 'undefined') {
                     let was_calculated = false;
                     if (vars[0] === solve_for) {
                         // Check to see if all the coefficients are constant
-                        if (checkAll(coeffs, x => x.group !== core.groups.N)) {
+                        if (checkAll(coeffs, coeff => coeff.group !== core.groups.N)) {
                             const roots = core.Algebra.proots(eq);
                             // If all the roots are integers then return those
-                            if (checkAll(roots, x => !core.Utils.isInt(x))) {
+                            if (checkAll(roots, root => !core.Utils.isInt(root))) {
                                 // Roots have been calculates
                                 was_calculated = true;
-                                roots.map(x => {
-                                    add_to_result(new NerdamerSymbol(x));
+                                roots.map(root => {
+                                    add_to_result(new NerdamerSymbol(root));
                                 });
                             }
                         }
@@ -1844,17 +1846,17 @@ if (typeof module !== 'undefined') {
 
                     // Uniquefy to epsilon
                     // console.log("solutions: "+solutions);
-                    solutions = solutions.filter((x, i, a) => {
-                        x = Number(Number(x).toPrecision(15));
-                        const x2 = Number(a[i - 1]);
-                        // Console.log("   x: "+x)
-                        if (i === 0 || isNaN(x) || isNaN(x2)) {
+                    solutions = solutions.filter((sol, idx, arr) => {
+                        const val = Number(Number(sol).toPrecision(15));
+                        const prevVal = Number(arr[idx - 1]);
+                        // Console.log("   x: "+val)
+                        if (idx === 0 || isNaN(val) || isNaN(prevVal)) {
                             return true;
                         }
-                        // If ((Math.abs(x-x2) < Settings.EPSILON)) {
-                        //     console.log("diff too small: "+x+", "+x2);
+                        // If ((Math.abs(val-prevVal) < Settings.EPSILON)) {
+                        //     console.log("diff too small: "+val+", "+prevVal);
                         // }
-                        return Math.abs(x - x2) >= Settings.EPSILON;
+                        return Math.abs(val - prevVal) >= Settings.EPSILON;
                     });
                     // Console.log("solutions after filter: "+solutions);
                 } catch (e) {
@@ -1884,8 +1886,8 @@ if (typeof module !== 'undefined') {
                     }
 
                     if (validFactorization && factored.group === CB) {
-                        factored.each(x => {
-                            add_to_result(solve(x, solve_for));
+                        factored.each(factor => {
+                            add_to_result(solve(factor, solve_for));
                         });
                     } else {
                         var coeffs = core.Utils.getCoeffs(eq, solve_for);
@@ -2017,28 +2019,28 @@ if (typeof module !== 'undefined') {
                                 add_to_result(_.pow(rhs, p));
                             }
                         }
-                    } catch (error) {
-                        if (error.message === 'timeout') {
-                            throw error;
+                    } catch (innerError) {
+                        if (innerError.message === 'timeout') {
+                            throw innerError;
                         }
                         // eslint-disable-next-line no-console
-                        console.log(`error ${error}`);
+                        console.log(`error ${innerError}`);
                     }
                 }
             }
         }
 
         if (cfact) {
-            solutions = solutions.map(x => _.pow(x, new NerdamerSymbol(cfact)));
+            solutions = solutions.map(sol => _.pow(sol, new NerdamerSymbol(cfact)));
         }
 
         // Perform some cleanup but don't do it agains arrays, etc
         // Check it actually evaluates to zero
         if (isSymbol(eqns)) {
             const knowns = {};
-            solutions = solutions.filter(x => {
+            solutions = solutions.filter(sol => {
                 try {
-                    knowns[solve_for] = x;
+                    knowns[solve_for] = sol;
                     const zero = Number(evaluate(eqns, knowns));
 
                     // Allow symbolic answers

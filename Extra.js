@@ -351,16 +351,16 @@ if (typeof module !== 'undefined') {
                                         const symbols = num
                                             .collectSymbols(x => {
                                                 x = NerdamerSymbol.unwrapPARENS(x);
-                                                const t = core.Utils.decompose_fn(x, s, true);
-                                                t.symbol = x;
-                                                return t;
+                                                const decomp = core.Utils.decompose_fn(x, s, true);
+                                                decomp.symbol = x;
+                                                return decomp;
                                             })
                                             // Then sort them by power hightest to lowest
-                                            .sort((a, b) => {
+                                            .sort((x1, x2) => {
                                                 let p1;
                                                 let p2;
-                                                p1 = a.x.value !== s ? 0 : a.x.power;
-                                                p2 = b.x.value !== s ? 0 : b.x.power;
+                                                p1 = x1.x.value !== s ? 0 : x1.x.power;
+                                                p2 = x2.x.value !== s ? 0 : x2.x.power;
                                                 return p2 - p1;
                                             });
                                         a = new NerdamerSymbol(-1);

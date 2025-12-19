@@ -1205,16 +1205,16 @@ if (typeof module !== 'undefined') {
             }
             throw new core.exceptions.NerdamerTypeError('Cannot calculate roots. NerdamerSymbol must be a polynomial!');
 
-            function calcroots(rarr, powers, max) {
+            function calcroots(coeffArr, powArr, maxPow) {
                 const MAXDEGREE = 100; // Degree of largest polynomial accepted by this script.
 
                 // Make a clone of the coefficients before appending the max power
-                const p = rarr.slice(0);
+                const p = coeffArr.slice(0);
 
                 // Divide the string up into its individual entries, which--presumably--are separated by whitespace
-                rarr.unshift(max);
+                coeffArr.unshift(maxPow);
 
-                if (max > MAXDEGREE) {
+                if (maxPow > MAXDEGREE) {
                     throw new core.exceptions.ValueLimitExceededError(
                         `This utility accepts polynomials of degree up to ${MAXDEGREE}. `
                     );
@@ -1222,9 +1222,9 @@ if (typeof module !== 'undefined') {
 
                 const zeroi = []; // Vector of imaginary components of roots
                 const degreePar = {}; // DegreePar is a dummy variable for passing the parameter POLYDEGREE by reference
-                degreePar.Degree = max;
+                degreePar.Degree = maxPow;
 
-                for (i = 0; i < max; i++) {
+                for (i = 0; i < maxPow; i++) {
                     zeroi.push(0);
                 }
                 const zeror = zeroi.slice(0); // Vector of real components of roots
@@ -1235,20 +1235,20 @@ if (typeof module !== 'undefined') {
                 /*
                  * A verbatim copy of Mr. David Binner's Jenkins-Traub port
                  */
-                function QuadSD_ak1(NN, u, v, p, q, iPar) {
-                    // Divides p by the quadratic 1, u, v placing the quotient in q and the remainder in a, b
+                function QuadSD_ak1(NN, u, v, poly, q, iPar) {
+                    // Divides poly by the quadratic 1, u, v placing the quotient in q and the remainder in a, b
                     // iPar is a dummy variable for passing in the two parameters--a and b--by reference
-                    q[0] = iPar.b = p[0];
-                    q[1] = iPar.a = -(u * iPar.b) + p[1];
+                    q[0] = iPar.b = poly[0];
+                    q[1] = iPar.a = -(u * iPar.b) + poly[1];
 
-                    for (let i = 2; i < NN; i++) {
-                        q[i] = -(u * iPar.a + v * iPar.b) + p[i];
+                    for (let idx = 2; idx < NN; idx++) {
+                        q[idx] = -(u * iPar.a + v * iPar.b) + poly[idx];
                         iPar.b = iPar.a;
-                        iPar.a = q[i];
+                        iPar.a = q[idx];
                     }
                 }
 
-                function calcSC_ak1(DBL_EPSILON, N, a, b, iPar, K, u, v, qk) {
+                function calcSC_ak1(DBL_EPSILON, degree, a, b, iPar, K, u, v, qk) {
                     // This routine calculates scalar quantities used to compute the next K polynomial and
                     // new estimates of the quadratic coefficients.
                     // calcSC -	integer variable set here indicating how the calculations are normalized
@@ -1262,12 +1262,12 @@ if (typeof module !== 'undefined') {
 
                     // Synthetic division of K by the quadratic 1, u, v
                     sdPar.b = sdPar.a = 0.0;
-                    QuadSD_ak1(N, u, v, K, qk, sdPar);
+                    QuadSD_ak1(degree, u, v, K, qk, sdPar);
                     iPar.c = sdPar.a;
                     iPar.d = sdPar.b;
 
-                    if (Math.abs(iPar.c) <= 100.0 * DBL_EPSILON * Math.abs(K[N - 1])) {
-                        if (Math.abs(iPar.d) <= 100.0 * DBL_EPSILON * Math.abs(K[N - 2])) {
+                    if (Math.abs(iPar.c) <= 100.0 * DBL_EPSILON * Math.abs(K[degree - 1])) {
+                        if (Math.abs(iPar.d) <= 100.0 * DBL_EPSILON * Math.abs(K[degree - 2])) {
                             return dumFlag;
                         }
                     }
@@ -1295,15 +1295,15 @@ if (typeof module !== 'undefined') {
                     return dumFlag;
                 }
 
-                function nextK_ak1(DBL_EPSILON, N, tFlag, a, b, iPar, K, qk, qp) {
+                function nextK_ak1(DBL_EPSILON, degree, tFlag, a, b, iPar, K, qk, qp) {
                     // Computes the next K polynomials using the scalars computed in calcSC_ak1
                     // iPar is a dummy variable for passing in three parameters--a1, a3, and a7
                     let temp;
                     if (tFlag === 3) {
                         // Use unscaled form of the recurrence
                         K[1] = K[0] = 0.0;
-                        for (var i = 2; i < N; i++) {
-                            K[i] = qk[i - 2];
+                        for (let idx = 2; idx < degree; idx++) {
+                            K[idx] = qk[idx - 2];
                         }
                         return;
                     }
@@ -1315,20 +1315,20 @@ if (typeof module !== 'undefined') {
                         iPar.a3 /= iPar.a1;
                         K[0] = qp[0];
                         K[1] = -(qp[0] * iPar.a7) + qp[1];
-                        for (var i = 2; i < N; i++) {
-                            K[i] = -(qp[i - 1] * iPar.a7) + qk[i - 2] * iPar.a3 + qp[i];
+                        for (let idx = 2; idx < degree; idx++) {
+                            K[idx] = -(qp[idx - 1] * iPar.a7) + qk[idx - 2] * iPar.a3 + qp[idx];
                         }
                     } else {
                         // If a1 is nearly zero, then use a special form of the recurrence
                         K[0] = 0.0;
                         K[1] = -(qp[0] * iPar.a7);
-                        for (var i = 2; i < N; i++) {
-                            K[i] = -(qp[i - 1] * iPar.a7) + qk[i - 2] * iPar.a3;
+                        for (let idx = 2; idx < degree; idx++) {
+                            K[idx] = -(qp[idx - 1] * iPar.a7) + qk[idx - 2] * iPar.a3;
                         }
                     }
                 }
 
-                function newest_ak1(tFlag, iPar, a, a1, a3, a7, b, c, d, f, g, h, u, v, K, N, p) {
+                function newest_ak1(tFlag, iPar, a, a1, a3, a7, b, c, d, f, g, h, u, v, K, degree, poly) {
                     // Compute new estimates of the quadratic coefficients using the scalars computed in calcSC_ak1
                     // iPar is a dummy variable for passing in the two parameters--uu and vv--by reference
                     // iPar.a = uu, iPar.b = vv
@@ -1354,8 +1354,8 @@ if (typeof module !== 'undefined') {
                         }
 
                         // Evaluate new quadratic coefficients
-                        b1 = -(K[N - 1] / p[N]);
-                        b2 = -(K[N - 2] + b1 * p[N - 1]) / p[N];
+                        b1 = -(K[degree - 1] / poly[degree]);
+                        b2 = -(K[degree - 2] + b1 * poly[degree - 1]) / poly[degree];
                         c1 = v * b2 * a1;
                         c2 = b1 * a7;
                         c3 = b1 * b1 * a3;
@@ -1414,7 +1414,7 @@ if (typeof module !== 'undefined') {
                     }
                 }
 
-                function QuadIT_ak1(DBL_EPSILON, N, iPar, uu, vv, qp, NN, sdPar, p, qk, calcPar, K) {
+                function QuadIT_ak1(DBL_EPSILON, degree, iPar, uu, vv, qp, NN, sdPar, poly, qk, calcPar, K) {
                     // Variable-shift K-polynomial iteration for a quadratic factor converges only if the
                     // zeros are equimodular or nearly so.
                     // iPar is a dummy variable for passing in the five parameters--NZ, lzi, lzr, szi, and szr--by reference
@@ -1433,7 +1433,7 @@ if (typeof module !== 'undefined') {
                     let v;
                     let vi;
                     let zm;
-                    let i;
+                    let idx;
                     let j = 0;
                     let tFlag;
                     let triedFlag = 0; // Integer variables
@@ -1458,7 +1458,7 @@ if (typeof module !== 'undefined') {
 
                         // Evaluate polynomial by quadratic synthetic division
 
-                        QuadSD_ak1(NN, u, v, p, qp, sdPar);
+                        QuadSD_ak1(NN, u, v, poly, qp, sdPar);
 
                         mp = Math.abs(-(iPar.szr * sdPar.b) + sdPar.a) + Math.abs(iPar.szi * sdPar.b);
 
@@ -1468,8 +1468,8 @@ if (typeof module !== 'undefined') {
                         ee = 2.0 * Math.abs(qp[0]);
                         t = -(iPar.szr * sdPar.b);
 
-                        for (i = 1; i < N; i++) {
-                            ee = ee * zm + Math.abs(qp[i]);
+                        for (idx = 1; idx < degree; idx++) {
+                            ee = ee * zm + Math.abs(qp[idx]);
                         }
 
                         ee = ee * zm + Math.abs(t + sdPar.a);
@@ -1496,10 +1496,10 @@ if (typeof module !== 'undefined') {
                                 u -= u * relstp;
                                 v += v * relstp;
 
-                                QuadSD_ak1(NN, u, v, p, qp, sdPar);
-                                for (i = 0; i < 5; i++) {
-                                    tFlag = calcSC_ak1(DBL_EPSILON, N, sdPar.a, sdPar.b, calcPar, K, u, v, qk);
-                                    nextK_ak1(DBL_EPSILON, N, tFlag, sdPar.a, sdPar.b, calcPar, K, qk, qp);
+                                QuadSD_ak1(NN, u, v, poly, qp, sdPar);
+                                for (idx = 0; idx < 5; idx++) {
+                                    tFlag = calcSC_ak1(DBL_EPSILON, degree, sdPar.a, sdPar.b, calcPar, K, u, v, qk);
+                                    nextK_ak1(DBL_EPSILON, degree, tFlag, sdPar.a, sdPar.b, calcPar, K, qk, qp);
                                 }
 
                                 triedFlag = 1;
@@ -1509,9 +1509,9 @@ if (typeof module !== 'undefined') {
                         omp = mp;
 
                         // Calculate next K polynomial and new u and v
-                        tFlag = calcSC_ak1(DBL_EPSILON, N, sdPar.a, sdPar.b, calcPar, K, u, v, qk);
-                        nextK_ak1(DBL_EPSILON, N, tFlag, sdPar.a, sdPar.b, calcPar, K, qk, qp);
-                        tFlag = calcSC_ak1(DBL_EPSILON, N, sdPar.a, sdPar.b, calcPar, K, u, v, qk);
+                        tFlag = calcSC_ak1(DBL_EPSILON, degree, sdPar.a, sdPar.b, calcPar, K, u, v, qk);
+                        nextK_ak1(DBL_EPSILON, degree, tFlag, sdPar.a, sdPar.b, calcPar, K, qk, qp);
+                        tFlag = calcSC_ak1(DBL_EPSILON, degree, sdPar.a, sdPar.b, calcPar, K, u, v, qk);
                         newest_ak1(
                             tFlag,
                             sdPar,
@@ -1528,8 +1528,8 @@ if (typeof module !== 'undefined') {
                             u,
                             v,
                             K,
-                            N,
-                            p
+                            degree,
+                            poly
                         );
                         ui = sdPar.a;
                         vi = sdPar.b;
@@ -1543,7 +1543,7 @@ if (typeof module !== 'undefined') {
                     } while (vi !== 0);
                 }
 
-                function RealIT_ak1(DBL_EPSILON, iPar, sdPar, N, p, NN, qp, K, qk) {
+                function RealIT_ak1(DBL_EPSILON, iPar, sdPar, degree, poly, NN, qp, K, qk) {
                     // Variable-shift H-polynomial iteration for a real zero
                     // sss	- starting iterate = sdPar.a
                     // NZ		- number of zeros found = iPar.NZ
@@ -1558,28 +1558,28 @@ if (typeof module !== 'undefined') {
                     let s;
                     let t;
                     let dumFlag;
-                    let i;
+                    let idx;
                     let j;
-                    const nm1 = N - 1; // Integer variables
+                    const nm1 = degree - 1; // Integer variables
 
                     iPar.NZ = j = dumFlag = 0;
                     s = sdPar.a;
 
                     for (;;) {
-                        pv = p[0];
+                        pv = poly[0];
 
                         // Evaluate p at s
                         qp[0] = pv;
-                        for (i = 1; i < NN; i++) {
-                            qp[i] = pv = pv * s + p[i];
+                        for (idx = 1; idx < NN; idx++) {
+                            qp[idx] = pv = pv * s + poly[idx];
                         }
                         mp = Math.abs(pv);
 
                         // Compute a rigorous bound on the error in evaluating p
                         ms = Math.abs(s);
                         ee = 0.5 * Math.abs(qp[0]);
-                        for (i = 1; i < NN; i++) {
-                            ee = ee * ms + Math.abs(qp[i]);
+                        for (idx = 1; idx < NN; idx++) {
+                            ee = ee * ms + Math.abs(qp[idx]);
                         }
 
                         // Iteration has converged sufficiently if the polynomial value is less than
@@ -1611,28 +1611,28 @@ if (typeof module !== 'undefined') {
 
                         // Compute t, the next polynomial and the new iterate
                         qk[0] = kv = K[0];
-                        for (i = 1; i < N; i++) {
-                            qk[i] = kv = kv * s + K[i];
+                        for (idx = 1; idx < degree; idx++) {
+                            qk[idx] = kv = kv * s + K[idx];
                         }
 
                         if (Math.abs(kv) > Math.abs(K[nm1]) * 10.0 * DBL_EPSILON) {
                             // Use the scaled form of the recurrence if the value of K at s is non-zero
                             t = -(pv / kv);
                             K[0] = qp[0];
-                            for (i = 1; i < N; i++) {
-                                K[i] = t * qk[i - 1] + qp[i];
+                            for (idx = 1; idx < degree; idx++) {
+                                K[idx] = t * qk[idx - 1] + qp[idx];
                             }
                         } else {
                             // Use unscaled form
                             K[0] = 0.0;
-                            for (i = 1; i < N; i++) {
-                                K[i] = qk[i - 1];
+                            for (idx = 1; idx < degree; idx++) {
+                                K[idx] = qk[idx - 1];
                             }
                         }
 
                         kv = K[0];
-                        for (i = 1; i < N; i++) {
-                            kv = kv * s + K[i];
+                        for (idx = 1; idx < degree; idx++) {
+                            kv = kv * s + K[idx];
                         }
                         t = Math.abs(kv) > Math.abs(K[nm1]) * 10.0 * DBL_EPSILON ? -(pv / kv) : 0.0;
                         s += t;
@@ -1640,7 +1640,7 @@ if (typeof module !== 'undefined') {
                     return dumFlag;
                 }
 
-                function Fxshfr_ak1(DBL_EPSILON, MDP1, L2, sr, v, K, N, p, NN, qp, u, iPar) {
+                function Fxshfr_ak1(DBL_EPSILON, MDP1, L2, sr, v, K, degree, poly, NN, qp, u, iPar) {
                     // Computes up to L2 fixed shift K-polynomials, testing for convergence in the linear or
                     // quadratic case. Initiates one of the variable shift iterations and returns with the
                     // number of zeros found.
@@ -1671,7 +1671,7 @@ if (typeof module !== 'undefined') {
                     let vi;
                     let vv;
                     let fflag;
-                    let i;
+                    let idx;
                     let iFlag = 1;
                     let j;
                     let spass;
@@ -1687,7 +1687,7 @@ if (typeof module !== 'undefined') {
 
                     // Evaluate polynomial by synthetic division
                     sdPar.b = sdPar.a = 0.0;
-                    QuadSD_ak1(NN, u, v, p, qp, sdPar);
+                    QuadSD_ak1(NN, u, v, poly, qp, sdPar);
                     a = sdPar.a;
                     b = sdPar.b;
                     calcPar.h =
@@ -1700,14 +1700,14 @@ if (typeof module !== 'undefined') {
                         calcPar.a3 =
                         calcPar.a1 =
                             0.0;
-                    tFlag = calcSC_ak1(DBL_EPSILON, N, a, b, calcPar, K, u, v, qk);
+                    tFlag = calcSC_ak1(DBL_EPSILON, degree, a, b, calcPar, K, u, v, qk);
 
                     for (j = 0; j < L2; j++) {
                         fflag = 1;
 
                         // Calculate next K polynomial and estimate v
-                        nextK_ak1(DBL_EPSILON, N, tFlag, a, b, calcPar, K, qk, qp);
-                        tFlag = calcSC_ak1(DBL_EPSILON, N, a, b, calcPar, K, u, v, qk);
+                        nextK_ak1(DBL_EPSILON, degree, tFlag, a, b, calcPar, K, qk, qp);
+                        tFlag = calcSC_ak1(DBL_EPSILON, degree, a, b, calcPar, K, u, v, qk);
 
                         // Use sdPar for passing in uu and vv instead of defining a brand-new variable.
                         // sdPar.a = ui, sdPar.b = vi
@@ -1727,14 +1727,14 @@ if (typeof module !== 'undefined') {
                             u,
                             v,
                             K,
-                            N,
-                            p
+                            degree,
+                            poly
                         );
                         ui = sdPar.a;
                         vv = vi = sdPar.b;
 
                         // Estimate s
-                        ss = K[N - 1] !== 0.0 ? -(p[N] / K[N - 1]) : 0.0;
+                        ss = K[degree - 1] !== 0.0 ? -(poly[degree] / K[degree - 1]) : 0.0;
                         ts = tv = 1.0;
 
                         if (j !== 0 && tFlag !== 3) {
@@ -1754,8 +1754,8 @@ if (typeof module !== 'undefined') {
                                 // At least one sequence has passed the convergence test.
                                 // Store variables before iterating
 
-                                for (i = 0; i < N; i++) {
-                                    svk[i] = K[i];
+                                for (idx = 0; idx < degree; idx++) {
+                                    svk[idx] = K[idx];
                                 }
                                 s = ss;
 
@@ -1767,7 +1767,20 @@ if (typeof module !== 'undefined') {
                                     if (fflag && (fflag = 0) === 0 && spass && (!vpass || tss < tvv)) {
                                         // Do nothing. Provides a quick "short circuit".
                                     } else {
-                                        QuadIT_ak1(DBL_EPSILON, N, iPar, ui, vi, qp, NN, sdPar, p, qk, calcPar, K);
+                                        QuadIT_ak1(
+                                            DBL_EPSILON,
+                                            degree,
+                                            iPar,
+                                            ui,
+                                            vi,
+                                            qp,
+                                            NN,
+                                            sdPar,
+                                            poly,
+                                            qk,
+                                            calcPar,
+                                            K
+                                        );
                                         a = sdPar.a;
                                         b = sdPar.b;
 
@@ -1784,8 +1797,8 @@ if (typeof module !== 'undefined') {
                                         if (stry || !spass) {
                                             iFlag = 0;
                                         } else {
-                                            for (i = 0; i < N; i++) {
-                                                K[i] = svk[i];
+                                            for (idx = 0; idx < degree; idx++) {
+                                                K[idx] = svk[idx];
                                             }
                                         }
                                     }
@@ -1794,7 +1807,7 @@ if (typeof module !== 'undefined') {
                                         // Use sdPar for passing in s instead of defining a brand-new variable.
                                         // sdPar.a = s
                                         sdPar.a = s;
-                                        iFlag = RealIT_ak1(DBL_EPSILON, iPar, sdPar, N, p, NN, qp, K, qk);
+                                        iFlag = RealIT_ak1(DBL_EPSILON, iPar, sdPar, degree, poly, NN, qp, K, qk);
                                         s = sdPar.a;
 
                                         if (iPar.NZ > 0) {
@@ -1815,8 +1828,8 @@ if (typeof module !== 'undefined') {
                                     }
 
                                     // Restore variables
-                                    for (i = 0; i < N; i++) {
-                                        K[i] = svk[i];
+                                    for (idx = 0; idx < degree; idx++) {
+                                        K[idx] = svk[idx];
                                     }
 
                                     // Try quadratic iteration if it has not been tried and the v sequence is converging
@@ -1827,11 +1840,11 @@ if (typeof module !== 'undefined') {
 
                                 // Re-compute qp and scalar values to continue the second stage
 
-                                QuadSD_ak1(NN, u, v, p, qp, sdPar);
+                                QuadSD_ak1(NN, u, v, poly, qp, sdPar);
                                 a = sdPar.a;
                                 b = sdPar.b;
 
-                                tFlag = calcSC_ak1(DBL_EPSILON, N, a, b, calcPar, K, u, v, qk);
+                                tFlag = calcSC_ak1(DBL_EPSILON, degree, a, b, calcPar, K, u, v, qk);
                             }
                         }
                         ovv = vv;
@@ -1841,8 +1854,8 @@ if (typeof module !== 'undefined') {
                     }
                 }
 
-                function rpSolve(degPar, p, zeror, zeroi) {
-                    let N = degPar.Degree;
+                function rpSolve(degPar, poly, zeroReal, zeroImag) {
+                    let degree = degPar.Degree;
                     const RADFAC = Math.PI / 180; // Degrees-to-radians conversion factor = PI/180
                     const LB2 = Math.LN2; // Dummy variable to avoid re-calculating this value in loop below
                     const MDP1 = degPar.Degree + 1;
@@ -1898,29 +1911,29 @@ if (typeof module !== 'undefined') {
                     Fxshfr_Par.szr = Fxshfr_Par.szi = Fxshfr_Par.lzr = Fxshfr_Par.lzi = 0.0;
 
                     // Remove zeros at the origin, if any
-                    while (p[N] === 0) {
-                        zeror[j] = zeroi[j] = 0;
-                        N--;
+                    while (poly[degree] === 0) {
+                        zeroReal[j] = zeroImag[j] = 0;
+                        degree--;
                         j++;
                     }
-                    NN = N + 1;
+                    NN = degree + 1;
 
                     // >>>>> Begin Main Loop <<<<<
-                    while (N >= 1) {
+                    while (degree >= 1) {
                         // Main loop
                         // Start the algorithm for one zero
-                        if (N <= 2) {
+                        if (degree <= 2) {
                             // Calculate the final zero or pair of zeros
-                            if (N < 2) {
-                                zeror[degPar.Degree - 1] = -(p[1] / p[0]);
-                                zeroi[degPar.Degree - 1] = 0;
+                            if (degree < 2) {
+                                zeroReal[degPar.Degree - 1] = -(poly[1] / poly[0]);
+                                zeroImag[degPar.Degree - 1] = 0;
                             } else {
                                 qPar.li = qPar.lr = qPar.si = qPar.sr = 0.0;
-                                Quad_ak1(p[0], p[1], p[2], qPar);
-                                zeror[degPar.Degree - 2] = qPar.sr;
-                                zeroi[degPar.Degree - 2] = qPar.si;
-                                zeror[degPar.Degree - 1] = qPar.lr;
-                                zeroi[degPar.Degree - 1] = qPar.li;
+                                Quad_ak1(poly[0], poly[1], poly[2], qPar);
+                                zeroReal[degPar.Degree - 2] = qPar.sr;
+                                zeroImag[degPar.Degree - 2] = qPar.si;
+                                zeroReal[degPar.Degree - 1] = qPar.lr;
+                                zeroImag[degPar.Degree - 1] = qPar.li;
                             }
                             break;
                         }
@@ -1930,7 +1943,7 @@ if (typeof module !== 'undefined') {
                         moduli_min = Number.MAX_VALUE;
 
                         for (i = 0; i < NN; i++) {
-                            x = Math.abs(p[i]);
+                            x = Math.abs(poly[i]);
                             if (x > moduli_max) {
                                 moduli_max = x;
                             }
@@ -1952,24 +1965,24 @@ if (typeof module !== 'undefined') {
                             factor = 2.0 ** l;
                             if (factor !== 1.0) {
                                 for (i = 0; i < NN; i++) {
-                                    p[i] *= factor;
+                                    poly[i] *= factor;
                                 }
                             }
                         }
 
                         // Compute lower bound on moduli of zeros
-                        for (var i = 0; i < NN; i++) {
-                            pt[i] = Math.abs(p[i]);
+                        for (let idx = 0; idx < NN; idx++) {
+                            pt[idx] = Math.abs(poly[idx]);
                         }
-                        pt[N] = -pt[N];
-                        NM1 = N - 1;
+                        pt[degree] = -pt[degree];
+                        NM1 = degree - 1;
 
                         // Compute upper estimate of bound
-                        x = Math.exp((Math.log(-pt[N]) - Math.log(pt[0])) / N);
+                        x = Math.exp((Math.log(-pt[degree]) - Math.log(pt[0])) / degree);
 
                         if (pt[NM1] !== 0) {
                             // If Newton step at the origin is better, use it
-                            xm = -pt[N] / pt[NM1];
+                            xm = -pt[degree] / pt[NM1];
                             x = xm < x ? xm : x;
                         }
 
@@ -1979,8 +1992,8 @@ if (typeof module !== 'undefined') {
                             x = xm;
                             xm = 0.1 * x;
                             ff = pt[0];
-                            for (var i = 1; i < NN; i++) {
-                                ff = ff * xm + pt[i];
+                            for (let idx = 1; idx < NN; idx++) {
+                                ff = ff * xm + pt[idx];
                             }
                         } while (ff > 0); // End do-while loop
 
@@ -1989,11 +2002,11 @@ if (typeof module !== 'undefined') {
 
                         do {
                             df = ff = pt[0];
-                            for (var i = 1; i < N; i++) {
-                                ff = x * ff + pt[i];
+                            for (let idx = 1; idx < degree; idx++) {
+                                ff = x * ff + pt[idx];
                                 df = x * df + ff;
                             } // End for i
-                            ff = x * ff + pt[N];
+                            ff = x * ff + pt[degree];
                             dx = ff / df;
                             x -= dx;
                         } while (Math.abs(dx / x) > 0.005); // End do-while loop
@@ -2001,20 +2014,20 @@ if (typeof module !== 'undefined') {
                         bnd = x;
 
                         // Compute the derivative as the initial K polynomial and do 5 steps with no shift
-                        for (var i = 1; i < N; i++) {
-                            K[i] = ((N - i) * p[i]) / N;
+                        for (let idx = 1; idx < degree; idx++) {
+                            K[idx] = ((degree - idx) * poly[idx]) / degree;
                         }
-                        K[0] = p[0];
-                        aa = p[N];
-                        bb = p[NM1];
+                        K[0] = poly[0];
+                        aa = poly[degree];
+                        bb = poly[NM1];
                         zerok = K[NM1] === 0 ? 1 : 0;
 
                         for (jj = 0; jj < 5; jj++) {
                             cc = K[NM1];
                             if (zerok) {
                                 // Use unscaled form of recurrence
-                                for (var i = 0; i < NM1; i++) {
-                                    j = NM1 - i;
+                                for (let idx = 0; idx < NM1; idx++) {
+                                    j = NM1 - idx;
                                     K[j] = K[j - 1];
                                 } // End for i
                                 K[0] = 0;
@@ -2022,18 +2035,18 @@ if (typeof module !== 'undefined') {
                             } else {
                                 // Used scaled form of recurrence if value of K at 0 is nonzero
                                 t = -aa / cc;
-                                for (var i = 0; i < NM1; i++) {
-                                    j = NM1 - i;
-                                    K[j] = t * K[j - 1] + p[j];
+                                for (let idx = 0; idx < NM1; idx++) {
+                                    j = NM1 - idx;
+                                    K[j] = t * K[j - 1] + poly[j];
                                 } // End for i
-                                K[0] = p[0];
+                                K[0] = poly[0];
                                 zerok = Math.abs(K[NM1]) <= Math.abs(bb) * DBL_EPSILON * 10.0 ? 1 : 0;
                             }
                         }
 
                         // Save K for restarts with new shifts
-                        for (var i = 0; i < N; i++) {
-                            temp[i] = K[i];
+                        for (let idx = 0; idx < degree; idx++) {
+                            temp[idx] = K[idx];
                         }
 
                         // Loop to select the quadratic corresponding to each new shift
@@ -2049,35 +2062,35 @@ if (typeof module !== 'undefined') {
                             u = -(2.0 * sr);
 
                             // Second stage calculation, fixed quadratic
-                            Fxshfr_ak1(DBL_EPSILON, MDP1, 20 * jj, sr, bnd, K, N, p, NN, qp, u, Fxshfr_Par);
+                            Fxshfr_ak1(DBL_EPSILON, MDP1, 20 * jj, sr, bnd, K, degree, poly, NN, qp, u, Fxshfr_Par);
 
                             if (Fxshfr_Par.NZ !== 0) {
                                 // The second stage jumps directly to one of the third stage iterations and
                                 // returns here if successful. Deflate the polynomial, store the zero or
                                 // zeros, and return to the main algorithm.
-                                j = degPar.Degree - N;
-                                zeror[j] = Fxshfr_Par.szr;
-                                zeroi[j] = Fxshfr_Par.szi;
+                                j = degPar.Degree - degree;
+                                zeroReal[j] = Fxshfr_Par.szr;
+                                zeroImag[j] = Fxshfr_Par.szi;
                                 NN -= Fxshfr_Par.NZ;
-                                N = NN - 1;
-                                for (var i = 0; i < NN; i++) {
-                                    p[i] = qp[i];
+                                degree = NN - 1;
+                                for (let idx = 0; idx < NN; idx++) {
+                                    poly[idx] = qp[idx];
                                 }
                                 if (Fxshfr_Par.NZ !== 1) {
-                                    zeror[j + 1] = Fxshfr_Par.lzr;
-                                    zeroi[j + 1] = Fxshfr_Par.lzi;
+                                    zeroReal[j + 1] = Fxshfr_Par.lzr;
+                                    zeroImag[j + 1] = Fxshfr_Par.lzi;
                                 }
                                 break;
                             } else {
                                 // If the iteration is unsuccessful, another quadratic is chosen after restoring K
-                                for (var i = 0; i < N; i++) {
-                                    K[i] = temp[i];
+                                for (let idx = 0; idx < degree; idx++) {
+                                    K[idx] = temp[idx];
                                 }
                             }
                         }
                         // Return with failure if no convergence with 20 shifts
                         if (jj > 20) {
-                            degPar.Degree -= N;
+                            degPar.Degree -= degree;
                             break;
                         }
                     }
@@ -2153,8 +2166,8 @@ if (typeof module !== 'undefined') {
             return newtonraph(Number(guess));
         },
         quad(a, b, c) {
-            const q = function (a, b, c, sign) {
-                return _.parse(`-(${b}+${sign}*sqrt((${b})^2-4*(${a})*(${c})))/(2*${a})`);
+            const q = function (qa, qb, qc, sign) {
+                return _.parse(`-(${qb}+${sign}*sqrt((${qb})^2-4*(${qa})*(${qc})))/(2*${qa})`);
             };
             return [q(a, b, c, 1), q(a, b, c, -1)];
         },
@@ -3080,15 +3093,15 @@ if (typeof module !== 'undefined') {
                         symbol.updateHash();
                     } else {
                         // TODO: This should probably go to the prototype
-                        const power = function (symbol) {
+                        const power = function (sym) {
                             let p;
-                            if (symbol.group === CB) {
+                            if (sym.group === CB) {
                                 p = 0;
-                                symbol.each(x => {
+                                sym.each(x => {
                                     p += x.power;
                                 });
                             } else {
-                                p = Number(symbol.power);
+                                p = Number(sym.power);
                             }
                             return p;
                         };
@@ -3489,8 +3502,8 @@ if (typeof module !== 'undefined') {
                         if (divided[1].equals(0)) {
                             var has_fractions = false;
 
-                            divided[0].each(x => {
-                                if (!isInt(x.multiplier)) {
+                            divided[0].each(elem => {
+                                if (!isInt(elem.multiplier)) {
                                     has_fractions = true;
                                 }
                             });
@@ -4111,10 +4124,10 @@ if (typeof module !== 'undefined') {
                             return true;
                         };
 
-                        const try_better_lead_var = function (s1, s2, lead_var) {
+                        const try_better_lead_var = function (sym1, sym2, leadVar) {
                             const checked = [];
-                            for (var i = 0; i < s1.length; i++) {
-                                var t = s1[i];
+                            for (var i = 0; i < sym1.length; i++) {
+                                var t = sym1[i];
                                 for (let j = 0; j < t.terms.length; j++) {
                                     const cf = checked[j];
                                     const tt = t.terms[j];
@@ -4132,7 +4145,7 @@ if (typeof module !== 'undefined') {
                                     return i;
                                 }
                             }
-                            return lead_var;
+                            return leadVar;
                         };
                         const sf = function (a, b) {
                             const l1 = a.len();
@@ -4459,8 +4472,8 @@ if (typeof module !== 'undefined') {
                             symbol.each(x => {
                                 const d = x.getDenom();
                                 const n = x.getNum();
-                                const e = denominators[d];
-                                denominators[d] = e ? _.add(e, n) : n;
+                                const existing = denominators[d];
+                                denominators[d] = existing ? _.add(existing, n) : n;
                             });
 
                             let t = new NerdamerSymbol(0);
@@ -5219,9 +5232,9 @@ if (typeof module !== 'undefined') {
             patternSub(symbol) {
                 const patterns = {};
 
-                const has_CP = function (symbol) {
+                const has_CP = function (sym) {
                     let found = false;
-                    symbol.each(x => {
+                    sym.each(x => {
                         if (x.group === CP) {
                             found = true;
                         } else if (x.symbols) {
@@ -5507,11 +5520,11 @@ if (typeof module !== 'undefined') {
     // This version parses arguments without PARSE2NUMBER to preserve symbolic constants
     nerdamer.coeffs = function () {
         const args = [].slice.call(arguments);
-        const _ = core.PARSER;
+        const parser = core.PARSER;
         // Parse arguments WITHOUT PARSE2NUMBER to preserve symbolic constants like pi, e, sqrt(2)
         for (let i = 0; i < args.length; i++) {
             if (typeof args[i] === 'string') {
-                args[i] = _.parse(args[i]);
+                args[i] = parser.parse(args[i]);
             } else if (args[i] && args[i].symbol) {
                 // It's an Expression, get the symbol
                 args[i] = args[i].symbol.clone();
