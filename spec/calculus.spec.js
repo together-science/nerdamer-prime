@@ -116,9 +116,9 @@ describe('Calculus', () => {
         expect(round(nerdamer('defint(log(cos(x/2)),-π,π,x)').evaluate(), 14)).toEqual(round(-4.355172180607, 14));
         expect(round(nerdamer('defint(log(x+1), -1, 1, x)').evaluate(), 14)).toEqual(round(-0.6137056388801095, 14));
         expect(round(nerdamer('defint(log(x), 0, 1, x)').evaluate(), 14)).toEqual(round(-1, 14));
-        expect(round(nerdamer('defint((x^2-3)/(-x^3+9x+1), 1, 3, x)').evaluate(), 14)).toEqual(round(0.732408192445406585, 14));
-        expect(round(nerdamer('defint(x*(x-5)^(1/2),5,8)').evaluate(), 14)).toEqual(round(23.555890982936999348, 14));
-        expect(round(nerdamer('defint(sqrt(4(x^2)+4), 0, 3)').evaluate(), 14)).toEqual(round(11.305279439735999908, 14));
+        expect(round(nerdamer('defint((x^2-3)/(-x^3+9x+1), 1, 3, x)').evaluate(), 14)).toEqual(round(0.7324081924454066, 14));
+        expect(round(nerdamer('defint(x*(x-5)^(1/2),5,8)').evaluate(), 14)).toEqual(round(23.555890982937, 14));
+        expect(round(nerdamer('defint(sqrt(4(x^2)+4), 0, 3)').evaluate(), 14)).toEqual(round(11.305279439736, 14));
     });
 
     it('should calculate limits correctly', () => {

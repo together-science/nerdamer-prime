@@ -276,6 +276,7 @@ if (typeof module !== 'undefined') {
                 throw error;
             }
 
+            // eslint-disable-next-line no-console
             console.log(error);
         } finally {
             core.Utils.disarmTimeout();
@@ -1826,6 +1827,7 @@ if (typeof module !== 'undefined') {
                     if (e.message === 'timeout') {
                         throw e;
                     }
+                    // eslint-disable-next-line no-console
                     console.log(e);
                 }
             }
@@ -1985,6 +1987,7 @@ if (typeof module !== 'undefined') {
                         if (error.message === 'timeout') {
                             throw error;
                         }
+                        // eslint-disable-next-line no-console
                         console.log(`error ${error}`);
                     }
                 }

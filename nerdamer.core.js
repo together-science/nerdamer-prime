@@ -136,6 +136,7 @@ var nerdamer = (function (imports) {
     let __timeout;
 
     function armTimeout() {
+        // eslint-disable-next-line no-console
         if (console.global && console.global.tsDebugChannels && console.global.tsDebugChannels.notimeout) {
             disarmTimeout();
             return;
@@ -209,7 +210,7 @@ var nerdamer = (function (imports) {
     Collection.prototype.add = function (c2) {
         return block(
             'SAFE',
-            function () {
+            () => {
                 const V = c2.elements || c2;
                 if (this.elements.length !== V.length) {
                     return null;
@@ -225,7 +226,7 @@ var nerdamer = (function (imports) {
     Collection.prototype.subtract = function (vector) {
         return block(
             'SAFE',
-            function () {
+            () => {
                 const V = vector.elements || vector;
                 if (this.elements.length !== V.length) {
                     return null;
@@ -1183,7 +1184,7 @@ var nerdamer = (function (imports) {
             }
         } else {
             for (const x in obj) {
-                if (obj.hasOwnProperty(x)) {
+                if (Object.hasOwn(obj, x)) {
                     fn.call(obj, x);
                 }
             }
@@ -2266,7 +2267,7 @@ var nerdamer = (function (imports) {
                 return -Infinity;
             }
             let n = 30,
-                g = 0.5772156649015328606 /*roughly Euler–Mascheroni*/,
+                g = 0.5772156649015329 /*roughly Euler–Mascheroni*/,
                 sum = 0;
             for (let i = 1; i < n; i++) {
                 sum += Math.pow(x, i) / (i * Math2.factorial(i));
@@ -2291,7 +2292,7 @@ var nerdamer = (function (imports) {
         Chi(x) {
             let dx, g, f;
             dx = 0.001;
-            g = 0.5772156649015328606;
+            g = 0.5772156649015329;
             f = function (t) {
                 return (Math.cosh(t) - 1) / t;
             };
@@ -2675,7 +2676,7 @@ var nerdamer = (function (imports) {
                             return false;
                         };
                     return new Scientific(obj.valueOf()).toString(Settings.SCIENTIFIC_MAX_DECIMAL_PLACES);
-                case 'decimals_or_scientific':
+                case 'decimals_or_scientific': {
                     wrapCondition =
                         wrapCondition ||
                         function (str) {
@@ -2691,6 +2692,7 @@ var nerdamer = (function (imports) {
                         }
                         return decimals;
                     }
+                }
 
                 default:
                     wrapCondition =
@@ -4114,13 +4116,13 @@ var nerdamer = (function (imports) {
                 retval = new NerdamerSymbol(this.multiplier);
             } else if (this.group === CP && this.isLinear()) {
                 retval = new NerdamerSymbol(0);
-                this.each(function (s) {
+                this.each(s => {
                     if (!s.contains(x)) {
                         const t = s.clone();
                         t.multiplier = t.multiplier.multiply(this.multiplier);
                         retval = _.add(retval, t);
                     }
-                });
+                }, this);
                 //BIG TODO!!! It doesn't make much sense
                 if (retval.equals(0)) {
                     retval = new NerdamerSymbol(this.multiplier);
@@ -9468,6 +9470,7 @@ var nerdamer = (function (imports) {
 
         function print() {
             arguments2Array(arguments).map(x => {
+                // eslint-disable-next-line no-console
                 console.log(x.toString());
             });
         }
@@ -11755,6 +11758,7 @@ var nerdamer = (function (imports) {
                 } else if (token.value && token.value.startsWith('int_')) {
                     // var l = parse_next(); // lower
                     var l = token.value.replace('int_', '');
+                    // eslint-disable-next-line no-console
                     console.log('uppernow');
                     i++; // skip the ^
                     var u = next().value; // upper
@@ -11905,14 +11909,7 @@ var nerdamer = (function (imports) {
 
         // Returns the modulus ('length') of the vector
         modulus() {
-            return block(
-                'SAFE',
-                function () {
-                    return _.pow(this.dot(this.clone()), new NerdamerSymbol(0.5));
-                },
-                undefined,
-                this
-            );
+            return block('SAFE', () => _.pow(this.dot(this.clone()), new NerdamerSymbol(0.5)), undefined, this);
         },
 
         // Returns true iff the vector is equal to the argument
@@ -11972,7 +11969,7 @@ var nerdamer = (function (imports) {
         toUnitVector() {
             return block(
                 'SAFE',
-                function () {
+                () => {
                     const r = this.modulus();
                     if (r.valueOf() === 0) {
                         return this.clone();
@@ -11988,7 +11985,7 @@ var nerdamer = (function (imports) {
         angleFrom(vector) {
             return block(
                 'SAFE',
-                function () {
+                () => {
                     const V = vector.elements || vector;
                     const n = this.elements.length;
                     if (n !== V.length) {
@@ -12046,7 +12043,7 @@ var nerdamer = (function (imports) {
         add(vector) {
             return block(
                 'SAFE',
-                function () {
+                () => {
                     const V = vector.elements || vector;
                     if (this.elements.length !== V.length) {
                         return null;
@@ -12062,7 +12059,7 @@ var nerdamer = (function (imports) {
         subtract(vector) {
             return block(
                 'SAFE',
-                function () {
+                () => {
                     const V = vector.elements || vector;
                     if (this.elements.length !== V.length) {
                         return null;
@@ -12088,7 +12085,7 @@ var nerdamer = (function (imports) {
         dot(vector) {
             return block(
                 'SAFE',
-                function () {
+                () => {
                     const V = vector.elements || vector;
                     let product = new NerdamerSymbol(0),
                         n = this.elements.length;
@@ -12368,7 +12365,7 @@ var nerdamer = (function (imports) {
             }
             return block(
                 'SAFE',
-                function () {
+                () => {
                     let ni = this.elements.length,
                         ki = ni,
                         i,
@@ -12429,7 +12426,7 @@ var nerdamer = (function (imports) {
         toRightTriangular() {
             return block(
                 'SAFE',
-                function () {
+                () => {
                     var M = this.clone(),
                         els,
                         fel,
@@ -12522,7 +12519,7 @@ var nerdamer = (function (imports) {
         multiply(matrix) {
             return block(
                 'SAFE',
-                function () {
+                () => {
                     const M = matrix.elements || matrix;
                     if (!this.canMultiplyFromLeft(M)) {
                         if (this.sameSize(matrix)) {
@@ -12809,7 +12806,7 @@ var nerdamer = (function (imports) {
                 let diffStr = Math2.diff.toString();
                 // Handle ES6 method shorthand
                 if (!diffStr.startsWith('function') && !diffStr.startsWith('(') && !diffStr.startsWith('async')) {
-                    diffStr = 'function ' + diffStr;
+                    diffStr = `function ${diffStr}`;
                 }
                 deps[1] += `var diff = ${diffStr};`;
                 deps[1] += f;
@@ -12847,7 +12844,7 @@ var nerdamer = (function (imports) {
                     let fnStr = depValue.toString();
                     // Handle ES6 method shorthand like "gamma(z) { ... }" -> "function gamma(z) { ... }"
                     if (!fnStr.startsWith('function') && !fnStr.startsWith('(') && !fnStr.startsWith('async')) {
-                        fnStr = 'function ' + fnStr;
+                        fnStr = `function ${fnStr}`;
                     }
                     depValue = fnStr;
                 }
@@ -12917,7 +12914,7 @@ var nerdamer = (function (imports) {
                                     !fnStr.startsWith('(') &&
                                     !fnStr.startsWith('async')
                                 ) {
-                                    fnStr = 'function ' + fnStr;
+                                    fnStr = `function ${fnStr}`;
                                 }
                                 xports.push(`var ${bn} = ${fnStr}; `);
                                 supplements.push(bn);

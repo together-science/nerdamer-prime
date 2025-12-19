@@ -23,6 +23,7 @@ if (typeof module !== 'undefined') {
     };
     const debugout = function (s) {
         const prefix = '                                                  '.substring(0, _debuglevel);
+        // eslint-disable-next-line no-console
         console.log(prefix + s);
     };
 
@@ -132,7 +133,7 @@ if (typeof module !== 'undefined') {
         parse(symbol, c) {
             this.variable = variables(symbol)[0];
             if (!symbol.isPoly()) {
-                throw core.exceptions.NerdamerTypeError('Polynomial Expected! Received ' + core.Utils.text(symbol));
+                throw core.exceptions.NerdamerTypeError(`Polynomial Expected! Received ${core.Utils.text(symbol)}`);
             }
             c = c || [];
             if (!symbol.power.absEquals(1)) {
@@ -468,7 +469,9 @@ if (typeof module !== 'undefined') {
             //get the first nozero coefficient and returns its power
             const fnz = function (a) {
                     for (let i = 0; i < a.length; i++) {
-                        if (!a[i].equals(0)) return i;
+                        if (!a[i].equals(0)) {
+                            return i;
+                        }
                     }
                 },
                 ca = [];
@@ -496,7 +499,7 @@ if (typeof module !== 'undefined') {
         quad(incl_img) {
             const roots = [];
             if (this.coeffs.length > 3) {
-                throw new Error('Cannot calculate quadratic order of ' + (this.coeffs.length - 1));
+                throw new Error(`Cannot calculate quadratic order of ${this.coeffs.length - 1}`);
             }
             if (this.coeffs.length === 0) {
                 throw new Error('Polynomial array has no terms');
@@ -564,7 +567,7 @@ if (typeof module !== 'undefined') {
                 const plus = i === end ? '' : '+',
                     e = this.coeffs[i];
                 if (!e.equals(0)) {
-                    str += e + '*' + variable + '^' + i + plus;
+                    str += `${e}*${variable}^${i}${plus}`;
                 }
             }
             return _.parse(str);
@@ -1843,7 +1846,7 @@ if (typeof module !== 'undefined') {
 
                 function rpSolve(degPar, p, zeror, zeroi) {
                     let N = degPar.Degree,
-                        RADFAC = 3.14159265358979323846 / 180, // Degrees-to-radians conversion factor = PI/180
+                        RADFAC = Math.PI / 180, // Degrees-to-radians conversion factor = PI/180
                         LB2 = Math.LN2, // Dummy variable to avoid re-calculating this value in loop below
                         MDP1 = degPar.Degree + 1,
                         K = new Array(MDP1),
@@ -2120,9 +2123,7 @@ if (typeof module !== 'undefined') {
             if (symbol.isConstant(true, true)) {
                 return core.Utils.nroots(symbol);
             }
-            const roots = __.proots(symbol).map(x => {
-                return _.parse(x);
-            });
+            const roots = __.proots(symbol).map(x => _.parse(x));
             return core.Vector.fromArray(roots);
         },
         froot(f, guess, dx) {
@@ -2177,7 +2178,7 @@ if (typeof module !== 'undefined') {
             wrt = String(wrt);
 
             if (symbol.group === EX && symbol.contains(wrt, true)) {
-                _.error('Unable to get coefficients using expression ' + symbol.toString());
+                _.error(`Unable to get coefficients using expression ${symbol.toString()}`);
             }
             var vars = variables(symbol);
 
@@ -2250,7 +2251,9 @@ if (typeof module !== 'undefined') {
             }
             //fill holes
             for (var i = 0, l = coeffs.length; i < l; i++) {
-                if (typeof coeffs[i] === 'undefined') coeffs[i] = new NerdamerSymbol(0);
+                if (typeof coeffs[i] === 'undefined') {
+                    coeffs[i] = new NerdamerSymbol(0);
+                }
             }
 
             return coeffs;
@@ -2341,9 +2344,11 @@ if (typeof module !== 'undefined') {
                         //TODO: try to avoid this
                         //collect the symbols and sort to have the longest first. Thinking is that the longest terms
                         //has to contain the variable in order for it to be factorable
-                        const symbols = _.expand(symbol.clone(), true).collectSymbols(null, null, (a, b) => {
-                            return (b.length || 1) - (a.length || 1);
-                        });
+                        const symbols = _.expand(symbol.clone(), true).collectSymbols(
+                            null,
+                            null,
+                            (a, b) => (b.length || 1) - (a.length || 1)
+                        );
 
                         const map = {}; //create a map of common factors
                         const coeffs = [];
@@ -2959,9 +2964,7 @@ if (typeof module !== 'undefined') {
             },
             reduce(symbol, factors) {
                 if (symbol.group === CP && symbol.length === 2) {
-                    const symbols = symbol.collectSymbols().sort((a, b) => {
-                        return b.multiplier - a.multiplier;
-                    });
+                    const symbols = symbol.collectSymbols().sort((a, b) => b.multiplier - a.multiplier);
                     if (symbols[0].power.equals(symbols[1].power)) {
                         //x^n-a^n
                         const n = _.parse(symbols[0].power),
@@ -3340,9 +3343,7 @@ if (typeof module !== 'undefined') {
                     const remove_square = function (x) {
                         return core.Utils.block(
                             'POSITIVE_MULTIPLIERS',
-                            () => {
-                                return NerdamerSymbol.unwrapPARENS(math.sqrt(math.abs(x)));
-                            },
+                            () => NerdamerSymbol.unwrapPARENS(math.sqrt(math.abs(x))),
                             true
                         );
                     };
@@ -3438,9 +3439,7 @@ if (typeof module !== 'undefined') {
                     //symbol = __.Factor.common(symbol, factors);
 
                     const vars = variables(symbol),
-                        symbols = symbol.collectSymbols().map(x => {
-                            return NerdamerSymbol.unwrapSQRT(x);
-                        }),
+                        symbols = symbol.collectSymbols().map(x => NerdamerSymbol.unwrapSQRT(x)),
                         sorted = {},
                         maxes = {},
                         l = vars.length,
@@ -3696,15 +3695,11 @@ if (typeof module !== 'undefined') {
         },
         gcd_(a, b) {
             if (a.group === FN || a.group === P) {
-                a = core.Utils.block('PARSE2NUMBER', () => {
-                    return _.parse(a);
-                });
+                a = core.Utils.block('PARSE2NUMBER', () => _.parse(a));
             }
 
             if (b.group === FN) {
-                b = core.Utils.block('PARSE2NUMBER', () => {
-                    return _.parse(b);
-                });
+                b = core.Utils.block('PARSE2NUMBER', () => _.parse(b));
             }
 
             if (a.isConstant() && b.isConstant()) {
@@ -3817,9 +3812,7 @@ if (typeof module !== 'undefined') {
 
             //product of all arguments
             //start with new NerdamerSymbol(1) so that prev.clone() which makes unnessesary clones can be avoided
-            const numer = args.reduce((prev, curr) => {
-                return _.multiply(prev, curr.clone());
-            }, new NerdamerSymbol(1));
+            const numer = args.reduce((prev, curr) => _.multiply(prev, curr.clone()), new NerdamerSymbol(1));
 
             //gcd of complementary terms
             const denom_args =
@@ -3850,11 +3843,9 @@ if (typeof module !== 'undefined') {
                     }
                     return results;
                     //start with new NerdamerSymbol(1) so that prev.clone() which makes unnessesary clones can be avoided
-                })(arguments, arguments.length - 1).map(x => {
-                    return x.reduce((prev, curr) => {
-                        return _.multiply(prev, curr.clone());
-                    }, new NerdamerSymbol(1));
-                });
+                })(arguments, arguments.length - 1).map(x =>
+                    x.reduce((prev, curr) => _.multiply(prev, curr.clone()), new NerdamerSymbol(1))
+                );
 
             let denom;
             //don't eat the gcd term if all arguments are symbols
@@ -4270,7 +4261,7 @@ if (typeof module !== 'undefined') {
             }
             x = _.parse(x || 'x');
             if (!core.Utils.isVector(v1) || !core.Utils.isVector(v2)) {
-                _.error('Line expects a vector! Received "' + v1 + '" & "' + v2 + '"');
+                _.error(`Line expects a vector! Received "${v1}" & "${v2}"`);
             }
             const dx = _.subtract(v2.e(1).clone(), v1.e(1).clone()),
                 dy = _.subtract(v2.e(2).clone(), v1.e(2).clone()),
@@ -4285,12 +4276,12 @@ if (typeof module !== 'undefined') {
                 den = __.Factor.factorInner(den);
 
                 //clean up factors. This is so inefficient but factors are wrapped in parens for safety
-                den.each(function (x, key) {
+                den.each((x, key) => {
                     if (x.group === FN && x.fname === '' && x.args[0].group === S) {
                         const y = x.args[0];
-                        if (this.symbols) {
-                            delete this.symbols[key];
-                            this.symbols[y.value] = y;
+                        if (den.symbols) {
+                            delete den.symbols[key];
+                            den.symbols[y.value] = y;
                         } else {
                             den = x.args[0];
                         }
@@ -4574,7 +4565,7 @@ if (typeof module !== 'undefined') {
             deg = core.Algebra.degree(symbol, v); //get the degree of polynomial
             //must be in form ax^2 +/- bx +/- c
             if (!deg.equals(2)) {
-                stop('Cannot complete square for degree ' + deg);
+                stop(`Cannot complete square for degree ${deg}`);
             }
             //get the coeffs
             coeffs = core.Algebra.coeffs(symbol, v);

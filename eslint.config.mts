@@ -63,24 +63,7 @@ const LEGACY_CORE_FILES = [
 ];
 
 /** Rules disabled for legacy JavaScript code. These are turned off to allow gradual modernization. */
-const LEGACY_JS_DISABLED_RULES: Linter.RulesRecord = {
-    'no-var': 'off',
-    'prefer-const': 'off',
-    'no-redeclare': 'off',
-    'no-use-before-define': 'off',
-    'no-shadow': 'off',
-    'no-unused-vars': 'off',
-    'no-useless-escape': 'off',
-    'no-sparse-arrays': 'off',
-    'prefer-arrow-callback': 'off',
-    'arrow-body-style': 'off',
-    'prefer-template': 'off',
-    'no-console': 'off',
-    'no-loss-of-precision': 'off',
-    'no-case-declarations': 'off',
-    curly: 'off',
-    'no-prototype-builtins': 'off',
-};
+const LEGACY_JS_DISABLED_RULES: Linter.RulesRecord = {};
 
 // =============================================================================
 // JSDoc Configuration
