@@ -7,23 +7,13 @@
  * Source : https://github.com/jiggzson/nerdamer
  */
 
+let nerdamer;
 if (typeof module !== 'undefined') {
-    // eslint-disable-next-line no-var
-    var nerdamer = require('./nerdamer.core.js');
+    nerdamer = require('./nerdamer.core.js');
     require('./Calculus.js');
 }
 
 (function () {
-    let _debuglevel = 0;
-    const _debuglevel_fn = function (n) {
-        _debuglevel += n;
-    };
-    const debugout = function (s) {
-        const prefix = '                                                  '.substring(0, _debuglevel);
-        // eslint-disable-next-line no-console
-        console.log(prefix + s);
-    };
-
     /* Shortcuts*/
     const core = nerdamer.getCore();
     const _ = core.PARSER;
@@ -5168,9 +5158,8 @@ if (typeof module !== 'undefined') {
                     if (error.message === 'timeout') {
                         throw error;
                     }
-                    symbol = original;
-                    debugout(`crash in sqrtsimp, symbol: ${symbol.text()} ${error.msg}`);
-                    return symbol;
+                    // Error in sqrtsimp - return original symbol
+                    return original;
                 } finally {
                     // Debuglevel(-1);
                 }

@@ -7,9 +7,9 @@
  * Source : https://github.com/jiggzson/nerdamer
  */
 
+let nerdamer;
 if (typeof module !== 'undefined') {
-    // eslint-disable-next-line no-var
-    var nerdamer = require('./nerdamer.core.js');
+    nerdamer = require('./nerdamer.core.js');
     require('./Calculus');
     require('./Algebra');
 }

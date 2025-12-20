@@ -136,11 +136,6 @@ const nerdamer = (function (imports) {
     let __timeout;
 
     function armTimeout() {
-        // eslint-disable-next-line no-console
-        if (console.global && console.global.tsDebugChannels && console.global.tsDebugChannels.notimeout) {
-            disarmTimeout();
-            return;
-        }
         __starttime = Date.now();
         __timeout = Settings.TIMEOUT;
     }
@@ -11727,8 +11722,6 @@ const nerdamer = (function (imports) {
                 } else if (token.value && token.value.startsWith('int_')) {
                     // Var l = parse_next(); // lower
                     const intLower = token.value.replace('int_', '');
-                    // eslint-disable-next-line no-console
-                    console.log('uppernow');
                     i++; // Skip the ^
                     let u = next().value; // Upper
                     // if it is in brackets

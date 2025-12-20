@@ -6,9 +6,9 @@
  * Source : https://github.com/jiggzson/nerdamer
  */
 
+let nerdamer;
 if (typeof module !== 'undefined') {
-    // eslint-disable-next-line no-var
-    var nerdamer = require('./nerdamer.core.js');
+    nerdamer = require('./nerdamer.core.js');
     require('./Calculus.js');
     require('./Algebra.js');
 }
@@ -36,10 +36,6 @@ if (typeof module !== 'undefined') {
     const { Settings } = core;
     const { range } = core.Utils;
     const { isArray } = core.Utils;
-
-    // Forward declaration for solve function (defined later)
-    // eslint-disable-next-line prefer-const -- forward declaration, assigned later
-    let solve;
 
     // The search radius for the roots
     core.Settings.SOLVE_RADIUS = 1000;
@@ -274,13 +270,6 @@ if (typeof module !== 'undefined') {
                 return expr;
             });
             return result;
-        } catch (error) {
-            if (error.message === 'timeout') {
-                throw error;
-            }
-
-            // eslint-disable-next-line no-console
-            console.log(error);
         } finally {
             core.Utils.disarmTimeout();
         }
@@ -1416,7 +1405,7 @@ if (typeof module !== 'undefined') {
     //     console.log("solve: "+original+" for "+solve_for+" = "+solutions);
     //     return solutions;
     // }
-    solve = function (eqns, solve_for, solutions, depth, fn) {
+    function solve(eqns, solve_for, solutions, depth, fn) {
         depth ||= 0;
 
         if (depth++ > Settings.MAX_SOLVE_DEPTH) {
@@ -1763,103 +1752,95 @@ if (typeof module !== 'undefined') {
                     }
                 }
             } else {
-                try {
-                    // Attempt Newton
-                    // Since it's not a polynomial then we'll try to look for a solution using Newton's method
-                    const has_trig = eq.hasTrig();
-                    // We get all the points where a possible zero might exist.
-                    const points1 = __.getPoints(eq, 0.1);
-                    const points2 = __.getPoints(eq, 0.05);
-                    const points3 = __.getPoints(eq, 0.01, true);
-                    let points = core.Utils.arrayUnique(points1.concat(points2).concat(points3)).sort((a, b) => a - b);
-                    // Console.log("all points: "+points);
-                    let i;
-                    let point;
-                    let solution;
+                // Attempt Newton
+                // Since it's not a polynomial then we'll try to look for a solution using Newton's method
+                const has_trig = eq.hasTrig();
+                // We get all the points where a possible zero might exist.
+                const points1 = __.getPoints(eq, 0.1);
+                const points2 = __.getPoints(eq, 0.05);
+                const points3 = __.getPoints(eq, 0.01, true);
+                let points = core.Utils.arrayUnique(points1.concat(points2).concat(points3)).sort((a, b) => a - b);
+                // Console.log("all points: "+points);
+                let i;
+                let point;
+                let solution;
 
-                    // Compile the function
-                    const f = build(eq.clone());
+                // Compile the function
+                const f = build(eq.clone());
 
-                    // First try to eliminate some points using bisection
-                    const t_points = [];
-                    for (i = 0; i < points.length; i++) {
-                        point = points[i];
+                // First try to eliminate some points using bisection
+                const t_points = [];
+                for (i = 0; i < points.length; i++) {
+                    point = points[i];
 
-                        // See if there's a solution at this point
-                        solution = __.bisection(point, f);
+                    // See if there's a solution at this point
+                    solution = __.bisection(point, f);
 
-                        // If there's no solution then add it to the array for further investigation
-                        if (typeof solution === 'undefined') {
-                            t_points.push(point);
-                            continue;
-                        }
-
-                        // Add the solution to the solution set
-                        // console.log("added without Newton: "+solution);
-                        // console.log("for: "+eq.text());
-                        add_to_result(solution, has_trig);
+                    // If there's no solution then add it to the array for further investigation
+                    if (typeof solution === 'undefined') {
+                        t_points.push(point);
+                        continue;
                     }
 
-                    // Reset the points to the remaining points
-                    points = t_points;
-                    // Console.log("Newton points: "+points);
-
-                    // Build the derivative and compile a function
-                    const d = _C.diff(eq.clone());
-                    const fp = build(d);
-                    let last_point = points[0];
-                    for (i = 0; i < points.length; i++) {
-                        point = points[i];
-
-                        add_to_result(__.Newton(point, f, fp, last_point), has_trig);
-                        last_point = point;
-                    }
-
-                    // Sort by numerical value to be ready for uniquefy filter
-                    solutions.sort((a, b) => {
-                        const sa = a.text('decimals');
-                        const sb = b.text('decimals');
-                        const xa = Number(sa);
-                        const xb = Number(sb);
-                        if (isNaN(xa) && isNaN(xb)) {
-                            return sa.localeCompare(sb);
-                        }
-                        if (isNaN(xa) && !isNaN(xb)) {
-                            return -1;
-                        }
-                        if (!isNaN(xa) && isNaN(xb)) {
-                            return 1;
-                        }
-                        return xa - xb;
-                    });
-
-                    // Round to 15 digits
-                    solutions = solutions.map(a =>
-                        !a.isConstant() ? a : new NerdamerSymbol(Number(Number(a).toPrecision(15)))
-                    );
-
-                    // Uniquefy to epsilon
-                    // console.log("solutions: "+solutions);
-                    solutions = solutions.filter((sol, idx, arr) => {
-                        const val = Number(Number(sol).toPrecision(15));
-                        const prevVal = Number(arr[idx - 1]);
-                        // Console.log("   x: "+val)
-                        if (idx === 0 || isNaN(val) || isNaN(prevVal)) {
-                            return true;
-                        }
-                        // If ((Math.abs(val-prevVal) < Settings.EPSILON)) {
-                        //     console.log("diff too small: "+val+", "+prevVal);
-                        // }
-                        return Math.abs(val - prevVal) >= Settings.EPSILON;
-                    });
-                    // Console.log("solutions after filter: "+solutions);
-                } catch (e) {
-                    if (e.message === 'timeout') {
-                        throw e;
-                    }
-                    // eslint-disable-next-line no-console
-                    console.log(e);
+                    // Add the solution to the solution set
+                    // console.log("added without Newton: "+solution);
+                    // console.log("for: "+eq.text());
+                    add_to_result(solution, has_trig);
                 }
+
+                // Reset the points to the remaining points
+                points = t_points;
+                // Console.log("Newton points: "+points);
+
+                // Build the derivative and compile a function
+                const d = _C.diff(eq.clone());
+                const fp = build(d);
+                let last_point = points[0];
+                for (i = 0; i < points.length; i++) {
+                    point = points[i];
+
+                    add_to_result(__.Newton(point, f, fp, last_point), has_trig);
+                    last_point = point;
+                }
+
+                // Sort by numerical value to be ready for uniquefy filter
+                solutions.sort((a, b) => {
+                    const sa = a.text('decimals');
+                    const sb = b.text('decimals');
+                    const xa = Number(sa);
+                    const xb = Number(sb);
+                    if (isNaN(xa) && isNaN(xb)) {
+                        return sa.localeCompare(sb);
+                    }
+                    if (isNaN(xa) && !isNaN(xb)) {
+                        return -1;
+                    }
+                    if (!isNaN(xa) && isNaN(xb)) {
+                        return 1;
+                    }
+                    return xa - xb;
+                });
+
+                // Round to 15 digits
+                solutions = solutions.map(a =>
+                    !a.isConstant() ? a : new NerdamerSymbol(Number(Number(a).toPrecision(15)))
+                );
+
+                // Uniquefy to epsilon
+                // console.log("solutions: "+solutions);
+                solutions = solutions.filter((sol, idx, arr) => {
+                    const val = Number(Number(sol).toPrecision(15));
+                    const prevVal = Number(arr[idx - 1]);
+                    // Console.log("   x: "+val)
+                    if (idx === 0 || isNaN(val) || isNaN(prevVal)) {
+                        return true;
+                    }
+                    // If ((Math.abs(val-prevVal) < Settings.EPSILON)) {
+                    //     console.log("diff too small: "+val+", "+prevVal);
+                    // }
+                    return Math.abs(val - prevVal) >= Settings.EPSILON;
+                });
+                // Console.log("solutions after filter: "+solutions);
             }
         } else {
             // The idea here is to go through the equation and collect the coefficients
@@ -1997,29 +1978,21 @@ if (typeof module !== 'undefined') {
                         throw error;
                     }
                     // Let's try this another way
-                    try {
-                        // 1. if the symbol is in the form a*b*c*... then the solution is zero if
-                        // either a or b or c is zero.
-                        if (eq.group === CB) {
-                            add_to_result(0);
-                        } else if (eq.group === CP) {
-                            const separated = separate(eq);
-                            const lhs = separated[0];
-                            const rhs = separated[1];
+                    // 1. if the symbol is in the form a*b*c*... then the solution is zero if
+                    // either a or b or c is zero.
+                    if (eq.group === CB) {
+                        add_to_result(0);
+                    } else if (eq.group === CP) {
+                        const separated = separate(eq);
+                        const lhs = separated[0];
+                        const rhs = separated[1];
 
-                            // Reduce the equation
-                            if (lhs.group === core.groups.EX && lhs.value === solve_for) {
-                                // Change the base of both sides
-                                const p = lhs.power.clone().invert();
-                                add_to_result(_.pow(rhs, p));
-                            }
+                        // Reduce the equation
+                        if (lhs.group === core.groups.EX && lhs.value === solve_for) {
+                            // Change the base of both sides
+                            const p = lhs.power.clone().invert();
+                            add_to_result(_.pow(rhs, p));
                         }
-                    } catch (innerError) {
-                        if (innerError.message === 'timeout') {
-                            throw innerError;
-                        }
-                        // eslint-disable-next-line no-console
-                        console.log(`error ${innerError}`);
                     }
                 }
             }
@@ -2053,7 +2026,7 @@ if (typeof module !== 'undefined') {
         }
 
         return solutions;
-    };
+    }
 
     // Register the functions for external use
     nerdamer.register([

@@ -7,8 +7,8 @@
  * Source : https://github.com/jiggzson/nerdamer
  */
 
-// eslint-disable-next-line no-var, no-use-before-define -- legacy module loading pattern
-var nerdamer = typeof nerdamer !== 'undefined' ? nerdamer : undefined;
+// Check if nerdamer exists globally (browser) or needs to be required (Node.js)
+let nerdamer = typeof globalThis !== 'undefined' && globalThis.nerdamer ? globalThis.nerdamer : undefined;
 if (typeof module !== 'undefined' && nerdamer === undefined) {
     nerdamer = require('./nerdamer.core.js');
     require('./Algebra.js');
