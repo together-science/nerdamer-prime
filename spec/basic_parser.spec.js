@@ -1,8 +1,7 @@
 /* global expect */
 
 const utils = require('./support/utils');
-const { parse } = utils;
-const _$ = utils.toFixed;
+const { parse, toFixed } = utils;
 
 describe('Basic operations', () => {
     it('should add correctly', () => {
@@ -45,7 +44,7 @@ describe('Order of precedence', () => {
         expect(parse('6/3*5')).toEqual(10);
     });
     it('should recognize / = +', () => {
-        expect(_$(parse('2/3+2/3'))).toEqual(_$(1.3333333333333333));
+        expect(toFixed(parse('2/3+2/3'))).toEqual(toFixed(1.3333333333333333));
     });
     it('should recognize ^ is right associative', () => {
         expect(parse('2^3^2')).toEqual(512);
@@ -69,13 +68,13 @@ describe('Percentages', () => {
 
 describe('Functions', () => {
     it('should calculate functions', () => {
-        expect(_$(parse('sin(1)'))).toEqual(_$(0.8414709848078965));
+        expect(toFixed(parse('sin(1)'))).toEqual(toFixed(0.8414709848078965));
     });
     it('should calculate functions', () => {
-        expect(_$(parse('sin(sin(2))'))).toEqual(_$(0.7890723435728884));
+        expect(toFixed(parse('sin(sin(2))'))).toEqual(toFixed(0.7890723435728884));
     });
     it('should add with functions', () => {
-        expect(_$(parse('sin(sin(2))+4'))).toEqual(_$(4.789072343572888));
+        expect(toFixed(parse('sin(sin(2))+4'))).toEqual(toFixed(4.789072343572888));
     });
     it('should handle function with arguments', () => {
         expect(parse('max(4,6,3)')).toEqual(6);
@@ -133,12 +132,12 @@ describe('Brackets', () => {
 describe('Prefixes', () => {
     it('should correctly parse prefixes', () => {
         expect(parse('-(-3*-(4))')).toEqual(-12);
-        expect(_$(parse('3^-1^-1'))).toEqual(_$(0.333333333333333));
+        expect(toFixed(parse('3^-1^-1'))).toEqual(toFixed(0.333333333333333));
         expect(parse('-(-1-+1)^2')).toEqual(-4);
         expect(parse('-(-1-1+1)')).toEqual(1);
         expect(parse('-(1)--(1-1--1)')).toEqual(0);
         expect(parse('-(-(1))-(--1)')).toEqual(0);
-        expect(_$(parse('5^-2^-4'))).toEqual(_$(0.9043038394024115));
+        expect(toFixed(parse('5^-2^-4'))).toEqual(toFixed(0.9043038394024115));
         expect(parse('5^---3')).toEqual(0.008);
         expect(parse('5^-(++1+--+2)')).toEqual(0.008);
         expect(parse('(5^-(++1+--+2))^-2')).toEqual(15625);

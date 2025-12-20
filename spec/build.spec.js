@@ -119,8 +119,8 @@ describe('build', () => {
             const f2 = parsed.buildFunction(testCases[i].params);
 
             // Then
-            expect(f1.apply(null, values)).toEqual(testCases[i].one_expected);
-            expect(f2.apply(null, values)).toEqual(testCases[i].two_expected);
+            expect(f1(...values)).toEqual(testCases[i].one_expected);
+            expect(f2(...values)).toEqual(testCases[i].two_expected);
         }
     });
 });

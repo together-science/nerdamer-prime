@@ -1460,7 +1460,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                             case 'S': {
                                                 const sArg = symbol.args[0].clone();
                                                 const sDc = __.integration.decompose_arg(sArg, dx);
-                                                const _sX_ = sDc[1]; // unused, x is used in format string
+                                                const _sX_ = sDc[1]; // Unused, x is used in format string
                                                 const sA_ = sDc[0];
                                                 const sB_ = sDc[3];
                                                 retval = _.parse(

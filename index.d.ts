@@ -301,7 +301,7 @@ interface NerdamerExpression extends CoreExpressionBase {
     /**
      * Simplifies the expression.
      *
-     * @throws An Error if the computation exceeds the configured TIMEOUT duration.
+     * @throws {Error} An Error if the computation exceeds the configured TIMEOUT duration.
      */
     simplify: () => NerdamerExpression;
 
@@ -335,7 +335,7 @@ interface NerdamerExpression extends CoreExpressionBase {
      *     eq.solveFor('x'); // [(-b+sqrt(b^2+4*a*c))/(2*a), (-b-sqrt(b^2+4*a*c))/(2*a)]
      *
      * @param variable The variable to solve for.
-     * @throws An Error if the computation exceeds the configured TIMEOUT duration.
+     * @throws {Error} An Error if the computation exceeds the configured TIMEOUT duration.
      */
     solveFor: (variable: string) => NerdamerExpression[];
 
@@ -903,9 +903,7 @@ declare namespace nerdamerPrime {
      *     console.log(x.valueOf())
      *     OR just nerdamer.setFunction(function custom(x , y) { return x + y; });
      *
-     * @param fnName The function name
-     * @param fnParams The parameter array in the order in which the arguments are to be passed
-     * @param fnBody The body of the function
+     * @param functionDefinition The function definition as a string, name with params and body, or a function
      */
     function setFunction(functionDefinition: string): typeof nerdamer;
     function setFunction(name: string, params: string[], body: string | NerdamerExpression): typeof nerdamer;
@@ -991,7 +989,7 @@ declare namespace nerdamerPrime {
      *     nerdamer.validVarName('1chicken'); // false
      *     nerdamer.validVarName('_'); // true
      *
-     * @param variable_name The variable name being validated.
+     * @param name The variable name being validated.
      */
     function validVarName(name: string): boolean;
 
@@ -1047,7 +1045,7 @@ declare namespace nerdamerPrime {
      *     nerdamer.set('IMAGINARY', 'j');
      *     nerdamer('sqrt(-1)'); // == j
      *
-     * @param setting The setting to be changed
+     * @param option The setting to be changed
      * @param value The value to set the setting to.
      */
     function set(option: string, value: string | number | boolean): void;
@@ -1087,7 +1085,7 @@ declare namespace nerdamerPrime {
     /**
      * Attempts to import a LaTeX string.
      *
-     * @param TeX The expression being converted.
+     * @param latex The expression being converted.
      */
     function convertFromLaTeX(latex: string): NerdamerExpression;
 
@@ -1249,7 +1247,7 @@ declare namespace nerdamerPrime {
      *
      * @param matrix The square matrix to compute the determinant of
      * @returns The determinant value (fails for 1x1 matrices)
-     * @throws Error for 1x1 matrices: "Cannot read properties of undefined (reading '1')"
+     * @throws {Error} Error for 1x1 matrices: "Cannot read properties of undefined (reading '1')"
      */
     function determinant(matrix: ExpressionParam): NerdamerExpression;
     function matget(matrix: ExpressionParam, row: number, col: number): NerdamerExpression;
@@ -1520,7 +1518,7 @@ declare namespace nerdamerPrime {
      * @param equations An array of equations to solve.
      * @param variables Optional array of variables to solve for.
      * @returns Solution object/array with numeric values, null, or empty array.
-     * @throws {NerdamerCore.SolveError} If the system does not have a distinct solution.
+     * @throws {Error} SolveError if the system does not have a distinct solution.
      * @throws {Error} If the computation exceeds the configured `TIMEOUT` duration (error message will be "timeout").
      */
     function solveEquations(equations: ExpressionParam[], variables?: string[]): SolveResult;
@@ -1702,7 +1700,7 @@ declare namespace nerdamerPrime {
      *         ```;
      *
      * @param name The name to validate
-     * @throws Error if the name is invalid
+     * @throws {Error} Error if the name is invalid
      */
     function validateName(name: string): void;
 
@@ -2907,7 +2905,7 @@ declare namespace nerdamerPrime {
             /**
              * A function that must be called periodically in long-running loops to check for timeouts.
              *
-             * @throws An error if the timeout has been exceeded.
+             * @throws {Error} An error if the timeout has been exceeded.
              */
             checkTimeout(): void;
 

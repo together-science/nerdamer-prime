@@ -66,14 +66,14 @@ const nerdamer = (function (imports) {
         // Allow changing of power operator
         POWER_OPERATOR: '^',
         // Function catch regex
-        FUNCTION_REGEX: /^\s*([a-z_][a-z0-9_]*)\(([a-z0-9_,\s]*)\)\s*:?=\s*(.+)\s*$/i,
+        FUNCTION_REGEX: /^\s*(?<fnName>[a-z_][a-z0-9_]*)\((?<fnArgs>[a-z0-9_,\s]*)\)\s*:?=\s*(?<fnBody>.+)\s*$/iu,
         // The variable validation regex
         // VALIDATION_REGEX: /^[a-z_][a-z\d\_]*$/i
         VALIDATION_REGEX:
-            /^[a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ∞][0-9a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ]*$/i,
+            /^[a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ∞][0-9a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ]*$/iu,
         // The regex used to determine which characters should be included in implied multiplication
         IMPLIED_MULTIPLICATION_REGEX:
-            /([+\-/*]*[0-9]+)([a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ]+[+\-/*]*)/gi,
+            /(?<coeff>[+\-/*]*[0-9]+)(?<vars>[a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ]+[+\-/*]*)/giu,
         // Aliases
         ALIASES: {
             π: 'pi',
@@ -156,12 +156,12 @@ const nerdamer = (function (imports) {
     let block = null; // Setting block function, defined at line ~1348
     let evaluate = null; // Evaluate function, defined at line ~1419
     let LaTeX = null; // LaTeX object, defined at line ~11020
-    let C = null; // Math2 object, defined at line ~1745
-    let Fraction = null; // Fraction object, defined at line ~10871
-    let Build = null; // Build object, defined at line ~12723
-    let isSymbol = null; // isSymbol function, defined at line ~478
-    let firstObject = null; // firstObject function, defined at line ~793
-    let InvalidVariableNameError = null; // Error class, defined at line ~1551
+    let C = null; // Math2 object, Defined at line ~1745
+    let Fraction = null; // Fraction object, Defined at line ~10871
+    let Build = null; // Build object, Defined at line ~12723
+    let isSymbol = null; // IsSymbol function, Defined at line ~478
+    let firstObject = null; // FirstObject function, Defined at line ~793
+    let InvalidVariableNameError = null; // Error class, Defined at line ~1551
 
     /**
      * Class used to collect arguments for functions
@@ -379,7 +379,7 @@ const nerdamer = (function (imports) {
         // Remove the sign
         num = Math.abs(num);
         // If the number is in scientific notation remove it
-        if (/\d+\.?\d*e[+-]*\d+/i.test(num)) {
+        if (/\d+\.?\d*e[+-]*\d+/iu.test(num)) {
             const zero = '0';
             const parts = String(num).toLowerCase().split('e'); // Split into coeff and exponent
             const e = parts.pop(); // Store the exponential part
@@ -448,7 +448,7 @@ const nerdamer = (function (imports) {
      * @param {any} n
      */
     const isNumber = function (n) {
-        return /^\d+\.?\d*$/.test(n);
+        return /^\d+\.?\d*$/u.test(n);
     };
 
     /**
@@ -679,7 +679,7 @@ const nerdamer = (function (imports) {
         if (typeof num === 'number') {
             return Number.isInteger(num);
         }
-        return typeof num !== 'undefined' && /^[-+]?\d+e?\+?\d*$/gim.test(num.toString());
+        return typeof num !== 'undefined' && /^[-+]?\d+e?\+?\d*$/gimu.test(num.toString());
     };
 
     /**
@@ -756,7 +756,7 @@ const nerdamer = (function (imports) {
     const format = function () {
         const args = [].slice.call(arguments);
         const str = args.shift();
-        const new_str = str.replace(/{(\d+)}/g, (match, index) => {
+        const new_str = str.replace(/\{(?<idx>\d+)\}/gu, (match, index) => {
             const arg = args[index];
             return typeof arg === 'function' ? arg() : arg;
         });
@@ -798,10 +798,8 @@ const nerdamer = (function (imports) {
      * @returns {any}
      */
     firstObject = function (obj, key, both) {
-        let x;
-        for (x in obj) {
-            break;
-        }
+        const objKeys = Object.keys(obj);
+        const x = objKeys[0];
         if (key) {
             return x;
         }
@@ -850,7 +848,7 @@ const nerdamer = (function (imports) {
 
             // Option setFunction('f(x)=x^2+2'), setFunction('f(x):=x^2+2')
             if (fnNameType === 'string') {
-                if (!/:?=/.test(fnName)) {
+                if (!/:?=/u.test(fnName)) {
                     return false;
                 }
 
@@ -2606,7 +2604,7 @@ const nerdamer = (function (imports) {
 
                     const str = fracObj.toString();
                     // Verify that the string is actually a fraction
-                    const frac = /^-?\d+(?:\/\d+)?$/.exec(str);
+                    const frac = /^-?\d+(?:\/\d+)?$/u.exec(str);
                     if (frac.length === 0) {
                         return str;
                     }
@@ -2638,7 +2636,7 @@ const nerdamer = (function (imports) {
                             const prefix = digits.slice(0, passed[c]);
                             const cycle = digits.slice(passed[c]);
                             const result = `${quotient + prefix}'${cycle}'`;
-                            return (negative ? '-' : '') + result.replace("'0'", '').replace(/\.$/, '');
+                            return (negative ? '-' : '') + result.replace("'0'", '').replace(/\.$/u, '');
                         }
                         const q = Math.floor(c / n);
                         const r = c - q * n;
@@ -2655,7 +2653,7 @@ const nerdamer = (function (imports) {
 
                     const str = fracObj.toString();
                     // Verify that the string is actually a fraction
-                    const frac = /^-?\d+(?:\/\d+)?$/.exec(str);
+                    const frac = /^-?\d+(?:\/\d+)?$/u.exec(str);
                     if (frac.length === 0) {
                         return str;
                     }
@@ -2774,7 +2772,7 @@ const nerdamer = (function (imports) {
                         })
                         .sort()
                         .join('+')
-                        .replace(/\+-/g, '-');
+                        .replace(/\+-/gu, '-');
                     break;
                 case CP:
                     value = obj
@@ -2788,7 +2786,7 @@ const nerdamer = (function (imports) {
                         })
                         .sort()
                         .join('+')
-                        .replace(/\+-/g, '-');
+                        .replace(/\+-/gu, '-');
                     break;
                 case CB:
                     value = obj
@@ -3376,8 +3374,8 @@ const nerdamer = (function (imports) {
                     // Edge case when coefficient is 9.999999 rounds to 10
                     coeff =
                         typeof n === 'undefined'
-                            ? coeff.replace(/^10./, '1.0')
-                            : Scientific.round(coeff.replace(/^10./, '1.0'), Math.min(n, this.decp || 1));
+                            ? coeff.replace(/^10\./u, '1.0')
+                            : Scientific.round(coeff.replace(/^10\./u, '1.0'), Math.min(n, this.decp || 1));
                     exp = Number(exp) + 1;
                 }
                 retval = this.exponent === 0 ? coeff : `${coeff}e${exp}`;
@@ -3388,19 +3386,19 @@ const nerdamer = (function (imports) {
     };
 
     Scientific.isScientific = function (num) {
-        return /\d+\.?\d*e[+-]*\d+/i.test(num);
+        return /\d+\.?\d*e[+-]*\d+/iu.test(num);
     };
     Scientific.leadingZeroes = function (num) {
-        const match = num.match(/^(0*).*$/);
+        const match = num.match(/^(?<zeros>0*).*$/u);
         return match ? match[1] : '';
     };
     Scientific.removeLeadingZeroes = function (num) {
-        const match = num.match(/^0*(.*)$/);
+        const match = num.match(/^0*(?<rest>.*)$/u);
         return match ? match[1] : '';
     };
 
     Scientific.removeTrailingZeroes = function (num) {
-        const match = num.match(/0*$/);
+        const match = num.match(/0*$/u);
         return match ? num.substring(0, num.length - match[0].length) : '';
     };
 
@@ -3715,7 +3713,7 @@ const nerdamer = (function (imports) {
             obj = obj.toString();
         }
         // Define numeric symbols
-        if (/^(-?\+?\d+)\.?\d*e?-?\+?\d*/i.test(obj) || obj instanceof bigDec) {
+        if (/^(?<sign>-?\+?\d+)\.?\d*e?-?\+?\d*/iu.test(obj) || obj instanceof bigDec) {
             this.group = N;
             this.value = CONST_HASH;
             this.multiplier = new Frac(obj);
@@ -6696,6 +6694,7 @@ const nerdamer = (function (imports) {
                 .join('\\')}`;
             // Create a regex which captures all spaces between characters except those
             // have an operator on one end
+            // eslint-disable-next-line require-unicode-regexp
             return new RegExp(`([${ostr}])\\s+([${ostr}])`);
         })();
 
@@ -6772,8 +6771,9 @@ const nerdamer = (function (imports) {
          * Preforms preprocessing on the string. Useful for making early modification before
          * sending to the parser
          * @param {string} e
+         * @param {Parser} parser - The parser instance to use as context
          */
-        const prepare_expression = function (e) {
+        const prepare_expression = function (e, parser) {
             /*
              * Since variables cannot start with a number, the assumption is made that when this occurs the
              * user intents for this to be a coefficient. The multiplication symbol in then added. The same goes for
@@ -6782,19 +6782,19 @@ const nerdamer = (function (imports) {
             e = String(e);
             // Apply preprocessors
             for (let i = 0; i < preprocessors.actions.length; i++) {
-                e = preprocessors.actions[i].call(this, e);
+                e = preprocessors.actions[i].call(parser, e);
             }
 
             // E = e.split(' ').join('');//strip empty spaces
             // replace multiple spaces with one space
-            e = e.replace(/\s+/g, ' ');
+            e = e.replace(/\s+/gu, ' ');
 
             // Only even bother to check if the string contains e. This regex is painfully slow and might need a better solution. e.g. hangs on (0.06/3650))^(365)
-            if (/e/gi.test(e)) {
+            if (/e/giu.test(e)) {
                 // Negative numbers
-                e = e.replace(/-+\d+\.?\d*e\+?-?\d+/gi, x => scientificToDecimal(x));
+                e = e.replace(/-+\d+\.?\d*e\+?-?\d+/giu, x => scientificToDecimal(x));
                 // Positive numbers that are not part of an identifier
-                e = e.replace(/(?<![A-Za-z])\d+\.?\d*e\+?-?\d+/gi, x => scientificToDecimal(x));
+                e = e.replace(/(?<![A-Za-z])\d+\.?\d*e\+?-?\d+/giu, x => scientificToDecimal(x));
             }
             // Replace scientific numbers
 
@@ -6809,15 +6809,15 @@ const nerdamer = (function (imports) {
                         const first = str.charAt(start);
                         let before = '';
                         let d = '*';
-                        if (!first.match(/[+\-/*]/)) {
+                        if (!first.match(/[+\-/*]/u)) {
                             before = str.charAt(start - 1);
                         }
-                        if (before.match(/[a-z]/i)) {
+                        if (before.match(/[a-z]/iu)) {
                             d = '';
                         }
                         return group1 + d + group2;
                     })
-                    .replace(/([a-z0-9_]+)/gi, (match, a) => {
+                    .replace(/(?<varname>[a-z0-9_]+)/giu, (match, a) => {
                         if (Settings.USE_MULTICHARACTER_VARS === false && !(a in functions)) {
                             if (!isNaN(a)) {
                                 return a;
@@ -6827,19 +6827,22 @@ const nerdamer = (function (imports) {
                         return a;
                     })
                     // Allow omission of multiplication sign between brackets
-                    .replace(/\)\(/g, ')*(') || '0';
+                    .replace(/\)\(/gu, ')*(') || '0';
             // Replace x(x+a) with x*(x+a)
             while (true) {
                 const e_org = e; // Store the original
-                e = e.replace(/([a-z0-9_]+)(\()|(\))([a-z0-9]+)/gi, (match, a, b, c, d) => {
-                    const g1 = a || c;
-                    const g2 = b || d;
-                    if (g1 in functions) // Create a passthrough for functions
-                    {
-                        return g1 + g2;
+                e = e.replace(
+                    /(?<prefix>[a-z0-9_]+)(?<open>\()|(?<close>\))(?<suffix>[a-z0-9]+)/giu,
+                    (match, a, b, c, d) => {
+                        const g1 = a || c;
+                        const g2 = b || d;
+                        if (g1 in functions) // Create a passthrough for functions
+                        {
+                            return g1 + g2;
+                        }
+                        return `${g1}*${g2}`;
                     }
-                    return `${g1}*${g2}`;
-                });
+                );
                 // If the original equals the replace we're done
                 if (e_org === e) {
                     break;
@@ -6896,9 +6899,10 @@ const nerdamer = (function (imports) {
             // Cast to String
             e = String(e);
             // Remove multiple white spaces and spaces at beginning and end of string
-            e = e.trim().replace(/\s+/g, ' ');
+            e = e.trim().replace(/\s+/gu, ' ');
             // Remove spaces before and after brackets
             for (const x in brackets) {
+                // eslint-disable-next-line require-unicode-regexp
                 const regex = new RegExp(brackets[x].is_close ? `\\s+\\${x}` : `\\${x}\\s+`, 'g');
                 e = e.replace(regex, x);
             }
@@ -7655,7 +7659,7 @@ const nerdamer = (function (imports) {
             return Q[0];
         };
         this.parse = function (e, substitutions) {
-            e = prepare_expression(e);
+            e = prepare_expression(e, this);
             substitutions ||= {};
             // Three passes but easier to debug
             const tokens = this.tokenize(e);
@@ -7712,7 +7716,7 @@ const nerdamer = (function (imports) {
 
         // Helper method for toTeX
         const rem_brackets = function (str) {
-            return str.replace(/^\\left\((.+)\\right\)$/g, (match, a) => {
+            return str.replace(/^\\left\((?<inner>.+)\\right\)$/gu, (match, a) => {
                 if (a) {
                     return a;
                 }
@@ -10946,7 +10950,7 @@ const nerdamer = (function (imports) {
                 const den = `1${'0'.repeat(n)}`;
 
                 if (num !== '0') {
-                    num = num.replace(/^0+/, '');
+                    num = num.replace(/^0+/u, '');
                 }
                 return [nparts.sign + num, den];
             }
@@ -11170,7 +11174,7 @@ const nerdamer = (function (imports) {
             // Special case group P and decimal
             const retval = (negative ? '-' : '') + this.set(m_array, v_array, p_array, symbol.group === CB);
 
-            return retval.replace(/\+-/gi, '-');
+            return retval.replace(/\+-/giu, '-');
         },
         // Greek mapping
         greek: {
@@ -11264,7 +11268,7 @@ const nerdamer = (function (imports) {
             ) {
                 let value = this.formatSubscripts(symbol.value);
                 if (value.replace) {
-                    value = value.replace(/(.+)_$/, '$1\\_');
+                    value = value.replace(/(?<prefix>.+)_$/u, '$1\\_');
                 }
                 // Split it so we can check for instances of alpha as well as alpha_b
                 const t_varray = String(value).split('_');
@@ -11356,7 +11360,7 @@ const nerdamer = (function (imports) {
                 } else if (fname === 'imagpart') {
                     v[index] = `\\operatorname{Im}${this.brackets(input[0])}`;
                 } else {
-                    const name = fname !== '' ? `\\mathrm${this.braces(fname.replace(/_/g, '\\_'))}` : '';
+                    const name = fname !== '' ? `\\mathrm${this.braces(fname.replace(/_/gu, '\\_'))}` : '';
                     if (symbol.isConversion) {
                         v[index] = name + this.brackets(input.join(''), 'parens');
                     } else {
@@ -11406,8 +11410,8 @@ const nerdamer = (function (imports) {
                             const containerItem = container[mapIdx];
                             if (
                                 !(
-                                    /^\\left\(.+\\right\)\^\{.+\}$/g.test(containerItem) ||
-                                    /^\\left\(.+\\right\)$/g.test(containerItem)
+                                    /^\\left\(.+\\right\)\^\{.+\}$/gu.test(containerItem) ||
+                                    /^\\left\(.+\\right\)$/gu.test(containerItem)
                                 )
                             ) {
                                 container[mapIdx] = LaTeX.brackets(containerItem, 'parens');
@@ -11458,7 +11462,7 @@ const nerdamer = (function (imports) {
         },
         set(m, v, p, combine_power) {
             const isBracketed = function (str) {
-                return /^\\left\(.+\\right\)$/.test(str);
+                return /^\\left\(.+\\right\)$/u.test(str);
             };
             // Format the power if it exists
             p &&= this.formatP(p);
@@ -12932,7 +12936,7 @@ const nerdamer = (function (imports) {
                     c.push(prefix + value);
                 }
 
-                return [c.join('*'), xports.join('').replace(/\n+\s+/g, ' ')];
+                return [c.join('*'), xports.join('').replace(/\n+\s+/gu, ' ')];
             };
             if (arg_array) {
                 // Fix for issue #546
@@ -13162,13 +13166,13 @@ const nerdamer = (function (imports) {
      */
     libExports.convertFromLaTeX = function (e) {
         // Convert x_2a => x_2 a
-        e = e.replace(/_([A-Za-z0-9])/g, (...g) => `${g[0]} `);
+        e = e.replace(/_(?<char>[A-Za-z0-9])/gu, (...g) => `${g[0]} `);
         // Convert x^2 => x^{2}
-        e = e.replace(/\^([A-Za-z0-9])/g, (...g) => `^{${g[1]}}`);
+        e = e.replace(/\^(?<char>[A-Za-z0-9])/gu, (...g) => `^{${g[1]}}`);
         // Convert \frac12 => \frac{1}2
-        e = e.replace(/(\\[A-Za-z]+)(\d)/g, (...g) => `${g[1]}{${g[2]}}`);
+        e = e.replace(/(?<cmd>\\[A-Za-z]+)(?<digit>\d)/gu, (...g) => `${g[1]}{${g[2]}}`);
         // Convert \frac{1}2 => \frac{1}{2}
-        e = e.replace(/(\\[A-Za-z]+{.*?})(\d)/g, (...g) => `${g[1]}{${g[2]}}`);
+        e = e.replace(/(?<cmd>\\[A-Za-z]+\{.*?\})(?<digit>\d)/gu, (...g) => `${g[1]}{${g[2]}}`);
         const txt = LaTeX.parse(_.tokenize(e));
         return new Expression(_.parse(txt));
     };
@@ -13349,7 +13353,7 @@ const nerdamer = (function (imports) {
                 ({ params, body } = fnDef);
             } else {
                 const fnString = C.Math2[fnName].toString();
-                [, params] = /\((.*?)\)/.exec(fnString);
+                [, params] = /\((?<params>.*?)\)/u.exec(fnString);
                 params = params.split(',').map(x => x.trim());
                 body = '{JavaScript}';
             }

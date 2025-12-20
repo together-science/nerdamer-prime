@@ -2113,7 +2113,7 @@ if (typeof module !== 'undefined') {
                     img = Math.abs(img) === 1 ? `${sign}i` : img ? `${img}*i` : '';
 
                     const num = real && img ? `${real}+${img}` : real + img;
-                    zeror[i] = num.replace(/\+-/g, '-');
+                    zeror[i] = num.replace(/\+-/gu, '-');
                 }
                 return zeror;
             }

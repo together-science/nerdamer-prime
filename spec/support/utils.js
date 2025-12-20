@@ -12,11 +12,11 @@ const toFixed = function (x, n) {
  * @param {string} dec Get output as decimals
  */
 const run = function (o, dec) {
-    dec ||= 'decimal';
+    const decFormat = dec || 'decimal';
     for (let i = 0; i < o.length; ++i) {
         // When
         const parsed = nerdamer(o[i].given);
-        const value = parsed.evaluate().text(dec);
+        const value = parsed.evaluate().text(decFormat);
 
         // Then
         expect(parsed.toString()).toEqual(o[i].expected);

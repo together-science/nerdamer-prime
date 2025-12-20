@@ -4,7 +4,6 @@ const nerdamer = require('../nerdamer.core.js');
 
 const utils = require('./support/utils');
 const _ = utils.toFixed;
-const _run = utils.run;
 const core = nerdamer.getCore();
 const { round } = core.Utils;
 const { block } = core.Utils;
@@ -196,10 +195,12 @@ describe('Nerdamer core', () => {
         ];
 
         for (const k in cases) {
-            // When
-            const parsed = nerdamer(cases[k].given);
-            // Then
-            expect(parsed.toString()).toEqual(cases[k].expected);
+            if (Object.hasOwn(cases, k)) {
+                // When
+                const parsed = nerdamer(cases[k].given);
+                // Then
+                expect(parsed.toString()).toEqual(cases[k].expected);
+            }
         }
     });
     it('should perform simple calculations with variables', () => {
@@ -3342,7 +3343,7 @@ describe('Known issues', () => {
         it('should include decimal point for whole number coefficients', () => {
             // 1000 should be "1e+3" or "1.0e+3", not "100e3"
             const result = nerdamer('1000').text('scientific');
-            expect(result).toMatch(/^1(\.0)?e\+?3$/);
+            expect(result).toMatch(/^1(?:\.0)?e\+?3$/u);
         });
 
         it('should preserve decimal places in scientific input', () => {
@@ -3356,7 +3357,25 @@ describe('Known issues', () => {
             // This requires finding an input that triggers this edge case
             const result = nerdamer('9.9999999999999').text('scientific');
             // Should not contain "10e" - should be normalized to 1e(n+1)
-            expect(result).not.toMatch(/^10e/);
+            expect(result).not.toMatch(/^10e/u);
+        });
+
+        /**
+         * Test for coefficient normalization when rounding produces "10.xxx"
+         *
+         * When Scientific.round() produces a coefficient like "10.0" (from rounding 9.9999...), the code normalizes it to "1.0" and increments the exponent.
+         *
+         * NOTE: The regex /^10./ was changed to /^10./u for eslint require-unicode-regexp compliance. The startsWith('10.') guard ensures only valid coefficients reach this code path, so the unescaped period in the original regex wasn't a functional bug, but the fix improves code quality and
+         * consistency.
+         */
+        it('should normalize coefficient when rounding produces 10.x', () => {
+            // The Scientific class normalizes "10.xxx" to "1.0xxx" with exponent+1
+            // Test that numbers starting with "10." are properly normalized
+            const result = nerdamer('9.9999999999999e5').text('scientific');
+            // After rounding, 9.9999999999999 becomes 10.0, which should normalize to 1.0e+1
+            // Combined with e5, final result should be around 1e6, not 10e5
+            expect(result).not.toMatch(/^10\./u);
+            expect(result).toMatch(/^[1-9]\./u); // Should start with single digit and period
         });
     });
 });

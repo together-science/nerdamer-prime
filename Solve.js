@@ -1367,7 +1367,7 @@ if (typeof module !== 'undefined') {
     // Special case to handle solving equations with exactly one abs() correctly
     const absSolve = function (eqns, solve_for, depth, fn) {
         const eq = eqns.toString();
-        const match = eq.match(/(?<![a-z])abs/g);
+        const match = eq.match(/(?<![a-z])abs/gu);
         // Not found or more than 1 occurrence? get out!
         if (!match || match.length > 2) {
             return null;
@@ -1377,8 +1377,8 @@ if (typeof module !== 'undefined') {
             return null;
         }
         // We have exactly one abs. kill it and make two cases
-        const eqplus = eqns.constructor(eq.replace(/(?<![a-z])abs/, ''));
-        const eqminus = eqns.constructor(eq.replace(/(?<![a-z])abs/, '(-1)'));
+        const eqplus = eqns.constructor(eq.replace(/(?<![a-z])abs/u, ''));
+        const eqminus = eqns.constructor(eq.replace(/(?<![a-z])abs/u, '(-1)'));
 
         const resultplus = solve(eqplus, solve_for, null, depth, fn);
         const resultminus = solve(eqminus, solve_for, null, depth, fn);

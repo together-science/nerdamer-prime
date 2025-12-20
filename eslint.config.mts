@@ -555,74 +555,71 @@ export default defineConfig([
 
     // -------------------------------------------------------------------------
     // Legacy Nerdamer Core Files
+    // These files have relaxed linting rules because they are mature,
+    // mathematically complex code that uses patterns not ideal for modern JS
+    // but work correctly and are too risky to refactor without extensive testing.
     // -------------------------------------------------------------------------
     {
         name: 'legacy/core',
         files: LEGACY_CORE_FILES,
         rules: {
-            // Code style rules that require manual refactoring in legacy files
-            'guard-for-in': 'off',
-            'no-else-return': 'off',
-            'no-empty-function': 'off',
-            'no-implicit-coercion': 'off',
-            'no-lonely-if': 'off',
-            'no-multi-assign': 'off',
-            'no-new-func': 'off',
-            'no-object-constructor': 'off',
-            'no-unused-expressions': 'off',
-            'no-useless-call': 'off',
-            'no-useless-return': 'off',
-            'operator-assignment': 'off',
-            'prefer-exponentiation-operator': 'off',
-            'prefer-spread': 'off',
-            // Additional rules disabled due to legacy patterns
-            'block-scoped-var': 'off',
-            camelcase: 'off',
-            'class-methods-use-this': 'off',
-            complexity: 'off',
-            'consistent-return': 'off',
-            'func-name-matching': 'off',
+            // Function naming - legacy code uses anonymous functions extensively
             'func-names': 'off',
-            'logical-assignment-operators': 'off',
-            'max-depth': 'off',
-            'max-lines-per-function': 'off',
+
+            // Parameter reassignment is common in mathematical algorithms
+            'no-param-reassign': 'off',
+
+            // Short variable names (a, b, x, y, etc.) are conventional in math
+            'id-length': 'off',
+            'id-denylist': 'off',
+
+            // Snake_case is used in some internal variables
+            camelcase: 'off',
+
+            // Mathematical code often uses ++ and -- operators
+            'no-plusplus': 'off',
+
+            // Guard-for-in not always needed in controlled object iteration
+            'guard-for-in': 'off',
+
+            // Complex math functions often have many parameters and statements
             'max-params': 'off',
             'max-statements': 'off',
-            'new-cap': 'off',
-            'no-await-in-loop': 'off',
-            'no-bitwise': 'off',
-            'no-implicit-globals': 'off',
-            'no-invalid-this': 'off',
-            'no-loop-func': 'off',
-            'no-negated-condition': 'off',
-            'no-nested-ternary': 'off',
-            'no-param-reassign': 'off',
-            'no-plusplus': 'off',
-            'no-undef-init': 'off',
-            'no-underscore-dangle': 'off',
-            'no-useless-constructor': 'off',
-            'no-warning-comments': 'off',
-            'no-magic-numbers': 'off',
-            'one-var': 'off',
-            'prefer-destructuring': 'off',
-            'prefer-named-capture-group': 'off',
-            'prefer-numeric-literals': 'off',
-            'prefer-rest-params': 'off',
-            'require-await': 'off',
-            'require-unicode-regexp': 'off',
-            'sort-imports': 'off',
-            'sort-vars': 'off',
-            'spaced-comment': 'off',
-            strict: 'off',
-            'vars-on-top': 'off',
-            'capitalized-comments': 'off',
-            'id-denylist': 'off',
-            'id-length': 'off',
-            'max-classes-per-file': 'off',
+            'max-lines-per-function': 'off',
             'max-lines': 'off',
-            // Potential error rules that fire on legacy patterns
-            'array-callback-return': 'off',
-            'no-unreachable-loop': 'off',
+            complexity: 'off',
+            'max-depth': 'off',
+
+            // Chained assignment is used for efficiency in numerical code
+            'no-multi-assign': 'off',
+
+            // Magic numbers are common in mathematical constants/algorithms
+            'no-magic-numbers': 'off',
+
+            // Underscore-prefixed variables denote internal/private usage
+            'no-underscore-dangle': 'off',
+
+            // Logical assignment operators - legacy code predates this syntax
+            'logical-assignment-operators': 'off',
+
+            // Ternary usage patterns
+            'no-nested-ternary': 'off',
+            'no-negated-condition': 'off',
+
+            // Legacy patterns that work but aren't modern best practices
+            'no-new-func': 'off', // Used for dynamic function generation
+            'prefer-rest-params': 'off', // Uses arguments object
+            'prefer-spread': 'off', // Uses .apply()
+            'no-implicit-coercion': 'off', // Uses +x for number coercion
+            'no-bitwise': 'off', // Bitwise operations used in algorithms
+            'no-object-constructor': 'off', // Uses new Object()
+            'no-unused-expressions': 'off', // Side-effect expressions
+            'new-cap': 'off', // Dynamic constructor calls
+            'consistent-return': 'off', // Some functions have complex return paths
+            'no-lonely-if': 'off', // Nested if statements for clarity
+            'no-loop-func': 'off', // Functions in loops for closures
+            'no-useless-call': 'off', // .call() used for explicit context
+            'array-callback-return': 'off', // Side-effect callbacks
         },
     },
 
@@ -633,128 +630,118 @@ export default defineConfig([
         name: 'legacy/spec',
         files: ['spec/**/*.js'],
         rules: {
-            // Disable no-redeclare since files use /* global expect */ alongside jest/jasmine globals
+            // Test files use /* global expect */ but expect is already defined
+            // via jasmine/jest globals, so we disable the no-redeclare check
             'no-redeclare': 'off',
-            // Code style rules
-            'capitalized-comments': 'off',
-            complexity: 'off',
-            'guard-for-in': 'off',
-            'id-denylist': 'off',
-            'id-length': 'off',
-            'logical-assignment-operators': 'off',
-            'max-lines': 'off',
-            'max-lines-per-function': 'off',
-            'max-statements': 'off',
+
+            // Test files legitimately use magic numbers for test values
             'no-magic-numbers': 'off',
-            'no-param-reassign': 'off',
-            'no-underscore-dangle': 'off',
-            'prefer-destructuring': 'off',
-            'prefer-named-capture-group': 'off',
-            'prefer-spread': 'off',
-            'require-unicode-regexp': 'off',
-            'spaced-comment': 'off',
-            strict: 'off',
-            // Additionally disable JSDoc for legacy test files
-            'jsdoc/check-param-names': 'off',
-            'jsdoc/check-tag-names': 'off',
-            'jsdoc/check-types': 'off',
-            'jsdoc/valid-types': 'off',
-            'jsdoc/no-undefined-types': 'off',
+
+            // Test files often use short variable names for brevity
+            'id-length': 'off',
+            'id-denylist': 'off',
+
+            // Test files can have many statements and lines per function
+            'max-statements': 'off',
+            'max-lines-per-function': 'off',
+            'max-lines': 'off',
         },
     },
 
     // -------------------------------------------------------------------------
     // TypeScript Spec Files (spec-dts)
+    // These are type specification tests that intentionally test various type
+    // patterns including unsafe operations and any types.
     // -------------------------------------------------------------------------
     {
         name: 'spec-dts/overrides',
         files: ['spec-dts/**/*.ts'],
         rules: {
-            // Relax rules for type specification tests
-            '@typescript-eslint/no-explicit-any': 'off',
-            '@typescript-eslint/no-non-null-assertion': 'off',
+            // Disable all TypeScript unsafe/any rules - these tests intentionally
+            // use any types to verify type definitions work correctly
             '@typescript-eslint/no-unsafe-assignment': 'off',
             '@typescript-eslint/no-unsafe-call': 'off',
             '@typescript-eslint/no-unsafe-member-access': 'off',
-            '@typescript-eslint/no-unsafe-return': 'off',
             '@typescript-eslint/no-unsafe-argument': 'off',
-            '@typescript-eslint/no-unnecessary-condition': 'off',
-            '@typescript-eslint/no-unnecessary-type-assertion': 'off',
-            '@typescript-eslint/strict-boolean-expressions': 'off',
-            '@typescript-eslint/prefer-nullish-coalescing': 'off',
-            '@typescript-eslint/prefer-optional-chain': 'off',
-            '@typescript-eslint/consistent-type-imports': 'off',
-            '@typescript-eslint/no-shadow': 'off',
-            '@typescript-eslint/require-await': 'off',
+            '@typescript-eslint/no-unsafe-return': 'off',
+            '@typescript-eslint/no-explicit-any': 'off',
             '@typescript-eslint/no-require-imports': 'off',
             '@typescript-eslint/no-unnecessary-type-parameters': 'off',
             '@typescript-eslint/no-empty-function': 'off',
-            '@typescript-eslint/array-type': 'off',
+            '@typescript-eslint/strict-boolean-expressions': 'off',
+            '@typescript-eslint/prefer-nullish-coalescing': 'off',
+            '@typescript-eslint/restrict-template-expressions': 'off',
+            '@typescript-eslint/no-non-null-assertion': 'off',
+            '@typescript-eslint/no-unnecessary-condition': 'off',
+            '@typescript-eslint/consistent-type-imports': 'off',
             '@typescript-eslint/prefer-for-of': 'off',
-            complexity: 'off',
+
+            // Disable code style rules for test files
             'max-lines-per-function': 'off',
             'max-statements': 'off',
-            '@typescript-eslint/no-unused-vars': [
-                'warn',
-                {
-                    argsIgnorePattern: '^_',
-                    varsIgnorePattern: '^_',
-                    caughtErrors: 'none',
-                },
-            ],
-            'no-case-declarations': 'off',
-            'no-empty-function': 'off',
-            'no-undef': 'off',
-            'no-eval': 'off',
-            'no-plusplus': 'off',
+            complexity: 'off',
             'no-magic-numbers': 'off',
-            'no-underscore-dangle': 'off',
-            'max-depth': 'off',
-            'capitalized-comments': 'off',
-            'id-denylist': 'off',
             'id-length': 'off',
-            'prefer-named-capture-group': 'off',
-            'require-unicode-regexp': 'off',
-            'sort-imports': 'off',
-            curly: 'off',
+            'id-denylist': 'off',
+            'no-underscore-dangle': 'off',
+            'no-plusplus': 'off',
+            'no-case-declarations': 'off',
             radix: 'off',
-            'dot-notation': 'off',
-            'arrow-body-style': 'off',
+            'require-unicode-regexp': 'off',
+            'prefer-named-capture-group': 'off',
+            curly: 'off',
             'array-callback-return': 'off',
-            '@typescript-eslint/prefer-regexp-exec': 'off',
-            '@typescript-eslint/restrict-template-expressions': 'off',
+            'max-depth': 'off',
+            'no-eval': 'off',
         },
     },
 
     // -------------------------------------------------------------------------
     // Type Definition File (index.d.ts)
+    // This is a type definition file for an existing JavaScript library.
+    // It must reflect the actual runtime API, which includes:
+    // - Interfaces without 'I' prefix (matching JS class names)
+    // - Method signatures (matching JS method definitions)
+    // - Forward references (types are used before defined for readability)
+    // - Some 'any' types (for truly dynamic JavaScript APIs)
+    // - Empty interfaces extending base types (semantic type aliases)
     // -------------------------------------------------------------------------
     {
         name: 'type-definitions',
         files: ['index.d.ts'],
         rules: {
-            // Disable strict TypeScript rules for legacy type definitions
-            '@typescript-eslint/method-signature-style': 'off',
+            // Interface naming - type definitions must match actual JS class/object names
             '@typescript-eslint/naming-convention': 'off',
+
+            // Forward references are necessary for readable type definitions
             '@typescript-eslint/no-use-before-define': 'off',
-            '@typescript-eslint/array-type': 'off',
-            '@typescript-eslint/no-explicit-any': 'off',
-            '@typescript-eslint/no-redundant-type-constituents': 'off',
-            '@typescript-eslint/member-ordering': 'off',
-            '@typescript-eslint/no-unnecessary-condition': 'off',
-            '@typescript-eslint/prefer-nullish-coalescing': 'off',
-            '@typescript-eslint/strict-boolean-expressions': 'off',
-            '@typescript-eslint/no-unsafe-function-type': 'off',
+
+            // Method signatures are idiomatic in .d.ts files
+            '@typescript-eslint/method-signature-style': 'off',
+
+            // Empty interfaces are used as semantic type aliases
             '@typescript-eslint/no-empty-object-type': 'off',
-            '@typescript-eslint/prefer-function-type': 'off',
-            '@typescript-eslint/adjacent-overload-signatures': 'off',
-            'jsdoc/check-param-names': 'off',
-            'jsdoc/require-throws-type': 'off',
-            'jsdoc/no-undefined-types': 'off',
-            'id-denylist': 'off',
-            'prettier/prettier': 'off',
+
+            // Some APIs are genuinely dynamic and need 'any'
+            '@typescript-eslint/no-explicit-any': 'off',
+
+            // Function type is needed for some callback APIs
+            '@typescript-eslint/no-unsafe-function-type': 'off',
+
+            // Union types may include redundant constituents for documentation
+            '@typescript-eslint/no-redundant-type-constituents': 'off',
+
+            // Overload signatures are sometimes clearer as separate declarations
             '@typescript-eslint/unified-signatures': 'off',
-            '@typescript-eslint/no-duplicate-type-constituents': 'off',
+
+            // Member ordering is less important in .d.ts files
+            '@typescript-eslint/member-ordering': 'off',
+
+            // Adjacent overloads rule can conflict with logical grouping
+            '@typescript-eslint/adjacent-overload-signatures': 'off',
+
+            // Identifier restrictions don't apply to documenting external APIs
+            'id-denylist': 'off',
         },
     },
 
