@@ -560,10 +560,6 @@ export default defineConfig([
         name: 'legacy/core',
         files: LEGACY_CORE_FILES,
         rules: {
-            // Variables are often used before defined due to var hoisting patterns
-            'no-use-before-define': 'off',
-            // Many intentional redeclarations (module, Function, loop variables, etc.)
-            'no-redeclare': 'off',
             // Code style rules that require manual refactoring in legacy files
             'guard-for-in': 'off',
             'no-else-return': 'off',

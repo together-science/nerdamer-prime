@@ -7,8 +7,6 @@
  * Source : https://github.com/jiggzson/nerdamer
  */
 
-/* global module */
-
 if (typeof module !== 'undefined') {
     // eslint-disable-next-line no-var
     var nerdamer = require('./nerdamer.core.js');
@@ -160,13 +158,6 @@ if (typeof module !== 'undefined') {
                         }
 
                         if (symbol.group === S || symbol.group === CB || symbol.isComposite()) {
-                            const finalize = function () {
-                                // Put back the numerator
-                                retval = _.multiply(retval, num);
-                                retval.multiplier = retval.multiplier.multiply(symbol.multiplier);
-                                // Put back a
-                                retval = _.divide(retval, f.a);
-                            };
                             let p;
                             let den_p;
                             let a;
@@ -200,6 +191,15 @@ if (typeof module !== 'undefined') {
                             // Move the multiplier to the numerator
                             const _fe = core.Utils.decompose_fn(_.expand(num.clone()), s, true);
                             num.multiplier = num.multiplier.multiply(m);
+
+                            const finalize = function () {
+                                // Put back the numerator
+                                retval = _.multiply(retval, num);
+                                retval.multiplier = retval.multiplier.multiply(symbol.multiplier);
+                                // Put back a
+                                retval = _.divide(retval, f.a);
+                            };
+
                             // Store the parts in variables for easy recognition
                             // check if in the form t^n where n = integer
                             if (

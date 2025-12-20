@@ -4,8 +4,6 @@
  * used throughout the library.
  */
 
-/* global module */
-
 /**
  * Container of pregenerated prime numbers up to 2083 This array is used as a cache and can be extended at runtime by
  * functions like generatePrimes()

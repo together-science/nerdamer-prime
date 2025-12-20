@@ -6,7 +6,6 @@
  * Source : https://github.com/jiggzson/nerdamer
  */
 
-/* global Infinity, NaN  */
 // externals ====================================================================
 /* BigInteger.js v1.6.28 https://github.com/peterolson/BigInteger.js/blob/master/LICENSE */
 const nerdamerBigInt =
@@ -155,6 +154,19 @@ const nerdamer = (function (imports) {
             throw new Error('timeout');
         }
     }
+
+    // Forward declarations for variables that are defined later but used in earlier functions
+    // These use 'let' to allow reassignment when the actual definitions occur
+    let _ = null; // Parser instance, defined at line ~10867
+    let block = null; // Setting block function, defined at line ~1348
+    let evaluate = null; // Evaluate function, defined at line ~1419
+    let LaTeX = null; // LaTeX object, defined at line ~11020
+    let C = null; // Math2 object, defined at line ~1745
+    let Fraction = null; // Fraction object, defined at line ~10871
+    let Build = null; // Build object, defined at line ~12723
+    let isSymbol = null; // isSymbol function, defined at line ~478
+    let firstObject = null; // firstObject function, defined at line ~793
+    let InvalidVariableNameError = null; // Error class, defined at line ~1551
 
     /**
      * Class used to collect arguments for functions
@@ -475,7 +487,7 @@ const nerdamer = (function (imports) {
      *
      * @param {object} obj
      */
-    const isSymbol = function (obj) {
+    isSymbol = function (obj) {
         return obj instanceof NerdamerSymbol;
     };
 
@@ -790,7 +802,7 @@ const nerdamer = (function (imports) {
      * @param {boolean} both
      * @returns {any}
      */
-    const firstObject = function (obj, key, both) {
+    firstObject = function (obj, key, both) {
         let x;
         for (x in obj) {
             break;
@@ -1345,7 +1357,7 @@ const nerdamer = (function (imports) {
      * @param {boolean} opt - The value of the setting in the block
      * @param {string} obj - The obj of interest. Usually a NerdamerSymbol but could be any object
      */
-    const block = function (setting, f, opt, obj) {
+    block = function (setting, f, opt, obj) {
         const current_setting = Settings[setting];
         Settings[setting] = opt === undefined ? true : !!opt;
         const retval = f.call(obj);
@@ -1416,7 +1428,7 @@ const nerdamer = (function (imports) {
      * @param {NerdamerSymbol} symbol
      * @param {NerdamerSymbol} o
      */
-    const evaluate = function (symbol, o) {
+    evaluate = function (symbol, o) {
         return block('PARSE2NUMBER', () => _.parse(symbol, o), true);
     };
 
@@ -1548,7 +1560,7 @@ const nerdamer = (function (imports) {
     // Is thrown if dimensions are incorrect. Mostly for matrices
     const DimensionError = customError('DimensionError');
     // Is thrown if variable name violates naming rule
-    const InvalidVariableNameError = customError('InvalidVariableNameError');
+    InvalidVariableNameError = customError('InvalidVariableNameError');
     // Is thrown if the limits of the library are exceeded for a function
     // This can be that the function become unstable passed a value
     const ValueLimitExceededError = customError('ValueLimitExceededError');
@@ -1742,7 +1754,7 @@ const nerdamer = (function (imports) {
         // http://stackoverflow.com/questions/15454183/how-to-make-a-function-that-computes-the-factorial-for-numbers-with-decimals
         gamma(z) {
             const g = 7;
-            const C = [
+            const gammaCoeffs = [
                 0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
                 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
             ];
@@ -1751,9 +1763,9 @@ const nerdamer = (function (imports) {
             }
             z -= 1;
 
-            let x = C[0];
+            let x = gammaCoeffs[0];
             for (let i = 1; i < g + 2; i++) {
-                x += C[i] / (z + i);
+                x += gammaCoeffs[i] / (z + i);
             }
 
             const t = z + g + 0.5;
@@ -5259,6 +5271,7 @@ const nerdamer = (function (imports) {
     // Uses modified Shunting-yard algorithm. http://en.wikipedia.org/wiki/Shunting-yard_algorithm
     function Parser() {
         // Point to the local parser instead of the global one
+        // eslint-disable-next-line no-shadow -- intentionally shadow _ to refer to this parser instance
         const _ = this;
         const bin = {};
         const preprocessors = { names: [], actions: [] };
@@ -5283,6 +5296,7 @@ const nerdamer = (function (imports) {
             }
             if (node_type === Token.OPERATOR) {
                 // Copy everything over from the operator
+                // eslint-disable-next-line no-use-before-define -- operators is defined later but this function is only called after
                 const operator = operators[node];
                 for (const x in operator) {
                     this[x] = operator[x];
@@ -8610,21 +8624,6 @@ const nerdamer = (function (imports) {
             const re = symbol.realpart();
             const im = symbol.imagpart();
             if (re.isConstant() && im.isConstant()) {
-                return new NerdamerSymbol(Math.atan2(im, re));
-            }
-            return _.symfunction('atan2', [im, re]);
-        }
-
-        /**
-         * Returns the arugment of a complex number
-         *
-         * @param {NerdamerSymbol} symbol
-         * @returns {NerdamerSymbol}
-         */
-        function arg(symbol) {
-            const re = symbol.realpart();
-            const im = symbol.imagpart();
-            if (re.isConstant() && im.isConstant()) {
                 // Right angles
                 if (im.equals(0) && re.equals(1)) {
                     return _.parse('0');
@@ -10864,11 +10863,11 @@ const nerdamer = (function (imports) {
     }
 
     // Inits ========================================================================
-    const _ = new Parser(); // Nerdamer's parser
+    _ = new Parser(); // Nerdamer's parser
 
     /* "STATIC" */
     // converts a number to a fraction.
-    const Fraction = {
+    Fraction = {
         /**
          * Converts a decimal to a fraction
          *
@@ -11017,7 +11016,7 @@ const nerdamer = (function (imports) {
     // Depends on Fraction
 
     // The latex generator
-    const LaTeX = {
+    LaTeX = {
         parser: (function () {
             // Create a parser and strip it from everything except the items that you need
             const keep = [
@@ -12720,7 +12719,7 @@ const nerdamer = (function (imports) {
     };
 
     // Build ========================================================================
-    const Build = {
+    Build = {
         dependencies: {
             _rename: {
                 'Math2.factorial': 'factorial',
@@ -13059,7 +13058,7 @@ const nerdamer = (function (imports) {
 
     // This contains all the parts of nerdamer and enables nerdamer's internal functions
     // to be used.
-    const C = {
+    C = {
         groups: Groups,
         NerdamerSymbol,
         Expression,

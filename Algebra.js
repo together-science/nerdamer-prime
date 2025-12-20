@@ -7,8 +7,6 @@
  * Source : https://github.com/jiggzson/nerdamer
  */
 
-/* global module, Function */
-
 if (typeof module !== 'undefined') {
     // eslint-disable-next-line no-var
     var nerdamer = require('./nerdamer.core.js');
@@ -4005,6 +4003,14 @@ if (typeof module !== 'undefined') {
                         return [max, idx, term];
                     };
 
+                    const t_map = core.Utils.toMapObj(vars);
+                    const init_sort = function (a, b) {
+                        return b.sum.subtract(a.sum);
+                    };
+
+                    const s1 = symbol1.tBase(t_map).sort(init_sort);
+                    const s2 = symbol2.tBase(t_map).sort(init_sort);
+
                     // Tries to find an LT in the dividend that will satisfy division
                     const get_det = function (s, lookat) {
                         lookat ||= 0;
@@ -4088,10 +4094,6 @@ if (typeof module !== 'undefined') {
                         return umax;
                     };
 
-                    const t_map = core.Utils.toMapObj(vars);
-                    const init_sort = function (a, b) {
-                        return b.sum.subtract(a.sum);
-                    };
                     const is_larger = function (a, b) {
                         if (!a || !b) {
                             return false;
@@ -4104,8 +4106,6 @@ if (typeof module !== 'undefined') {
                         return true;
                     };
 
-                    const s1 = symbol1.tBase(t_map).sort(init_sort);
-                    const s2 = symbol2.tBase(t_map).sort(init_sort);
                     const target = is_larger(s1[0], s2[0]) && s1[0].count > s2[0].count ? s2 : s1; // Since the num is already larger than we can get the det from denom
                     const det = get_det(target); // We'll begin by assuming that this will let us know which term
                     const quotient = [];
@@ -4570,13 +4570,13 @@ if (typeof module !== 'undefined') {
             const b = _.divide(coeffs[1], new NerdamerSymbol(2));
             // Add the difference to the constant
             const c = _.pow(b.clone(), new NerdamerSymbol(2));
-            if (raw) {
-                return [a, b, d];
-            }
             const sqrt_a = math.sqrt(a);
             const e = _.divide(math.sqrt(c), sqrt_a.clone());
             // Calculate d which is the constant
             const d = _.subtract(coeffs[0], _.pow(e.clone(), new NerdamerSymbol(2)));
+            if (raw) {
+                return [a, b, d];
+            }
             // Compute the square part
             const sym = _.parse(br(`${sqrt_a.clone()}*${v}${sign < 0 ? '-' : '+'}${e}`));
             return {

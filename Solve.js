@@ -5,7 +5,6 @@
  * Email : martin.r.donk@gmail.com
  * Source : https://github.com/jiggzson/nerdamer
  */
-/* global module */
 
 if (typeof module !== 'undefined') {
     // eslint-disable-next-line no-var
@@ -37,6 +36,10 @@ if (typeof module !== 'undefined') {
     const { Settings } = core;
     const { range } = core.Utils;
     const { isArray } = core.Utils;
+
+    // Forward declaration for solve function (defined later)
+    // eslint-disable-next-line prefer-const -- forward declaration, assigned later
+    let solve;
 
     // The search radius for the roots
     core.Settings.SOLVE_RADIUS = 1000;
@@ -1413,7 +1416,7 @@ if (typeof module !== 'undefined') {
     //     console.log("solve: "+original+" for "+solve_for+" = "+solutions);
     //     return solutions;
     // }
-    const solve = function (eqns, solve_for, solutions, depth, fn) {
+    solve = function (eqns, solve_for, solutions, depth, fn) {
         depth ||= 0;
 
         if (depth++ > Settings.MAX_SOLVE_DEPTH) {

@@ -1,5 +1,4 @@
 // @ts-nocheck
-/* global module */
 
 /*
  * Author : Martin Donk
@@ -8,9 +7,10 @@
  * Source : https://github.com/jiggzson/nerdamer
  */
 
-if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
-    // eslint-disable-next-line no-var
-    var nerdamer = require('./nerdamer.core.js');
+// eslint-disable-next-line no-var, no-use-before-define -- legacy module loading pattern
+var nerdamer = typeof nerdamer !== 'undefined' ? nerdamer : undefined;
+if (typeof module !== 'undefined' && nerdamer === undefined) {
+    nerdamer = require('./nerdamer.core.js');
     require('./Algebra.js');
 }
 
@@ -745,6 +745,10 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
         },
         integration: {
             u_substitution(symbols, dx) {
+                // May cause problems if person is using this already. Will need
+                // to find algorithm for detecting conflict
+                const u = '__u__';
+
                 function try_combo(a, b, f) {
                     const d = __.diff(b, dx);
                     const q = f ? f(a, b) : _.divide(a.clone(), d);
@@ -764,9 +768,6 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                 const b = symbols[1].clone();
                 const g1 = a.group;
                 const g2 = b.group;
-                // May cause problems if person is using this already. Will need
-                // to find algorithm for detecting conflict
-                const u = '__u__';
                 let Q;
                 if (g1 === FN && g2 !== FN) {
                     // E.g. 2*x*cos(x^2)
