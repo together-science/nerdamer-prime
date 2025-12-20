@@ -158,14 +158,14 @@ if (typeof module !== 'undefined') {
             b = _.expand(_.multiply(b, den));
             // Swap the groups
             if (b.group === CP && b.group !== CP) {
-                var t = a;
+                let t = a;
                 a = b;
                 b = t; // Swap
             }
 
             // Scan to eliminate denominators
             if (a.group === CB) {
-                var t = new NerdamerSymbol(a.multiplier);
+                let t = new NerdamerSymbol(a.multiplier);
                 let newRHS = b.clone();
                 a.each(y => {
                     if (y.power.lessThan(0)) {
@@ -318,7 +318,7 @@ if (typeof module !== 'undefined') {
     });
 
     // Version solve
-    var __ = (core.Solve = {
+    let __ = (core.Solve = {
         version: '2.0.3',
         solutions: [],
         solve(eq, variable) {
@@ -352,7 +352,7 @@ if (typeof module !== 'undefined') {
         //            vars = variables(eqns[0], null, null, true);
         //
         //            //get all variables
-        //            for (var i = 1, l=eqns.length; i < l; i++)
+        //            for (let i = 1, l=eqns.length; i < l; i++)
         //                vars = vars.concat(variables(eqns[i]));
         //            //remove duplicates
         //            vars = core.Utils.arrayUnique(vars).sort();
@@ -372,7 +372,7 @@ if (typeof module !== 'undefined') {
 
             const deg = [];
 
-            var solutions = [];
+            let solutions = [];
 
             // Get the degree for the equations
             for (let i = 0; i < eqns.length; i++) {
@@ -412,7 +412,7 @@ if (typeof module !== 'undefined') {
                 }
 
                 if (Settings.SOLUTIONS_AS_OBJECT) {
-                    var solutions = {};
+                    solutions = {};
                     solutions[x] = x_points;
                     solutions[y] = y_points;
                 } else {
@@ -505,7 +505,7 @@ if (typeof module !== 'undefined') {
                     c.set(i, 0, f.apply(null, o));
                 });
 
-                var m = new core.Matrix();
+                let m = new core.Matrix();
                 J.each((fn, i, j) => {
                     const ans = fn.apply(null, o);
                     m.set(i, j, ans);
@@ -613,7 +613,7 @@ if (typeof module !== 'undefined') {
             // Check if a var_array was specified
             // nerdamer.clearVars();// this deleted ALL variables: not what we want
             // parse all the equations to LHS. Remember that they come in as strings
-            for (var i = 0; i < eqns.length; i++) {
+            for (let i = 0; i < eqns.length; i++) {
                 eqns[i] = __.toLHS(eqns[i]);
             }
 
@@ -644,11 +644,11 @@ if (typeof module !== 'undefined') {
                 // then test the remaining equations with that solution. If any of the remaining
                 // equation fails then the system has no solution
                 if (vars.length === 1) {
-                    var n = 0;
+                    let n = 0;
                     let sol;
-                    var e;
+                    let e;
                     do {
-                        var e = eqns[n].clone();
+                        e = eqns[n].clone();
 
                         if (n > 0) {
                             e = e.sub(vars[0], sol[0]);
@@ -662,7 +662,7 @@ if (typeof module !== 'undefined') {
                     } while (++n < eqns.length);
 
                     // Format the output
-                    var solutions;
+                    let solutions;
                     if (Settings.SOLUTIONS_AS_OBJECT) {
                         solutions = {};
                         solutions[vars[0]] = sol;
@@ -682,13 +682,13 @@ if (typeof module !== 'undefined') {
                 // equations and we can return the solution set.
                 if (vars.length < eqns.length) {
                     const reduced = [];
-                    var n = eqns.length;
-                    for (var i = 0; i < n - 1; i++) {
+                    let n = eqns.length;
+                    for (let i = 0; i < n - 1; i++) {
                         reduced.push(_.parse(eqns[i]));
                     }
 
                     let knowns = {};
-                    var solutions = __.solveSystem(reduced, vars);
+                    let solutions = __.solveSystem(reduced, vars);
                     // The solutions may have come back as an array
                     if (Array.isArray(solutions)) {
                         solutions.forEach(sol => {
@@ -702,7 +702,7 @@ if (typeof module !== 'undefined') {
                     // then all zero will be false
                     let all_zero = true;
                     // Check if the last solution evalutes to zero given these solutions
-                    for (var i = n - 1; i < n; i++) {
+                    for (let i = n - 1; i < n; i++) {
                         if (!_.parse(eqns[i], knowns).equals(0)) {
                             all_zero = false;
                         }
@@ -714,17 +714,17 @@ if (typeof module !== 'undefined') {
                 }
 
                 // Deletes only the variables of the linear equations in the nerdamer namespace
-                for (var i = 0; i < vars.length; i++) {
+                for (let i = 0; i < vars.length; i++) {
                     nerdamer.setVar(vars[i], 'delete');
                 }
                 // TODO: move this to cMatrix or something similar
                 // populate the matrix
-                for (var i = 0; i < l; i++) {
-                    var e = eqns[i]; // Store the expression
+                for (let i = 0; i < l; i++) {
+                    let e = eqns[i]; // Store the expression
                     // Iterate over the columns
-                    for (var j = 0; j < vars.length; j++) {
-                        var v = vars[j];
-                        var coeffs = [];
+                    for (let j = 0; j < vars.length; j++) {
+                        let v = vars[j];
+                        let coeffs = [];
                         e.each(x => {
                             if (x.contains(v)) {
                                 coeffs = coeffs.concat(x.coeffs());
@@ -737,7 +737,7 @@ if (typeof module !== 'undefined') {
 
                     // Strip the variables from the symbol so we're left with only the zeroth coefficient
                     // start with the symbol and remove each variable and its coefficient
-                    var num = e.clone();
+                    let num = e.clone();
                     vars.map(varName => {
                         num = num.stripVar(varName, true);
                     });
@@ -751,16 +751,16 @@ if (typeof module !== 'undefined') {
                  */
                 vars = var_array;
                 expand_result = true;
-                for (i = 0; i < l; i++) {
+                for (let i = 0; i < l; i++) {
                     // Prefill
                     c.set(i, 0, new NerdamerSymbol(0));
-                    var e = _.expand(eqns[i]).collectSummandSymbols(); // Expand and store
+                    let e = _.expand(eqns[i]).collectSummandSymbols(); // Expand and store
                     // go trough each of the variables
-                    for (var j = 0; j < var_array.length; j++) {
+                    for (let j = 0; j < var_array.length; j++) {
                         m.set(i, j, new NerdamerSymbol(0));
-                        var v = var_array[j];
+                        let v = var_array[j];
                         // Go through the terms and sort the variables
-                        for (var k = 0; k < e.length; k++) {
+                        for (let k = 0; k < e.length; k++) {
                             const term = e[k];
                             let check = false;
                             for (let z = 0; z < var_array.length; z++) {
@@ -782,7 +782,7 @@ if (typeof module !== 'undefined') {
                         }
                     }
                     // All the remaining terms go to the c matrix
-                    for (k = 0; k < e.length; k++) {
+                    for (let k = 0; k < e.length; k++) {
                         c.set(i, 0, _.add(c.get(i, 0), e[k]));
                     }
                 }
@@ -1293,7 +1293,7 @@ if (typeof module !== 'undefined') {
             // Try to rewrite the whole thing
             if (rhs.group === CP && rhs.contains(for_variable) && rhs.isLinear()) {
                 rhs.distributeMultiplier();
-                var t = new NerdamerSymbol(0);
+                let t = new NerdamerSymbol(0);
                 // First bring all the terms containing the variable to the lhs
                 rhs.each(x => {
                     if (x.contains(for_variable)) {
@@ -1320,7 +1320,7 @@ if (typeof module !== 'undefined') {
                 if (lhs.equals(0)) {
                     return new NerdamerSymbol(0);
                 }
-                var t = new NerdamerSymbol(1);
+                let t = new NerdamerSymbol(1);
                 rhs.each(x => {
                     if (x.contains(for_variable)) {
                         t = _.multiply(t, x.clone());
@@ -1411,7 +1411,7 @@ if (typeof module !== 'undefined') {
      * @param {string|Equation} fn
      * @returns {Array}
      */
-    // var solve = function (eqns, solve_for, solutions, depth, fn) {
+    // let solve = function (eqns, solve_for, solutions, depth, fn) {
     //     let original = "<multiple>";
     //     original = eqns.toString();
     //     try {
@@ -1422,7 +1422,7 @@ if (typeof module !== 'undefined') {
     //     console.log("solve: "+original+" for "+solve_for+" = "+solutions);
     //     return solutions;
     // }
-    var solve = function (eqns, solve_for, solutions, depth, fn) {
+    let solve = function (eqns, solve_for, solutions, depth, fn) {
         depth ||= 0;
 
         if (depth++ > Settings.MAX_SOLVE_DEPTH) {
@@ -1562,7 +1562,7 @@ if (typeof module !== 'undefined') {
         }
         // Pass in false to not expand equations such as (x+y)^5.
         // It suffices to solve for the numerator since there's no value in the denominator which yields a zero for the function
-        var eq = (core.Utils.isSymbol(eqns) ? eqns : __.toLHS(eqns, false)).getNum();
+        let eq = (core.Utils.isSymbol(eqns) ? eqns : __.toLHS(eqns, false)).getNum();
         const vars = core.Utils.variables(eq); // Get a list of all the variables
         const numvars = vars.length; // How many variables are we dealing with
 
@@ -1595,10 +1595,10 @@ if (typeof module !== 'undefined') {
                     const sym = symbol.symbols[x];
 
                     // Get the denominator of the sub-symbol
-                    var den = sym.getDenom();
+                    let den = sym.getDenom();
 
                     if (!den.isConstant(true) && symbol.isComposite()) {
-                        var t = new NerdamerSymbol(0);
+                        let t = new NerdamerSymbol(0);
                         symbol.each(e => {
                             t = _.add(t, _.multiply(e, den.clone()));
                         });
@@ -1622,7 +1622,7 @@ if (typeof module !== 'undefined') {
                             let c = fractionals[p.den];
                             fractionals[p.den] = c ? c++ : 1;
                         } else if (p.sign() === -1) {
-                            var factor = _.parse(`${solve_for}^${Math.abs(p)}`); // This
+                            let factor = _.parse(`${solve_for}^${Math.abs(p)}`); // This
                             // unwrap the symbol's denoniator
                             symbol.each((y, index) => {
                                 if (y.contains(solve_for)) {
@@ -1634,8 +1634,8 @@ if (typeof module !== 'undefined') {
                         } else if (sym.group === PL) {
                             const min_p = core.Utils.arrayMin(core.Utils.keys(sym.symbols));
                             if (min_p < 0) {
-                                var factor = _.parse(`${solve_for}^${Math.abs(min_p)}`);
-                                var corrected = new NerdamerSymbol(0);
+                                let factor = _.parse(`${solve_for}^${Math.abs(min_p)}`);
+                                let corrected = new NerdamerSymbol(0);
                                 original.each(origSym => {
                                     corrected = _.add(corrected, _.multiply(origSym.clone(), factor.clone()));
                                 }, true);
@@ -1710,12 +1710,12 @@ if (typeof module !== 'undefined') {
                 core.Algebra.Factor.factorInner(eq, factors);
                 // If the equation has more than one symbolic factor then solve those individually
                 if (factors.getNumberSymbolics() > 1) {
-                    for (var factorKey in factors.factors) {
+                    for (let factorKey in factors.factors) {
                         add_to_result(solve(factors.factors[factorKey], solve_for));
                     }
                 } else {
-                    var coeffs = core.Utils.getCoeffs(eq, solve_for);
-                    var deg = coeffs.length - 1;
+                    let coeffs = core.Utils.getCoeffs(eq, solve_for);
+                    let deg = coeffs.length - 1;
                     let was_calculated = false;
                     if (vars[0] === solve_for) {
                         // Check to see if all the coefficients are constant
@@ -1743,14 +1743,14 @@ if (typeof module !== 'undefined') {
                             } else if (deg === 2) {
                                 add_to_result(_.expand(__.quad.apply(undefined, coeffs)));
                             } else if (deg === 3) {
-                                var solutions = []; // Set to blank
+                                let cubicSolutions = []; // Set to blank
                                 // first try to factor and solve
-                                var factored = core.Algebra.Factor.factorInner(eqns);
+                                const _factored = core.Algebra.Factor.factorInner(eqns);
 
                                 // If it was successfully factored
-                                var solutions = [];
-                                if (solutions.length > 0) {
-                                    add_to_result(solutions);
+                                cubicSolutions = [];
+                                if (cubicSolutions.length > 0) {
+                                    add_to_result(cubicSolutions);
                                 } else {
                                     add_to_result(__.cubic.apply(undefined, coeffs));
                                 }
@@ -1874,7 +1874,7 @@ if (typeof module !== 'undefined') {
                 try {
                     // This is where solving certain quads goes wrong
 
-                    var factored = core.Algebra.Factor.factorInner(eq.clone());
+                    let factored = core.Algebra.Factor.factorInner(eq.clone());
                     const test = _.expand(_.parse(factored));
                     const test2 = _.expand(eq.clone());
                     const diff = _.subtract(test, test2);
@@ -1890,18 +1890,18 @@ if (typeof module !== 'undefined') {
                             add_to_result(solve(factor, solve_for));
                         });
                     } else {
-                        var coeffs = core.Utils.getCoeffs(eq, solve_for);
+                        let coeffs = core.Utils.getCoeffs(eq, solve_for);
 
                         const l = coeffs.length;
-                        var deg = l - 1; // The degree of the polynomial
+                        let deg = l - 1; // The degree of the polynomial
                         // get the denominator and make sure it doesn't have x
 
                         // handle the problem based on the degree
                         switch (deg) {
-                            case 0:
-                                var separated = separate(eq);
-                                var lhs = separated[0];
-                                var rhs = separated[1];
+                            case 0: {
+                                const separated = separate(eq);
+                                const lhs = separated[0];
+                                const rhs = separated[1];
 
                                 if (lhs.group === core.groups.EX) {
                                     // We have a*b^(mx) = rhs
@@ -1915,6 +1915,7 @@ if (typeof module !== 'undefined') {
                                     add_to_result(parsed);
                                 }
                                 break;
+                            }
                             case 1:
                                 // Nothing to do but to return the quotient of the constant and the LT
                                 // e.g. 2*x-1
@@ -1950,8 +1951,8 @@ if (typeof module !== 'undefined') {
             } else {
                 try {
                     const rw = __.rewrite(eq, null, solve_for);
-                    var lhs = rw[0];
-                    var rhs = rw[1];
+                    let lhs = rw[0];
+                    let rhs = rw[1];
                     if (lhs.group === FN) {
                         if (lhs.fname === 'abs') {
                             // Solve only if solve_for was the only arg
@@ -1971,7 +1972,7 @@ if (typeof module !== 'undefined') {
                             // Ax+b comes back as [a, x, ax, b];
                             const parts = explode(lhs.args[0], solve_for);
                             // Check if x is by itself
-                            var x = parts[1];
+                            let x = parts[1];
                             if (x.group === S) {
                                 rhs = _.divide(
                                     _.subtract(
@@ -1983,8 +1984,8 @@ if (typeof module !== 'undefined') {
                                     ),
                                     parts[0]
                                 );
-                                var eq = new Equation(x, rhs).toLHS();
-                                add_to_result(solve(eq, solve_for));
+                                const newEq = new Equation(x, rhs).toLHS();
+                                add_to_result(solve(newEq, solve_for));
                             }
                         } else {
                             add_to_result(_.subtract(lhs, rhs));
@@ -2008,9 +2009,9 @@ if (typeof module !== 'undefined') {
                         if (eq.group === CB) {
                             add_to_result(0);
                         } else if (eq.group === CP) {
-                            var separated = separate(eq);
-                            var lhs = separated[0];
-                            var rhs = separated[1];
+                            let separated = separate(eq);
+                            let lhs = separated[0];
+                            let rhs = separated[1];
 
                             // Reduce the equation
                             if (lhs.group === core.groups.EX && lhs.value === solve_for) {

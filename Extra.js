@@ -49,7 +49,7 @@ if (typeof module !== 'undefined') {
         return found;
     };
 
-    var __ = (core.Extra = {
+    let __ = (core.Extra = {
         version: '1.4.2',
         // http://integral-table.com/downloads/LaplaceTable.pdf
         // Laplace assumes all coefficients to be positive
@@ -80,7 +80,7 @@ if (typeof module !== 'undefined') {
                         retval = _.add(retval, __.LaPlace.transform(x, t, s));
                     }, true);
                 } else if (symbol.isE() && (symbol.power.group === S || symbol.power.group === CB)) {
-                    var a = symbol.power.stripVar(t);
+                    let a = symbol.power.stripVar(t);
                     retval = _.parse(format('1/(({1})-({0}))', a, s));
                 } else {
                     const fns = ['sin', 'cos', 'sinh', 'cosh'];
@@ -90,7 +90,7 @@ if (typeof module !== 'undefined') {
                         fns.indexOf(symbol.fname) !== -1 &&
                         (symbol.args[0].group === S || symbol.args[0].group === CB)
                     ) {
-                        var a = symbol.args[0].stripVar(t);
+                        let a = symbol.args[0].stripVar(t);
 
                         switch (symbol.fname) {
                             case 'sin':
@@ -112,8 +112,9 @@ if (typeof module !== 'undefined') {
                         const depth_is_lower =
                             core.Settings.integration_depth < core.Settings.Laplace_integration_depth;
 
+                        let saved_integration_depth;
                         if (depth_is_lower) {
-                            var { integration_depth } = core.Settings; // Save the depth
+                            saved_integration_depth = core.Settings.integration_depth; // Save the depth
                             core.Settings.integration_depth = core.Settings.Laplace_integration_depth; // Transforms need a little more room
                         }
 
@@ -139,7 +140,7 @@ if (typeof module !== 'undefined') {
 
                         if (depth_is_lower) // Put the integration depth as it was
                         {
-                            core.Settings.integration_depth = integration_depth;
+                            core.Settings.integration_depth = saved_integration_depth;
                         }
                     }
                 }
@@ -151,6 +152,7 @@ if (typeof module !== 'undefined') {
                 return core.Utils.block(
                     'POSITIVE_MULTIPLIERS',
                     () => {
+                        let retval;
                         // Expand and get partial fractions
                         if (symbol.group === CB) {
                             symbol = core.Algebra.PartFrac.partfrac(_.expand(symbol), s_);
@@ -167,12 +169,17 @@ if (typeof module !== 'undefined') {
                             let num;
                             let den;
                             let s;
-                            var retval;
                             let f;
-                            var p;
+                            let p;
                             let m;
                             let den_p;
                             let _fe;
+                            let a;
+                            let b;
+                            let d;
+                            let exp;
+                            let f2;
+                            let fact;
                             // Remove the multiplier
                             m = symbol.multiplier.clone();
                             symbol.toUnitMultiplier();
@@ -206,8 +213,6 @@ if (typeof module !== 'undefined') {
                                 f.b.equals(0) &&
                                 core.Utils.isInt(f.x.power)
                             ) {
-                                var fact;
-                                var p;
                                 p = f.x.power - 1;
                                 fact = core.Math2.factorial(p);
                                 //  N!/s^(n-1)
@@ -222,7 +227,7 @@ if (typeof module !== 'undefined') {
                                     const completed = core.Algebra.sqComplete(den, s);
                                     const u = core.Utils.getU(den);
                                     // Get a for the function above
-                                    var a = core.Utils.decompose_fn(completed.a, s, true).b;
+                                    a = core.Utils.decompose_fn(completed.a, s, true).b;
                                     const tf = __.LaPlace.inverse(_.parse(`1/((${u})^2+(${completed.c}))`), u, t);
                                     retval = _.multiply(tf, _.parse(`(${m})*e^(-(${a})*(${t}))`));
                                 } else {
@@ -231,8 +236,8 @@ if (typeof module !== 'undefined') {
                                         t = _.divide(t, f.a.clone());
 
                                         // Don't add factorial of one or zero
-                                        var p = den_p - 1;
-                                        var fact = p === 0 || p === 1 ? '1' : `(${den_p}-1)!`;
+                                        p = den_p - 1;
+                                        fact = p === 0 || p === 1 ? '1' : `(${den_p}-1)!`;
                                         retval = _.parse(
                                             format(
                                                 '(({0})^({3}-1)*e^(-(({2})*({0}))/({1})))/(({4})*({1})^({3}))',
@@ -259,7 +264,7 @@ if (typeof module !== 'undefined') {
                                         }
                                         // A*s/(b*s^2+c^2)
                                         else {
-                                            var a = new NerdamerSymbol(1);
+                                            a = new NerdamerSymbol(1);
                                             if (num.group === CB) {
                                                 let new_num = new NerdamerSymbol(1);
                                                 num.each(x => {
@@ -273,7 +278,7 @@ if (typeof module !== 'undefined') {
                                             }
 
                                             // We need more information about the denominator to decide
-                                            var f2 = core.Utils.decompose_fn(num, s, true);
+                                            f2 = core.Utils.decompose_fn(num, s, true);
                                             let fn1;
                                             let fn2;
                                             let a_has_sin;
@@ -307,9 +312,7 @@ if (typeof module !== 'undefined') {
                                                 cos = fn2.findFunction('cos');
                                                 // Who has the s?
                                                 if (sin.args[0].equals(cos.args[0]) && !sin.args[0].contains(s)) {
-                                                    var b;
                                                     let c;
-                                                    var d;
                                                     let e;
                                                     b = _.divide(fn2, cos.toUnitMultiplier()).toString();
                                                     c = sin.args[0].toString();
@@ -331,12 +334,9 @@ if (typeof module !== 'undefined') {
                                 !num.contains(s) &&
                                 num.isLinear()
                             ) {
-                                var b = _.divide(num.clone(), _.parse('sqrt(pi)'));
+                                b = _.divide(num.clone(), _.parse('sqrt(pi)'));
                                 retval = _.parse(format('(2*({2})*sqrt({0}))/({1})', t, f.a, b, num));
                             } else if (den_p.equals(2) && f.x.power.equals(2)) {
-                                var a;
-                                var d;
-                                var exp;
                                 if (!num.contains(s)) {
                                     a = _.divide(num, new NerdamerSymbol(2));
                                     exp =

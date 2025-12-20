@@ -19,7 +19,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
     const { Frac } = core;
     const { Settings } = core;
     const { isSymbol } = core.Utils;
-    var { FN } = core.groups;
+    let { FN } = core.groups;
     const { NerdamerSymbol } = core;
     const { text } = core.Utils;
     const { inBrackets } = core.Utils;
@@ -29,7 +29,6 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
     const { evaluate } = core.Utils;
     const { N } = core.groups;
     const { S } = core.groups;
-    var { FN } = core.groups;
     const { PL } = core.groups;
     const { CP } = core.groups;
     const { CB } = core.groups;
@@ -361,7 +360,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
 
     core.Settings.max_lim_depth = 10;
 
-    var __ = (core.Calculus = {
+    let __ = (core.Calculus = {
         version: '1.4.6',
 
         sum(fn, index, start, end) {
@@ -587,14 +586,16 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                             // Use a clone if this gives errors
                             s = qdiff(s, '-tanh');
                             break;
-                        case CSCH:
-                            var arg = String(s.args[0]);
-                            s = _.parse(`-coth(${arg})*csch(${arg})`);
+                        case CSCH: {
+                            const cschArg = String(s.args[0]);
+                            s = _.parse(`-coth(${cschArg})*csch(${cschArg})`);
                             break;
-                        case COTH:
-                            var arg = String(s.args[0]);
-                            s = _.parse(`-csch(${arg})^2`);
+                        }
+                        case COTH: {
+                            const cothArg = String(s.args[0]);
+                            s = _.parse(`-csch(${cothArg})^2`);
                             break;
+                        }
                         case 'asinh':
                             s = _.parse(`(sqrt(1+(${text(s.args[0])})^2))^(-1)`);
                             break;
@@ -604,68 +605,81 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                         case 'atanh':
                             s = _.parse(`(1-(${text(s.args[0])})^2)^(-1)`);
                             break;
-                        case ASECH:
-                            var arg = String(s.args[0]);
-                            s = _.parse(`-1/(sqrt(1/(${arg})^2-1)*(${arg})^2)`);
+                        case ASECH: {
+                            const asechArg = String(s.args[0]);
+                            s = _.parse(`-1/(sqrt(1/(${asechArg})^2-1)*(${asechArg})^2)`);
                             break;
+                        }
                         case ACOTH:
                             s = _.parse(`-1/((${s.args[0]})^2-1)`);
                             break;
-                        case ACSCH:
-                            var arg = String(s.args[0]);
+                        case ACSCH: {
+                            const arg = String(s.args[0]);
                             s = _.parse(`-1/(sqrt(1/(${arg})^2+1)*(${arg})^2)`);
                             break;
-                        case ASEC:
-                            var arg = String(s.args[0]);
+                        }
+                        case ASEC: {
+                            const arg = String(s.args[0]);
                             s = _.parse(`1/(sqrt(1-1/(${arg})^2)*(${arg})^2)`);
                             break;
-                        case ACSC:
-                            var arg = String(s.args[0]);
+                        }
+                        case ACSC: {
+                            const arg = String(s.args[0]);
                             s = _.parse(`-1/(sqrt(1-1/(${arg})^2)*(${arg})^2)`);
                             break;
+                        }
                         case ACOT:
                             s = _.parse(`-1/((${s.args[0]})^2+1)`);
                             break;
-                        case 'S':
-                            var arg = String(s.args[0]);
+                        case 'S': {
+                            const arg = String(s.args[0]);
                             s = _.parse(`sin((pi*(${arg})^2)/2)`);
                             break;
-                        case 'C':
-                            var arg = String(s.args[0]);
+                        }
+                        case 'C': {
+                            const arg = String(s.args[0]);
                             s = _.parse(`cos((pi*(${arg})^2)/2)`);
                             break;
-                        case 'Si':
-                            var arg = s.args[0];
+                        }
+                        case 'Si': {
+                            const arg = s.args[0];
                             s = _.parse(`sin(${arg})/(${arg})`);
                             break;
-                        case 'Shi':
-                            var arg = s.args[0];
+                        }
+                        case 'Shi': {
+                            const arg = s.args[0];
                             s = _.parse(`sinh(${arg})/(${arg})`);
                             break;
-                        case 'Ci':
-                            var arg = s.args[0];
+                        }
+                        case 'Ci': {
+                            const arg = s.args[0];
                             s = _.parse(`cos(${arg})/(${arg})`);
                             break;
-                        case 'Chi':
-                            var arg = s.args[0];
+                        }
+                        case 'Chi': {
+                            const arg = s.args[0];
                             s = _.parse(`cosh(${arg})/(${arg})`);
                             break;
-                        case 'Ei':
-                            var arg = s.args[0];
+                        }
+                        case 'Ei': {
+                            const arg = s.args[0];
                             s = _.parse(`e^(${arg})/(${arg})`);
                             break;
-                        case 'Li':
-                            var arg = s.args[0];
+                        }
+                        case 'Li': {
+                            const arg = s.args[0];
                             s = _.parse(`1/${Settings.LOG}(${arg})`);
                             break;
+                        }
                         case 'erf':
                             s = _.parse(`(2*e^(-(${s.args[0]})^2))/sqrt(pi)`);
                             break;
-                        case 'atan2':
-                            var x_ = String(s.args[0]);
-                            var y_ = String(s.args[1]);
+                        case 'atan2': {
+                            const x_ = String(s.args[0]);
+                            const y_ = String(s.args[1]);
                             s = _.parse(`(${y_})/((${y_})^2+(${x_})^2)`);
                             break;
+                        }
                         case 'sign':
                             s = new NerdamerSymbol(0);
                             break;
@@ -756,11 +770,11 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                 const g2 = b.group;
                 // May cause problems if person is using this already. Will need
                 // to find algorithm for detecting conflict
-                var u = '__u__';
+                let u = '__u__';
                 let Q;
                 if (g1 === FN && g2 !== FN) {
                     // E.g. 2*x*cos(x^2)
-                    var arg = a.args[0];
+                    let arg = a.args[0];
                     Q = try_combo(b, arg.clone());
                     if (Q) {
                         return _.multiply(Q, do_fn_sub(a.fname, arg));
@@ -771,7 +785,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                     }
                 } else if (g2 === FN && g1 !== FN) {
                     // E.g. 2*(x+1)*cos((x+1)^2
-                    var arg = b.args[0];
+                    let arg = b.args[0];
                     Q = try_combo(a, arg.clone());
                     if (Q) {
                         return _.multiply(Q, do_fn_sub(b.fname, arg));
@@ -786,7 +800,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                         return _.multiply(__.integration.poly_integrate(b), Q);
                     }
                 } else if (g1 === EX && g2 !== EX) {
-                    var p = a.power;
+                    let p = a.power;
                     Q = try_combo(b, p.clone());
                     if (!Q) {
                         // One more try
@@ -806,14 +820,14 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                             return __.integration.by_parts(new_val, u, 0, {}).sub(u, dc[1].clone());
                         }
                     }
-                    var integrated = __.integrate(a.sub(p.clone(), new NerdamerSymbol(u)), u, 0);
+                    let integrated = __.integrate(a.sub(p.clone(), new NerdamerSymbol(u)), u, 0);
                     const retval = _.multiply(integrated.sub(new NerdamerSymbol(u), p), Q);
 
                     return retval;
                 } else if (g2 === EX && g1 !== EX) {
-                    var p = b.power;
+                    let p = b.power;
                     Q = try_combo(a, p.clone());
-                    var integrated = __.integrate(b.sub(p, new NerdamerSymbol(u)), u, 0);
+                    let integrated = __.integrate(b.sub(p, new NerdamerSymbol(u)), u, 0);
                     return _.multiply(integrated.sub(new NerdamerSymbol(u), p), Q);
                 } else if (a.isComposite() || b.isComposite()) {
                     const f = function (sym1, sym2) {
@@ -931,7 +945,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                 // Compile u and dv
                 for (let i = 0; i < 5; i++) {
                     const part = parts[i];
-                    var t;
+                    let t;
                     const l = part.length;
                     if (l > 0) {
                         if (l > 1) {
@@ -1109,7 +1123,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                 if (symbol.power.contains(dx)) {
                                     __.integration.stop();
                                 } else {
-                                    var t = __.diff(symbol.clone().toLinear(), dx);
+                                    let t = __.diff(symbol.clone().toLinear(), dx);
                                     if (t.contains(dx)) {
                                         __.integration.stop();
                                     }
@@ -1120,10 +1134,10 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                             }
                             // E.g. a^x or 9^x
                             else {
-                                var a = __.diff(symbol.power.clone(), dx);
+                                let a = __.diff(symbol.power.clone(), dx);
                                 if (a.contains(dx)) {
                                     const aa = a.stripVar(dx);
-                                    var x = _.divide(a.clone(), aa.clone());
+                                    let x = _.divide(a.clone(), aa.clone());
                                     if (x.group === S && x.isLinear()) {
                                         aa.multiplier = aa.multiplier.divide(new Frac(2));
                                         return _.parse(
@@ -1146,13 +1160,13 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                         __.integration.stop();
                                     }
                                 } else {
-                                    var d = _.symfunction(LOG, [_.parse(symbol.value)]);
+                                    let d = _.symfunction(LOG, [_.parse(symbol.value)]);
                                     retval = _.divide(symbol, d);
                                 }
                                 retval = _.divide(retval, a);
                             }
                         } else if (symbol.isComposite() && symbol.isLinear()) {
-                            var m = _.parse(symbol.multiplier);
+                            let m = _.parse(symbol.multiplier);
                             symbol.toUnitMultiplier();
                             retval = new NerdamerSymbol(0);
                             symbol.each(elem => {
@@ -1169,17 +1183,17 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                     retval = _.add(retval, __.integrate(elem, dx, depth));
                                 }, true);
                             } else {
-                                var p = Number(symbol.power);
-                                var m = symbol.multiplier.clone(); // Temporarily remove the multiplier
+                                let p = Number(symbol.power);
+                                let m = symbol.multiplier.clone(); // Temporarily remove the multiplier
                                 symbol.toUnitMultiplier();
-                                var // Below we consider the form ax+b
+                                let // Below we consider the form ax+b
                                     fn = symbol.clone().toLinear(); // Get just the pure function without the power
-                                var decomp = __.integration.decompose_arg(fn, dx);
+                                let decomp = __.integration.decompose_arg(fn, dx);
                                 // I have no idea why I used bx+a and not ax+b. TODO change this to something that makes sense
-                                var b = decomp[3];
-                                var ax = decomp[2];
-                                var a = decomp[0];
-                                var x = decomp[1];
+                                let b = decomp[3];
+                                let ax = decomp[2];
+                                let a = decomp[0];
+                                let x = decomp[1];
                                 if (p === -1 && x.group !== PL && x.power.equals(2)) {
                                     const b_is_positive = isInt(b) ? b > 0 : true;
                                     // We can now check for atan
@@ -1193,14 +1207,14 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                             });
                                             return result;
                                         };
-                                        var A = a.clone();
-                                        var B = b.clone();
+                                        let A = a.clone();
+                                        let B = b.clone();
                                         A = _.pow(A, new NerdamerSymbol(1 / 2));
                                         B = _.pow(B, new NerdamerSymbol(1 / 2));
                                         // Unwrap abs
 
-                                        var d = _.multiply(unwrapAbs(B), unwrapAbs(A));
-                                        var f = _.symfunction(ATAN, [_.divide(_.multiply(a, x.toLinear()), d.clone())]);
+                                        let d = _.multiply(unwrapAbs(B), unwrapAbs(A));
+                                        let f = _.symfunction(ATAN, [_.divide(_.multiply(a, x.toLinear()), d.clone())]);
                                         retval = _.divide(f, d);
                                     } else if (x.group === S && x.isLinear()) {
                                         retval = _.divide(__.integration.poly_integrate(symbol), a);
@@ -1208,16 +1222,14 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                         // 1/(x^4+1)
                                         if (x.power.equals(4)) {
                                             // https://www.freemathhelp.com/forum/threads/55678-difficult-integration-int-1-(1-x-4)-dx
-                                            var A;
-                                            var B;
+                                            let A;
+                                            let B;
                                             let C;
                                             let D;
                                             let E;
                                             let F;
-                                            let _f1;
-                                            let _f2;
-                                            let _f3;
-                                            let _f4;
+                                            let f1;
+                                            let f2;
                                             let L1;
                                             let L2;
                                             const br = inBrackets;
@@ -1254,7 +1266,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                             a.negate();
                                             // It's asin
                                             if (b.isConstant() && a.isConstant()) {
-                                                var d = _.symfunction(SQRT, [a.clone()]);
+                                                let d = _.symfunction(SQRT, [a.clone()]);
                                                 const d2 = _.symfunction(SQRT, [_.multiply(a.clone(), b)]);
                                                 retval = _.divide(
                                                     _.symfunction(ASIN, [_.divide(ax.toLinear(), d2)]),
@@ -1291,9 +1303,9 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                     let sqb;
                                     let aob;
                                     let bsqi;
-                                    var n;
-                                    var integral;
-                                    var u;
+                                    let n;
+                                    let integral;
+                                    let u;
                                     let v;
                                     let uv;
                                     // 1/(a*x^2+b^2)^n
@@ -1312,22 +1324,22 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                     // The conversion will be 1+tan(x)^2 -> sec(x)^2
                                     // since the denominator is now (sec(x)^2)^n and the numerator is sec(x)^2
                                     // then the remaining sec will be (n-1)*2;
-                                    var n = (Math.abs(symbol.power) - 1) * 2;
+                                    n = (Math.abs(symbol.power) - 1) * 2;
                                     // 1/sec(x)^n can now be converted to cos(x)^n and we can pull the integral of that
-                                    var integral = __.integrate(_.parse(`${COS + inBrackets(uv)}^${n}`));
+                                    integral = __.integrate(_.parse(`${COS + inBrackets(uv)}^${n}`));
                                     core.Utils.clearU(uv);
                                     return _.multiply(integral.sub(uv, v), bsqi);
                                 } else if (symbol.group !== CB && !symbol.power.lessThan(0)) {
                                     retval = __.integration.by_parts(symbol, dx, depth, opt);
                                 } else {
-                                    var f = symbol.clone().toLinear();
+                                    let f = symbol.clone().toLinear();
                                     const factored = core.Algebra.Factor.factorInner(f);
                                     const was_factored = factored.toString() !== f.toString();
                                     if (core.Algebra.degree(f, _.parse(dx)).equals(2) && !was_factored) {
                                         try {
-                                            var f1;
+                                            let f1;
                                             let fx;
-                                            var u;
+                                            let u;
                                             let sq;
                                             sq = core.Algebra.sqComplete(f, dx);
                                             u = core.Utils.getU(f);
@@ -1347,20 +1359,20 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                 retval.multiplier = retval.multiplier.multiply(m);
                             }
                         } else if (g === FN) {
-                            var arg = symbol.args[0];
-                            var m = symbol.multiplier.clone();
+                            let arg = symbol.args[0];
+                            let m = symbol.multiplier.clone();
                             symbol.toUnitMultiplier();
-                            var decomp = __.integration.decompose_arg(arg, dx);
+                            let decomp = __.integration.decompose_arg(arg, dx);
                             // Easies way I can think of to get the coefficient and to make sure
                             // that the symbol is linear wrt dx. I'm not actually trying to get the
                             // derivative
-                            var a = decomp[0];
-                            var x = decomp[1];
+                            let a = decomp[0];
+                            let x = decomp[1];
                             const { fname } = symbol;
                             // Log is a special case that can be handled with integration by parts
                             if (fname === LOG || fname === ASIN || fname === ACOS || (fname === ATAN && x.isLinear())) {
                                 /* Integration by parts */
-                                var p = symbol.power.toString();
+                                let p = symbol.power.toString();
                                 if (isInt(p)) {
                                     depth -= p;
                                 } // It needs more room to find the integral
@@ -1369,16 +1381,16 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                     retval = _.multiply(_.parse(m), __.integration.by_parts(symbol, dx, depth, opt));
                                 } else {
                                     // Integral u du
-                                    var u = core.Utils.getU(symbol);
-                                    var f = _.pow(_.parse(LOG + inBrackets(u)), new NerdamerSymbol(p));
-                                    var du = __.diff(arg, dx);
+                                    let u = core.Utils.getU(symbol);
+                                    let f = _.pow(_.parse(LOG + inBrackets(u)), new NerdamerSymbol(p));
+                                    let du = __.diff(arg, dx);
                                     const u_du = _.multiply(f, du);
-                                    var integral = __.integrate(u_du, u, depth, opt);
+                                    let integral = __.integrate(u_du, u, depth, opt);
                                     retval = _.multiply(_.parse(m), integral.sub(u, arg));
                                 }
                             } else if (fname === TAN && symbol.power.lessThan(0)) {
                                 // Convert to cotangent
-                                var sym = symbol.clone();
+                                let sym = symbol.clone();
                                 sym.power.negate();
                                 sym.fname = COT;
                                 return _.multiply(_.parse(m), __.integrate(sym, dx, depth));
@@ -1388,15 +1400,15 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                     // first handle the special cases
                                     if (fname === ABS) {
                                         // REVISIT **TODO**
-                                        var x = _.divide(arg.clone(), a.clone());
-                                        if (x.group === S && !x.power.lessThan(0)) {
-                                            if (core.Utils.even(x.power)) {
+                                        const absX = _.divide(arg.clone(), a.clone());
+                                        if (absX.group === S && !absX.power.lessThan(0)) {
+                                            if (core.Utils.even(absX.power)) {
                                                 retval = __.integrate(arg, dx, depth);
                                             } else {
-                                                const integrated = __.integrate(x, dx, depth);
+                                                const integrated = __.integrate(absX, dx, depth);
                                                 integrated.power = integrated.power.subtract(new Frac(1));
                                                 retval = _.multiply(
-                                                    _.multiply(_.symfunction(ABS, [x.toLinear()]), integrated),
+                                                    _.multiply(_.symfunction(ABS, [absX.toLinear()]), integrated),
                                                     a
                                                 );
                                             }
@@ -1478,50 +1490,53 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                             case EXP:
                                                 retval = __.integrate(_.parse(format('e^({0})', arg)), dx, depth);
                                                 break;
-                                            case 'S':
-                                                var arg = symbol.args[0].clone();
-                                                var dc = __.integration.decompose_arg(arg, dx);
-                                                var x_ = dc[1];
-                                                var a_ = dc[0];
-                                                var b_ = dc[3];
+                                            case 'S': {
+                                                const sArg = symbol.args[0].clone();
+                                                const sDc = __.integration.decompose_arg(sArg, dx);
+                                                const _sX_ = sDc[1]; // unused, x is used in format string
+                                                const sA_ = sDc[0];
+                                                const sB_ = sDc[3];
                                                 retval = _.parse(
                                                     format(
                                                         '(cos((1/2)*pi*(({1})+({0})*({2}))^2)+pi*(({1})+({0})*({2}))*S(({1})+({0})*({2})))/(({0})*pi)',
-                                                        a_,
-                                                        b_,
+                                                        sA_,
+                                                        sB_,
                                                         x
                                                     )
                                                 );
                                                 break;
-                                            case 'C':
-                                                var arg = symbol.args[0].clone();
-                                                var dc = __.integration.decompose_arg(arg, dx);
-                                                var x_ = dc[1];
-                                                var a_ = dc[0];
-                                                var b_ = dc[3];
+                                            }
+                                            case 'C': {
+                                                const cArg = symbol.args[0].clone();
+                                                const cDc = __.integration.decompose_arg(cArg, dx);
+                                                const cX_ = cDc[1];
+                                                const cA_ = cDc[0];
+                                                const cB_ = cDc[3];
                                                 retval = _.parse(
                                                     format(
                                                         '(pi*(({1})+({0})*({2}))*C(({1})+({0})*({2}))-sin((1/2)*pi*(({1})+({0})*({2}))^2))/(({0})*pi)',
-                                                        a_,
-                                                        b_,
-                                                        x_
+                                                        cA_,
+                                                        cB_,
+                                                        cX_
                                                     )
                                                 );
                                                 break;
-                                            case 'erf':
-                                                var arg = symbol.args[0].clone();
-                                                var dc = __.integration.decompose_arg(arg, dx);
-                                                var x_ = dc[1];
-                                                var a_ = dc[0];
+                                            }
+                                            case 'erf': {
+                                                const erfArg = symbol.args[0].clone();
+                                                const erfDc = __.integration.decompose_arg(erfArg, dx);
+                                                const erfX_ = erfDc[1];
+                                                const erfA_ = erfDc[0];
                                                 retval = _.parse(
                                                     format(
                                                         'e^(-(({2}))^2)/(({0})*sqrt(pi))+(1/({0})+({1}))*erf(({2}))',
-                                                        a_,
-                                                        x_,
-                                                        arg
+                                                        erfA_,
+                                                        erfX_,
+                                                        erfArg
                                                     )
                                                 );
                                                 break;
+                                            }
                                             case 'sign':
                                                 retval = _.multiply(symbol.clone(), arg.clone());
                                                 break;
@@ -1533,22 +1548,22 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                     }
                                 } else if (x.isLinear()) {
                                     if (fname === COS || fname === SIN) {
-                                        var p = Number(symbol.power);
+                                        let p = Number(symbol.power);
                                         // Check to see if it's negative and then just transform it to sec or csc
                                         if (p < 0) {
                                             symbol.fname = fname === SIN ? CSC : SEC;
                                             symbol.invert().updateHash();
                                             retval = __.integrate(symbol, dx, depth);
                                         } else {
-                                            var arg = symbol.args[0];
+                                            let _innerArg = symbol.args[0];
                                             const rd = symbol.clone(); // Cos^(n-1)
                                             const rd2 = symbol.clone(); // Cos^(n-2)
-                                            var q = new NerdamerSymbol((p - 1) / p); //
+                                            let q = new NerdamerSymbol((p - 1) / p); //
                                             const na = _.multiply(a.clone(), new NerdamerSymbol(p)).invert(); // 1/(n*a)
                                             rd.power = rd.power.subtract(new Frac(1));
                                             rd2.power = rd2.power.subtract(new Frac(2));
 
-                                            var t = _.symfunction(fname === COS ? SIN : COS, [arg.clone()]);
+                                            let t = _.symfunction(fname === COS ? SIN : COS, [arg.clone()]);
                                             if (fname === SIN) {
                                                 t.negate();
                                             }
@@ -1562,9 +1577,9 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                     else if (fname === TAN || fname === COT) {
                                         // http://www.sosmath.com/calculus/integration/moretrigpower/moretrigpower.html
                                         if (symbol.args[0].isLinear(dx)) {
-                                            var n = symbol.power.subtract(new Frac(1)).toString();
-                                            var r = symbol.clone().toUnitMultiplier();
-                                            var w = _.parse(
+                                            let n = symbol.power.subtract(new Frac(1)).toString();
+                                            let r = symbol.clone().toUnitMultiplier();
+                                            let w = _.parse(
                                                 format(
                                                     `${fname === COT ? '-' : ''}1/({2}*{0})*{3}({1})^({0})`,
                                                     n,
@@ -1585,8 +1600,8 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                         // http://www.sosmath.com/calculus/integration/moretrigpower/moretrigpower.html
                                         const n1 = symbol.power.subtract(new Frac(1)).toString();
                                         const n2 = symbol.power.subtract(new Frac(2)).toString();
-                                        var f2 = fname === SEC ? TAN : COT;
-                                        var r = symbol.clone().toUnitMultiplier();
+                                        let f2 = fname === SEC ? TAN : COT;
+                                        let r = symbol.clone().toUnitMultiplier();
                                         const parse_str = format(
                                             `${fname === CSC ? '-' : ''}1/({0}*{1})*{4}({3})^({2})*{5}({3})`,
                                             a,
@@ -1596,7 +1611,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                             fname,
                                             f2
                                         );
-                                        var w = _.parse(parse_str);
+                                        let w = _.parse(parse_str);
                                         r.power = r.power.subtract(new Frac(2));
                                         if (r.power.equals(0)) {
                                             r = _.parse(r);
@@ -1676,7 +1691,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                         }
                                         return unwrapped;
                                     });
-                                var l = symbols.length;
+                                let l = symbols.length;
                                 if (symbol.power < 0) {
                                     if (l === 2) {
                                         return __.integrate(_.expand(symbol), dx, depth, opt);
@@ -1721,8 +1736,9 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                         __.integration.stop();
                                                     }
 
-                                                    var decomp = __.integration.decompose_arg(arg1, dx);
-                                                    ((x = decomp[1]), (a = decomp[0]));
+                                                    let decomp = __.integration.decompose_arg(arg1, dx);
+                                                    let x = decomp[1];
+                                                    let a = decomp[0];
                                                     if (!x.isLinear()) // Again... linear arguments only wrt x
                                                     {
                                                         __.integration.stop();
@@ -1751,8 +1767,8 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                                 sym2.power.lessThan(0)
                                                             ) {
                                                                 // Transform sin^(2*n) to (1-cos^2)^n
-                                                                var n = Number(sym1.power) / 2;
-                                                                var new_sym = _.parse(
+                                                                let n = Number(sym1.power) / 2;
+                                                                let new_sym = _.parse(
                                                                     format('(1-cos({0})^2)^({1})', sym1.args[0], n)
                                                                 );
                                                                 retval = __.integrate(
@@ -1767,8 +1783,8 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                                 sym2.power.lessThan(0)
                                                             ) {
                                                                 // Transform cos^(2*n) to (1-sin^2)^n
-                                                                var n = Number(sym1.power) / 2;
-                                                                var new_sym = _.parse(
+                                                                let n = Number(sym1.power) / 2;
+                                                                let new_sym = _.parse(
                                                                     format('(1-sin({0})^2)^({1})', sym1.args[0], n)
                                                                 );
                                                                 retval = __.integrate(
@@ -1782,9 +1798,9 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                                 const p2_even = core.Utils.even(sym2.power);
                                                                 retval = new NerdamerSymbol(0);
                                                                 if (!p1_even || !p2_even) {
-                                                                    var u;
-                                                                    var r;
-                                                                    var trans;
+                                                                    let u;
+                                                                    let r;
+                                                                    let trans;
                                                                     // Since cos(x) is odd it carries du. If sin was odd then it would be the other way around
                                                                     // know that p1 satifies the odd portion in this case. If p2 did than it would contain r
                                                                     if (!p1_even) {
@@ -1797,17 +1813,17 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                                     }
                                                                     // Get the sign of du. In this case r carries du as stated before and D(cos(x),x) = -sin(x)
                                                                     const sign = u.fname === COS ? -1 : 1;
-                                                                    var n = r.power;
+                                                                    let n = r.power;
                                                                     // Remove the du e.g. cos(x)^2*sin(x)^3 dx -> cos(x)^2*sin(x)^2*sin(x). We're left with two
                                                                     // even powers afterwards which can be transformed
                                                                     const k = (n - 1) / 2;
                                                                     // Make the transformation cos(x)^2 = 1 - sin(x)^2
-                                                                    var trans = _.parse(
+                                                                    trans = _.parse(
                                                                         `(1-${u.fname}${core.Utils.inBrackets(
                                                                             arg1
                                                                         )}^2)^${k}`
                                                                     );
-                                                                    var sym = _.expand(
+                                                                    let sym = _.expand(
                                                                         _.multiply(
                                                                             new NerdamerSymbol(sign),
                                                                             _.multiply(u.clone(), trans)
@@ -1840,10 +1856,10 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                                     };
                                                                     // They're both even so transform both using double angle identities and we'll just
                                                                     // be able to integrate by the sum of integrals
-                                                                    var a = double_angle(sym1);
-                                                                    var b = double_angle(sym2);
-                                                                    var t = _.multiply(a, b);
-                                                                    var sym = _.expand(t);
+                                                                    let daA = double_angle(sym1);
+                                                                    let daB = double_angle(sym2);
+                                                                    let t = _.multiply(daA, daB);
+                                                                    let sym = _.expand(t);
                                                                     sym.each(elem => {
                                                                         retval = _.add(
                                                                             retval,
@@ -1872,9 +1888,9 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                                     a
                                                                 );
                                                             } else if (even(sym1.power)) {
-                                                                var p = Number(sym1.power) / 2;
+                                                                let p = Number(sym1.power) / 2;
                                                                 // Transform tangent
-                                                                var t = _.parse(
+                                                                let t = _.parse(
                                                                     format('(sec({0})^2-1)^({1})', sym1.args[0], p)
                                                                 );
                                                                 retval = __.integrate(
@@ -1900,10 +1916,10 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                             (fn2 === COS || fn2 === SIN) &&
                                                             sym2.power.lessThan(0)
                                                         ) {
-                                                            var t = _.multiply(sym1.fnTransform(), sym2);
+                                                            let t = _.multiply(sym1.fnTransform(), sym2);
                                                             retval = __.integrate(_.expand(t), dx, depth);
                                                         } else {
-                                                            var t = _.multiply(sym1.fnTransform(), sym2.fnTransform());
+                                                            let t = _.multiply(sym1.fnTransform(), sym2.fnTransform());
                                                             retval = __.integrate(_.expand(t), dx, depth);
                                                         }
                                                     }
@@ -1916,8 +1932,8 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                             // If in the form cos(a*x)*sin(b*x)
                                                             if (sym1.args[0].isLinear() && sym2.args[0].isLinear()) {
                                                                 // Use identity (sin(b*x+a*x)+sin(b*x-a*x))/2
-                                                                var ax;
-                                                                var bx;
+                                                                let ax;
+                                                                let bx;
                                                                 if (fn2 === SIN) {
                                                                     ax = sym1.args[0];
                                                                     bx = sym2.args[0];
@@ -1927,7 +1943,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                                 }
 
                                                                 // Make the transformation
-                                                                f = _.parse(
+                                                                let f = _.parse(
                                                                     format(
                                                                         '(sin(({1})+({0}))+sin(({1})-({0})))/2',
                                                                         ax.toString(),
@@ -1938,16 +1954,16 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                                 // Integrate it
                                                                 retval = __.integrate(f, dx, depth);
                                                             } else {
-                                                                var transformed = trigTransform(symbols);
+                                                                let transformed = trigTransform(symbols);
                                                                 retval = __.integrate(_.expand(transformed), dx, depth);
                                                             }
                                                         } else {
-                                                            var transformed = new NerdamerSymbol(1);
+                                                            let transformed = new NerdamerSymbol(1);
                                                             symbols.map(s => {
                                                                 const transformed_s = s.fnTransform();
                                                                 transformed = _.multiply(transformed, transformed_s);
                                                             });
-                                                            var t = _.expand(transformed);
+                                                            let t = _.expand(transformed);
 
                                                             retval = __.integrate(t, dx, depth);
 
@@ -2014,10 +2030,10 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                     retval = __.integration.poly_integrate(sym1, dx, depth);
                                                 } else if (sym1.fname === 'erf') {
                                                     if (sym2.power.equals(1)) {
-                                                        var dc = __.integration.decompose_arg(sym1.args[0], dx);
-                                                        var a_ = dc[0];
-                                                        var x_ = dc[1];
-                                                        var arg = sym1.args[0].toString();
+                                                        let dc = __.integration.decompose_arg(sym1.args[0], dx);
+                                                        let a_ = dc[0];
+                                                        let x_ = dc[1];
+                                                        let arg = sym1.args[0].toString();
                                                         retval = _.parse(
                                                             format(
                                                                 '(e^(-(({2}))^2)*(sqrt(pi)*e^((({2}))^2)*(2*({0})^2*({1})^2-3)*erf(({2}))+2*({0})*({1})-2))/(4*sqrt(pi)*({0})^2)',
@@ -2032,7 +2048,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                     retval = __.integration.by_parts(symbol, dx, depth, opt);
                                                 }
                                             } else if (g1 === EX && g2 === S) {
-                                                var x =
+                                                let x =
                                                     fn1 === LOG
                                                         ? __.integration.decompose_arg(sym1.args[0], dx)[1]
                                                         : null;
@@ -2058,7 +2074,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                     const factor = sym2.clone();
                                                     factor.power = new Frac(pc);
                                                     sym2 = _.divide(sym2, factor.clone()); // Reduce the denominator
-                                                    var t = new NerdamerSymbol(0);
+                                                    let t = new NerdamerSymbol(0);
                                                     sym1.each(elem => {
                                                         t = _.add(t, _.divide(elem.clone(), factor.clone()));
                                                     });
@@ -2069,22 +2085,22 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                 }
                                                 retval = __.integration.partial_fraction(symbol, dx, depth);
                                             } else if (g1 === CP && g2 === S) {
-                                                var f = sym1.clone().toLinear();
+                                                let f = sym1.clone().toLinear();
                                                 const f_is_linear = core.Algebra.degree(f, _.parse(dx)).equals(1);
                                                 // Handle cases x^(2*n)/sqrt(1-x^2)
                                                 if (sym1.power.equals(-1 / 2)) {
-                                                    var decomp = __.integration.decompose_arg(
+                                                    let decomp = __.integration.decompose_arg(
                                                         sym1.clone().toLinear(),
                                                         dx
                                                     );
-                                                    var a = decomp[0].negate();
-                                                    var x = decomp[1];
-                                                    var b = decomp[3];
-                                                    var p1 = Number(sym1.power);
-                                                    var p2 = Number(sym2.power);
+                                                    let a = decomp[0].negate();
+                                                    let x = decomp[1];
+                                                    let b = decomp[3];
+                                                    let p1 = Number(sym1.power);
+                                                    let p2 = Number(sym2.power);
                                                     if (isInt(p2) && core.Utils.even(p2) && x.power.equals(2)) {
                                                         // If the substitution
-                                                        var c = _.divide(
+                                                        let c = _.divide(
                                                             _.multiply(
                                                                 _.pow(b.clone(), new NerdamerSymbol(2)),
                                                                 _.symfunction(SQRT, [_.divide(b.clone(), a.clone())])
@@ -2094,7 +2110,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                         c = _.multiply(c, _.symfunction(SQRT, [b]).invert());
                                                         const dummy = _.parse('sin(u)');
                                                         dummy.power = dummy.power.multiply(sym2.power);
-                                                        var integral = __.integrate(dummy, 'u', depth);
+                                                        let integral = __.integrate(dummy, 'u', depth);
                                                         const bksub = _.parse(`${ASIN}(${SQRT}(${a}/${b})*${dx})`);
                                                         retval = _.multiply(
                                                             c,
@@ -2173,19 +2189,19 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                 } else if (sym1.power.lessThan(-2)) {
                                                     retval = __.integration.by_parts(symbol, dx, depth, opt);
                                                 } else if (sym1.power.lessThan(0) && sym2.power.greaterThan(1)) {
-                                                    var decomp = __.integration.decompose_arg(
+                                                    let decomp = __.integration.decompose_arg(
                                                         sym1.clone().toLinear(),
                                                         dx
                                                     );
-                                                    var a = decomp[0].negate();
-                                                    var x = decomp[1];
-                                                    var b = decomp[3];
-                                                    var fn = sym1.clone().toLinear();
+                                                    let _a = decomp[0].negate();
+                                                    let x = decomp[1];
+                                                    let b = decomp[3];
+                                                    let fn = sym1.clone().toLinear();
 
                                                     if (x.group !== PL && x.isLinear()) {
-                                                        var p = Number(sym2.power);
-                                                        var du = '_u_';
-                                                        var u = new NerdamerSymbol(du);
+                                                        let p = Number(sym2.power);
+                                                        let du = '_u_';
+                                                        let u = new NerdamerSymbol(du);
                                                         // Pull the integral with the subsitution
                                                         const U = _.expand(
                                                             _.divide(
@@ -2233,15 +2249,15 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                     // Handle cases such as (1-x^2)^(n/2)*x^(m) where n is odd ___ cracking knuckles... This can get a little hairy
                                                     if (sym1.power.den.equals(2)) {
                                                         // Assume the function is in the form (a^2-b*x^n)^(m/2)
-                                                        var dc = __.integration.decompose_arg(
+                                                        let dc = __.integration.decompose_arg(
                                                             sym1.clone().toLinear(),
                                                             dx
                                                         );
                                                         // Using the above definition
-                                                        var a = dc[3];
-                                                        var x = dc[1];
-                                                        var b = dc[0];
-                                                        var bx = dc[2];
+                                                        let a = dc[3];
+                                                        let x = dc[1];
+                                                        let b = dc[0];
+                                                        let _bx = dc[2];
                                                         if (x.power.equals(2) && b.lessThan(0)) {
                                                             // If n is even && b is negative
                                                             // make a equal 1 so we can do a trig sub
@@ -2253,12 +2269,12 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                                     _.pow(a, new NerdamerSymbol(2))
                                                                 );
                                                             }
-                                                            var u = dx;
-                                                            var c = _.divide(
+                                                            let u = dx;
+                                                            let c = _.divide(
                                                                 _.pow(b.clone().negate(), new NerdamerSymbol(1 / 2)),
                                                                 _.pow(a, new NerdamerSymbol(1 / 2))
                                                             );
-                                                            var du = _.symfunction(COS, [new NerdamerSymbol(u)]);
+                                                            let du = _.symfunction(COS, [new NerdamerSymbol(u)]);
                                                             const cosn = _.pow(
                                                                 _.symfunction(COS, [new NerdamerSymbol(u)]),
                                                                 new NerdamerSymbol(sym1.power.num)
@@ -2268,7 +2284,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                                 new NerdamerSymbol(sym2.power)
                                                             );
                                                             const val = _.multiply(_.multiply(cosn, du), X);
-                                                            var integral = __.integrate(val, u, depth);
+                                                            let integral = __.integrate(val, u, depth);
                                                             // But remember that u = asin(sqrt(b)*a*x)
                                                             retval = integral.sub(
                                                                 u,
@@ -2293,16 +2309,16 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                 retval = new NerdamerSymbol(0);
                                                 if (sym1.power.greaterThan(0) && sym2.power.greaterThan(0)) {
                                                     // Combine and pull the integral of each
-                                                    var sym = _.expand(symbol);
+                                                    let sym = _.expand(symbol);
                                                     sym.each(elem => {
                                                         retval = _.add(retval, __.integrate(elem, dx, depth));
                                                     }, true);
                                                 } else {
-                                                    var p1 = Number(sym1.power);
-                                                    var p2 = Number(sym2.power);
+                                                    let p1 = Number(sym1.power);
+                                                    let p2 = Number(sym2.power);
                                                     if (p1 < 0 && p2 > 0) {
                                                         // Swap
-                                                        var t = sym1;
+                                                        let t = sym1;
                                                         sym1 = sym2;
                                                         sym2 = t;
                                                     }
@@ -2330,14 +2346,14 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                                 retval = __.integrate(_.expand(_.multiply(sym1, sym2)), dx, depth);
                                             } else if ((g1 === FN && g2 === CP) || (g2 === FN && g1 === CP)) {
                                                 if (g2 === FN && g1 === CP) {
-                                                    var t = sym1;
+                                                    let t = sym1;
                                                     sym1 = sym2;
                                                     sym2 = t; // Swap
                                                 }
-                                                var du;
+                                                let du;
                                                 let sym2_clone;
-                                                var p;
-                                                var q;
+                                                let p;
+                                                let q;
                                                 let sa;
                                                 let sb;
                                                 du = NerdamerSymbol.unwrapSQRT(__.diff(sym1.clone(), dx), true);
@@ -2394,7 +2410,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                             if (first.power.greaterThan(1)) {
                                                 first = _.expand(first);
                                             }
-                                            var r = _.multiply(symbols[1], symbols[2]);
+                                            let r = _.multiply(symbols[1], symbols[2]);
                                             retval = new NerdamerSymbol(0);
                                             first.each(elem => {
                                                 const prod = _.multiply(elem, r.clone());
@@ -2406,15 +2422,15 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                             retval = __.integration.by_parts(symbol, dx, depth, opt);
                                         }
                                     } else if (all_functions(symbols)) {
-                                        var t = new NerdamerSymbol(1);
-                                        for (var i = 0, l = symbols.length; i < l; i++) {
+                                        let t = new NerdamerSymbol(1);
+                                        for (let i = 0, len = symbols.length; i < len; i++) {
                                             t = _.multiply(t, symbols[i].fnTransform());
                                         }
                                         t = _.expand(t);
                                         retval = __.integrate(t, dx, depth);
                                     } else {
                                         // One more go
-                                        var transformed = trigTransform(symbols);
+                                        let transformed = trigTransform(symbols);
                                         retval = __.integrate(_.expand(transformed), dx, depth);
                                     }
                                 }
@@ -2547,14 +2563,17 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
 
                 let retval;
                 let count = 0;
+                let lim1;
+                let lim2;
+                let indeterminate;
                 // Let fOrig = f.clone();
                 // let gOrig = g.clone();
                 do {
-                    var lim1 = evaluate(__.Limit.limit(f.clone(), x, lim, depth));
-                    var lim2 = evaluate(__.Limit.limit(g.clone(), x, lim, depth));
+                    lim1 = evaluate(__.Limit.limit(f.clone(), x, lim, depth));
+                    lim2 = evaluate(__.Limit.limit(g.clone(), x, lim, depth));
 
                     // If it's in indeterminate form apply L'Hopital's rule
-                    var indeterminate = (isInfinity(lim1) && isInfinity(lim2)) || (equals(lim1, 0) && equals(lim2, 0));
+                    indeterminate = (isInfinity(lim1) && isInfinity(lim2)) || (equals(lim1, 0) && equals(lim2, 0));
                     // Pull the derivatives
                     if (indeterminate) {
                         const ft = __.diff(f.clone(), x);
@@ -2563,7 +2582,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                         // Expanding here causes issue #12.
                         // there is something fishy with expand that we will
                         // have to find some day.
-                        // var t_symbol = _.expand(_.divide(ft, gt));
+                        // let t_symbol = _.expand(_.divide(ft, gt));
                         const t_symbol = _.divide(ft, gt);
                         f = t_symbol.getNum();
                         g = t_symbol.getDenom();
@@ -2655,9 +2674,9 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                 const m = _.parse(symbol.multiplier);
                 // Strip the multiplier
                 symbol.toUnitMultiplier();
+                // https://en.wikipedia.org/wiki/List_of_limits
+                let retval;
                 try {
-                    // https://en.wikipedia.org/wiki/List_of_limits
-                    var retval;
                     // We try the simplest option first where c is some limit
                     // lim a as x->c = a where c
                     if (symbol.isConstant(true)) {
@@ -2691,7 +2710,7 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                 if (symbol.group === EX) {
                                     // https://en.wikipedia.org/wiki/List_of_limits
                                     // Speed boost for exponentials by detecting patterns
-                                    var f = symbol.clone().toLinear();
+                                    let f = symbol.clone().toLinear();
                                     const _p = symbol.power.clone();
                                     const _num = f.getNum();
                                     const _den = f.getDenom();
@@ -2730,9 +2749,10 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                         return _.multiply(m, retval);
                                     }
                                     // If the argument is constant then we're done
+                                    let trial;
                                     if (arg.isConstant(true)) {
                                         // Double check that it evaluates
-                                        var trial = _.symfunction(symbol.fname, [arg]);
+                                        trial = _.symfunction(symbol.fname, [arg]);
                                         // Trial evaluation
                                         try {
                                             evaluate(trial);
@@ -2803,9 +2823,9 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                     // Loop through all the symbols
                                     // thus => lim f*g*h = lim (f*g)*h = (lim f*g)*(lim h)
                                     // symbols of lower groups are generally easier to differentiatee so get them to the right by first sorting
-                                    var symbols = symbol.collectSymbols().sort((a, b) => a.group - b.group);
+                                    let symbols = symbol.collectSymbols().sort((a, b) => a.group - b.group);
 
-                                    var f = symbols.pop();
+                                    let f = symbols.pop();
                                     // Calculate the first limit so we can keep going down the list
                                     lim1 = evaluate(__.Limit.limit(f, x, lim, depth));
 
@@ -2853,13 +2873,13 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                     // Apply lim f+g = (lim f)+(lim g)
                                     retval = new NerdamerSymbol(0);
 
-                                    var symbols = symbol.collectSymbols().sort((a, b) => b.group - a.group);
+                                    let symbols = symbol.collectSymbols().sort((a, b) => b.group - a.group);
 
                                     const _symbols = [];
                                     // Analyze the functions first
                                     let fns = new NerdamerSymbol(0);
-                                    for (var i = 0, l = symbols.length; i < l; i++) {
-                                        var sym = symbols[i].clone();
+                                    for (let i = 0, l = symbols.length; i < l; i++) {
+                                        let sym = symbols[i].clone();
                                         if (sym.group === FN || (sym.group === CB && sym.hasFunc())) {
                                             fns = _.add(fns, sym);
                                         } else {
@@ -2873,8 +2893,8 @@ if (typeof module !== 'undefined' && typeof nerdamer === 'undefined') {
                                         symbols = _symbols;
                                     }
 
-                                    for (var i = 0, l = symbols.length; i < l; i++) {
-                                        var sym = symbols[i];
+                                    for (let i = 0, l = symbols.length; i < l; i++) {
+                                        let sym = symbols[i];
                                         // If the addition of the limits is undefined then the limit diverges so return -infinity to infinity
                                         try {
                                             _lim = __.Limit.limit(sym, x, lim, depth);
