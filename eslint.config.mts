@@ -5,7 +5,11 @@ import jsdoc from 'eslint-plugin-jsdoc';
 import prettierPlugin from 'eslint-plugin-prettier';
 import { defineConfig } from 'eslint/config';
 import globals from 'globals';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import tseslint from 'typescript-eslint';
+
+const currentDir = dirname(fileURLToPath(import.meta.url));
 
 // =============================================================================
 // Shared Constants
@@ -510,7 +514,7 @@ export default defineConfig([
         languageOptions: {
             parserOptions: {
                 project: './tsconfig.json',
-                tsconfigRootDir: import.meta.dirname,
+                tsconfigRootDir: currentDir,
             },
         },
         rules: typescriptRuleOverrides,
@@ -556,10 +560,6 @@ export default defineConfig([
         name: 'legacy/core',
         files: LEGACY_CORE_FILES,
         rules: {
-            // These files use var extensively and rely on hoisting behavior
-            // Converting to let/const would require careful refactoring to avoid breaking changes
-            'no-var': 'off',
-            'prefer-const': 'off',
             // Variables are often used before defined due to var hoisting patterns
             'no-use-before-define': 'off',
             // Many intentional redeclarations (module, Function, loop variables, etc.)

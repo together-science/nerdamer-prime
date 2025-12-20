@@ -10,6 +10,7 @@
 /* global module */
 
 if (typeof module !== 'undefined') {
+    // eslint-disable-next-line no-var
     var nerdamer = require('./nerdamer.core.js');
     require('./Calculus');
     require('./Algebra');
@@ -49,7 +50,7 @@ if (typeof module !== 'undefined') {
         return found;
     };
 
-    let __ = (core.Extra = {
+    const __ = (core.Extra = {
         version: '1.4.2',
         // http://integral-table.com/downloads/LaplaceTable.pdf
         // Laplace assumes all coefficients to be positive
@@ -80,7 +81,7 @@ if (typeof module !== 'undefined') {
                         retval = _.add(retval, __.LaPlace.transform(x, t, s));
                     }, true);
                 } else if (symbol.isE() && (symbol.power.group === S || symbol.power.group === CB)) {
-                    let a = symbol.power.stripVar(t);
+                    const a = symbol.power.stripVar(t);
                     retval = _.parse(format('1/(({1})-({0}))', a, s));
                 } else {
                     const fns = ['sin', 'cos', 'sinh', 'cosh'];
@@ -90,7 +91,7 @@ if (typeof module !== 'undefined') {
                         fns.indexOf(symbol.fname) !== -1 &&
                         (symbol.args[0].group === S || symbol.args[0].group === CB)
                     ) {
-                        let a = symbol.args[0].stripVar(t);
+                        const a = symbol.args[0].stripVar(t);
 
                         switch (symbol.fname) {
                             case 'sin':
@@ -166,14 +167,8 @@ if (typeof module !== 'undefined') {
                                 // Put back a
                                 retval = _.divide(retval, f.a);
                             };
-                            let num;
-                            let den;
-                            let s;
-                            let f;
                             let p;
-                            let m;
                             let den_p;
-                            let _fe;
                             let a;
                             let b;
                             let d;
@@ -181,11 +176,11 @@ if (typeof module !== 'undefined') {
                             let f2;
                             let fact;
                             // Remove the multiplier
-                            m = symbol.multiplier.clone();
+                            const m = symbol.multiplier.clone();
                             symbol.toUnitMultiplier();
                             // Get the numerator and denominator
-                            num = symbol.getNum();
-                            den = symbol.getDenom().toUnitMultiplier();
+                            let num = symbol.getNum();
+                            const den = symbol.getDenom().toUnitMultiplier();
 
                             // TODO: Make it so factor doesn't destroy pi
                             // num = core.Algebra.Factor.factor(symbol.getNum());
@@ -199,11 +194,11 @@ if (typeof module !== 'undefined') {
                             }
 
                             // Convert s to a string
-                            s = s_.toString();
+                            const s = s_.toString();
                             // Split up the denominator if in the form ax+b
-                            f = core.Utils.decompose_fn(den, s, true);
+                            const f = core.Utils.decompose_fn(den, s, true);
                             // Move the multiplier to the numerator
-                            _fe = core.Utils.decompose_fn(_.expand(num.clone()), s, true);
+                            const _fe = core.Utils.decompose_fn(_.expand(num.clone()), s, true);
                             num.multiplier = num.multiplier.multiply(m);
                             // Store the parts in variables for easy recognition
                             // check if in the form t^n where n = integer
@@ -279,18 +274,12 @@ if (typeof module !== 'undefined') {
 
                                             // We need more information about the denominator to decide
                                             f2 = core.Utils.decompose_fn(num, s, true);
-                                            let fn1;
-                                            let fn2;
-                                            let a_has_sin;
-                                            let b_has_cos;
-                                            let a_has_cos;
-                                            let b_has_sin;
-                                            fn1 = f2.a;
-                                            fn2 = f2.b;
-                                            a_has_sin = fn1.containsFunction('sin');
-                                            a_has_cos = fn1.containsFunction('cos');
-                                            b_has_cos = fn2.containsFunction('cos');
-                                            b_has_sin = fn2.containsFunction('sin');
+                                            const fn1 = f2.a;
+                                            const fn2 = f2.b;
+                                            const a_has_sin = fn1.containsFunction('sin');
+                                            const a_has_cos = fn1.containsFunction('cos');
+                                            const b_has_cos = fn2.containsFunction('cos');
+                                            const b_has_sin = fn2.containsFunction('sin');
                                             if (
                                                 f2.x.value === s &&
                                                 f2.x.isLinear() &&
@@ -306,18 +295,14 @@ if (typeof module !== 'undefined') {
                                                     )
                                                 );
                                             } else if (a_has_sin && b_has_cos) {
-                                                let sin;
-                                                let cos;
-                                                sin = fn1.findFunction('sin');
-                                                cos = fn2.findFunction('cos');
+                                                const sin = fn1.findFunction('sin');
+                                                const cos = fn2.findFunction('cos');
                                                 // Who has the s?
                                                 if (sin.args[0].equals(cos.args[0]) && !sin.args[0].contains(s)) {
-                                                    let c;
-                                                    let e;
                                                     b = _.divide(fn2, cos.toUnitMultiplier()).toString();
-                                                    c = sin.args[0].toString();
+                                                    const c = sin.args[0].toString();
                                                     d = f.b;
-                                                    e = _.divide(fn1, sin.toUnitMultiplier());
+                                                    const e = _.divide(fn1, sin.toUnitMultiplier());
                                                     exp =
                                                         '(({1})*({2})*cos({3})*sin(sqrt({4})*({0})))/sqrt({4})+({1})*sin({3})*({5})*cos(sqrt({4})*({0}))';
                                                     retval = _.parse(format(exp, t, a, b, c, d, e));
@@ -357,10 +342,8 @@ if (typeof module !== 'undefined') {
                                             })
                                             // Then sort them by power hightest to lowest
                                             .sort((x1, x2) => {
-                                                let p1;
-                                                let p2;
-                                                p1 = x1.x.value !== s ? 0 : x1.x.power;
-                                                p2 = x2.x.value !== s ? 0 : x2.x.power;
+                                                const p1 = x1.x.value !== s ? 0 : x1.x.power;
+                                                const p2 = x2.x.value !== s ? 0 : x2.x.power;
                                                 return p2 - p1;
                                             });
                                         a = new NerdamerSymbol(-1);
