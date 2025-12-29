@@ -14,7 +14,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     require('./Algebra.js');
 }
 
-(function () {
+(function initCalculusModule() {
     const core = nerdamer.getCore();
     const _ = core.PARSER;
     const { Frac } = core;
@@ -68,11 +68,11 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     NoIntegralFound.prototype = new Error();
 
     // Preparations
-    NerdamerSymbol.prototype.hasIntegral = function () {
+    NerdamerSymbol.prototype.hasIntegral = function hasIntegral() {
         return this.containsFunction('integrate');
     };
     // Transforms a function
-    NerdamerSymbol.prototype.fnTransform = function () {
+    NerdamerSymbol.prototype.fnTransform = function fnTransform() {
         if (this.group !== FN) {
             return this;
         }
@@ -170,7 +170,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         return _.multiply(retval, m);
     };
 
-    NerdamerSymbol.prototype.hasTrig = function () {
+    NerdamerSymbol.prototype.hasTrig = function hasTrig() {
         if (this.isConstant(true) || this.group === S) {
             return false;
         }
@@ -187,7 +187,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         return false;
     };
 
-    core.Expression.prototype.hasIntegral = function () {
+    core.Expression.prototype.hasIntegral = function hasIntegral() {
         return this.symbol.hasIntegral();
     };
     /**
@@ -195,7 +195,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
      *
      * @param {NerdamerSymbol} symbol
      */
-    core.Utils.toCommonDenominator = function (symbol) {
+    core.Utils.toCommonDenominator = function toCommonDenominator(symbol) {
         // Transform x/a+x -> (ax+x)/a
         if (symbol.isComposite() && symbol.isLinear()) {
             const m = new NerdamerSymbol(symbol.multiplier);
@@ -218,49 +218,49 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         return symbol;
     };
     // A function to check if a function name is an inverse trig function
-    core.Utils.in_inverse_trig = function (x) {
+    core.Utils.in_inverse_trig = function in_inverse_trig(x) {
         const inv_trig_fns = [ASIN, ACOS, ATAN, ACSC, ASEC, ACOT];
         return inv_trig_fns.indexOf(x) !== -1;
     };
     // A function to check if a function name is a trig function
-    core.Utils.in_trig = function (x) {
+    core.Utils.in_trig = function in_trig(x) {
         const trig_fns = [COS, SIN, TAN, SEC, CSC, COT];
         return trig_fns.indexOf(x) !== -1;
     };
 
-    core.Utils.in_htrig = function (x) {
+    core.Utils.in_htrig = function in_htrig(x) {
         const trig_fns = [SINH, COSH, TANH, ACSCH, ASECH, ACOTH];
         return trig_fns.indexOf(x) !== -1;
     };
 
     // Matrix functions
-    core.Matrix.jacobian = function (eqns, vars) {
-        const jacobian = new core.Matrix();
+    core.Matrix.jacobian = function jacobian(eqns, vars) {
+        const result = new core.Matrix();
         // Get the variables if not supplied
         vars ||= core.Utils.arrayGetVariables(eqns);
 
         vars.forEach((v, i) => {
             eqns.forEach((eq, j) => {
                 const e = core.Calculus.diff(eq.clone(), v);
-                jacobian.set(j, i, e);
+                result.set(j, i, e);
             });
         });
 
-        return jacobian;
+        return result;
     };
 
-    core.Matrix.prototype.max = function () {
-        let max = new NerdamerSymbol(0);
+    core.Matrix.prototype.max = function max() {
+        let maxValue = new NerdamerSymbol(0);
         this.each(x => {
             const e = x.abs();
-            if (e.gt(max)) {
-                max = e;
+            if (e.gt(maxValue)) {
+                maxValue = e;
             }
         });
-        return max;
+        return maxValue;
     };
 
-    core.Matrix.cMatrix = function (value, vars) {
+    core.Matrix.cMatrix = function cMatrix(value, vars) {
         const m = new core.Matrix();
         // Make an initial guess
         vars.forEach((v, i) => {
@@ -269,7 +269,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         return m;
     };
 
-    const all_functions = (core.Utils.all_functions = function (arr) {
+    const all_functions = (core.Utils.all_functions = function all_functions(arr) {
         for (let i = 0, l = arr.length; i < l; i++) {
             if (arr[i].group !== FN) {
                 return false;
@@ -277,12 +277,12 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         }
         return true;
     });
-    const cosAsinBtransform = (core.Utils.cosAsinBtranform = function (symbol1, symbol2) {
+    const cosAsinBtransform = (core.Utils.cosAsinBtranform = function cosAsinBtranform(symbol1, symbol2) {
         const a = symbol1.args[0];
         const b = symbol2.args[0];
         return _.parse(format('(sin(({0})+({1}))-sin(({0})-({1})))/2', a, b));
     });
-    const cosAsinAtransform = (core.Utils.cosAsinAtranform = function (symbol1, symbol2) {
+    const cosAsinAtransform = (core.Utils.cosAsinAtranform = function cosAsinAtranform(symbol1, symbol2) {
         // TODO: temporary fix for integrate(e^x*sin(x)*cos(x)^2).
         // we technically know how to do this transform but more is needed for correct output
         if (Number(symbol2.power) !== 1) {
@@ -291,12 +291,12 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         const a = symbol1.args[0];
         return _.parse(format('(sin(2*({0})))/2', a));
     });
-    const sinAsinBtransform = (core.Utils.cosAsinBtranform = function (symbol1, symbol2) {
+    const sinAsinBtransform = (core.Utils.cosAsinBtranform = function cosAsinBtranform(symbol1, symbol2) {
         const a = symbol1.args[0];
         const b = symbol2.args[0];
         return _.parse(format('(cos(({0})+({1}))-cos(({0})-({1})))/2', a, b));
     });
-    const trigTransform = (core.Utils.trigTransform = function (arr) {
+    const trigTransform = (core.Utils.trigTransform = function trigTransform(arr) {
         const map = {};
         let symbol;
         let t;

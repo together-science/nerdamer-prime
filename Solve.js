@@ -13,7 +13,7 @@ if (typeof module !== 'undefined') {
     require('./Algebra.js');
 }
 
-(function () {
+(function initSolveModule() {
     // Handle imports
     const core = nerdamer.getCore();
     const _ = core.PARSER;
@@ -79,11 +79,11 @@ if (typeof module !== 'undefined') {
     // The tolerance for the bisection method
     core.Settings.BI_SECTION_EPSILON = 1e-12;
 
-    core.NerdamerSymbol.prototype.hasTrig = function () {
+    core.NerdamerSymbol.prototype.hasTrig = function hasTrig() {
         return this.containsFunction(['cos', 'sin', 'tan', 'cot', 'csc', 'sec']);
     };
 
-    core.NerdamerSymbol.prototype.hasNegativeTerms = function () {
+    core.NerdamerSymbol.prototype.hasNegativeTerms = function hasNegativeTerms() {
         if (this.isComposite()) {
             for (const x in this.symbols) {
                 const sym = this.symbols[x];
@@ -214,14 +214,14 @@ if (typeof module !== 'undefined') {
         },
     };
     // Overwrite the equals function
-    _.equals = function (a, b) {
+    _.equals = function equals(a, b) {
         return new Equation(a, b);
     };
 
     // Extend simplify
-    (function () {
+    (function extendSimplifyForEquations() {
         const simplify = _.functions.simplify[0];
-        _.functions.simplify[0] = function (symbol) {
+        _.functions.simplify[0] = function simplifyWithEquationSupport(symbol) {
             if (symbol instanceof Equation) {
                 symbol.LHS = simplify(symbol.LHS);
                 symbol.RHS = simplify(symbol.RHS);
@@ -238,7 +238,7 @@ if (typeof module !== 'undefined') {
      * @param {NerdamerSymbol} symbol
      * @returns {Expression}
      */
-    core.Expression.prototype.equals = function (symbol) {
+    core.Expression.prototype.equals = function equals(symbol) {
         if (symbol instanceof core.Expression) {
             symbol = symbol.symbol;
         } // Grab the symbol if it's an expression
@@ -246,7 +246,7 @@ if (typeof module !== 'undefined') {
         return eq;
     };
 
-    core.Expression.prototype.solveFor = function (x) {
+    core.Expression.prototype.solveFor = function solveFor(x) {
         core.Utils.armTimeout();
         try {
             const { symbol } = this;
@@ -275,7 +275,7 @@ if (typeof module !== 'undefined') {
         }
     };
 
-    core.Expression.prototype.expand = function () {
+    core.Expression.prototype.expand = function expand() {
         if (this.symbol instanceof Equation) {
             const clone = this.symbol.clone();
             clone.RHS = _.expand(clone.RHS);
@@ -285,14 +285,17 @@ if (typeof module !== 'undefined') {
         return new core.Expression(_.expand(this.symbol));
     };
 
+    // eslint-disable-next-line func-names -- naming this 'variables' would shadow the imported variables utility
     core.Expression.prototype.variables = function () {
         if (this.symbol instanceof Equation) {
-            return core.Utils.arrayUnique(variables(this.symbol.LHS).concat(variables(this.symbol.RHS)));
+            return core.Utils.arrayUnique(
+                core.Utils.variables(this.symbol.LHS).concat(core.Utils.variables(this.symbol.RHS))
+            );
         }
-        return variables(this.symbol);
+        return core.Utils.variables(this.symbol);
     };
 
-    const setEq = function (a, b) {
+    const setEq = function setEq(a, b) {
         return _.equals(a, b);
     };
 
@@ -300,7 +303,7 @@ if (typeof module !== 'undefined') {
     core.Equation = Equation;
 
     // Loops through an array and attempts to fails a test. Stops if manages to fail.
-    const checkAll = (core.Utils.checkAll = function (args, test) {
+    const checkAll = (core.Utils.checkAll = function checkAll(args, test) {
         for (let i = 0; i < args.length; i++) {
             if (test(args[i])) {
                 return false;
@@ -1656,7 +1659,7 @@ if (typeof module !== 'undefined') {
             return [lhs, rhs];
         };
 
-        __.inverseFunctionSolve = function (name, lhs, rhs) {
+        __.inverseFunctionSolve = function inverseFunctionSolve(name, lhs, rhs) {
             // Ax+b comes back as [a, x, ax, b];
             const parts = explode(lhs.args[0], solve_for);
             // Check if x is by itself

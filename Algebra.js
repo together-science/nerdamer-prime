@@ -13,7 +13,7 @@ if (typeof module !== 'undefined') {
     require('./Calculus.js');
 }
 
-(function () {
+(function initAlgebraModule() {
     /* Shortcuts*/
     const core = nerdamer.getCore();
     const _ = core.PARSER;
@@ -70,7 +70,7 @@ if (typeof module !== 'undefined') {
      * @param {string} variable
      * @returns {Polynomial}
      */
-    Polynomial.fromArray = function (arr, variable) {
+    Polynomial.fromArray = function fromArray(arr, variable) {
         if (typeof variable === 'undefined') {
             throw new core.exceptions.InvalidVariableNameError(
                 'A variable name must be specified when creating polynomial from array'
@@ -82,7 +82,7 @@ if (typeof module !== 'undefined') {
         return p;
     };
 
-    Polynomial.fit = function (c1, c2, n, base, p, variable) {
+    Polynomial.fit = function fit(c1, c2, n, base, p, variable) {
         // After having looped through and mod 10 the number to get the matching factor
         const terms = new Array(p + 1);
         let t = n - c2;
@@ -593,7 +593,7 @@ if (typeof module !== 'undefined') {
      * @param {boolean} with_order
      * @returns {Array}
      */
-    NerdamerSymbol.prototype.coeffs = function (c, with_order) {
+    NerdamerSymbol.prototype.coeffs = function coeffs(c, with_order) {
         if (with_order && !this.isPoly(true)) {
             _.error('Polynomial expected when requesting coefficients with order');
         }
@@ -634,7 +634,7 @@ if (typeof module !== 'undefined') {
         }
         return c;
     };
-    NerdamerSymbol.prototype.tBase = function (map) {
+    NerdamerSymbol.prototype.tBase = function tBase(map) {
         if (typeof map === 'undefined') {
             throw new Error('NerdamerSymbol.tBase requires a map object!');
         }
@@ -659,7 +659,7 @@ if (typeof module !== 'undefined') {
         }
         return terms;
     };
-    NerdamerSymbol.prototype.altVar = function (x) {
+    NerdamerSymbol.prototype.altVar = function altVar(x) {
         const m = this.multiplier.toString();
         const p = this.power.toString();
         return (m === '1' ? '' : `${m}*`) + x + (p === '1' ? '' : `^${p}`);
@@ -670,7 +670,7 @@ if (typeof module !== 'undefined') {
      * @param {NerdamerSymbol} symbol
      * @returns {boolean}
      */
-    NerdamerSymbol.prototype.sameVars = function (symbol) {
+    NerdamerSymbol.prototype.sameVars = function sameVars(symbol) {
         if (!(this.symbols || this.group === symbol.group)) {
             return false;
         }
@@ -692,7 +692,7 @@ if (typeof module !== 'undefined') {
      *
      * @returns {Factors}
      */
-    NerdamerSymbol.prototype.groupTerms = function (x) {
+    NerdamerSymbol.prototype.groupTerms = function groupTerms(x) {
         x = String(x);
         let f;
         let p;
@@ -721,7 +721,7 @@ if (typeof module !== 'undefined') {
      *
      * @returns {NerdamerSymbol[]}
      */
-    NerdamerSymbol.prototype.collectFactors = function () {
+    NerdamerSymbol.prototype.collectFactors = function collectFactors() {
         const factors = [];
         if (this.group === CB) {
             this.each(x => {
@@ -741,7 +741,7 @@ if (typeof module !== 'undefined') {
         this.factors = {};
         this.length = 0;
     }
-    Factors.prototype.getNumberSymbolics = function () {
+    Factors.prototype.getNumberSymbolics = function getNumberSymbolics() {
         let n = 0;
         this.each(x => {
             if (!x.isConstant(true)) {
@@ -756,7 +756,7 @@ if (typeof module !== 'undefined') {
      * @param {NerdamerSymbol} s
      * @returns {Factors}
      */
-    Factors.prototype.add = function (s) {
+    Factors.prototype.add = function add(s) {
         if (s.equals(0)) {
             return this;
         } // Nothing to add
@@ -814,7 +814,7 @@ if (typeof module !== 'undefined') {
      *
      * @returns {NerdamerSymbol}
      */
-    Factors.prototype.toSymbol = function () {
+    Factors.prototype.toSymbol = function toSymbol() {
         let factored = new NerdamerSymbol(1);
         const factors = Object.values(this.factors).sort((a, b) => a.group > b.group);
 
@@ -840,7 +840,7 @@ if (typeof module !== 'undefined') {
      * @param {Factor} o
      * @returns {Factors}
      */
-    Factors.prototype.merge = function (o) {
+    Factors.prototype.merge = function merge(o) {
         for (const x in o) {
             if (x in this.factors) {
                 this.factors[x] = _.multiply(this.factors[x], o[x]);
@@ -856,7 +856,7 @@ if (typeof module !== 'undefined') {
      * @param {Function} f - Callback
      * @returns {Factor}
      */
-    Factors.prototype.each = function (f) {
+    Factors.prototype.each = function each(f) {
         for (const x in this.factors) {
             let factor = this.factors[x];
             if (factor.fname === core.PARENTHESIS && factor.isLinear()) {
@@ -871,7 +871,7 @@ if (typeof module !== 'undefined') {
      *
      * @returns {number}
      */
-    Factors.prototype.count = function () {
+    Factors.prototype.count = function count() {
         return keys(this.factors).length;
     };
     /**
@@ -879,7 +879,7 @@ if (typeof module !== 'undefined') {
      *
      * @returns {undefined}
      */
-    Factors.prototype.clean = function () {
+    Factors.prototype.clean = function clean() {
         try {
             const h = core.Settings.CONST_HASH;
             if (this.factors[h].lessThan(0)) {
@@ -898,7 +898,7 @@ if (typeof module !== 'undefined') {
             }
         }
     };
-    Factors.prototype.toString = function () {
+    Factors.prototype.toString = function toString() {
         return this.toSymbol().toString();
     };
 
@@ -910,7 +910,7 @@ if (typeof module !== 'undefined') {
         this.sum = new core.Frac(0);
         this.image = undefined;
     }
-    MVTerm.prototype.updateCount = function () {
+    MVTerm.prototype.updateCount = function updateCount() {
         this.count = this.count || 0;
         for (let i = 0; i < this.terms.length; i++) {
             if (!this.terms[i].equals(0)) {
@@ -919,7 +919,7 @@ if (typeof module !== 'undefined') {
         }
         return this;
     };
-    MVTerm.prototype.getVars = function () {
+    MVTerm.prototype.getVars = function getVars() {
         const vars = [];
         for (let i = 0; i < this.terms.length; i++) {
             const term = this.terms[i];
@@ -930,13 +930,13 @@ if (typeof module !== 'undefined') {
         }
         return vars.join(' ');
     };
-    MVTerm.prototype.len = function () {
+    MVTerm.prototype.len = function len() {
         if (typeof this.count === 'undefined') {
             this.updateCount();
         }
         return this.count;
     };
-    MVTerm.prototype.toSymbol = function (rev_map) {
+    MVTerm.prototype.toSymbol = function toSymbol(rev_map) {
         rev_map ||= this.getRevMap();
         let symbol = new NerdamerSymbol(this.coeff);
         for (let i = 0; i < this.terms.length; i++) {
@@ -951,7 +951,7 @@ if (typeof module !== 'undefined') {
         }
         return symbol;
     };
-    MVTerm.prototype.getRevMap = function () {
+    MVTerm.prototype.getRevMap = function getRevMap() {
         if (this.rev_map) {
             return this.rev_map;
         }
@@ -962,17 +962,17 @@ if (typeof module !== 'undefined') {
         this.rev_map = o;
         return o;
     };
-    MVTerm.prototype.generateImage = function () {
+    MVTerm.prototype.generateImage = function generateImage() {
         this.image = this.terms.join(' ');
         return this;
     };
-    MVTerm.prototype.getImg = function () {
+    MVTerm.prototype.getImg = function getImg() {
         if (!this.image) {
             this.generateImage();
         }
         return this.image;
     };
-    MVTerm.prototype.fill = function () {
+    MVTerm.prototype.fill = function fill() {
         const l = this.map.length;
         for (let i = 0; i < l; i++) {
             if (typeof this.terms[i] === 'undefined') {
@@ -983,7 +983,7 @@ if (typeof module !== 'undefined') {
         }
         return this;
     };
-    MVTerm.prototype.divide = function (mvterm) {
+    MVTerm.prototype.divide = function divide(mvterm) {
         const c = this.coeff.divide(mvterm.coeff);
         const l = this.terms.length;
         const new_mvterm = new MVTerm(c, [], this.map);
@@ -993,7 +993,7 @@ if (typeof module !== 'undefined') {
         }
         return new_mvterm;
     };
-    MVTerm.prototype.multiply = function (mvterm) {
+    MVTerm.prototype.multiply = function multiply(mvterm) {
         const c = this.coeff.multiply(mvterm.coeff);
         const l = this.terms.length;
         const new_mvterm = new MVTerm(c, [], this.map);
@@ -1003,16 +1003,16 @@ if (typeof module !== 'undefined') {
         }
         return new_mvterm;
     };
-    MVTerm.prototype.isZero = function () {
+    MVTerm.prototype.isZero = function isZero() {
         return this.coeff.equals(0);
     };
-    MVTerm.prototype.toString = function () {
+    MVTerm.prototype.toString = function toString() {
         return `{ coeff: ${this.coeff.toString()}, terms: [${this.terms.join(
             ','
         )}]: sum: ${this.sum.toString()}, count: ${this.count}}`;
     };
 
-    core.Utils.toMapObj = function (arr) {
+    core.Utils.toMapObj = function toMapObj(arr) {
         let c = 0;
         const o = {};
         for (let i = 0; i < arr.length; i++) {
@@ -1025,14 +1025,14 @@ if (typeof module !== 'undefined') {
         o.length = c;
         return o;
     };
-    core.Utils.filledArray = function (v, n, Clss) {
+    core.Utils.filledArray = function filledArray(v, n, Clss) {
         const a = [];
         while (n--) {
             a[n] = Clss ? new Clss(v) : v;
         }
         return a;
     };
-    core.Utils.arrSum = function (arr) {
+    core.Utils.arrSum = function arrSum(arr) {
         let sum = 0;
         const l = arr.length;
         for (let i = 0; i < l; i++) {
@@ -1047,7 +1047,7 @@ if (typeof module !== 'undefined') {
      * @param {Array} b
      * @returns {boolean} True if a and b have intersecting elements.
      */
-    core.Utils.haveIntersection = function (a, b) {
+    core.Utils.haveIntersection = function haveIntersection(a, b) {
         if (b.length > a.length) {
             [a, b] = [b, a]; // IndexOf to loop over shorter
         }
@@ -1060,7 +1060,7 @@ if (typeof module !== 'undefined') {
      * @param {object} map
      * @returns {string} The expression string
      */
-    core.Utils.subFunctions = function (symbol, map) {
+    core.Utils.subFunctions = function subFunctions(symbol, map) {
         map ||= {};
         const subbed = [];
         const vars = new Set(variables(symbol));
@@ -1097,7 +1097,7 @@ if (typeof module !== 'undefined') {
         }
         return symbol.text();
     };
-    core.Utils.getFunctionsSubs = function (map) {
+    core.Utils.getFunctionsSubs = function getFunctionsSubs(map) {
         const subs = {};
         // Prepare substitutions
         for (const x in map) {
@@ -2824,7 +2824,7 @@ if (typeof module !== 'undefined') {
                         symbol = _.parse(core.Utils.subFunctions(symbol, map));
                         if (keys(map).length > 0) {
                             // It might have functions
-                            factors.preAdd = function (factor) {
+                            factors.preAdd = function preAdd(factor) {
                                 const ret = _.parse(factor, core.Utils.getFunctionsSubs(map));
                                 return ret;
                             };
@@ -3810,7 +3810,7 @@ if (typeof module !== 'undefined') {
                 // take all complementary terms, e.g.
                 // [a,b,c] => [a*b, b*c, a*c]
                 // [a,b,c,d] => [a*b*c, a*b*d, a*c*d, b*c*d]
-                (function (input, size) {
+                (function generateComplementTerms(input, size) {
                     size = Number(size);
                     const results = [];
                     let result;
@@ -5308,7 +5308,7 @@ if (typeof module !== 'undefined') {
     });
 
     // Add a link to simplify
-    core.Expression.prototype.simplify = function () {
+    core.Expression.prototype.simplify = function simplify() {
         core.Utils.armTimeout();
         try {
             let retval;
@@ -5333,20 +5333,20 @@ if (typeof module !== 'undefined') {
         }
     };
 
-    core.Collection.prototype.simplify = function () {
+    core.Collection.prototype.simplify = function simplify() {
         this.elements = this.elements.map(e => __.Simplify.simplify(e));
         return this;
     };
 
-    core.Matrix.prototype.simplify = function () {
+    core.Matrix.prototype.simplify = function simplify() {
         this.elements = this.elements.map(row => row.map(e => __.Simplify.simplify(e)));
         return this;
     };
 
-    nerdamer.useAlgebraDiv = function () {
-        const divide = (__.divideFn = _.divide);
+    nerdamer.useAlgebraDiv = function useAlgebraDiv() {
+        const _originalDivide = (__.divideFn = _.divide);
         let calls = 0; // Keep track of how many calls were made
-        _.divide = function (a, b) {
+        _.divide = function divide(a, b) {
             calls++;
             let ans;
             if (calls === 1) // Check if this is the first call. If it is use algebra divide
@@ -5361,7 +5361,7 @@ if (typeof module !== 'undefined') {
         };
     };
 
-    nerdamer.useParserDiv = function () {
+    nerdamer.useParserDiv = function useParserDiv() {
         if (__.divideFn) {
             _.divide = __.divideFn;
         }
@@ -5458,7 +5458,7 @@ if (typeof module !== 'undefined') {
     // Register coeffs with direct access to nerdamer that preserves symbolic constants
     // The standard updateAPI wrapper uses PARSE2NUMBER which converts pi, e, sqrt(2) to rationals
     // This version parses arguments without PARSE2NUMBER to preserve symbolic constants
-    nerdamer.coeffs = function (...args) {
+    nerdamer.coeffs = function coeffs(...args) {
         const parser = core.PARSER;
         // Parse arguments WITHOUT PARSE2NUMBER to preserve symbolic constants like pi, e, sqrt(2)
         for (let i = 0; i < args.length; i++) {
@@ -5471,8 +5471,8 @@ if (typeof module !== 'undefined') {
                 args[i] = args[i].clone();
             }
         }
-        const coeffs = __.coeffs(...args);
-        return new core.Expression(new core.Vector(coeffs));
+        const resultCoeffs = __.coeffs(...args);
+        return new core.Expression(new core.Vector(resultCoeffs));
     };
 
     nerdamer.register([

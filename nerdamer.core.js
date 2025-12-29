@@ -17,9 +17,9 @@ const nerdamerBigDecimal =
 const nerdamerConstants =
     typeof globalThis.nerdamerConstants !== 'undefined' ? globalThis.nerdamerConstants : require('./constants.js');
 
-const nerdamer = (function (imports) {
+const nerdamer = (function initNerdamerCore(imports) {
     // Version ======================================================================
-    const version = '1.1.16';
+    const _version = '1.1.16';
 
     // Import bigInt
     const { bigInt } = imports;
@@ -120,7 +120,7 @@ const nerdamer = (function (imports) {
         TIMEOUT: 800,
     };
 
-    (function () {
+    (function initSettingsCache() {
         Settings.CACHE.roots = {};
         const x = 40;
         const y = 40;
@@ -171,51 +171,53 @@ const nerdamer = (function (imports) {
     function Collection() {
         this.elements = [];
     }
-    Collection.prototype.append = function (e) {
+    Collection.prototype.append = function append(e) {
         this.elements.push(e);
     };
-    Collection.prototype.getItems = function () {
+    Collection.prototype.getItems = function getItems() {
         return this.elements;
     };
-    Collection.prototype.toString = function () {
+    Collection.prototype.toString = function toString() {
         return _.pretty_print(this.elements);
     };
-    Collection.prototype.dimensions = function () {
+    Collection.prototype.dimensions = function dimensions() {
         return this.elements.length;
     };
+    // eslint-disable-next-line func-names -- naming this 'text' would shadow the outer text function
     Collection.prototype.text = function (options) {
         return `(${this.elements.map(e => e.text(options)).join(',')})`;
     };
-    Collection.create = function (e) {
+    Collection.create = function create(e) {
         const collection = new Collection();
         if (e) {
             collection.append(e);
         }
         return collection;
     };
-    Collection.prototype.clone = function (_elements) {
+    Collection.prototype.clone = function clone(_elements) {
         const c = Collection.create();
         c.elements = this.elements.map(e => e.clone());
         return c;
     };
-    Collection.prototype.expand = function (options) {
+    Collection.prototype.expand = function expand(options) {
         this.elements = this.elements.map(e => _.expand(e, options));
         return this;
     };
 
+    // eslint-disable-next-line func-names -- naming this 'evaluate' would shadow the outer evaluate variable
     Collection.prototype.evaluate = function (options) {
         this.elements = this.elements.map(e => _.evaluate(e, options));
         return this;
     };
 
-    Collection.prototype.map = function (lambda) {
+    Collection.prototype.map = function map(lambda) {
         const c2 = this.clone();
         c2.elements = c2.elements.map((x, i) => lambda(x, i + 1));
         return c2;
     };
 
     // Returns the result of adding the argument to the vector
-    Collection.prototype.add = function (c2) {
+    Collection.prototype.add = function add(c2) {
         return block(
             'SAFE',
             () => {
@@ -231,7 +233,7 @@ const nerdamer = (function (imports) {
     };
 
     // Returns the result of subtracting the argument from the vector
-    Collection.prototype.subtract = function (vector) {
+    Collection.prototype.subtract = function subtract(vector) {
         return block(
             'SAFE',
             () => {
@@ -841,7 +843,7 @@ const nerdamer = (function (imports) {
      * @param {string} [fnBody]
      * @returns {boolean}
      */
-    const setFunction = function (fnName, fnParams, fnBody) {
+    const _setFunction = function (fnName, fnParams, fnBody) {
         if (!fnParams) {
             const fnNameType = typeof fnName;
 
@@ -910,7 +912,7 @@ const nerdamer = (function (imports) {
     };
 
     /** Clears all user defined functions */
-    const clearFunctions = function () {
+    const _clearFunctions = function () {
         for (const name of USER_FUNCTIONS) {
             delete C.Math2[name];
             delete _.functions[name];
@@ -2463,7 +2465,7 @@ const nerdamer = (function (imports) {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/
     Math.sign =
         Math.sign ||
-        function (x) {
+        function sign(x) {
             x = Number(x); // Convert to a number
             if (x === 0 || isNaN(x)) {
                 return x;
@@ -2473,39 +2475,39 @@ const nerdamer = (function (imports) {
 
     Math.cosh =
         Math.cosh ||
-        function (x) {
+        function cosh(x) {
             const y = Math.exp(x);
             return (y + 1 / y) / 2;
         };
 
     Math.sech =
         Math.sech ||
-        function (x) {
+        function sech(x) {
             return 1 / Math.cosh(x);
         };
 
     Math.csch =
         Math.csch ||
-        function (x) {
+        function csch(x) {
             return 1 / Math.sinh(x);
         };
 
     Math.coth =
         Math.coth ||
-        function (x) {
+        function coth(x) {
             return 1 / Math.tanh(x);
         };
 
     Math.sinh =
         Math.sinh ||
-        function (x) {
+        function sinh(x) {
             const y = Math.exp(x);
             return (y - 1 / y) / 2;
         };
 
     Math.tanh =
         Math.tanh ||
-        function (x) {
+        function tanh(x) {
             if (x === Infinity) {
                 return 1;
             }
@@ -2518,7 +2520,7 @@ const nerdamer = (function (imports) {
 
     Math.asinh =
         Math.asinh ||
-        function (x) {
+        function asinh(x) {
             if (x === -Infinity) {
                 return x;
             }
@@ -2527,19 +2529,19 @@ const nerdamer = (function (imports) {
 
     Math.acosh =
         Math.acosh ||
-        function (x) {
+        function acosh(x) {
             return Math.log(x + Math.sqrt(x * x - 1));
         };
 
     Math.atanh =
         Math.atanh ||
-        function (x) {
+        function atanh(x) {
             return Math.log((1 + x) / (1 - x)) / 2;
         };
 
     Math.trunc =
         Math.trunc ||
-        function (x) {
+        function trunc(x) {
             if (isNaN(x)) {
                 return NaN;
             }
@@ -2993,7 +2995,7 @@ const nerdamer = (function (imports) {
      * @param {number | string} expression_number
      * @param {boolean} _asType
      */
-    Expression.getExpression = function (expression_number, _asType) {
+    Expression.getExpression = function getExpression(expression_number, _asType) {
         if (expression_number === 'last' || !expression_number) {
             expression_number = EXPRESSIONS.length;
         }
@@ -3384,24 +3386,24 @@ const nerdamer = (function (imports) {
         },
     };
 
-    Scientific.isScientific = function (num) {
+    Scientific.isScientific = function isScientific(num) {
         return /\d+\.?\d*e[+-]*\d+/iu.test(num);
     };
-    Scientific.leadingZeroes = function (num) {
+    Scientific.leadingZeroes = function leadingZeroes(num) {
         const match = num.match(/^(?<zeros>0*).*$/u);
         return match ? match[1] : '';
     };
-    Scientific.removeLeadingZeroes = function (num) {
+    Scientific.removeLeadingZeroes = function removeLeadingZeroes(num) {
         const match = num.match(/^0*(?<rest>.*)$/u);
         return match ? match[1] : '';
     };
 
-    Scientific.removeTrailingZeroes = function (num) {
+    Scientific.removeTrailingZeroes = function removeTrailingZeroes(num) {
         const match = num.match(/0*$/u);
         return match ? num.substring(0, num.length - match[0].length) : '';
     };
 
-    Scientific.round = function (c, n) {
+    Scientific.round = function round(c, n) {
         let coeff = String(nround(c, n));
         const m = coeff.includes('.') ? coeff.split('.').pop() : '';
         const d = n - m.length;
@@ -3447,7 +3449,7 @@ const nerdamer = (function (imports) {
         }
     }
     // Safe to use with negative numbers or other types
-    Frac.create = function (n) {
+    Frac.create = function create(n) {
         if (n instanceof Frac) {
             return n;
         }
@@ -3463,16 +3465,16 @@ const nerdamer = (function (imports) {
         }
         return frac;
     };
-    Frac.isFrac = function (o) {
+    Frac.isFrac = function isFrac(o) {
         return o instanceof Frac;
     };
-    Frac.quick = function (n, d) {
+    Frac.quick = function quick(n, d) {
         const frac = new Frac();
         frac.num = new bigInt(n);
         frac.den = new bigInt(d);
         return frac;
     };
-    Frac.simple = function (n) {
+    Frac.simple = function simple(n) {
         const nstr = String(scientificToDecimal(n));
         const m_dc = nstr.split('.');
         const num = m_dc.join('');
@@ -3740,7 +3742,7 @@ const nerdamer = (function (imports) {
      *
      * @returns {NerdamerSymbol}
      */
-    NerdamerSymbol.imaginary = function () {
+    NerdamerSymbol.imaginary = function imaginary() {
         const s = new NerdamerSymbol(Settings.IMAGINARY);
         s.imaginary = true;
         return s;
@@ -3751,14 +3753,14 @@ const nerdamer = (function (imports) {
      * @param {number} negative -1 to return negative infinity
      * @returns {NerdamerSymbol}
      */
-    NerdamerSymbol.infinity = function (negative) {
+    NerdamerSymbol.infinity = function infinity(negative) {
         const v = new NerdamerSymbol('Infinity');
         if (negative === -1) {
             v.negate();
         }
         return v;
     };
-    NerdamerSymbol.shell = function (group, value) {
+    NerdamerSymbol.shell = function shell(group, value) {
         const symbol = new NerdamerSymbol(value);
         symbol.group = group;
         symbol.symbols = {};
@@ -3766,7 +3768,7 @@ const nerdamer = (function (imports) {
         return symbol;
     };
     // Sqrt(x) -> x^(1/2)
-    NerdamerSymbol.unwrapSQRT = function (symbol, all) {
+    NerdamerSymbol.unwrapSQRT = function unwrapSQRT(symbol, all) {
         const p = symbol.power;
         if (symbol.fname === SQRT && (symbol.isLinear() || all)) {
             const t = symbol.args[0].clone();
@@ -3780,13 +3782,13 @@ const nerdamer = (function (imports) {
 
         return symbol;
     };
-    NerdamerSymbol.hyp = function (a, b) {
+    NerdamerSymbol.hyp = function hyp(a, b) {
         a ||= new NerdamerSymbol(0);
         b ||= new NerdamerSymbol(0);
         return _.sqrt(_.add(_.pow(a.clone(), new NerdamerSymbol(2)), _.pow(b.clone(), new NerdamerSymbol(2))));
     };
     // Converts to polar form array
-    NerdamerSymbol.toPolarFormArray = function (symbol) {
+    NerdamerSymbol.toPolarFormArray = function toPolarFormArray(symbol) {
         const re = symbol.realpart();
         const im = symbol.imagpart();
         const r = NerdamerSymbol.hyp(re, im);
@@ -3794,7 +3796,7 @@ const nerdamer = (function (imports) {
         return [r, theta];
     };
     // Removes parentheses
-    NerdamerSymbol.unwrapPARENS = function (symbol) {
+    NerdamerSymbol.unwrapPARENS = function unwrapPARENS(symbol) {
         if (symbol.fname === '') {
             const r = symbol.args[0];
             r.power = r.power.multiply(symbol.power);
@@ -3807,7 +3809,7 @@ const nerdamer = (function (imports) {
         return symbol;
     };
     // Quickly creates a NerdamerSymbol
-    NerdamerSymbol.create = function (value, power) {
+    NerdamerSymbol.create = function create(value, power) {
         power = power === undefined ? 1 : power;
         return _.parse(`(${value})^(${power})`);
     };
@@ -5273,9 +5275,10 @@ const nerdamer = (function (imports) {
             this.start = upper;
             this.end = lower;
         }
-        Slice.prototype.isConstant = function () {
+        Slice.prototype.isConstant = function isConstant() {
             return this.start.isConstant() && this.end.isConstant();
         };
+        // eslint-disable-next-line func-names -- naming this 'text' would shadow the outer text function
         Slice.prototype.text = function () {
             return `${text(this.start)}:${text(this.end)}`;
         };
@@ -5298,10 +5301,7 @@ const nerdamer = (function (imports) {
                 this.leftAssoc = false;
             }
         }
-        Token.prototype.toString = function () {
-            return this.value;
-        };
-        Token.prototype.toString = function () {
+        Token.prototype.toString = function toString() {
             if (this.is_prefix) {
                 return `\`${this.value}`;
             }
@@ -6213,7 +6213,7 @@ const nerdamer = (function (imports) {
                 postfix: true,
                 leftAssoc: true,
                 operation(e) {
-                    return factorial(e); // Wrap it in a factorial function
+                    return _factorial(e); // Wrap it in a factorial function
                 },
             },
             '^': {
@@ -6465,14 +6465,14 @@ const nerdamer = (function (imports) {
             Chi: [undefined, 1],
             Li: [undefined, 1],
             fib: [undefined, 1],
-            fact: [factorial, 1],
-            factorial: [factorial, 1],
+            fact: [_factorial, 1],
+            factorial: [_factorial, 1],
             continued_fraction: [continued_fraction, [1, 2]],
             dfactorial: [undefined, 1],
             gamma_incomplete: [undefined, [1, 2]],
             round: [round, [1, 2]],
             scientific: [scientific, [1, 2]],
-            mod: [mod, 2],
+            mod: [_mod, 2],
             pfactor: [pfactor, 1],
             vector: [vector, -1],
             matrix: [matrix, -1],
@@ -6544,7 +6544,7 @@ const nerdamer = (function (imports) {
          * @param {string} which
          * @param {Function} with_what
          */
-        this.override = function (which, with_what) {
+        this.override = function override(which, with_what) {
             bin[which] ||= [];
             bin[which].push(this[which]);
             this[which] = with_what;
@@ -6555,7 +6555,7 @@ const nerdamer = (function (imports) {
          *
          * @param {string} what
          */
-        this.restore = function (what) {
+        this.restore = function restore(what) {
             this[what] &&= bin[what].pop();
         };
 
@@ -6567,12 +6567,12 @@ const nerdamer = (function (imports) {
          * @param {Function} with_what
          * @param {boolean} force_call
          */
-        this.extend = function (what, with_what, force_call) {
+        this.extend = function extend(what, with_what, force_call) {
             const self = this;
             const extended = this[what];
             if (typeof extended === 'function' && typeof with_what === 'function') {
                 const f = this[what];
-                this[what] = function (a, b) {
+                this[what] = function extendedOp(a, b) {
                     if (isSymbol(a) && isSymbol(b) && !force_call) {
                         return f.call(self, a, b);
                     }
@@ -6590,7 +6590,7 @@ const nerdamer = (function (imports) {
          * @param {Array} params
          * @returns {NerdamerSymbol}
          */
-        this.symfunction = function (fn_name, params) {
+        this.symfunction = function symfunction(fn_name, params) {
             // Call the proper function and return the result;
             const f = new NerdamerSymbol(fn_name);
             f.group = FN;
@@ -6612,7 +6612,7 @@ const nerdamer = (function (imports) {
          * @param {number} allowed_args
          * @returns {NerdamerSymbol}
          */
-        this.callfunction = function (fn_name, args, allowed_args) {
+        this.callfunction = function callfunction(fn_name, args, allowed_args) {
             const fn_settings = functions[fn_name];
 
             if (!fn_settings) {
@@ -6681,7 +6681,7 @@ const nerdamer = (function (imports) {
          * Build a regex based on the operators currently loaded. These operators are to be ignored when substituting
          * spaces for multiplication
          */
-        this.operator_filter_regex = (function () {
+        this.operator_filter_regex = (function buildOperatorFilterRegex() {
             // We only want the operators which are singular since those are the ones
             // that nerdamer uses anyway
             const ostr = `^\\${Object.keys(operators)
@@ -6700,7 +6700,7 @@ const nerdamer = (function (imports) {
          * @param {Function} action
          * @param {boolean} shift
          */
-        this.setOperator = function (operator, action, shift) {
+        this.setOperator = function setOperator(operator, action, shift) {
             const name = operator.operator; // Take the name to be the symbol
             operators[name] = operator;
             if (action) {
@@ -6732,11 +6732,11 @@ const nerdamer = (function (imports) {
          * @param {string} operator
          * @returns {object}
          */
-        this.getOperator = function (operator) {
+        this.getOperator = function getOperator(operator) {
             return operators[operator];
         };
 
-        this.aliasOperator = function (o, n) {
+        this.aliasOperator = function aliasOperator(o, n) {
             const t = {};
             const operator = operators[o];
             // Copy everything over to the new operator
@@ -6754,12 +6754,12 @@ const nerdamer = (function (imports) {
          *
          * @returns {object}
          */
-        this.getOperators = function () {
+        this.getOperators = function getOperators() {
             // Will replace this with some cloning action in the future
             return operators;
         };
 
-        this.getBrackets = function () {
+        this.getBrackets = function getBrackets() {
             return brackets;
         };
         /*
@@ -6768,7 +6768,7 @@ const nerdamer = (function (imports) {
          * @param {string} e
          * @param {Parser} parser - The parser instance to use as context
          */
-        const prepare_expression = function (e, parser) {
+        const prepare_expression = function prepare_expression(e, parser) {
             /*
              * Since variables cannot start with a number, the assumption is made that when this occurs the
              * user intents for this to be a coefficient. The multiplication symbol in then added. The same goes for
@@ -6842,7 +6842,7 @@ const nerdamer = (function (imports) {
             return e;
         };
         // Delay setting of constants until Settings is ready
-        this.initConstants = function () {
+        this.initConstants = function initConstants() {
             this.CONSTANTS = {
                 E: new NerdamerSymbol(Settings.E),
                 PI: new NerdamerSymbol(Settings.PI),
@@ -6853,7 +6853,7 @@ const nerdamer = (function (imports) {
          * @param {object} o
          * @returns {string}
          */
-        this.pretty_print = function (o) {
+        this.pretty_print = function pretty_print(o) {
             if (Array.isArray(o)) {
                 const s = o.map(x => _.pretty_print(x)).join(', ');
                 if (o.type === 'vector') {
@@ -6870,7 +6870,7 @@ const nerdamer = (function (imports) {
             post_function: [],
         };
 
-        this.callPeekers = function (name, ...rest) {
+        this.callPeekers = function callPeekers(name, ...rest) {
             if (Settings.callPeekers) {
                 const peekers = this.peekers[name];
                 // Remove the first items and stringify
@@ -6886,7 +6886,7 @@ const nerdamer = (function (imports) {
          * @param {string} e
          * @returns {Token[]}
          */
-        this.tokenize = function (e) {
+        this.tokenize = function tokenize(e) {
             // Cast to String
             e = String(e);
             // Remove multiple white spaces and spaces at beginning and end of string
@@ -7187,7 +7187,7 @@ const nerdamer = (function (imports) {
          * @param {Token[]} tokens
          * @returns {Token[]}
          */
-        this.toRPN = function (tokens) {
+        this.toRPN = function toRPN(tokens) {
             const fn = tokens.type;
             const l = tokens.length;
             let i;
@@ -7195,7 +7195,7 @@ const nerdamer = (function (imports) {
             const output = [];
             const stack = [];
             const prefixes = [];
-            const collapse = function (target, destination) {
+            const collapse = function collapse(target, destination) {
                 while (target.length) {
                     destination.push(target.pop());
                 }
@@ -7350,7 +7350,7 @@ const nerdamer = (function (imports) {
          * @param {object} substitutions
          * @returns {NerdamerSymbol}
          */
-        this.parseRPN = function (rpn, substitutions) {
+        this.parseRPN = function parseRPN(rpn, substitutions) {
             try {
                 // Default substitutions
                 substitutions ||= {};
@@ -7571,16 +7571,16 @@ const nerdamer = (function (imports) {
             this.right = token.right;
         }
 
-        Node.prototype.toString = function () {
+        Node.prototype.toString = function toString() {
             const left = this.left ? `${this.left.toString()}---` : '';
             const right = this.right ? `---${this.right.toString()}` : '';
             return `${left}(${this.value})${right}`;
         };
 
-        Node.prototype.toHTML = function (depth, indent) {
+        Node.prototype.toHTML = function toHTML(depth, indent) {
             depth ||= 0;
             indent = typeof indent === 'undefined' ? 4 : indent;
-            const tab = function (n) {
+            const tab = function tab(n) {
                 return ' '.repeat(indent * n);
             };
             let html = '';
@@ -7599,7 +7599,7 @@ const nerdamer = (function (imports) {
             return html;
         };
 
-        this.tree = function (tokens) {
+        this.tree = function tree(tokens) {
             const Q = [];
             for (let i = 0; i < tokens.length; i++) {
                 let e = tokens[i];
@@ -7648,7 +7648,7 @@ const nerdamer = (function (imports) {
 
             return Q[0];
         };
-        this.parse = function (e, substitutions) {
+        this.parse = function parse(e, substitutions) {
             e = prepare_expression(e, this);
             substitutions ||= {};
             // Three passes but easier to debug
@@ -7662,8 +7662,8 @@ const nerdamer = (function (imports) {
          * @param {string} expression_string
          * @returns {Array}
          */
-        this.toObject = function (expression_string) {
-            const objectify = function (tokens) {
+        this.toObject = function toObject(expression_string) {
+            const objectify = function objectify(tokens) {
                 const output = [];
                 for (let i = 0, l = tokens.length; i < l; i++) {
                     const token = tokens[i];
@@ -7690,7 +7690,7 @@ const nerdamer = (function (imports) {
         };
 
         // A helper method for toTeX
-        const chunkAtCommas = function (arr) {
+        const chunkAtCommas = function chunkAtCommas(arr) {
             let k = 0;
             const chunks = [[]];
             for (let j = 0, l = arr.length; j < l; j++) {
@@ -7784,7 +7784,7 @@ const nerdamer = (function (imports) {
          * @param {object} opt
          * @returns {string}
          */
-        this.toTeX = function (expression_or_obj, opt) {
+        this.toTeX = function toTeX(expression_or_obj, opt) {
             opt ||= {};
             // Add decimal option as per issue #579. Consider passing an object to Latex.latex as option instead of string
             const decimals = opt.decimals === true ? 'decimals' : undefined;
@@ -7987,13 +7987,13 @@ const nerdamer = (function (imports) {
          * @param {NerdamerSymbol} symbol
          * @returns {NerdamerSymbol}
          */
-        function factorial(symbol) {
+        function _factorial(symbol) {
             let retval;
             if (isVector(symbol)) {
                 const V = new Vector();
                 symbol.each((x, i) => {
                     // I start at one.
-                    V.set(i - 1, factorial(x));
+                    V.set(i - 1, _factorial(x));
                 });
                 return V;
             }
@@ -8001,7 +8001,7 @@ const nerdamer = (function (imports) {
                 const M = new Matrix();
                 symbol.each((x, i, j) => {
                     // I start at one.
-                    M.set(i, j, factorial(x));
+                    M.set(i, j, _factorial(x));
                 });
                 return M;
             }
@@ -8083,7 +8083,7 @@ const nerdamer = (function (imports) {
          * @param {NerdamerSymbol} symbol2
          * @returns {NerdamerSymbol}
          */
-        function mod(symbol1, symbol2) {
+        function _mod(symbol1, symbol2) {
             if (symbol1.isConstant() && symbol2.isConstant()) {
                 const retval = new NerdamerSymbol(1);
                 retval.multiplier = retval.multiplier.multiply(symbol1.multiplier.mod(symbol2.multiplier));
@@ -9519,12 +9519,12 @@ const nerdamer = (function (imports) {
 
         // TODO:
         // Utilize the function below instead of the linked function
-        this.getFunction = function (name) {
+        this.getFunction = function getFunction(name) {
             return functions[name][0];
         };
 
         // Parser.methods ===============================================================
-        this.addPreprocessor = function (name, action, order, shift_cells) {
+        this.addPreprocessor = function addPreprocessor(name, action, order, shift_cells) {
             const { names } = preprocessors;
             const { actions } = preprocessors;
             if (typeof action !== 'function') // The person probably forgot to specify a name
@@ -9543,7 +9543,7 @@ const nerdamer = (function (imports) {
             }
         };
 
-        this.getPreprocessors = function () {
+        this.getPreprocessors = function getPreprocessors() {
             const result = {};
             for (let i = 0, l = preprocessors.names.length; i < l; i++) {
                 const name = preprocessors.names[i];
@@ -9555,7 +9555,7 @@ const nerdamer = (function (imports) {
             return result;
         };
 
-        this.removePreprocessor = function (name, shift_cells) {
+        this.removePreprocessor = function removePreprocessor(name, shift_cells) {
             const i = preprocessors.names.indexOf(name);
             if (shift_cells) {
                 remove(preprocessors.names, i);
@@ -9567,7 +9567,7 @@ const nerdamer = (function (imports) {
         };
 
         // The loader for functions which are not part of Math2
-        this.mapped_function = function (...args) {
+        this.mapped_function = function mapped_function(...args) {
             const subs = {};
             const { params } = this;
 
@@ -9584,7 +9584,7 @@ const nerdamer = (function (imports) {
          * @param {NerdamerSymbol} b
          * @returns {NerdamerSymbol}
          */
-        this.add = function (a, b) {
+        this.add = function add(a, b) {
             let aIsSymbol = isSymbol(a);
             let bIsSymbol = isSymbol(b);
             // We're dealing with two symbols
@@ -9839,7 +9839,7 @@ const nerdamer = (function (imports) {
          * @param {NerdamerSymbol} b
          * @returns {NerdamerSymbol}
          */
-        this.subtract = function (a, b) {
+        this.subtract = function subtract(a, b) {
             const aIsSymbol = isSymbol(a);
             const bIsSymbol = isSymbol(b);
             let _t;
@@ -9901,7 +9901,7 @@ const nerdamer = (function (imports) {
          * @param {NerdamerSymbol} b
          * @returns {NerdamerSymbol}
          */
-        this.multiply = function (a, b) {
+        this.multiply = function multiply(a, b) {
             let aIsSymbol = isSymbol(a);
             let bIsSymbol = isSymbol(b);
             // We're dealing with function assignment here
@@ -10327,7 +10327,7 @@ const nerdamer = (function (imports) {
          * @param {NerdamerSymbol} b
          * @returns {NerdamerSymbol}
          */
-        this.divide = function (a, b) {
+        this.divide = function divide(a, b) {
             const aIsSymbol = isSymbol(a);
             const bIsSymbol = isSymbol(b);
 
@@ -10409,7 +10409,7 @@ const nerdamer = (function (imports) {
          * @param {NerdamerSymbol} b
          * @returns {NerdamerSymbol}
          */
-        this.pow = function (a, b) {
+        this.pow = function pow(a, b) {
             const aIsSymbol = isSymbol(a);
             const bIsSymbol = isSymbol(b);
             if (aIsSymbol && bIsSymbol) {
@@ -10774,7 +10774,7 @@ const nerdamer = (function (imports) {
         };
         // Gets called when the parser finds the , operator.
         // Commas return a Collector object which is roughly an array
-        this.comma = function (a, b) {
+        this.comma = function comma(a, b) {
             if (!(a instanceof Collection)) {
                 a = Collection.create(a);
             }
@@ -10782,15 +10782,15 @@ const nerdamer = (function (imports) {
             return a;
         };
         // Link to modulus
-        this.mod = function (a, b) {
-            return mod(a, b);
+        this.mod = function mod(a, b) {
+            return _mod(a, b);
         };
         // Used to slice elements from arrays
-        this.slice = function (a, b) {
+        this.slice = function slice(a, b) {
             return new Slice(a, b);
         };
         // The equality setter
-        this.equals = function (a, b) {
+        this.equals = function equals(a, b) {
             // Equality can only be set for group S so complain it's not
             if (a.group !== S && !a.isLinear()) {
                 err(`Cannot set equality for ${a.toString()}`);
@@ -10799,11 +10799,11 @@ const nerdamer = (function (imports) {
             return b;
         };
         // Percent
-        this.percent = function (a) {
+        this.percent = function percent(a) {
             return _.divide(a, new NerdamerSymbol(100));
         };
         // Set variable
-        this.assign = function (a, b) {
+        this.assign = function assign(a, b) {
             if (a instanceof Collection && b instanceof Collection) {
                 a.elements.map((x, i) => _.assign(x, b.elements[i]));
                 return Vector.fromArray(b.elements);
@@ -10822,40 +10822,40 @@ const nerdamer = (function (imports) {
             VARS[a.value] = b;
             return b;
         };
-        this.function_assign = function (a, b) {
+        this.function_assign = function function_assign(a, b) {
             const f = a.elements.pop();
-            return setFunction(f, a.elements, b);
+            return _setFunction(f, a.elements, b);
         };
         // Function to quickly convert bools to Symbols
-        const bool2Symbol = function (x) {
+        const bool2Symbol = function bool2Symbol(x) {
             return new NerdamerSymbol(x === true ? 1 : 0);
         };
         // Check for equality
-        this.eq = function (a, b) {
+        this.eq = function eq(a, b) {
             return bool2Symbol(a.equals(b));
         };
         // Checks for greater than
-        this.gt = function (a, b) {
+        this.gt = function gt(a, b) {
             return bool2Symbol(a.gt(b));
         };
         // Checks for greater than equal
-        this.gte = function (a, b) {
+        this.gte = function gte(a, b) {
             return bool2Symbol(a.gte(b));
         };
         // Checks for less than
-        this.lt = function (a, b) {
+        this.lt = function lt(a, b) {
             return bool2Symbol(a.lt(b));
         };
         // Checks for less than equal
-        this.lte = function (a, b) {
+        this.lte = function lte(a, b) {
             return bool2Symbol(a.lte(b));
         };
         // Wraps the factorial
-        this.factorial = function (a) {
+        this.factorial = function factorial(a) {
             return this.symfunction(FACTORIAL, [a]);
         };
         // Wraps the double factorial
-        this.dfactorial = function (a) {
+        this.dfactorial = function dfactorial(a) {
             return this.symfunction(DOUBLEFACTORIAL, [a]);
         };
     }
@@ -11015,7 +11015,7 @@ const nerdamer = (function (imports) {
 
     // The latex generator
     LaTeX = {
-        parser: (function () {
+        parser: (function createLaTeXParser() {
             // Create a parser and strip it from everything except the items that you need
             const keep = [
                 'classes',
@@ -11822,7 +11822,7 @@ const nerdamer = (function (imports) {
      * @param {*} val
      * @returns {*}
      */
-    Vector.arrayPrefill = function (n, val) {
+    Vector.arrayPrefill = function arrayPrefill(n, val) {
         const a = [];
         val ||= 0;
         for (let i = 0; i < n; i++) {
@@ -11836,7 +11836,7 @@ const nerdamer = (function (imports) {
      * @param {any} a
      * @returns {any}
      */
-    Vector.fromArray = function (a) {
+    Vector.fromArray = function fromArray(a) {
         const v = new Vector();
         v.elements = a;
         return v;
@@ -11848,7 +11848,7 @@ const nerdamer = (function (imports) {
      * @param {Set} set
      * @returns {Vector}
      */
-    Vector.fromSet = function (set) {
+    Vector.fromSet = function fromSet(set) {
         return Vector.fromArray(set.elements);
     };
 
@@ -12185,7 +12185,7 @@ const nerdamer = (function (imports) {
         }
         this.elements = el;
     }
-    Matrix.identity = function (n) {
+    Matrix.identity = function identity(n) {
         const m = new Matrix();
         for (let i = 0; i < n; i++) {
             m.elements.push([]);
@@ -12195,7 +12195,7 @@ const nerdamer = (function (imports) {
         }
         return m;
     };
-    Matrix.fromArray = function (arr) {
+    Matrix.fromArray = function fromArray(arr) {
         function F(args) {
             return Matrix.apply(this, args);
         }
@@ -12203,7 +12203,7 @@ const nerdamer = (function (imports) {
 
         return new F(arr);
     };
-    Matrix.zeroMatrix = function (rows, cols) {
+    Matrix.zeroMatrix = function zeroMatrix(rows, cols) {
         const m = new Matrix();
         for (let i = 0; i < rows; i++) {
             m.elements.push(Vector.arrayPrefill(cols, new NerdamerSymbol(0)));
@@ -12627,7 +12627,7 @@ const nerdamer = (function (imports) {
         }
     }
 
-    Set.fromArray = function (arr) {
+    Set.fromArray = function fromArray(arr) {
         function F(args) {
             return Set.apply(this, args);
         }
@@ -12969,6 +12969,7 @@ const nerdamer = (function (imports) {
                 dependencies[1] = dependencies[1].replace(x, alias);
             }
 
+            // eslint-disable-next-line no-new-func -- Dynamic function generation is intentional for compiling math expressions
             const f = new Function(args, `${(dependencies[1] || '') + f_array[1]} return ${f_array[0]};`);
 
             return f;
@@ -12977,7 +12978,7 @@ const nerdamer = (function (imports) {
 
     // Finalize =====================================================================
     /* FINALIZE */
-    (function () {
+    (function finalizeParser() {
         reserveNames(_.CONSTANTS);
         reserveNames(_.functions);
         _.initConstants();
@@ -13100,7 +13101,7 @@ const nerdamer = (function (imports) {
             let numer = false;
 
             // Is the user declaring a function? Try to add user function
-            if (setFunction(expression)) {
+            if (_setFunction(expression)) {
                 return nerdamer;
             }
 
@@ -13150,7 +13151,7 @@ const nerdamer = (function (imports) {
      * @param {string} expression
      * @returns {Token[]}
      */
-    libExports.rpn = function (expression) {
+    libExports.rpn = function rpn(expression) {
         return _.tokenize(_.toRPN(expression));
     };
 
@@ -13161,7 +13162,7 @@ const nerdamer = (function (imports) {
      * @param {object} opt
      * @returns {string}
      */
-    libExports.convertToLaTeX = function (e, opt) {
+    libExports.convertToLaTeX = function convertToLaTeX(e, opt) {
         return _.toTeX(e, opt);
     };
 
@@ -13171,7 +13172,7 @@ const nerdamer = (function (imports) {
      * @param {string} e
      * @returns {string}
      */
-    libExports.convertFromLaTeX = function (e) {
+    libExports.convertFromLaTeX = function convertFromLaTeX(e) {
         // Convert x_2a => x_2 a
         e = e.replace(/_(?<char>[A-Za-z0-9])/gu, (...g) => `${g[0]} `);
         // Convert x^2 => x^{2}
@@ -13190,7 +13191,7 @@ const nerdamer = (function (imports) {
      * @param {string} add_on - The add-on being checked
      * @returns {string} Returns the version of nerdamer
      */
-    libExports.version = function (add_on) {
+    libExports.version = function version(add_on) {
         if (add_on) {
             try {
                 return C[add_on].version;
@@ -13201,7 +13202,7 @@ const nerdamer = (function (imports) {
                 return `No module named ${add_on} found!`;
             }
         }
-        return version;
+        return _version;
     };
 
     /**
@@ -13209,7 +13210,7 @@ const nerdamer = (function (imports) {
      *
      * @returns {string[]}
      */
-    libExports.getWarnings = function () {
+    libExports.getWarnings = function getWarnings() {
         return WARNINGS;
     };
 
@@ -13218,7 +13219,7 @@ const nerdamer = (function (imports) {
      * @param {any} value The value of the constant
      * @returns {object} Returns the nerdamer object
      */
-    libExports.setConstant = function (constant, value) {
+    libExports.setConstant = function setConstant(constant, value) {
         validateName(constant);
         if (!isReserved(constant)) {
             // Fix for issue #127
@@ -13240,7 +13241,7 @@ const nerdamer = (function (imports) {
      * @param {any} constant
      * @returns {string}
      */
-    libExports.getConstant = function (constant) {
+    libExports.getConstant = function getConstant(constant) {
         return String(_.CONSTANTS[constant]);
     };
 
@@ -13249,7 +13250,7 @@ const nerdamer = (function (imports) {
      *
      * @returns {object} Returns the nerdamer object
      */
-    libExports.clearConstants = function () {
+    libExports.clearConstants = function clearConstants() {
         _.initConstants.bind(_);
         return this;
     };
@@ -13268,8 +13269,8 @@ const nerdamer = (function (imports) {
      * @param {string | undefined} fnBody The body of the function
      * @returns {nerdamer} Returns nerdamer if succeeded and falls on fail
      */
-    libExports.setFunction = function (fnName, fnParams, fnBody) {
-        if (!setFunction(fnName, fnParams, fnBody)) {
+    libExports.setFunction = function setFunction(fnName, fnParams, fnBody) {
+        if (!_setFunction(fnName, fnParams, fnBody)) {
             throw new Error('Failed to set function!');
         }
         return this;
@@ -13280,13 +13281,13 @@ const nerdamer = (function (imports) {
      *
      * @returns {libExports}
      */
-    libExports.clearFunctions = function () {
-        clearFunctions();
+    libExports.clearFunctions = function clearFunctions() {
+        _clearFunctions();
         return this;
     };
 
     /** @returns {C} Exports the nerdamer core functions and objects */
-    libExports.getCore = function () {
+    libExports.getCore = function getCore() {
         return C;
     };
 
@@ -13296,7 +13297,7 @@ const nerdamer = (function (imports) {
      * @param {boolean} asArray The returned names are returned as an array if this is set to true;
      * @returns {string | Array}
      */
-    libExports.reserved = function (asArray) {
+    libExports.reserved = function reserved(asArray) {
         if (asArray) {
             return RESERVED;
         }
@@ -13309,7 +13310,7 @@ const nerdamer = (function (imports) {
      * @param {boolean} keep_EXPRESSIONS_fixed Use true if you don't want to keep EXPRESSIONS length fixed
      * @returns {object} Returns the nerdamer object
      */
-    libExports.clear = function (equation_number, keep_EXPRESSIONS_fixed) {
+    libExports.clear = function clear(equation_number, keep_EXPRESSIONS_fixed) {
         if (equation_number === 'all') {
             EXPRESSIONS = [];
         } else if (equation_number === 'last') {
@@ -13324,7 +13325,7 @@ const nerdamer = (function (imports) {
     };
 
     /** Alias for nerdamer.clear('all') */
-    libExports.flush = function () {
+    libExports.flush = function flush() {
         this.clear('all');
         return this;
     };
@@ -13335,7 +13336,7 @@ const nerdamer = (function (imports) {
      * @param {string | string[]} option
      * @returns {Array}
      */
-    libExports.expressions = function (asObject, asLaTeX, option) {
+    libExports.expressions = function expressions(asObject, asLaTeX, option) {
         const result = asObject ? {} : [];
         for (let i = 0; i < EXPRESSIONS.length; i++) {
             const eq = asLaTeX ? LaTeX.latex(EXPRESSIONS[i], option) : text(EXPRESSIONS[i], option);
@@ -13349,7 +13350,7 @@ const nerdamer = (function (imports) {
      * @param {string | string[]} option
      * @returns {Array}
      */
-    libExports.functions = function (asObject, option) {
+    libExports.functions = function functions(asObject, option) {
         const result = asObject ? {} : [];
         for (let i = 0; i < USER_FUNCTIONS.length; i++) {
             let params;
@@ -13372,7 +13373,7 @@ const nerdamer = (function (imports) {
     };
 
     // The method for registering modules
-    libExports.register = function (obj) {
+    libExports.register = function register(obj) {
         const core = this.getCore();
 
         if (isArray(obj)) {
@@ -13418,7 +13419,7 @@ const nerdamer = (function (imports) {
      * @param {string} varname Variable name
      * @returns {boolean} Validates if the profided string is a valid variable name
      */
-    libExports.validVarName = function (varname) {
+    libExports.validVarName = function validVarName(varname) {
         try {
             validateName(varname);
             return RESERVED.indexOf(varname) === -1;
@@ -13431,12 +13432,12 @@ const nerdamer = (function (imports) {
     };
 
     /** @returns {Array} Array of functions currently supported by nerdamer */
-    libExports.supported = function () {
+    libExports.supported = function supported() {
         return keys(_.functions);
     };
 
     /** @returns {number} The number equations/expressions currently loaded */
-    libExports.numEquations = libExports.numExpressions = function () {
+    libExports.numEquations = libExports.numExpressions = function numExpressions() {
         return EXPRESSIONS.length;
     };
     /* END EXPORTS */
@@ -13446,7 +13447,7 @@ const nerdamer = (function (imports) {
      * @param {string} val Value of variable. This can be a variable expression or number
      * @returns {object} Returns the nerdamer object
      */
-    libExports.setVar = function (v, val) {
+    libExports.setVar = function setVar(v, val) {
         validateName(v);
         // Check if it's not already a constant
         if (v in _.CONSTANTS) {
@@ -13466,7 +13467,7 @@ const nerdamer = (function (imports) {
      * @param {any} v
      * @returns {any}
      */
-    libExports.getVar = function (v) {
+    libExports.getVar = function getVar(v) {
         return VARS[v];
     };
     /**
@@ -13474,7 +13475,7 @@ const nerdamer = (function (imports) {
      *
      * @returns {object} Returns the nerdamer object
      */
-    libExports.clearVars = function () {
+    libExports.clearVars = function clearVars() {
         VARS = {};
         return this;
     };
@@ -13483,7 +13484,7 @@ const nerdamer = (function (imports) {
      * @param {Function} loader
      * @returns {nerdamer}
      */
-    libExports.load = function (loader) {
+    libExports.load = function load(loader) {
         loader.call(this);
         return this;
     };
@@ -13494,7 +13495,7 @@ const nerdamer = (function (imports) {
      * @param {string | string[]} option
      * @returns {object} Returns an object with the variables
      */
-    libExports.getVars = function (output, option) {
+    libExports.getVars = function getVars(output, option) {
         output ||= 'text';
         let result = {};
         if (output === 'object') {
@@ -13517,7 +13518,7 @@ const nerdamer = (function (imports) {
      * @param {string} setting The setting to be changed
      * @param {boolean} value
      */
-    libExports.set = function (setting, value) {
+    libExports.set = function set(setting, value) {
         // Current options:
         // PARSE2NUMBER, suppress_errors
         if (typeof setting === 'object') {
@@ -13547,7 +13548,7 @@ const nerdamer = (function (imports) {
             // Point the functions in the right direction
             _.functions.log = Settings.LOG_FNS.log10; // Log is now log10
             // the log10 function must be explicitly set
-            _.functions.log[0] = function (x) {
+            _.functions.log[0] = function log10Wrapper(x) {
                 if (x.isConstant()) {
                     return new NerdamerSymbol(Math.log10(x));
                 }
@@ -13568,7 +13569,7 @@ const nerdamer = (function (imports) {
      * @param {any} setting
      * @returns {undefined}
      */
-    libExports.get = function (setting) {
+    libExports.get = function get(setting) {
         return Settings[setting];
     };
 
@@ -13577,10 +13578,10 @@ const nerdamer = (function (imports) {
      *
      * @param {boolean} override Override the functions when calling updateAPI if it exists
      */
-    libExports.updateAPI = function (override) {
+    libExports.updateAPI = function updateAPI(override) {
         // Map internal functions to external ones
-        const linker = function (fname) {
-            return function (...args) {
+        const linker = function linker(fname) {
+            return function linkedFunction(...args) {
                 for (let i = 0; i < args.length; i++) {
                     args[i] = _.parse(args[i]);
                 }
@@ -13595,29 +13596,29 @@ const nerdamer = (function (imports) {
         }
     };
 
-    libExports.replaceFunction = function (name, fn, num_args) {
+    libExports.replaceFunction = function replaceFunction(name, fn, num_args) {
         const existing = _.functions[name];
         const new_num_args = typeof num_args === 'undefined' ? existing[1] : num_args;
         _.functions[name] = [fn(existing[0], C), new_num_args];
     };
 
-    libExports.setOperator = function (operator, shift) {
+    libExports.setOperator = function setOperator(operator, shift) {
         _.setOperator(operator, shift);
     };
 
-    libExports.getOperator = function (operator) {
+    libExports.getOperator = function getOperator(operator) {
         return _.getOperator(operator);
     };
 
-    libExports.aliasOperator = function (operator, withOperator) {
+    libExports.aliasOperator = function aliasOperator(operator, withOperator) {
         _.aliasOperator(operator, withOperator);
     };
 
-    libExports.tree = function (expression) {
+    libExports.tree = function tree(expression) {
         return _.tree(_.toRPN(_.tokenize(expression)));
     };
 
-    libExports.htmlTree = function (expression, indent) {
+    libExports.htmlTree = function htmlTree(expression, indent) {
         const tree = this.tree(expression);
 
         return (
@@ -13630,17 +13631,17 @@ const nerdamer = (function (imports) {
         );
     };
 
-    libExports.addPeeker = function (name, f) {
+    libExports.addPeeker = function addPeeker(name, f) {
         if (_.peekers[name]) {
             _.peekers[name].push(f);
         }
     };
 
-    libExports.removePeeker = function (name, f) {
+    libExports.removePeeker = function removePeeker(name, f) {
         remove(_.peekers[name], f);
     };
 
-    libExports.parse = function (e) {
+    libExports.parse = function parse(e) {
         return String(e)
             .split(';')
             .map(x => _.parse(x));

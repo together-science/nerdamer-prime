@@ -563,9 +563,6 @@ export default defineConfig([
         name: 'legacy/core',
         files: LEGACY_CORE_FILES,
         rules: {
-            // Function naming - legacy code uses anonymous functions extensively
-            'func-names': 'off',
-
             // Parameter reassignment is common in mathematical algorithms
             'no-param-reassign': 'off',
 
@@ -605,9 +602,6 @@ export default defineConfig([
             // Ternary usage patterns
             'no-nested-ternary': 'off',
             'no-negated-condition': 'off',
-
-            // Legacy patterns that work but aren't modern best practices
-            'no-new-func': 'off', // Used for dynamic function generation
         },
     },
 

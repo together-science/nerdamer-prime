@@ -14,7 +14,7 @@ if (typeof module !== 'undefined') {
     require('./Algebra');
 }
 
-(function () {
+(function initExtraModule() {
     const core = nerdamer.getCore();
     const _ = core.PARSER;
     const { NerdamerSymbol } = core;
@@ -30,7 +30,7 @@ if (typeof module !== 'undefined') {
     const { FN } = core.groups;
     core.Settings.Laplace_integration_depth = 40;
 
-    NerdamerSymbol.prototype.findFunction = function (fname) {
+    NerdamerSymbol.prototype.findFunction = function findFunction(fname) {
         // This is what we're looking for
         if (this.group === FN && this.fname === fname) {
             return this.clone();
