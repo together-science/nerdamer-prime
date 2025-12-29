@@ -3621,12 +3621,12 @@ if (typeof module !== 'undefined') {
             }
             return status;
         },
-        gcd() {
+        gcd(...rest) {
             let args;
-            if (arguments.length === 1 && arguments[0] instanceof core.Vector) {
-                args = arguments[0].elements;
+            if (rest.length === 1 && rest[0] instanceof core.Vector) {
+                args = rest[0].elements;
             } else {
-                args = core.Utils.arguments2Array(arguments);
+                args = rest;
             }
 
             // Short-circuit early
@@ -3642,7 +3642,7 @@ if (typeof module !== 'undefined') {
             for (let i = 0; i < args.length; i++) {
                 if (args[i].group === FN && args[i].fname === 'gcd') {
                     // Compress gcd(a,gcd(b,c)) into gcd(a,b,c)
-                    args = args.concat(arguments[i].args);
+                    args = args.concat(args[i].args);
                     // Do not keep gcd in args
                     args.splice(i, 1);
                 } else {
@@ -3780,24 +3780,24 @@ if (typeof module !== 'undefined') {
 
             // Return symbolic function for gcd in indeterminate form
             if (a.equals(1) && !a.isConstant() && !b.isConstant()) {
-                return _.divide(_.symfunction('gcd', arguments), den);
+                return _.divide(_.symfunction('gcd', [a, b]), den);
             }
 
             return _.divide(a, den);
         },
-        lcm() {
+        lcm(...rest) {
             // https://math.stackexchange.com/a/319310
             // generalization of the 2-variable formula of lcm
 
             let args;
-            if (arguments.length === 1) {
-                if (arguments[0] instanceof core.Vector) {
-                    args = arguments[0].elements;
+            if (rest.length === 1) {
+                if (rest[0] instanceof core.Vector) {
+                    args = rest[0].elements;
                 } else {
                     _.error('lcm expects either 1 vector or 2 or more arguments');
                 }
             } else {
-                args = core.Utils.arguments2Array(arguments);
+                args = rest;
             }
 
             // Product of all arguments
@@ -3834,7 +3834,7 @@ if (typeof module !== 'undefined') {
                     }
                     return results;
                     // Start with new NerdamerSymbol(1) so that prev.clone() which makes unnessesary clones can be avoided
-                })(arguments, arguments.length - 1).map(x =>
+                })(args, args.length - 1).map(x =>
                     x.reduce((prev, curr) => _.multiply(prev, curr.clone()), new NerdamerSymbol(1))
                 );
 
@@ -5446,8 +5446,8 @@ if (typeof module !== 'undefined') {
             visible: true,
             numargs: [1, 2],
             build() {
-                const f = function () {
-                    const coeffs = __.coeffs(...arguments);
+                const f = function (...args) {
+                    const coeffs = __.coeffs(...args);
                     return new core.Vector(coeffs);
                 };
                 return f;
@@ -5458,8 +5458,7 @@ if (typeof module !== 'undefined') {
     // Register coeffs with direct access to nerdamer that preserves symbolic constants
     // The standard updateAPI wrapper uses PARSE2NUMBER which converts pi, e, sqrt(2) to rationals
     // This version parses arguments without PARSE2NUMBER to preserve symbolic constants
-    nerdamer.coeffs = function () {
-        const args = [].slice.call(arguments);
+    nerdamer.coeffs = function (...args) {
         const parser = core.PARSER;
         // Parse arguments WITHOUT PARSE2NUMBER to preserve symbolic constants like pi, e, sqrt(2)
         for (let i = 0; i < args.length; i++) {

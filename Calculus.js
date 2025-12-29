@@ -382,7 +382,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     return result;
                 });
             } else {
-                retval = _.symfunction('sum', arguments);
+                retval = _.symfunction('sum', [fn, index, start, end]);
             }
 
             return retval;
@@ -410,7 +410,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     return result;
                 });
             } else {
-                retval = _.symfunction('product', arguments);
+                retval = _.symfunction('product', [fn, index, start, end]);
             }
 
             return retval;
@@ -2852,13 +2852,13 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 if (x.isConstant(true)) {
                     return __.defint(_.parse('sin(pi*x^2/2)'), NerdamerSymbol(0), x, 'x');
                 }
-                return _.symfunction('S', arguments);
+                return _.symfunction('S', [x]);
             },
             C(x) {
                 if (x.isConstant(true)) {
                     return __.defint(_.parse('cos(pi*x^2/2)'), NerdamerSymbol(0), x, 'x');
                 }
-                return _.symfunction('C', arguments);
+                return _.symfunction('C', [x]);
             },
         },
     });

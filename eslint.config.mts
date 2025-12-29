@@ -608,7 +608,6 @@ export default defineConfig([
 
             // Legacy patterns that work but aren't modern best practices
             'no-new-func': 'off', // Used for dynamic function generation
-            'prefer-rest-params': 'off', // Uses arguments object
         },
     },
 

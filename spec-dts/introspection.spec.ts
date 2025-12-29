@@ -535,9 +535,11 @@ describe('Nerdamer AST Introspection Tests', () => {
                         const requiredParams = parameters.filter(p => !p.optional && !p.rest).length;
                         const runtimeArity = runtimeFunction.length;
 
-                        // Check if function uses arguments object (common JavaScript pattern)
+                        // Check if function uses arguments object or rest parameters (both are valid patterns)
                         const functionSource = runtimeFunction.toString();
                         const usesArguments = functionSource.includes('arguments');
+                        const usesRestParams = /\(\.\.\.|\(\s*\w+\s*,\s*\.\.\./.test(functionSource);
+                        const usesVariableArgs = usesArguments || usesRestParams;
 
                         // Known functions that work correctly despite arity differences
                         // These use arguments object or have internal params for recursion
@@ -552,14 +554,14 @@ describe('Nerdamer AST Introspection Tests', () => {
                         if (knownWorkingFunctions.has(functionName)) {
                             functionAnalysis[functionName].arityPattern = 'known-working';
                             functionAnalysis[functionName].tested = 'arity-analysis';
-                            functionAnalysis[functionName].usesArguments = usesArguments;
+                            functionAnalysis[functionName].usesArguments = usesVariableArgs;
                             functionAnalysis[functionName].runtimeArity = runtimeArity;
                             functionAnalysis[functionName].requiredParams = requiredParams;
                             continue;
                         }
 
-                        // If function has zero arity but uses arguments, this is likely intentional
-                        if (runtimeArity === 0 && usesArguments) {
+                        // If function has zero arity but uses arguments or rest params, this is likely intentional
+                        if (runtimeArity === 0 && usesVariableArgs) {
                             // Try a functional test to see if it actually works
                             let functionallyWorks = false;
                             try {
@@ -598,15 +600,15 @@ describe('Nerdamer AST Introspection Tests', () => {
                             const arityError = `${functionName}: Runtime arity ${runtimeArity} vs required parameters ${requiredParams}`;
                             functionAnalysis[functionName].errors.push(arityError);
                             primeValidationErrors.push(arityError);
-                        } else if (runtimeArity === 0 && !usesArguments && requiredParams > 0) {
-                            // Zero arity without arguments object usage - potentially problematic
-                            const arityError = `${functionName}: Zero arity but requires ${requiredParams} parameters and doesn't use arguments object`;
+                        } else if (runtimeArity === 0 && !usesVariableArgs && requiredParams > 0) {
+                            // Zero arity without arguments object or rest params usage - potentially problematic
+                            const arityError = `${functionName}: Zero arity but requires ${requiredParams} parameters and doesn't use arguments object or rest parameters`;
                             functionAnalysis[functionName].errors.push(arityError);
                             primeValidationErrors.push(arityError);
                         }
 
                         functionAnalysis[functionName].tested = 'arity-analysis';
-                        functionAnalysis[functionName].usesArguments = usesArguments;
+                        functionAnalysis[functionName].usesArguments = usesVariableArgs;
                         functionAnalysis[functionName].runtimeArity = runtimeArity;
                         functionAnalysis[functionName].requiredParams = requiredParams;
                     }

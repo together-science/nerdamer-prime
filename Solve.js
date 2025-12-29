@@ -1502,11 +1502,12 @@ if (typeof module !== 'undefined') {
         if (eqns instanceof core.Vector) {
             eqns = eqns.elements;
         }
-        solve_for ||= 'x'; // Assumes x by default
         // If it's an array then solve it as a system of equations
+        // Must check BEFORE the default assignment to preserve original solve_for value
         if (isArray(eqns)) {
-            return __.solveSystem.apply(undefined, arguments);
+            return __.solveSystem(eqns, solve_for);
         }
+        solve_for ||= 'x'; // Assumes x by default
 
         if (isSymbol(eqns) && evaluate(eqns.getDenom(), known).equals(0) === true) {
             return solutions;

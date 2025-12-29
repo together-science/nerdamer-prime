@@ -119,13 +119,13 @@ if (typeof module !== 'undefined') {
 
                         core.Utils.block(
                             'PARSE2NUMBER',
-                            function () {
+                            () => {
                                 const u = t;
                                 const sym = symbol.sub(t, u);
                                 const integration_expr = _.parse(`e^(-${s}*${u})*${sym}`);
                                 retval = core.Calculus.integrate(integration_expr, u);
                                 if (retval.hasIntegral()) {
-                                    retval = _.symfunction('laplace', arguments);
+                                    retval = _.symfunction('laplace', [symbol, t, s]);
                                     return;
                                 }
                                 //                                _.error('Unable to compute transform');
@@ -457,20 +457,18 @@ if (typeof module !== 'undefined') {
 
                 return sum;
             },
-            mean() {
-                const args = [].slice.call(arguments);
+            mean(...args) {
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.mean.apply(this, args[0].elements);
+                    return __.Statistics.mean(...args[0].elements);
                 }
                 return _.divide(__.Statistics.sum(args), __.Statistics.count(args));
             },
-            median() {
-                const args = [].slice.call(arguments);
+            median(...args) {
                 let retval;
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.median.apply(this, args[0].elements);
+                    return __.Statistics.median(...args[0].elements);
                 }
                 try {
                     const sorted = __.Statistics.sort(args);
@@ -489,12 +487,11 @@ if (typeof module !== 'undefined') {
                 }
                 return retval;
             },
-            mode() {
-                const args = [].slice.call(arguments);
+            mode(...args) {
                 let retval;
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.mode.apply(this, args[0].elements);
+                    return __.Statistics.mode(...args[0].elements);
                 }
 
                 const map = __.Statistics.frequencyMap(args);
@@ -540,35 +537,31 @@ if (typeof module !== 'undefined') {
                 const sum = __.Statistics.sum(args, x_);
                 return _.multiply(k, sum);
             },
-            variance() {
-                const args = [].slice.call(arguments);
+            variance(...args) {
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.variance.apply(this, args[0].elements);
+                    return __.Statistics.variance(...args[0].elements);
                 }
                 const k = _.divide(new NerdamerSymbol(1), __.Statistics.count(args));
                 return __.Statistics.gVariance(k, args);
             },
-            sampleVariance() {
-                const args = [].slice.call(arguments);
+            sampleVariance(...args) {
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.sampleVariance.apply(this, args[0].elements);
+                    return __.Statistics.sampleVariance(...args[0].elements);
                 }
 
                 const k = _.divide(new NerdamerSymbol(1), _.subtract(__.Statistics.count(args), new NerdamerSymbol(1)));
                 return __.Statistics.gVariance(k, args);
             },
-            standardDeviation() {
-                const args = [].slice.call(arguments);
+            standardDeviation(...args) {
                 // Handle arrays
                 if (isVector(args[0])) {
                     return __.Statistics.standardDeviation(...args[0].elements);
                 }
                 return _.pow(__.Statistics.variance(...args), new NerdamerSymbol(1 / 2));
             },
-            sampleStandardDeviation() {
-                const args = [].slice.call(arguments);
+            sampleStandardDeviation(...args) {
                 // Handle arrays
                 if (isVector(args[0])) {
                     return __.Statistics.sampleStandardDeviation(...args[0].elements);

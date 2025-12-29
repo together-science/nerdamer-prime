@@ -753,8 +753,7 @@ const nerdamer = (function (imports) {
      *     format('{0} nice, {0} sweet', 'something');
      *     //returns 'something nice, something sweet'
      */
-    const format = function () {
-        const args = [].slice.call(arguments);
+    const format = function (...args) {
         const str = args.shift();
         const new_str = str.replace(/\{(?<idx>\d+)\}/gu, (match, index) => {
             const arg = args[index];
@@ -1840,8 +1839,8 @@ const nerdamer = (function (imports) {
             /* Done*/
             return r;
         },
-        GCD() {
-            const args = arrayUnique([].slice.call(arguments).map(x => Math.abs(x))).sort();
+        GCD(...rest) {
+            const args = arrayUnique(rest.map(x => Math.abs(x))).sort();
             let a = Math.abs(args.shift());
             let n = args.length;
 
@@ -1861,8 +1860,7 @@ const nerdamer = (function (imports) {
             }
             return a;
         },
-        QGCD() {
-            const args = [].slice.call(arguments);
+        QGCD(...args) {
             let a = args[0];
             for (let i = 1; i < args.length; i++) {
                 const b = args[i];
@@ -3046,13 +3044,13 @@ const nerdamer = (function (imports) {
          *
          * @returns {Expression}
          */
-        evaluate() {
+        evaluate(...args) {
             // Don't evaluate an empty vector
             if (isVector(this.symbol) && this.symbol.dimensions() === 0) {
                 return this;
             }
 
-            const first_arg = arguments[0];
+            const first_arg = args[0];
             let expression;
             let idx = 1;
 
@@ -3068,7 +3066,7 @@ const nerdamer = (function (imports) {
                 idx--;
             }
 
-            const subs = arguments[idx] || {};
+            const subs = args[idx] || {};
 
             const retval = new Expression(block('PARSE2NUMBER', () => _.parse(expression, subs), true));
 
@@ -5918,7 +5916,7 @@ const nerdamer = (function (imports) {
                         return complex.evaluate(symbol, 'acos');
                     }
                 }
-                return _.symfunction('acos', arguments);
+                return _.symfunction('acos', [symbol]);
             },
             asin(symbol) {
                 if (Settings.PARSE2NUMBER) {
@@ -5940,7 +5938,7 @@ const nerdamer = (function (imports) {
                         return complex.evaluate(symbol, 'asin');
                     }
                 }
-                return _.symfunction('asin', arguments);
+                return _.symfunction('asin', [symbol]);
             },
             atan(symbol) {
                 let retval;
@@ -5958,11 +5956,11 @@ const nerdamer = (function (imports) {
                     if (symbol.isImaginary()) {
                         return complex.evaluate(symbol, 'atan');
                     }
-                    return _.symfunction('atan', arguments);
+                    return _.symfunction('atan', [symbol]);
                 } else if (symbol.equals(-1)) {
                     retval = _.parse('-pi/4');
                 } else {
-                    retval = _.symfunction('atan', arguments);
+                    retval = _.symfunction('atan', [symbol]);
                 }
                 return retval;
             },
@@ -5978,7 +5976,7 @@ const nerdamer = (function (imports) {
                         return complex.evaluate(symbol, 'asec');
                     }
                 }
-                return _.symfunction('asec', arguments);
+                return _.symfunction('asec', [symbol]);
             },
             acsc(symbol) {
                 if (Settings.PARSE2NUMBER) {
@@ -5990,7 +5988,7 @@ const nerdamer = (function (imports) {
                         return complex.evaluate(symbol, 'acsc');
                     }
                 }
-                return _.symfunction('acsc', arguments);
+                return _.symfunction('acsc', [symbol]);
             },
             acot(symbol) {
                 if (Settings.PARSE2NUMBER) {
@@ -6002,7 +6000,7 @@ const nerdamer = (function (imports) {
                         return complex.evaluate(symbol, 'acot');
                     }
                 }
-                return _.symfunction('acot', arguments);
+                return _.symfunction('acot', [symbol]);
             },
             atan2(a, b) {
                 if (a.equals(0) && b.equals(0)) {
@@ -6012,7 +6010,7 @@ const nerdamer = (function (imports) {
                 if (Settings.PARSE2NUMBER && a.isConstant() && b.isConstant()) {
                     return new NerdamerSymbol(Math.atan2(a, b));
                 }
-                return _.symfunction('atan2', arguments);
+                return _.symfunction('atan2', [a, b]);
             },
         });
         // Object for functions which handle hyperbolic trig
@@ -6028,7 +6026,7 @@ const nerdamer = (function (imports) {
                     }
                 }
 
-                return _.symfunction('cosh', arguments);
+                return _.symfunction('cosh', [symbol]);
             },
             sinh(symbol) {
                 if (Settings.PARSE2NUMBER) {
@@ -6040,7 +6038,7 @@ const nerdamer = (function (imports) {
                     }
                 }
 
-                return _.symfunction('sinh', arguments);
+                return _.symfunction('sinh', [symbol]);
             },
             tanh(symbol) {
                 if (Settings.PARSE2NUMBER) {
@@ -6052,7 +6050,7 @@ const nerdamer = (function (imports) {
                     }
                 }
 
-                return _.symfunction('tanh', arguments);
+                return _.symfunction('tanh', [symbol]);
             },
             sech(symbol) {
                 if (Settings.PARSE2NUMBER) {
@@ -6065,7 +6063,7 @@ const nerdamer = (function (imports) {
                     return _.parse(format('1/cosh({0})', symbol));
                 }
 
-                return _.symfunction('sech', arguments);
+                return _.symfunction('sech', [symbol]);
             },
             csch(symbol) {
                 if (Settings.PARSE2NUMBER) {
@@ -6078,7 +6076,7 @@ const nerdamer = (function (imports) {
                     return _.parse(format('1/sinh({0})', symbol));
                 }
 
-                return _.symfunction('csch', arguments);
+                return _.symfunction('csch', [symbol]);
             },
             coth(symbol) {
                 if (Settings.PARSE2NUMBER) {
@@ -6091,7 +6089,7 @@ const nerdamer = (function (imports) {
                     return _.parse(format('1/tanh({0})', symbol));
                 }
 
-                return _.symfunction('coth', arguments);
+                return _.symfunction('coth', [symbol]);
             },
             acosh(symbol) {
                 let retval;
@@ -6100,7 +6098,7 @@ const nerdamer = (function (imports) {
                 } else if (Settings.PARSE2NUMBER) {
                     retval = evaluate(_.parse(format(`${Settings.LOG}(({0})+sqrt(({0})^2-1))`, symbol.toString())));
                 } else {
-                    retval = _.symfunction('acosh', arguments);
+                    retval = _.symfunction('acosh', [symbol]);
                 }
                 return retval;
             },
@@ -6111,7 +6109,7 @@ const nerdamer = (function (imports) {
                 } else if (Settings.PARSE2NUMBER) {
                     retval = evaluate(_.parse(format(`${Settings.LOG}(({0})+sqrt(({0})^2+1))`, symbol.toString())));
                 } else {
-                    retval = _.symfunction('asinh', arguments);
+                    retval = _.symfunction('asinh', [symbol]);
                 }
                 return retval;
             },
@@ -6122,7 +6120,7 @@ const nerdamer = (function (imports) {
                 } else if (Settings.PARSE2NUMBER) {
                     retval = evaluate(_.parse(format(`(1/2)*${Settings.LOG}((1+({0}))/(1-({0})))`, symbol.toString())));
                 } else {
-                    retval = _.symfunction('atanh', arguments);
+                    retval = _.symfunction('atanh', [symbol]);
                 }
                 return retval;
             },
@@ -6140,7 +6138,7 @@ const nerdamer = (function (imports) {
                         )
                     );
                 } else {
-                    retval = _.symfunction('asech', arguments);
+                    retval = _.symfunction('asech', [symbol]);
                 }
                 return retval;
             },
@@ -6151,7 +6149,7 @@ const nerdamer = (function (imports) {
                 } else if (Settings.PARSE2NUMBER) {
                     retval = evaluate(_.parse(format(`${Settings.LOG}((1+sqrt(1+({0})^2))/({0}))`, symbol.toString())));
                 } else {
-                    retval = _.symfunction('acsch', arguments);
+                    retval = _.symfunction('acsch', [symbol]);
                 }
                 return retval;
             },
@@ -6176,7 +6174,7 @@ const nerdamer = (function (imports) {
                         );
                     }
                 } else {
-                    retval = _.symfunction('acoth', arguments);
+                    retval = _.symfunction('acoth', [symbol]);
                 }
                 return retval;
             },
@@ -6798,11 +6796,7 @@ const nerdamer = (function (imports) {
             // allow omission of multiplication after coefficients
             e =
                 e
-                    .replace(Settings.IMPLIED_MULTIPLICATION_REGEX, function () {
-                        const str = arguments[4];
-                        const group1 = arguments[1];
-                        const group2 = arguments[2];
-                        const start = arguments[3];
+                    .replace(Settings.IMPLIED_MULTIPLICATION_REGEX, (match, group1, group2, start, str) => {
                         const first = str.charAt(start);
                         let before = '';
                         let d = '*';
@@ -6876,11 +6870,11 @@ const nerdamer = (function (imports) {
             post_function: [],
         };
 
-        this.callPeekers = function (name) {
+        this.callPeekers = function (name, ...rest) {
             if (Settings.callPeekers) {
                 const peekers = this.peekers[name];
                 // Remove the first items and stringify
-                const args = arguments2Array(arguments).slice(1).map(stringify);
+                const args = rest.map(stringify);
                 // Call each one of the peekers
                 for (let i = 0; i < peekers.length; i++) {
                     peekers[i].apply(null, args);
@@ -8063,7 +8057,7 @@ const nerdamer = (function (imports) {
                 const fractions = Vector.fromArray(cf.fractions.map(x => new NerdamerSymbol(x)));
                 return Vector.fromArray([new NerdamerSymbol(cf.sign), new NerdamerSymbol(cf.whole), fractions]);
             }
-            return _.symfunction('continued_fraction', arguments);
+            return _.symfunction('continued_fraction', [symbol, n]);
         }
         /**
          * Returns the error function
@@ -8080,7 +8074,7 @@ const nerdamer = (function (imports) {
             if (_symbol.isImaginary()) {
                 return complex.erf(symbol);
             }
-            return _.symfunction('erf', arguments);
+            return _.symfunction('erf', [symbol]);
         }
         /**
          * The mod function
@@ -8499,7 +8493,14 @@ const nerdamer = (function (imports) {
 
             // Return non numeric values unevaluated
             if (!num.isConstant(true)) {
-                return _.symfunction('nthroot', arguments);
+                const symArgs = [num, p];
+                if (typeof prec !== 'undefined') {
+                    symArgs.push(prec);
+                }
+                if (typeof asbig !== 'undefined') {
+                    symArgs.push(asbig);
+                }
+                return _.symfunction('nthroot', symArgs);
             }
 
             // Evaluate numeric values
@@ -8573,7 +8574,7 @@ const nerdamer = (function (imports) {
                     retval = _.multiply(_.symfunction('parens', [n]), _.symfunction('parens', [d]).invert());
                 }
             } else {
-                retval = _.symfunction('pfactor', arguments);
+                retval = _.symfunction('pfactor', [symbol]);
             }
             return retval;
         }
@@ -8726,8 +8727,7 @@ const nerdamer = (function (imports) {
          *
          * @returns {NerdamerSymbol}
          */
-        function max() {
-            const args = [].slice.call(arguments);
+        function max(...args) {
             if (allSame(args)) {
                 return args[0];
             }
@@ -8745,8 +8745,7 @@ const nerdamer = (function (imports) {
          *
          * @returns {NerdamerSymbol}
          */
-        function min() {
-            const args = [].slice.call(arguments);
+        function min(...args) {
             if (allSame(args)) {
                 return args[0];
             }
@@ -8769,7 +8768,7 @@ const nerdamer = (function (imports) {
             if (x.isConstant(true)) {
                 return new NerdamerSymbol(Math.sign(evaluate(x)));
             }
-            return _.symfunction('sign', arguments);
+            return _.symfunction('sign', [x]);
         }
 
         function sort(symbol, opt) {
@@ -8882,10 +8881,11 @@ const nerdamer = (function (imports) {
                 }
                 // Log(a,a) = 1 since the base is allowed to be changed.
                 // This was pointed out by Happypig375 in issue #280
-                if (arguments.length > 1 && allSame(arguments)) {
+                const args = typeof base !== 'undefined' ? [symbol, base] : [symbol];
+                if (args.length > 1 && allSame(args)) {
                     retval = new NerdamerSymbol(1);
                 } else {
-                    retval = _.symfunction(Settings.LOG, arguments);
+                    retval = _.symfunction(Settings.LOG, args);
                 }
 
                 if (s) {
@@ -8927,7 +8927,11 @@ const nerdamer = (function (imports) {
                 return _.multiply(retval, _.pow(new NerdamerSymbol(10), new NerdamerSymbol(exponent || 0)));
             }
 
-            return _.symfunction('round', arguments);
+            const roundArgs = [x];
+            if (typeof s !== 'undefined') {
+                roundArgs.push(s);
+            }
+            return _.symfunction('round', roundArgs);
         }
 
         /**
@@ -9221,7 +9225,7 @@ const nerdamer = (function (imports) {
             if (index.isConstant() && isInt(index)) {
                 return vec.elements[index];
             }
-            return _.symfunction('vecget', arguments);
+            return _.symfunction('vecget', [vec, index]);
         }
 
         /**
@@ -9259,7 +9263,7 @@ const nerdamer = (function (imports) {
          */
         function vecset(vec, index, value) {
             if (!index.isConstant) {
-                return _.symfunction('vecset', arguments);
+                return _.symfunction('vecset', [vec, index, value]);
             }
             vec.elements[index] = value;
             return vec;
@@ -9269,20 +9273,20 @@ const nerdamer = (function (imports) {
             if (i.isConstant() && j.isConstant()) {
                 return mat.elements[i][j];
             }
-            return _.symfunction('matget', arguments);
+            return _.symfunction('matget', [mat, i, j]);
         }
 
         function matgetrow(mat, i) {
             if (i.isConstant()) {
                 return new Matrix(mat.elements[i]);
             }
-            return _.symfunction('matgetrow', arguments);
+            return _.symfunction('matgetrow', [mat, i]);
         }
 
         function matsetrow(mat, i, x) {
             // Handle symbolics
             if (!i.isConstant()) {
-                return _.symfunction('matsetrow', arguments);
+                return _.symfunction('matsetrow', [mat, i, x]);
             }
             if (mat.elements[i].length !== x.elements.length) {
                 throw new DimensionError('Matrix row must match row dimensions!');
@@ -9295,7 +9299,7 @@ const nerdamer = (function (imports) {
         function matgetcol(mat, col_index) {
             // Handle symbolics
             if (!col_index.isConstant()) {
-                return _.symfunction('matgetcol', arguments);
+                return _.symfunction('matgetcol', [mat, col_index]);
             }
             col_index = Number(col_index);
             const M = Matrix.fromArray([]);
@@ -9310,7 +9314,7 @@ const nerdamer = (function (imports) {
         function matsetcol(mat, j, col) {
             // Handle symbolics
             if (!j.isConstant()) {
-                return _.symfunction('matsetcol', arguments);
+                return _.symfunction('matsetcol', [mat, j, col]);
             }
             j = Number(j);
             if (mat.rows() !== col.elements.length) {
@@ -9328,18 +9332,18 @@ const nerdamer = (function (imports) {
         }
 
         // The constructor for vectors
-        function vector() {
-            return new Vector([].slice.call(arguments));
+        function vector(...args) {
+            return new Vector(args);
         }
 
         // The constructor for matrices
-        function matrix() {
-            return Matrix.fromArray(arguments);
+        function matrix(...args) {
+            return Matrix.fromArray(args);
         }
 
         // The constructor for sets
-        function set() {
-            return Set.fromArray(arguments);
+        function set(...args) {
+            return Set.fromArray(args);
         }
 
         function determinant(symbol) {
@@ -9443,8 +9447,8 @@ const nerdamer = (function (imports) {
             return new Vector(primeList);
         }
 
-        function print() {
-            arguments2Array(arguments).forEach(x => {
+        function print(...args) {
+            args.forEach(x => {
                 // eslint-disable-next-line no-console
                 console.log(x.toString());
             });
@@ -9563,12 +9567,12 @@ const nerdamer = (function (imports) {
         };
 
         // The loader for functions which are not part of Math2
-        this.mapped_function = function () {
+        this.mapped_function = function (...args) {
             const subs = {};
             const { params } = this;
 
             for (let i = 0; i < params.length; i++) {
-                subs[params[i]] = String(arguments[i]);
+                subs[params[i]] = String(args[i]);
             }
 
             return _.parse(this.body, subs);
@@ -11792,7 +11796,7 @@ const nerdamer = (function (imports) {
         },
     };
     // Vector =======================================================================
-    function Vector(v) {
+    function Vector(v, ...rest) {
         this.multiplier = new Frac(1);
         if (isVector(v)) {
             this.elements = v.items.slice(0);
@@ -11806,8 +11810,10 @@ const nerdamer = (function (imports) {
                 this.elements = v.elements.map(row => row[0]);
                 this.rowVector = false;
             }
+        } else if (typeof v === 'undefined') {
+            this.elements = [];
         } else {
-            this.elements = [].slice.call(arguments);
+            this.elements = [v, ...rest];
         }
     }
     /*
@@ -12146,9 +12152,9 @@ const nerdamer = (function (imports) {
     };
 
     // Matrix =======================================================================
-    function Matrix() {
+    function Matrix(...args) {
         this.multiplier = new Frac(1);
-        const m = arguments;
+        const m = args;
         const l = m.length;
         let i;
         const el = [];
@@ -12602,11 +12608,15 @@ const nerdamer = (function (imports) {
     // Aliases
     Matrix.prototype.each = Matrix.prototype.eachElement;
 
-    function Set(set) {
+    function Set(set, ...rest) {
         this.elements = [];
         // If the first object isn't an array, convert it to one.
+        if (typeof set === 'undefined') {
+            // No arguments passed
+            return;
+        }
         if (!isVector(set)) {
-            set = Vector.fromArray(arguments);
+            set = Vector.fromArray([set, ...rest]);
         }
 
         if (set) {
@@ -13570,8 +13580,7 @@ const nerdamer = (function (imports) {
     libExports.updateAPI = function (override) {
         // Map internal functions to external ones
         const linker = function (fname) {
-            return function () {
-                const args = [].slice.call(arguments);
+            return function (...args) {
                 for (let i = 0; i < args.length; i++) {
                     args[i] = _.parse(args[i]);
                 }
