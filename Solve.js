@@ -86,6 +86,9 @@ if (typeof module !== 'undefined') {
     core.NerdamerSymbol.prototype.hasNegativeTerms = function hasNegativeTerms() {
         if (this.isComposite()) {
             for (const x in this.symbols) {
+                if (!Object.hasOwn(this.symbols, x)) {
+                    continue;
+                }
                 const sym = this.symbols[x];
                 if ((sym.group === PL && sym.hasNegativeTerms()) || this.symbols[x].power.lessThan(0)) {
                     return true;
@@ -179,9 +182,15 @@ if (typeof module !== 'undefined') {
                 // The logic: loop through each and if it has a denominator then multiply it out on both ends
                 // and then start over
                 for (const x in a.symbols) {
+                    if (!Object.hasOwn(a.symbols, x)) {
+                        continue;
+                    }
                     const sym = a.symbols[x];
                     if (sym.group === CB) {
                         for (const y in sym.symbols) {
+                            if (!Object.hasOwn(sym.symbols, y)) {
+                                continue;
+                            }
                             const sym2 = sym.symbols[y];
                             if (sym2.power.lessThan(0)) {
                                 const result = new Equation(
@@ -338,7 +347,7 @@ if (typeof module !== 'undefined') {
             if (!(eqn instanceof Equation)) {
                 const es = eqn.split('=');
                 // Convert falsey values to zero
-                es[1] = es[1] || '0';
+                es[1] ||= '0';
                 eqn = new Equation(_.parse(es[0]), _.parse(es[1]));
             }
             return eqn.toLHS(expand);
@@ -1587,6 +1596,9 @@ if (typeof module !== 'undefined') {
 
             if (symbol.symbols) {
                 for (const x in symbol.symbols) {
+                    if (!Object.hasOwn(symbol.symbols, x)) {
+                        continue;
+                    }
                     const sym = symbol.symbols[x];
 
                     // Get the denominator of the sub-symbol
@@ -1708,6 +1720,9 @@ if (typeof module !== 'undefined') {
                 // If the equation has more than one symbolic factor then solve those individually
                 if (factors.getNumberSymbolics() > 1) {
                     for (const factorKey in factors.factors) {
+                        if (!Object.hasOwn(factors.factors, factorKey)) {
+                            continue;
+                        }
                         addToResult(solve(factors.factors[factorKey], solveFor));
                     }
                 } else {

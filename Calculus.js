@@ -346,6 +346,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
         // Put back the remaining functions
         for (const x in map) {
+            if (!Object.hasOwn(map, x)) {
+                continue;
+            }
             retval = _.multiply(retval, map[x]);
         }
 
@@ -710,6 +713,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     const c = s.clone();
                     let result = new NerdamerSymbol(0);
                     for (const x in s.symbols) {
+                        if (!Object.hasOwn(s.symbols, x)) {
+                            continue;
+                        }
                         result = _.add(result, __.diff(s.symbols[x].clone(), d));
                     }
                     s = _.multiply(polydiff(c), result);
@@ -986,7 +992,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             },
 
             by_parts(symbol, dx, depth, o) {
-                o.previous = o.previous || [];
+                o.previous ||= [];
                 let retval;
                 // First LIATE
                 const udv = __.integration.get_udv(symbol);
@@ -2831,11 +2837,8 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         }
                     }
 
-                    // If we still don't have a solution
-                    if (!retval) // Return it symbolically
-                    {
-                        retval = _.symfunction('limit', [symbol, x, lim]);
-                    }
+                    // If we still don't have a solution, return it symbolically
+                    retval ||= _.symfunction('limit', [symbol, x, lim]);
                 } catch (e) {
                     if (e.message === 'timeout') {
                         throw e;

@@ -526,6 +526,9 @@ const nerdamer = (function initNerdamerCore(imports) {
 
             if (group === CP || group === CB || prevgroup === CP || prevgroup === CB) {
                 for (const x in obj.symbols) {
+                    if (!Object.hasOwn(obj.symbols, x)) {
+                        continue;
+                    }
                     variables(obj.symbols[x], poly, vars);
                 }
             } else if (group === S || prevgroup === S) {
@@ -1367,6 +1370,9 @@ const nerdamer = (function initNerdamerCore(imports) {
     const importFunctions = function () {
         const o = {};
         for (const x in _.functions) {
+            if (!Object.hasOwn(_.functions, x)) {
+                continue;
+            }
             o[x] = _.functions[x][0];
         }
         return o;
@@ -1901,6 +1907,9 @@ const nerdamer = (function initNerdamerCore(imports) {
             factors.symbols = {};
             factors.group = CB;
             for (const x in ifactors) {
+                if (!Object.hasOwn(ifactors, x)) {
+                    continue;
+                }
                 const factor = new NerdamerSymbol(1);
                 factor.group = P; /* Cheat a little*/
                 factor.value = x;
@@ -2463,93 +2472,71 @@ const nerdamer = (function initNerdamerCore(imports) {
 
     // Polyfills ====================================================================
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/
-    Math.sign =
-        Math.sign ||
-        function sign(x) {
-            x = Number(x); // Convert to a number
-            if (x === 0 || isNaN(x)) {
-                return x;
-            }
-            return x > 0 ? 1 : -1;
-        };
+    Math.sign ||= function sign(x) {
+        x = Number(x); // Convert to a number
+        if (x === 0 || isNaN(x)) {
+            return x;
+        }
+        return x > 0 ? 1 : -1;
+    };
 
-    Math.cosh =
-        Math.cosh ||
-        function cosh(x) {
-            const y = Math.exp(x);
-            return (y + 1 / y) / 2;
-        };
+    Math.cosh ||= function cosh(x) {
+        const y = Math.exp(x);
+        return (y + 1 / y) / 2;
+    };
 
-    Math.sech =
-        Math.sech ||
-        function sech(x) {
-            return 1 / Math.cosh(x);
-        };
+    Math.sech ||= function sech(x) {
+        return 1 / Math.cosh(x);
+    };
 
-    Math.csch =
-        Math.csch ||
-        function csch(x) {
-            return 1 / Math.sinh(x);
-        };
+    Math.csch ||= function csch(x) {
+        return 1 / Math.sinh(x);
+    };
 
-    Math.coth =
-        Math.coth ||
-        function coth(x) {
-            return 1 / Math.tanh(x);
-        };
+    Math.coth ||= function coth(x) {
+        return 1 / Math.tanh(x);
+    };
 
-    Math.sinh =
-        Math.sinh ||
-        function sinh(x) {
-            const y = Math.exp(x);
-            return (y - 1 / y) / 2;
-        };
+    Math.sinh ||= function sinh(x) {
+        const y = Math.exp(x);
+        return (y - 1 / y) / 2;
+    };
 
-    Math.tanh =
-        Math.tanh ||
-        function tanh(x) {
-            if (x === Infinity) {
-                return 1;
-            }
-            if (x === -Infinity) {
-                return -1;
-            }
-            const y = Math.exp(2 * x);
-            return (y - 1) / (y + 1);
-        };
+    Math.tanh ||= function tanh(x) {
+        if (x === Infinity) {
+            return 1;
+        }
+        if (x === -Infinity) {
+            return -1;
+        }
+        const y = Math.exp(2 * x);
+        return (y - 1) / (y + 1);
+    };
 
-    Math.asinh =
-        Math.asinh ||
-        function asinh(x) {
-            if (x === -Infinity) {
-                return x;
-            }
-            return Math.log(x + Math.sqrt(x * x + 1));
-        };
+    Math.asinh ||= function asinh(x) {
+        if (x === -Infinity) {
+            return x;
+        }
+        return Math.log(x + Math.sqrt(x * x + 1));
+    };
 
-    Math.acosh =
-        Math.acosh ||
-        function acosh(x) {
-            return Math.log(x + Math.sqrt(x * x - 1));
-        };
+    Math.acosh ||= function acosh(x) {
+        return Math.log(x + Math.sqrt(x * x - 1));
+    };
 
-    Math.atanh =
-        Math.atanh ||
-        function atanh(x) {
-            return Math.log((1 + x) / (1 - x)) / 2;
-        };
+    Math.atanh ||= function atanh(x) {
+        return Math.log((1 + x) / (1 - x)) / 2;
+    };
 
-    Math.trunc =
-        Math.trunc ||
-        function trunc(x) {
-            if (isNaN(x)) {
-                return NaN;
-            }
-            if (x > 0) {
-                return Math.floor(x);
-            }
-            return Math.ceil(x);
-        };
+    Math.trunc ||= function trunc(x) {
+        if (isNaN(x)) {
+            return NaN;
+        }
+        if (x > 0) {
+            return Math.floor(x);
+        }
+        return Math.ceil(x);
+    };
 
     // Global functions =============================================================
     /**
@@ -3831,6 +3818,9 @@ const nerdamer = (function initNerdamerCore(imports) {
 
                 // Console.log("  unit main part: "+this)
                 for (const termkey in retval.symbols) {
+                    if (!Object.hasOwn(retval.symbols, termkey)) {
+                        continue;
+                    }
                     retval.symbols[termkey] = retval.symbols[termkey].clone().negate();
                     // Console.log("  negated term: "+this.symbols[termkey])
                     if (retval.group === CB) {
@@ -3960,6 +3950,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                 let in_ = new Frac(1);
 
                 for (const x in mfactors) {
+                    if (!Object.hasOwn(mfactors, x)) {
+                        continue;
+                    }
                     let n = new Frac(mfactors[x]);
                     if (!n.lessThan(min)) {
                         n = n.divide(min).subtract(new Frac(1));
@@ -4066,6 +4059,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                     return true;
                 }
                 for (const x in this.symbols) {
+                    if (!Object.hasOwn(this.symbols, x)) {
+                        continue;
+                    }
                     const sym = this.symbols[x];
                     // Sqrt(x)
                     if (sym.group === FN && !sym.args[0].isConstant()) {
@@ -4245,6 +4241,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                 if (a.isComposite() && symbol.isComposite() && symbol.isLinear() && a.isLinear()) {
                     const find = function (stack, needle) {
                         for (const x in stack.symbols) {
+                            if (!Object.hasOwn(stack.symbols, x)) {
+                                continue;
+                            }
                             const sym = stack.symbols[x];
                             // If the symbol equals the needle or it's within the sub-symbols we're done
                             if ((sym.isComposite() && find(sym, needle)) || sym.equals(needle)) {
@@ -4255,6 +4254,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                     };
                     // Go fish
                     for (const x in a.symbols) {
+                        if (!Object.hasOwn(a.symbols, x)) {
+                            continue;
+                        }
                         if (!find(symbol, a.symbols[x])) {
                             return symbol.clone();
                         }
@@ -4594,6 +4596,9 @@ const nerdamer = (function initNerdamerCore(imports) {
             if (this.symbols) {
                 clone.symbols = {};
                 for (const x in this.symbols) {
+                    if (!Object.hasOwn(this.symbols, x)) {
+                        continue;
+                    }
                     clone.symbols[x] = this.symbols[x].clone();
                 }
             }
@@ -4652,9 +4657,15 @@ const nerdamer = (function initNerdamerCore(imports) {
                 fn.call(this, this, this.value);
             } else {
                 for (const x in this.symbols) {
+                    if (!Object.hasOwn(this.symbols, x)) {
+                        continue;
+                    }
                     const sym = this.symbols[x];
                     if (sym.group === PL && deep) {
                         for (const y in sym.symbols) {
+                            if (!Object.hasOwn(sym.symbols, y)) {
+                                continue;
+                            }
                             fn.call(x, sym.symbols[y], y);
                         }
                     } else {
@@ -4774,6 +4785,9 @@ const nerdamer = (function initNerdamerCore(imports) {
             const isOne = all ? this.power.absEquals(1) : this.power.equals(1);
             if (this.symbols && isOne && this.group !== CB && !this.multiplier.equals(1)) {
                 for (const x in this.symbols) {
+                    if (!Object.hasOwn(this.symbols, x)) {
+                        continue;
+                    }
                     const s = this.symbols[x];
                     s.multiplier = s.multiplier.multiply(this.multiplier);
                     s.distributeMultiplier();
@@ -4792,6 +4806,9 @@ const nerdamer = (function initNerdamerCore(imports) {
             if (!this.power.equals(1)) {
                 const p = this.power;
                 for (const x in this.symbols) {
+                    if (!Object.hasOwn(this.symbols, x)) {
+                        continue;
+                    }
                     const s = this.symbols[x];
                     if (s.group === EX) {
                         s.power = _.multiply(s.power, new NerdamerSymbol(p));
@@ -5093,6 +5110,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                 collected.push(this);
             } else {
                 for (const x in this.symbols) {
+                    if (!Object.hasOwn(this.symbols, x)) {
+                        continue;
+                    }
                     const symbol = this.symbols[x];
                     if (expandSymbol && (symbol.group === PL || symbol.group === CP)) {
                         collected = collected.concat(symbol.collectSymbols());
@@ -5123,6 +5143,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                 collected.push(this);
             } else {
                 for (const x in this.symbols) {
+                    if (!Object.hasOwn(this.symbols, x)) {
+                        continue;
+                    }
                     const symbol = this.symbols[x];
                     if (expandSymbol && (symbol.group === PL || symbol.group === CP)) {
                         collected = collected.concat(symbol.collectSymbols());
@@ -5216,6 +5239,9 @@ const nerdamer = (function initNerdamerCore(imports) {
             } else if (symbol.group === CB) {
                 retval = _.parse(symbol.multiplier.den);
                 for (const x in symbol.symbols) {
+                    if (!Object.hasOwn(symbol.symbols, x)) {
+                        continue;
+                    }
                     const s = symbol.symbols[x];
                     if (s.power < 0 || (s.group === EX && s.power.multiplier.lessThan(0))) {
                         retval = _.multiply(retval, symbol.symbols[x].clone().invert());
@@ -5294,6 +5320,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                 // eslint-disable-next-line no-use-before-define -- operators is defined later but this function is only called after
                 const operator = operators[node];
                 for (const x in operator) {
+                    if (!Object.hasOwn(operator, x)) {
+                        continue;
+                    }
                     this[x] = operator[x];
                 }
             } else if (nodeType === Token.FUNCTION) {
@@ -6717,6 +6746,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                 const { precedence } = operator;
 
                 for (const x in operators) {
+                    if (!Object.hasOwn(operators, x)) {
+                        continue;
+                    }
                     const o = operators[x];
                     const condition = shift === 'over' ? o.precedence >= precedence : o.precedence > precedence;
                     if (condition) {
@@ -6741,6 +6773,9 @@ const nerdamer = (function initNerdamerCore(imports) {
             const operator = operators[o];
             // Copy everything over to the new operator
             for (const x in operator) {
+                if (!Object.hasOwn(operator, x)) {
+                    continue;
+                }
                 t[x] = operator[x];
             }
             // Update the symbol
@@ -6893,6 +6928,9 @@ const nerdamer = (function initNerdamerCore(imports) {
             e = e.trim().replace(/\s+/gu, ' ');
             // Remove spaces before and after brackets
             for (const x in brackets) {
+                if (!Object.hasOwn(brackets, x)) {
+                    continue;
+                }
                 // eslint-disable-next-line require-unicode-regexp
                 const regex = new RegExp(brackets[x].is_close ? `\\s+\\${x}` : `\\${x}\\s+`, 'g');
                 e = e.replace(regex, x);
@@ -7357,6 +7395,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                 // Prepare the substitutions.
                 // we first parse them out as-is
                 for (const x in substitutions) {
+                    if (!Object.hasOwn(substitutions, x)) {
+                        continue;
+                    }
                     substitutions[x] = _.parse(substitutions[x], {});
                 }
 
@@ -8312,6 +8353,9 @@ const nerdamer = (function initNerdamerCore(imports) {
             if (symbol.group === CB && symbol.isLinear()) {
                 let m = sqrt(NerdamerSymbol(symbol.multiplier));
                 for (const s in symbol.symbols) {
+                    if (!Object.hasOwn(symbol.symbols, s)) {
+                        continue;
+                    }
                     const x = symbol.symbols[s];
                     m = _.multiply(m, sqrt(x));
                 }
@@ -8365,6 +8409,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                     const factors = Math2.ifactor(q);
                     let tw = 1;
                     for (const x in factors) {
+                        if (!Object.hasOwn(factors, x)) {
+                            continue;
+                        }
                         const n = factors[x];
                         const nn = n - (n % 2); // Get out the whole numbers
                         if (nn) {
@@ -8562,6 +8609,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                 if (isInt(m)) {
                     const factors = Math2.ifactor(m);
                     for (const factor in factors) {
+                        if (!Object.hasOwn(factors, factor)) {
+                            continue;
+                        }
                         const p = factors[factor];
                         retval = _.multiply(
                             retval,
@@ -9701,6 +9751,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                         result = a; // CL
                         if (a.multiplier.isOne() && b.multiplier.isOne() && g1 === CP && a.isLinear() && b.isLinear()) {
                             for (const s in b.symbols) {
+                                if (!Object.hasOwn(b.symbols, s)) {
+                                    continue;
+                                }
                                 const x = b.symbols[s];
                                 result.attach(x);
                             }
@@ -9735,6 +9788,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                         b.distributeMultiplier();
                         // CL
                         for (const s in b.symbols) {
+                            if (!Object.hasOwn(b.symbols, s)) {
+                                continue;
+                            }
                             const x = b.symbols[s];
                             a.attach(x);
                         }
@@ -10148,14 +10204,17 @@ const nerdamer = (function initNerdamerCore(imports) {
                         }, true);
                     } else {
                         // Add the powers
-                        result.power = toEX
-                            ? _.add(
-                                  !isSymbol(p1) ? new NerdamerSymbol(p1) : p1,
-                                  !isSymbol(p2) ? new NerdamerSymbol(p2) : p2
-                              )
-                            : g1 === N /* Don't add powers for N*/
-                              ? p1
-                              : p1.add(p2);
+                        if (toEX) {
+                            result.power = _.add(
+                                !isSymbol(p1) ? new NerdamerSymbol(p1) : p1,
+                                !isSymbol(p2) ? new NerdamerSymbol(p2) : p2
+                            );
+                        } else if (g1 === N) {
+                            // Don't add powers for N
+                            result.power = p1;
+                        } else {
+                            result.power = p1.add(p2);
+                        }
 
                         // Eliminate zero power values and convert them to numbers
                         if (result.power.equals(0)) {
@@ -10190,6 +10249,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                     }
                     if (g2 === CB && b.isLinear()) {
                         for (const s in b.symbols) {
+                            if (!Object.hasOwn(b.symbols, s)) {
+                                continue;
+                            }
                             const x = b.symbols[s];
                             result = result.combine(x);
                         }
@@ -12227,10 +12289,12 @@ const nerdamer = (function initNerdamerCore(imports) {
             return M;
         },
         set(row, column, value, raw) {
-            if (!this.elements[row]) {
-                this.elements[row] = [];
+            this.elements[row] ||= [];
+            if (raw || isSymbol(value)) {
+                this.elements[row][column] = value;
+            } else {
+                this.elements[row][column] = new NerdamerSymbol(value);
             }
-            this.elements[row][column] = raw ? value : isSymbol(value) ? value : new NerdamerSymbol(value);
         },
         cols() {
             return this.elements[0].length;
@@ -12595,6 +12659,9 @@ const nerdamer = (function initNerdamerCore(imports) {
             return format('\\begin{vmatrix}{0}\\end{vmatrix}', () => {
                 const tex = [];
                 for (const row in elements) {
+                    if (!Object.hasOwn(elements, row)) {
+                        continue;
+                    }
                     const rowTex = [];
                     for (let i = 0; i < cols; i++) {
                         rowTex.push(LaTeX.latex(elements[row][i], option));
@@ -12858,6 +12925,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                     const cc = [];
 
                     for (const x in sym.symbols) {
+                        if (!Object.hasOwn(sym.symbols, x)) {
+                            continue;
+                        }
                         const s = sym.symbols[x];
                         let ft = ftext(s, xports)[0];
                         // Wrap it in brackets if it's group PL or CP
@@ -12964,6 +13034,9 @@ const nerdamer = (function initNerdamerCore(imports) {
 
             // Make all the substitutions;
             for (const x in dependencies[0]) {
+                if (!Object.hasOwn(dependencies[0], x)) {
+                    continue;
+                }
                 const alias = dependencies[0][x];
                 fArray[1] = fArray[1].replace(x, alias);
                 dependencies[1] = dependencies[1].replace(x, alias);
@@ -13502,6 +13575,9 @@ const nerdamer = (function initNerdamerCore(imports) {
             result = VARS;
         } else {
             for (const v in VARS) {
+                if (!Object.hasOwn(VARS, v)) {
+                    continue;
+                }
                 if (output === 'latex') {
                     result[v] = VARS[v].latex(option);
                 } else if (output === 'text') {
@@ -13523,6 +13599,9 @@ const nerdamer = (function initNerdamerCore(imports) {
         // PARSE2NUMBER, suppress_errors
         if (typeof setting === 'object') {
             for (const x in setting) {
+                if (!Object.hasOwn(setting, x)) {
+                    continue;
+                }
                 libExports.set(x, setting[x]);
             }
         }

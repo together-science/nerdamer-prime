@@ -48,7 +48,7 @@ if (typeof module !== 'undefined') {
     function Polynomial(symbol, variable, order) {
         if (core.Utils.isSymbol(symbol)) {
             this.parse(symbol);
-            this.variable = this.variable || variable;
+            this.variable ||= variable;
         } else if (!isNaN(symbol)) {
             order ||= 0;
             if (variable === undefined) {
@@ -133,6 +133,9 @@ if (typeof module !== 'undefined') {
                 c[symbol.power.toDecimal()] = symbol.multiplier;
             } else {
                 for (const x in symbol.symbols) {
+                    if (!Object.hasOwn(symbol.symbols, x)) {
+                        continue;
+                    }
                     const sub = symbol.symbols[x];
                     let p = sub.power;
                     if (core.Utils.isSymbol(p)) {
@@ -601,6 +604,9 @@ if (typeof module !== 'undefined') {
         const s = this.clone().distributeMultiplier();
         if (s.isComposite()) {
             for (const x in s.symbols) {
+                if (!Object.hasOwn(s.symbols, x)) {
+                    continue;
+                }
                 const sub = s.symbols[x];
                 if (sub.isComposite()) {
                     sub.clone().distributeMultiplier().coeffs(c, withOrder);
@@ -647,6 +653,9 @@ if (typeof module !== 'undefined') {
             const nterm = new MVTerm(symbol.multiplier, [], map);
             if (g === CB) {
                 for (const x in symbol.symbols) {
+                    if (!Object.hasOwn(symbol.symbols, x)) {
+                        continue;
+                    }
                     const sym = symbol.symbols[x];
                     nterm.terms[map[x]] = sym.power;
                 }
@@ -675,6 +684,9 @@ if (typeof module !== 'undefined') {
             return false;
         }
         for (const x in this.symbols) {
+            if (!Object.hasOwn(this.symbols, x)) {
+                continue;
+            }
             const a = this.symbols[x];
             const b = symbol.symbols[x];
             if (!b) {
@@ -858,6 +870,9 @@ if (typeof module !== 'undefined') {
      */
     Factors.prototype.each = function each(f) {
         for (const x in this.factors) {
+            if (!Object.hasOwn(this.factors, x)) {
+                continue;
+            }
             let factor = this.factors[x];
             if (factor.fname === core.PARENTHESIS && factor.isLinear()) {
                 factor = factor.args[0];
@@ -911,7 +926,7 @@ if (typeof module !== 'undefined') {
         this.image = undefined;
     }
     MVTerm.prototype.updateCount = function updateCount() {
-        this.count = this.count || 0;
+        this.count ||= 0;
         for (let i = 0; i < this.terms.length; i++) {
             if (!this.terms[i].equals(0)) {
                 this.count++;
@@ -957,6 +972,9 @@ if (typeof module !== 'undefined') {
         }
         const o = {};
         for (const x in this.map) {
+            if (!Object.hasOwn(this.map, x)) {
+                continue;
+            }
             o[this.map[x]] = x;
         }
         this.revMap = o;
@@ -1101,6 +1119,9 @@ if (typeof module !== 'undefined') {
         const subs = {};
         // Prepare substitutions
         for (const x in map) {
+            if (!Object.hasOwn(map, x)) {
+                continue;
+            }
             subs[map[x]] = _.parse(x);
         }
         return subs;
@@ -2110,7 +2131,13 @@ if (typeof module !== 'undefined') {
                     }
 
                     // Remove 1 as the multiplier and discard imaginary part if there isn't one.
-                    img = Math.abs(img) === 1 ? `${sign}i` : img ? `${img}*i` : '';
+                    if (Math.abs(img) === 1) {
+                        img = `${sign}i`;
+                    } else if (img) {
+                        img = `${img}*i`;
+                    } else {
+                        img = '';
+                    }
 
                     const num = real && img ? `${real}+${img}` : real + img;
                     zeror[i] = num.replace(/\+-/gu, '-');
@@ -2276,6 +2303,9 @@ if (typeof module !== 'undefined') {
                 powers = powers.concat(keys(e.symbols));
             } else if (g === CP) {
                 for (const s in e.symbols) {
+                    if (!Object.hasOwn(e.symbols, s)) {
+                        continue;
+                    }
                     const symbol = e.symbols[s];
                     const symGroup = symbol.group;
                     const v = symbol.value;
@@ -2900,6 +2930,9 @@ if (typeof module !== 'undefined') {
                             }
 
                             for (const x in tFactors.factors) {
+                                if (!Object.hasOwn(tFactors.factors, x)) {
+                                    continue;
+                                }
                                 // Store the current factor in tFactor
                                 const tFactor = tFactors.factors[x];
                                 factors.add(_.pow(tFactor, _.parse(p)));
@@ -3137,6 +3170,9 @@ if (typeof module !== 'undefined') {
                         if (!isNaN(r)) {
                             // If it's a number
                             for (const x in cfactors) {
+                                if (!Object.hasOwn(cfactors, x)) {
+                                    continue;
+                                }
                                 // Check it's raised to a power
                                 const n = core.Utils.round(Math.log(x) / Math.log(Math.abs(r)), 8);
                                 if (isInt(n)) {
@@ -3215,7 +3251,13 @@ if (typeof module !== 'undefined') {
                 cfactors['1'] = 1;
                 while (cp--) {
                     for (const x in ltfactors) {
+                        if (!Object.hasOwn(ltfactors, x)) {
+                            continue;
+                        }
                         for (const y in cfactors) {
+                            if (!Object.hasOwn(cfactors, y)) {
+                                continue;
+                            }
                             for (let i = 0; i < nfactors.length; i++) {
                                 let factorFound = check(x, y, nfactors[i], cp);
                                 if (factorFound) {
@@ -3454,6 +3496,9 @@ if (typeof module !== 'undefined') {
                     }
 
                     for (const x in sorted) {
+                        if (!Object.hasOwn(sorted, x)) {
+                            continue;
+                        }
                         const r = _.parse(`${x}^${maxes[x]}`);
                         const div = _.divide(sorted[x], r);
                         const newFactor = _.expand(div);
@@ -3595,6 +3640,9 @@ if (typeof module !== 'undefined') {
             if (g === PL || g === CP) {
                 status = true;
                 for (const s in e.symbols) {
+                    if (!Object.hasOwn(e.symbols, s)) {
+                        continue;
+                    }
                     const symbol = e.symbols[s];
                     const sg = symbol.group;
                     if (sg === FN || sg === EX) {
@@ -4435,6 +4483,9 @@ if (typeof module !== 'undefined') {
                             let t = new NerdamerSymbol(0);
 
                             for (const x in denominators) {
+                                if (!Object.hasOwn(denominators, x)) {
+                                    continue;
+                                }
                                 t = _.add(t, _.divide(denominators[x], _.parse(x)));
                             }
 
@@ -4450,7 +4501,7 @@ if (typeof module !== 'undefined') {
             },
         },
         degree(symbol, v, o) {
-            o = o || {
+            o ||= {
                 nd: [], // Numeric
                 sd: [], // Symbolic
                 depth: 0, // Call depth
@@ -4848,6 +4899,9 @@ if (typeof module !== 'undefined') {
                     // Console.log("result: "+symbol.text());
                 } else if (symbol.containsFunction(['log', 'log10'])) {
                     for (const termkey in symbol.symbols) {
+                        if (!Object.hasOwn(symbol.symbols, termkey)) {
+                            continue;
+                        }
                         const term = symbol.symbols[termkey];
                         symbol.symbols[termkey] = __.Simplify.logSimp(term);
                     }

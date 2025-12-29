@@ -38,6 +38,9 @@ if (typeof module !== 'undefined') {
         let found;
         if (this.symbols) {
             for (const x in this.symbols) {
+                if (!Object.hasOwn(this.symbols, x)) {
+                    continue;
+                }
                 found = this.symbols[x].findFunction(fname);
                 if (found) {
                     break;
@@ -424,10 +427,7 @@ if (typeof module !== 'undefined') {
                 for (let i = 0, l = arr.length; i < l; i++) {
                     const e = arr[i];
                     const key = e.toString();
-                    if (!map[key]) // Default it to zero
-                    {
-                        map[key] = 0;
-                    }
+                    map[key] ||= 0; // Default it to zero
                     map[key]++; // Increment
                 }
                 return map;
@@ -502,6 +502,9 @@ if (typeof module !== 'undefined') {
                     // Invert by arraning them according to their frequency
                     const inverse = {};
                     for (const x in map) {
+                        if (!Object.hasOwn(map, x)) {
+                            continue;
+                        }
                         const freq = map[x];
                         // Check if it's in the inverse already
                         if (!(freq in inverse)) {

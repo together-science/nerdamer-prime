@@ -573,9 +573,6 @@ export default defineConfig([
             // Mathematical code often uses ++ and -- operators
             'no-plusplus': 'off',
 
-            // Guard-for-in not always needed in controlled object iteration
-            'guard-for-in': 'off',
-
             // Complex math functions often have many parameters and statements
             'max-params': 'off',
             'max-statements': 'off',
@@ -593,11 +590,7 @@ export default defineConfig([
             // Underscore-prefixed variables denote internal/private usage
             'no-underscore-dangle': 'off',
 
-            // Logical assignment operators - legacy code predates this syntax
-            'logical-assignment-operators': 'off',
-
             // Ternary usage patterns
-            'no-nested-ternary': 'off',
             'no-negated-condition': 'off',
         },
     },
