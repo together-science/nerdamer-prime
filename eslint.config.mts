@@ -179,7 +179,7 @@ const baseJsRules: Linter.RulesRecord = {
     'max-depth': ['error', { max: 6 }],
     'max-nested-callbacks': ['error', { max: 5 }],
     'max-params': ['error', { max: 6 }],
-    'new-cap': ['error', { newIsCap: true, capIsNew: false }],
+    'new-cap': ['error', { newIsCap: true, capIsNew: false, newIsCapExceptions: ['bigInt', 'bigDec'] }],
     'no-alert': 'error',
     'no-array-constructor': 'error',
     'no-bitwise': ['error', { allow: ['~', '<<', '>>', '>>>'] }],
@@ -609,17 +609,6 @@ export default defineConfig([
             // Legacy patterns that work but aren't modern best practices
             'no-new-func': 'off', // Used for dynamic function generation
             'prefer-rest-params': 'off', // Uses arguments object
-            'prefer-spread': 'off', // Uses .apply()
-            'no-implicit-coercion': 'off', // Uses +x for number coercion
-            'no-bitwise': 'off', // Bitwise operations used in algorithms
-            'no-object-constructor': 'off', // Uses new Object()
-            'no-unused-expressions': 'off', // Side-effect expressions
-            'new-cap': 'off', // Dynamic constructor calls
-            'consistent-return': 'off', // Some functions have complex return paths
-            'no-lonely-if': 'off', // Nested if statements for clarity
-            'no-loop-func': 'off', // Functions in loops for closures
-            'no-useless-call': 'off', // .call() used for explicit context
-            'array-callback-return': 'off', // Side-effect callbacks
         },
     },
 

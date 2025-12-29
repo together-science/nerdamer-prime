@@ -492,14 +492,18 @@ if (typeof module !== 'undefined') {
                 // Set xn
                 xn = c.clone();
 
+                // Capture current values for use in callbacks
+                const currentO = o;
+                const currentC = c;
+
                 // Make all the substitutions for each of the equations
                 f_eqns.forEach((f, i) => {
-                    c.set(i, 0, f.apply(null, o));
+                    currentC.set(i, 0, f(...currentO));
                 });
 
                 let m = new core.Matrix();
                 J.each((fn, i, j) => {
-                    const ans = fn.apply(null, o);
+                    const ans = fn(...currentO);
                     m.set(i, j, ans);
                 });
 
@@ -730,7 +734,7 @@ if (typeof module !== 'undefined') {
                     // Strip the variables from the symbol so we're left with only the zeroth coefficient
                     // start with the symbol and remove each variable and its coefficient
                     let num = e.clone();
-                    vars.map(varName => {
+                    vars.forEach(varName => {
                         num = num.stripVar(varName, true);
                     });
                     c.set(i, 0, num.negate());
@@ -885,7 +889,7 @@ if (typeof module !== 'undefined') {
             const scope = {};
             core.Utils.arrayUnique(
                 variables(a).concat(variables(b)).concat(variables(c)).concat(variables(d)).concat(variables(e))
-            ).map(x => {
+            ).forEach(x => {
                 scope[x] = 1;
             });
             a = a.toString();
@@ -1100,7 +1104,7 @@ if (typeof module !== 'undefined') {
                     epsilon = Math.abs(right - left);
                     // Safety against an infinite loop
                     if (safety++ > core.Settings.MAX_BISECTION_ITER || isNaN(epsilon)) {
-                        return;
+                        return undefined;
                     }
                     // Calculate the middle point
                     middle = (left + right) / 2;
@@ -1121,7 +1125,9 @@ if (typeof module !== 'undefined') {
                     // Returns too many junk solutions if not rounded at 13th place.
                     return core.Utils.round(solution, 13);
                 }
+                return undefined;
             }
+            return undefined;
         },
         // Helper function for when Newton gets into the weeds
         // look from left and right of a sign-change interval
@@ -1194,7 +1200,7 @@ if (typeof module !== 'undefined') {
                 iter++;
                 if (iter > maxiter) {
                     // Console.log("   iter:"+iter+", last e:"+e);
-                    return;
+                    return undefined;
                 }
 
                 const fpx0 = fp(x0);
@@ -1202,7 +1208,7 @@ if (typeof module !== 'undefined') {
                 if (isNaN(fpx0) || isNaN(fx0)) {
                     // Nothing we can do
                     // console.log("   non-finite derivative");
-                    return;
+                    return undefined;
                 }
                 if (fpx0 === 0) {
                     // Max/min or saddle point. what can we do? repeat last delta.
@@ -1235,7 +1241,7 @@ if (typeof module !== 'undefined') {
                 delta = x - x0;
                 if (delta === 0 && !isFinite(fpx0)) {
                     // No movement
-                    return;
+                    return undefined;
                 }
                 e = Math.abs(delta);
                 x0 = x;
@@ -1349,18 +1355,20 @@ if (typeof module !== 'undefined') {
                     // Test the points. The dumb way of getting the answers
                     solutions = solutions.filter(e => {
                         if (e.isImaginary()) {
-                            return e;
+                            return true;
                         }
                         const subs = {};
                         subs[v] = e;
                         const point = evaluate(symbol, subs);
                         if (point.equals(0)) {
-                            return e;
+                            return true;
                         }
+                        return false;
                     });
                     return solutions;
                 }
             }
+            return undefined;
         },
     });
 
@@ -1607,13 +1615,14 @@ if (typeof module !== 'undefined') {
                         } else if (p.sign() === -1) {
                             const factor = _.parse(`${solve_for}^${Math.abs(p)}`); // This
                             // unwrap the symbol's denoniator
-                            symbol.each((y, index) => {
+                            const currentSymbol = symbol;
+                            currentSymbol.each((y, index) => {
                                 if (y.contains(solve_for)) {
-                                    symbol.symbols[index] = _.multiply(y, factor.clone());
+                                    currentSymbol.symbols[index] = _.multiply(y, factor.clone());
                                 }
                             });
                             fractionals = {};
-                            return correct_denom(_.parse(symbol));
+                            return correct_denom(_.parse(currentSymbol));
                         } else if (sym.group === PL) {
                             const min_p = core.Utils.arrayMin(core.Utils.keys(sym.symbols));
                             if (min_p < 0) {
@@ -1654,6 +1663,7 @@ if (typeof module !== 'undefined') {
             if (x.group === S) {
                 return _.divide(_.symfunction(name, [_.divide(rhs, _.parse(lhs.multiplier))]), parts[0]);
             }
+            return undefined;
         };
 
         // First remove any denominators
@@ -1708,7 +1718,7 @@ if (typeof module !== 'undefined') {
                             if (checkAll(roots, root => !core.Utils.isInt(root))) {
                                 // Roots have been calculates
                                 was_calculated = true;
-                                roots.map(root => {
+                                roots.forEach(root => {
                                     add_to_result(new NerdamerSymbol(root));
                                 });
                             }
@@ -1842,157 +1852,155 @@ if (typeof module !== 'undefined') {
                 });
                 // Console.log("solutions after filter: "+solutions);
             }
-        } else {
             // The idea here is to go through the equation and collect the coefficients
             // place them in an array and call the quad or cubic function to get the results
-            if (!eq.hasFunc(solve_for) && eq.isComposite()) {
-                try {
-                    // This is where solving certain quads goes wrong
+        } else if (!eq.hasFunc(solve_for) && eq.isComposite()) {
+            try {
+                // This is where solving certain quads goes wrong
 
-                    const factored = core.Algebra.Factor.factorInner(eq.clone());
-                    const test = _.expand(_.parse(factored));
-                    const test2 = _.expand(eq.clone());
-                    const diff = _.subtract(test, test2);
-                    let validFactorization = true;
-                    if (!diff.equals(0)) {
-                        // Console.log("factored: "+test);
-                        // console.log("original: "+test2);
-                        validFactorization = false;
-                    }
+                const factored = core.Algebra.Factor.factorInner(eq.clone());
+                const test = _.expand(_.parse(factored));
+                const test2 = _.expand(eq.clone());
+                const diff = _.subtract(test, test2);
+                let validFactorization = true;
+                if (!diff.equals(0)) {
+                    // Console.log("factored: "+test);
+                    // console.log("original: "+test2);
+                    validFactorization = false;
+                }
 
-                    if (validFactorization && factored.group === CB) {
-                        factored.each(factor => {
-                            add_to_result(solve(factor, solve_for));
-                        });
-                    } else {
-                        const coeffs = core.Utils.getCoeffs(eq, solve_for);
+                if (validFactorization && factored.group === CB) {
+                    factored.each(factor => {
+                        add_to_result(solve(factor, solve_for));
+                    });
+                } else {
+                    const coeffs = core.Utils.getCoeffs(eq, solve_for);
 
-                        const l = coeffs.length;
-                        const deg = l - 1; // The degree of the polynomial
-                        // get the denominator and make sure it doesn't have x
+                    const l = coeffs.length;
+                    const deg = l - 1; // The degree of the polynomial
+                    // get the denominator and make sure it doesn't have x
 
-                        // handle the problem based on the degree
-                        switch (deg) {
-                            case 0: {
-                                const separated = separate(eq);
-                                const lhs = separated[0];
-                                const rhs = separated[1];
+                    // handle the problem based on the degree
+                    switch (deg) {
+                        case 0: {
+                            const separated = separate(eq);
+                            const lhs = separated[0];
+                            const rhs = separated[1];
 
-                                if (lhs.group === core.groups.EX) {
-                                    // We have a*b^(mx) = rhs
-                                    // => log(b^(mx)) = log(rhs/a)
-                                    // => mx*log(b) = log(rhs/a)
-                                    // => x = log(rhs/a)/(m*log(b))
+                            if (lhs.group === core.groups.EX) {
+                                // We have a*b^(mx) = rhs
+                                // => log(b^(mx)) = log(rhs/a)
+                                // => mx*log(b) = log(rhs/a)
+                                // => x = log(rhs/a)/(m*log(b))
 
-                                    const log = core.Settings.LOG;
-                                    const expr_str = `${log}((${rhs})/(${lhs.multiplier}))/(${log}(${lhs.value})*${lhs.power.multiplier})`;
-                                    const parsed = _.parse(expr_str);
-                                    add_to_result(parsed);
-                                }
-                                break;
+                                const log = core.Settings.LOG;
+                                const expr_str = `${log}((${rhs})/(${lhs.multiplier}))/(${log}(${lhs.value})*${lhs.power.multiplier})`;
+                                const parsed = _.parse(expr_str);
+                                add_to_result(parsed);
                             }
-                            case 1:
-                                // Nothing to do but to return the quotient of the constant and the LT
-                                // e.g. 2*x-1
-                                add_to_result(_.divide(coeffs[0], coeffs[1].negate()));
-                                break;
-                            case 2:
-                                add_to_result(__.quad.apply(undefined, coeffs));
-                                break;
-                            case 3:
-                                add_to_result(__.cubic.apply(undefined, coeffs));
-                                break;
-                            case 4:
-                                add_to_result(__.quartic.apply(undefined, coeffs));
-                                break;
-                            default:
-                                add_to_result(__.csolve(eq, solve_for));
-                                if (solutions.length === 0) {
-                                    add_to_result(__.divideAndConquer(eq, solve_for));
-                                }
+                            break;
                         }
-
-                        if (solutions.length === 0) {
-                            // Try factoring
-                            add_to_result(solve(factored, solve_for, solutions, depth));
-                        }
+                        case 1:
+                            // Nothing to do but to return the quotient of the constant and the LT
+                            // e.g. 2*x-1
+                            add_to_result(_.divide(coeffs[0], coeffs[1].negate()));
+                            break;
+                        case 2:
+                            add_to_result(__.quad.apply(undefined, coeffs));
+                            break;
+                        case 3:
+                            add_to_result(__.cubic.apply(undefined, coeffs));
+                            break;
+                        case 4:
+                            add_to_result(__.quartic.apply(undefined, coeffs));
+                            break;
+                        default:
+                            add_to_result(__.csolve(eq, solve_for));
+                            if (solutions.length === 0) {
+                                add_to_result(__.divideAndConquer(eq, solve_for));
+                            }
                     }
-                } catch (e) {
-                    /* Something went wrong. EXITING*/
-                    if (e.message === 'timeout') {
-                        throw e;
+
+                    if (solutions.length === 0) {
+                        // Try factoring
+                        add_to_result(solve(factored, solve_for, solutions, depth));
                     }
                 }
-            } else {
-                try {
-                    const rw = __.rewrite(eq, null, solve_for);
-                    const lhs = rw[0];
-                    let rhs = rw[1];
-                    if (lhs.group === FN) {
-                        if (lhs.fname === 'abs') {
-                            // Solve only if solve_for was the only arg
-                            if (lhs.args[0].toString() === solve_for) {
-                                add_to_result([rhs.clone(), rhs.negate()]);
-                            }
-                        } else if (lhs.fname === 'sin') {
-                            // Asin
-                            add_to_result(__.inverseFunctionSolve('asin', lhs, rhs));
-                        } else if (lhs.fname === 'cos') {
-                            // Asin
-                            add_to_result(__.inverseFunctionSolve('acos', lhs, rhs));
-                        } else if (lhs.fname === 'tan') {
-                            // Asin
-                            add_to_result(__.inverseFunctionSolve('atan', lhs, rhs));
-                        } else if (lhs.fname === core.Settings.LOG) {
-                            // Ax+b comes back as [a, x, ax, b];
-                            const parts = explode(lhs.args[0], solve_for);
-                            // Check if x is by itself
-                            const x = parts[1];
-                            if (x.group === S) {
-                                rhs = _.divide(
-                                    _.subtract(
-                                        _.pow(
-                                            lhs.args.length > 1 ? lhs.args[1] : new NerdamerSymbol('e'),
-                                            _.divide(rhs, _.parse(lhs.multiplier))
-                                        ),
-                                        parts[3]
+            } catch (e) {
+                /* Something went wrong. EXITING*/
+                if (e.message === 'timeout') {
+                    throw e;
+                }
+            }
+        } else {
+            try {
+                const rw = __.rewrite(eq, null, solve_for);
+                const lhs = rw[0];
+                let rhs = rw[1];
+                if (lhs.group === FN) {
+                    if (lhs.fname === 'abs') {
+                        // Solve only if solve_for was the only arg
+                        if (lhs.args[0].toString() === solve_for) {
+                            add_to_result([rhs.clone(), rhs.negate()]);
+                        }
+                    } else if (lhs.fname === 'sin') {
+                        // Asin
+                        add_to_result(__.inverseFunctionSolve('asin', lhs, rhs));
+                    } else if (lhs.fname === 'cos') {
+                        // Asin
+                        add_to_result(__.inverseFunctionSolve('acos', lhs, rhs));
+                    } else if (lhs.fname === 'tan') {
+                        // Asin
+                        add_to_result(__.inverseFunctionSolve('atan', lhs, rhs));
+                    } else if (lhs.fname === core.Settings.LOG) {
+                        // Ax+b comes back as [a, x, ax, b];
+                        const parts = explode(lhs.args[0], solve_for);
+                        // Check if x is by itself
+                        const x = parts[1];
+                        if (x.group === S) {
+                            rhs = _.divide(
+                                _.subtract(
+                                    _.pow(
+                                        lhs.args.length > 1 ? lhs.args[1] : new NerdamerSymbol('e'),
+                                        _.divide(rhs, _.parse(lhs.multiplier))
                                     ),
-                                    parts[0]
-                                );
-                                const newEq = new Equation(x, rhs).toLHS();
-                                add_to_result(solve(newEq, solve_for));
-                            }
-                        } else {
-                            add_to_result(_.subtract(lhs, rhs));
+                                    parts[3]
+                                ),
+                                parts[0]
+                            );
+                            const newEq = new Equation(x, rhs).toLHS();
+                            add_to_result(solve(newEq, solve_for));
                         }
                     } else {
-                        const neq = new Equation(lhs, rhs).toLHS(); // Create a new equation
-
-                        if (neq.equals(eq)) {
-                            throw new Error('Stopping. No stop condition exists');
-                        }
-                        add_to_result(solve(neq, solve_for));
+                        add_to_result(_.subtract(lhs, rhs));
                     }
-                } catch (error) {
-                    if (error.message === 'timeout') {
-                        throw error;
-                    }
-                    // Let's try this another way
-                    // 1. if the symbol is in the form a*b*c*... then the solution is zero if
-                    // either a or b or c is zero.
-                    if (eq.group === CB) {
-                        add_to_result(0);
-                    } else if (eq.group === CP) {
-                        const separated = separate(eq);
-                        const lhs = separated[0];
-                        const rhs = separated[1];
+                } else {
+                    const neq = new Equation(lhs, rhs).toLHS(); // Create a new equation
 
-                        // Reduce the equation
-                        if (lhs.group === core.groups.EX && lhs.value === solve_for) {
-                            // Change the base of both sides
-                            const p = lhs.power.clone().invert();
-                            add_to_result(_.pow(rhs, p));
-                        }
+                    if (neq.equals(eq)) {
+                        throw new Error('Stopping. No stop condition exists');
+                    }
+                    add_to_result(solve(neq, solve_for));
+                }
+            } catch (error) {
+                if (error.message === 'timeout') {
+                    throw error;
+                }
+                // Let's try this another way
+                // 1. if the symbol is in the form a*b*c*... then the solution is zero if
+                // either a or b or c is zero.
+                if (eq.group === CB) {
+                    add_to_result(0);
+                } else if (eq.group === CP) {
+                    const separated = separate(eq);
+                    const lhs = separated[0];
+                    const rhs = separated[1];
+
+                    // Reduce the equation
+                    if (lhs.group === core.groups.EX && lhs.value === solve_for) {
+                        // Change the base of both sides
+                        const p = lhs.power.clone().invert();
+                        add_to_result(_.pow(rhs, p));
                     }
                 }
             }

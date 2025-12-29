@@ -2756,6 +2756,17 @@ describe('trigonometric functions', () => {
         expect(nerdamer('asec(0.89)').evaluate().text()).toEqual('0.0000000000000002505+0.4921996534425183*i'); // Has rounding errors
         expect(nerdamer('acsc(0.23)').evaluate().text()).toEqual('-2.1493278111894236*i+1.5707963267948960677'); // Has rounding errors
     });
+    it('should compute acot with numeric constant when PARSE2NUMBER is true', () => {
+        // Tests the PARSE2NUMBER code path in trig.acot which computes acot(x) = pi/2 - atan(x)
+        nerdamer.set('PARSE2NUMBER', true);
+        try {
+            const result = nerdamer('acot(1)');
+            // Acot(1) = pi/2 - atan(1) = pi/2 - pi/4 = pi/4 ≈ 0.7853981633974483
+            expect(result.evaluate().text('decimals').substring(0, 16)).toEqual('0.78539816339744');
+        } finally {
+            nerdamer.set('PARSE2NUMBER', false);
+        }
+    });
     it('should throw for wrong trigonometric arguments', () => {
         // Given
         const testCases = ['tan(pi/2)', 'sec(pi/2)', 'csc(pi)', 'csc(2*pi)', 'cot(pi)', 'cot(2*pi)'];

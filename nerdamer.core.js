@@ -591,7 +591,7 @@ const nerdamer = (function (imports) {
                 separate(x.args[0]);
             } else if (x.group === EX || x.group === FN) {
                 // Todo: gm: this occurs with sqrt(a+1)
-                return null;
+                // Do nothing - skip EX and FN groups
             } else {
                 insert(variables(x).join(' '), x);
             }
@@ -1983,39 +1983,40 @@ const nerdamer = (function (imports) {
                 try {
                     // Set a safety
                     const max = 1e3;
-                    let safety = 0;
+                    const safetyCounter = { value: 0 };
+
+                    const rho = function (c, currentN, safetyObj) {
+                        let xf = new bigInt(c);
+                        let cz = 2;
+                        let x = new bigInt(c);
+                        let factor = new bigInt(1);
+
+                        while (factor.equals(1)) {
+                            for (let i = 0; i <= cz && factor.equals(1); i++) {
+                                // Trigger the safety
+                                if (safetyObj.value++ > max) {
+                                    throw new Error('stopping');
+                                }
+
+                                x = x.pow(2).add(1).mod(currentN);
+                                factor = bigInt.gcd(x.minus(xf).abs(), currentN);
+                            }
+
+                            cz *= 2;
+                            xf = x;
+                        }
+                        if (factor.equals(currentN)) {
+                            return rho(c + 1, currentN, safetyObj);
+                        }
+                        return factor;
+                    };
 
                     while (!n.abs().equals(1)) {
                         if (n.isPrime()) {
                             add(n);
                             break;
                         } else {
-                            function rho(c) {
-                                let xf = new bigInt(c);
-                                let cz = 2;
-                                let x = new bigInt(c);
-                                let factor = new bigInt(1);
-
-                                while (factor.equals(1)) {
-                                    for (let i = 0; i <= cz && factor.equals(1); i++) {
-                                        // Trigger the safety
-                                        if (safety++ > max) {
-                                            throw new Error('stopping');
-                                        }
-
-                                        x = x.pow(2).add(1).mod(n);
-                                        factor = bigInt.gcd(x.minus(xf).abs(), n);
-                                    }
-
-                                    cz *= 2;
-                                    xf = x;
-                                }
-                                if (factor.equals(n)) {
-                                    return rho(c + 1);
-                                }
-                                return factor;
-                            }
-                            const factor = rho(2);
+                            const factor = rho(2, n, safetyCounter);
                             add(factor);
                             /* Divide out the factor*/
                             n = n.divide(factor);
@@ -2158,12 +2159,12 @@ const nerdamer = (function (imports) {
                 /* Simple check for NaN:*/
                 if (isNaN(f1)) {
                     state.nanEncountered = true;
-                    return;
+                    return undefined;
                 }
                 /* Simple check for NaN:*/
                 if (isNaN(f2)) {
                     state.nanEncountered = true;
-                    return;
+                    return undefined;
                 }
 
                 const sl = (h * (fa + 4 * f1 + fm)) / 12;
@@ -2172,7 +2173,7 @@ const nerdamer = (function (imports) {
                 const error = (s2 - V0) / 15;
 
                 if (state.maxDepthCount > 1000 * maxDepth) {
-                    return;
+                    return undefined;
                 }
 
                 if (depth > maxDepth) {
@@ -2465,7 +2466,7 @@ const nerdamer = (function (imports) {
     Math.sign =
         Math.sign ||
         function (x) {
-            x = +x; // Convert to a number
+            x = Number(x); // Convert to a number
             if (x === 0 || isNaN(x)) {
                 return x;
             }
@@ -5381,17 +5382,17 @@ const nerdamer = (function (imports) {
             asec(r, i) {
                 const d = this.removeDen([r, i]);
                 d[1].negate();
-                return this.acos.apply(this, d);
+                return this.acos(...d);
             },
             acsc(r, i) {
                 const d = this.removeDen([r, i]);
                 d[1].negate();
-                return this.asin.apply(this, d);
+                return this.asin(...d);
             },
             acot(r, i) {
                 const d = this.removeDen([r, i]);
                 d[1].negate();
-                return this.atan.apply(this, d);
+                return this.atan(...d);
             },
             // Hyperbolic trig
             cosh(r, i) {
@@ -5441,17 +5442,17 @@ const nerdamer = (function (imports) {
             asech(r, i) {
                 const t = this.removeDen([r, i]);
                 t[1].negate();
-                return this.acosh.apply(this, t);
+                return this.acosh(...t);
             },
             acsch(r, i) {
                 const t = this.removeDen([r, i]);
                 t[1].negate();
-                return this.asinh.apply(this, t);
+                return this.asinh(...t);
             },
             acoth(r, i) {
                 const t = this.removeDen([r, i]);
                 t[1].negate();
-                return this.atanh.apply(this, t);
+                return this.atanh(...t);
             },
             sqrt(symbol) {
                 const re = symbol.realpart();
@@ -5538,7 +5539,7 @@ const nerdamer = (function (imports) {
                 }
 
                 if (re.isConstant('all') && im.isConstant('all')) {
-                    return this[f].call(this, re, im);
+                    return this[f](re, im);
                 }
 
                 return _.symfunction(f, [symbol]);
@@ -5994,7 +5995,7 @@ const nerdamer = (function (imports) {
             acot(symbol) {
                 if (Settings.PARSE2NUMBER) {
                     if (symbol.isConstant()) {
-                        return new _.add(_.parse('pi/2'), trig.atan(symbol).negate());
+                        return _.add(_.parse('pi/2'), trig.atan(symbol).negate());
                     }
 
                     if (symbol.isImaginary()) {
@@ -6536,7 +6537,7 @@ const nerdamer = (function (imports) {
                     return fmodule[fname];
                 }
             }
-            err(`The function ${fname} is undefined!`);
+            return err(`The function ${fname} is undefined!`);
         };
 
         /**
@@ -6686,11 +6687,7 @@ const nerdamer = (function (imports) {
             // We only want the operators which are singular since those are the ones
             // that nerdamer uses anyway
             const ostr = `^\\${Object.keys(operators)
-                .filter(x => {
-                    if (x.length === 1) {
-                        return x;
-                    }
-                })
+                .filter(x => x.length === 1)
                 .join('\\')}`;
             // Create a regex which captures all spaces between characters except those
             // have an operator on one end
@@ -7082,7 +7079,7 @@ const nerdamer = (function (imports) {
                     operator_str = get_operator_str(col);
 
                     adjust_column_position();
-                    target.push.apply(target, chunkify(operator_str));
+                    target.push(...chunkify(operator_str));
                 } else if (ch in brackets) {
                     const bracket = brackets[ch];
 
@@ -7605,7 +7602,6 @@ const nerdamer = (function (imports) {
             if (left || right) {
                 html += `${tab(depth)}<ul>\n${left}${right}${tab(depth)}</ul>\n`;
             }
-            html += '';
             return html;
         };
 
@@ -8542,6 +8538,7 @@ const nerdamer = (function (imports) {
 
                 return _.multiply(new NerdamerSymbol(signVal), retval);
             }
+            return undefined;
         }
 
         function pfactor(symbol) {
@@ -8702,7 +8699,7 @@ const nerdamer = (function (imports) {
         }
 
         function symMinMax(f, args) {
-            args.map(x => {
+            args.forEach(x => {
                 x.numVal = evaluate(x).multiplier;
             });
             let l;
@@ -9400,14 +9397,14 @@ const nerdamer = (function (imports) {
             if (isMatrix(mat)) {
                 return mat.transpose();
             }
-            err('function transpose expects a matrix');
+            return err('function transpose expects a matrix');
         }
 
         function invert(mat) {
             if (isMatrix(mat)) {
                 return mat.invert();
             }
-            err('invert expects a matrix');
+            return err('invert expects a matrix');
         }
 
         // Basic set functions
@@ -9447,7 +9444,7 @@ const nerdamer = (function (imports) {
         }
 
         function print() {
-            arguments2Array(arguments).map(x => {
+            arguments2Array(arguments).forEach(x => {
                 // eslint-disable-next-line no-console
                 console.log(x.toString());
             });
@@ -10196,22 +10193,20 @@ const nerdamer = (function (imports) {
                     } else {
                         result.combine(b);
                     }
-                } else {
                     // The multiplier was already handled so nothing left to do
-                    if (g1 !== N) {
-                        if (g1 === CB) {
-                            result.distributeExponent();
-                            result.combine(b);
-                        } else if (!b.isOne()) {
-                            const bm = b.multiplier.clone();
-                            b.toUnitMultiplier();
-                            result = NerdamerSymbol.shell(CB).combine([result, b]);
-                            // Transfer the multiplier to the outside
-                            result.multiplier = result.multiplier.multiply(bm);
-                        }
-                    } else {
-                        result = b.clone().toUnitMultiplier(true);
+                } else if (g1 !== N) {
+                    if (g1 === CB) {
+                        result.distributeExponent();
+                        result.combine(b);
+                    } else if (!b.isOne()) {
+                        const bm = b.multiplier.clone();
+                        b.toUnitMultiplier();
+                        result = NerdamerSymbol.shell(CB).combine([result, b]);
+                        // Transfer the multiplier to the outside
+                        result.multiplier = result.multiplier.multiply(bm);
                     }
+                } else {
+                    result = b.clone().toUnitMultiplier(true);
                 }
 
                 if (result.group === P) {
@@ -12144,7 +12139,7 @@ const nerdamer = (function (imports) {
         latex(option) {
             const tex = [];
             for (let i = 0; i < this.elements.length; i++) {
-                tex.push(LaTeX.latex.call(LaTeX, this.elements[i], option));
+                tex.push(LaTeX.latex(this.elements[i], option));
             }
             return `[${tex.join(', ')}]`;
         },
@@ -12596,7 +12591,7 @@ const nerdamer = (function (imports) {
                 for (const row in elements) {
                     const row_tex = [];
                     for (let i = 0; i < cols; i++) {
-                        row_tex.push(LaTeX.latex.call(LaTeX, elements[row][i], option));
+                        row_tex.push(LaTeX.latex(elements[row][i], option));
                     }
                     tex.push(row_tex.join(' & '));
                 }
@@ -12822,14 +12817,16 @@ const nerdamer = (function (imports) {
         },
         getArgsDeps(symbol, dependencies) {
             const { args } = symbol;
+            let deps = dependencies;
+            const processFn = function (x) {
+                if (x.group === FN) {
+                    deps = Build.compileDependencies(x.fname, deps);
+                }
+            };
             for (let i = 0; i < args.length; i++) {
-                symbol.args[i].each(x => {
-                    if (x.group === FN) {
-                        dependencies = Build.compileDependencies(x.fname, dependencies);
-                    }
-                });
+                symbol.args[i].each(processFn);
             }
-            return dependencies;
+            return deps;
         },
         build(symbol, arg_array) {
             symbol = block('PARSE2NUMBER', () => _.parse(symbol), true);
@@ -13592,7 +13589,7 @@ const nerdamer = (function (imports) {
     libExports.replaceFunction = function (name, fn, num_args) {
         const existing = _.functions[name];
         const new_num_args = typeof num_args === 'undefined' ? existing[1] : num_args;
-        _.functions[name] = [fn.call(undefined, existing[0], C), new_num_args];
+        _.functions[name] = [fn(existing[0], C), new_num_args];
     };
 
     libExports.setOperator = function (operator, shift) {

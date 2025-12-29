@@ -461,6 +461,7 @@ if (typeof module !== 'undefined') {
                         return i;
                     }
                 }
+                return undefined;
             };
             const ca = [];
             for (let i = 0; i < this.coeffs.length; i++) {
@@ -961,27 +962,27 @@ if (typeof module !== 'undefined') {
         this.rev_map = o;
         return o;
     };
-    ((MVTerm.prototype.generateImage = function () {
+    MVTerm.prototype.generateImage = function () {
         this.image = this.terms.join(' ');
         return this;
-    }),
-        (MVTerm.prototype.getImg = function () {
-            if (!this.image) {
-                this.generateImage();
+    };
+    MVTerm.prototype.getImg = function () {
+        if (!this.image) {
+            this.generateImage();
+        }
+        return this.image;
+    };
+    MVTerm.prototype.fill = function () {
+        const l = this.map.length;
+        for (let i = 0; i < l; i++) {
+            if (typeof this.terms[i] === 'undefined') {
+                this.terms[i] = new core.Frac(0);
+            } else {
+                this.sum = this.sum.add(this.terms[i]);
             }
-            return this.image;
-        }),
-        (MVTerm.prototype.fill = function () {
-            const l = this.map.length;
-            for (let i = 0; i < l; i++) {
-                if (typeof this.terms[i] === 'undefined') {
-                    this.terms[i] = new core.Frac(0);
-                } else {
-                    this.sum = this.sum.add(this.terms[i]);
-                }
-            }
-            return this;
-        }));
+        }
+        return this;
+    };
     MVTerm.prototype.divide = function (mvterm) {
         const c = this.coeff.divide(mvterm.coeff);
         const l = this.terms.length;
@@ -1024,10 +1025,10 @@ if (typeof module !== 'undefined') {
         o.length = c;
         return o;
     };
-    core.Utils.filledArray = function (v, n, clss) {
+    core.Utils.filledArray = function (v, n, Clss) {
         const a = [];
         while (n--) {
-            a[n] = clss ? new clss(v) : v;
+            a[n] = Clss ? new Clss(v) : v;
         }
         return a;
     };
@@ -1047,10 +1048,9 @@ if (typeof module !== 'undefined') {
      * @returns {boolean} True if a and b have intersecting elements.
      */
     core.Utils.haveIntersection = function (a, b) {
-        let t;
         if (b.length > a.length) {
-            ((t = b), (b = a), (a = t));
-        } // IndexOf to loop over shorter
+            [a, b] = [b, a]; // IndexOf to loop over shorter
+        }
         return a.some(e => b.indexOf(e) > -1);
     };
     /**
@@ -1248,7 +1248,7 @@ if (typeof module !== 'undefined') {
                     // iPar is a dummy variable for passing in the nine parameters--a1, a3, a7, c, d, e, f, g, and h --by reference
 
                     // sdPar is a dummy variable for passing the two parameters--c and d--into QuadSD_ak1 by reference
-                    const sdPar = new Object();
+                    const sdPar = {};
                     // TYPE = 3 indicates the quadratic is almost a factor of K
                     let dumFlag = 3;
 
@@ -1412,7 +1412,7 @@ if (typeof module !== 'undefined') {
                     // calcPar is a dummy variable for passing the nine parameters--a1, a3, a7, c, d, e, f, g, and h --in by reference
 
                     // qPar is a dummy variable for passing the four parameters--szr, szi, lzr, and lzi--into Quad_ak1 by reference
-                    const qPar = new Object();
+                    const qPar = {};
                     let ee;
                     let mp;
                     let omp;
@@ -1637,8 +1637,8 @@ if (typeof module !== 'undefined') {
                     // L2	limit of fixed shift steps
                     // iPar is a dummy variable for passing in the five parameters--NZ, lzi, lzr, szi, and szr--by reference
                     // NZ	number of zeros found
-                    const sdPar = new Object(); // SdPar is a dummy variable for passing the two parameters--a and b--into QuadSD_ak1 by reference
-                    const calcPar = new Object();
+                    const sdPar = {}; // SdPar is a dummy variable for passing the two parameters--a and b--into QuadSD_ak1 by reference
+                    const calcPar = {};
                     // CalcPar is a dummy variable for passing the nine parameters--a1, a3, a7, c, d, e, f, g, and h --into calcSC_ak1 by reference
 
                     const qk = new Array(MDP1);
@@ -1854,9 +1854,9 @@ if (typeof module !== 'undefined') {
                     const qp = new Array(MDP1);
                     const temp = new Array(MDP1);
                     // QPar is a dummy variable for passing the four parameters--sr, si, lr, and li--by reference
-                    const qPar = new Object();
+                    const qPar = {};
                     // Fxshfr_Par is a dummy variable for passing parameters by reference : NZ, lzi, lzr, szi, szr);
-                    const Fxshfr_Par = new Object();
+                    const Fxshfr_Par = {};
                     let bnd;
                     let DBL_EPSILON;
                     let df;
@@ -2663,11 +2663,7 @@ if (typeof module !== 'undefined') {
                         const b = _.parse(coeffs[1]).negate();
                         const a = _.parse(symbols[1]);
                         // Solve the system
-                        const root = __.quad(a, b, c).filter(x => {
-                            if (core.Utils.isInt(x)) {
-                                return x;
-                            }
-                        });
+                        const root = __.quad(a, b, c).filter(x => core.Utils.isInt(x));
                         // If we have one root then find the other one by dividing the constant
                         if (root.length === 1) {
                             const root1 = root[0];
@@ -3698,8 +3694,8 @@ if (typeof module !== 'undefined') {
             }
 
             if (a.isConstant() && b.isConstant()) {
-                // Return core.Math2.QGCD(new Frac(+a), new Frac(+b));
-                return new NerdamerSymbol(core.Math2.QGCD(new Frac(+a), new Frac(+b)));
+                // Return core.Math2.QGCD(new Frac(Number(a)), new Frac(Number(b)));
+                return new NerdamerSymbol(core.Math2.QGCD(new Frac(Number(a)), new Frac(Number(b))));
             }
 
             const den = _.multiply(
@@ -3826,6 +3822,7 @@ if (typeof module !== 'undefined') {
                         i = input.length - 1;
 
                         do {
+                            // eslint-disable-next-line no-bitwise -- Bit masking for combinatorial generation
                             if ((mask & (1 << i)) !== 0) {
                                 result.push(input[i]);
                             }
@@ -3978,7 +3975,7 @@ if (typeof module !== 'undefined') {
                                     count++;
                                 }
                                 if (count > 1) {
-                                    return;
+                                    return undefined;
                                 }
                             }
                         }
@@ -4007,7 +4004,7 @@ if (typeof module !== 'undefined') {
                         const det = s[lookat];
                         const l = s.length;
                         if (!det) {
-                            return;
+                            return undefined;
                         }
                         // Eliminate the first term if it doesn't apply
                         let umax = get_unique_max(det);
@@ -4070,7 +4067,7 @@ if (typeof module !== 'undefined') {
                             // Confirm that this is a good match for the denominator
                             idx = umax[1];
                             if (idx === cterm.length - 1) {
-                                return;
+                                return undefined;
                             }
                             e = cterm[idx];
                             if (!e.equals(0)) {
@@ -4382,7 +4379,7 @@ if (typeof module !== 'undefined') {
                     const ks = [];
                     let factor;
                     let deg;
-                    factors_vec.map((x, idx) => {
+                    factors_vec.forEach((x, idx) => {
                         factor = tfactors[idx];
                         deg = degrees[idx];
                         for (let i = 0; i < deg; i++) {
@@ -4670,6 +4667,7 @@ if (typeof module !== 'undefined') {
                             workDone = true;
                         } else {
                             let t = new NerdamerSymbol(1);
+                            const state = { workDone };
                             retval.each(x => {
                                 if (x.fname === 'tan') {
                                     x = _.parse(
@@ -4680,17 +4678,18 @@ if (typeof module !== 'undefined') {
                                             x.power
                                         )
                                     );
-                                    workDone = true;
+                                    state.workDone = true;
                                 } else if (x.containsFunction(['cos', 'sin', 'tan'])) {
                                     // Rewrite the function
                                     const y = __.Simplify.trigSimp(x);
                                     if (!x.equals(y)) {
                                         x = y;
-                                        workDone = true;
+                                        state.workDone = true;
                                     }
                                 }
                                 t = _.multiply(t, x);
                             });
+                            workDone = state.workDone;
                             retval = t;
                         }
                     } else if ((symbol.fname === 'cos' || symbol.fname === 'sin') && symbol.args[0].group === CP) {
@@ -5448,7 +5447,7 @@ if (typeof module !== 'undefined') {
             numargs: [1, 2],
             build() {
                 const f = function () {
-                    const coeffs = __.coeffs.apply(__, arguments);
+                    const coeffs = __.coeffs(...arguments);
                     return new core.Vector(coeffs);
                 };
                 return f;
@@ -5473,7 +5472,7 @@ if (typeof module !== 'undefined') {
                 args[i] = args[i].clone();
             }
         }
-        const coeffs = __.coeffs.apply(__, args);
+        const coeffs = __.coeffs(...args);
         return new core.Expression(new core.Vector(coeffs));
     };
 

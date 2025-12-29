@@ -125,7 +125,8 @@ if (typeof module !== 'undefined') {
                                 const integration_expr = _.parse(`e^(-${s}*${u})*${sym}`);
                                 retval = core.Calculus.integrate(integration_expr, u);
                                 if (retval.hasIntegral()) {
-                                    return _.symfunction('laplace', arguments);
+                                    retval = _.symfunction('laplace', arguments);
+                                    return;
                                 }
                                 //                                _.error('Unable to compute transform');
                                 retval = retval.sub(t, 0);
@@ -225,88 +226,86 @@ if (typeof module !== 'undefined') {
                                     a = core.Utils.decompose_fn(completed.a, s, true).b;
                                     const tf = __.LaPlace.inverse(_.parse(`1/((${u})^2+(${completed.c}))`), u, t);
                                     retval = _.multiply(tf, _.parse(`(${m})*e^(-(${a})*(${t}))`));
-                                } else {
                                     // A/(b*s-c) -> ae^(-bt)
-                                    if (f.x.isLinear() && !num.contains(s)) {
-                                        t = _.divide(t, f.a.clone());
+                                } else if (f.x.isLinear() && !num.contains(s)) {
+                                    t = _.divide(t, f.a.clone());
 
-                                        // Don't add factorial of one or zero
-                                        p = den_p - 1;
-                                        fact = p === 0 || p === 1 ? '1' : `(${den_p}-1)!`;
+                                    // Don't add factorial of one or zero
+                                    p = den_p - 1;
+                                    fact = p === 0 || p === 1 ? '1' : `(${den_p}-1)!`;
+                                    retval = _.parse(
+                                        format(
+                                            '(({0})^({3}-1)*e^(-(({2})*({0}))/({1})))/(({4})*({1})^({3}))',
+                                            t,
+                                            f.a,
+                                            f.b,
+                                            den_p,
+                                            fact
+                                        )
+                                    );
+                                    // Wrap it up
+                                    finalize();
+                                } else if (f.x.group === S && f.x.power.equals(2)) {
+                                    if (!num.contains(s)) {
                                         retval = _.parse(
                                             format(
-                                                '(({0})^({3}-1)*e^(-(({2})*({0}))/({1})))/(({4})*({1})^({3}))',
+                                                '(({1})*sin((sqrt(({2})*({3}))*({0}))/({2})))/sqrt(({2})*({3}))',
                                                 t,
+                                                num,
                                                 f.a,
-                                                f.b,
-                                                den_p,
-                                                fact
+                                                f.b
                                             )
                                         );
-                                        // Wrap it up
-                                        finalize();
-                                    } else if (f.x.group === S && f.x.power.equals(2)) {
-                                        if (!num.contains(s)) {
+                                    }
+                                    // A*s/(b*s^2+c^2)
+                                    else {
+                                        a = new NerdamerSymbol(1);
+                                        if (num.group === CB) {
+                                            let new_num = new NerdamerSymbol(1);
+                                            num.each(x => {
+                                                if (x.contains(s)) {
+                                                    new_num = _.multiply(new_num, x);
+                                                } else {
+                                                    a = _.multiply(a, x);
+                                                }
+                                            });
+                                            num = new_num;
+                                        }
+
+                                        // We need more information about the denominator to decide
+                                        f2 = core.Utils.decompose_fn(num, s, true);
+                                        const fn1 = f2.a;
+                                        const fn2 = f2.b;
+                                        const a_has_sin = fn1.containsFunction('sin');
+                                        const a_has_cos = fn1.containsFunction('cos');
+                                        const b_has_cos = fn2.containsFunction('cos');
+                                        const b_has_sin = fn2.containsFunction('sin');
+                                        if (
+                                            f2.x.value === s &&
+                                            f2.x.isLinear() &&
+                                            !((a_has_sin && b_has_cos) || a_has_cos || b_has_sin)
+                                        ) {
                                             retval = _.parse(
                                                 format(
-                                                    '(({1})*sin((sqrt(({2})*({3}))*({0}))/({2})))/sqrt(({2})*({3}))',
+                                                    '(({1})*cos((sqrt(({2})*({3}))*({0}))/({2})))/({2})',
                                                     t,
-                                                    num,
+                                                    f2.a,
                                                     f.a,
                                                     f.b
                                                 )
                                             );
-                                        }
-                                        // A*s/(b*s^2+c^2)
-                                        else {
-                                            a = new NerdamerSymbol(1);
-                                            if (num.group === CB) {
-                                                let new_num = new NerdamerSymbol(1);
-                                                num.each(x => {
-                                                    if (x.contains(s)) {
-                                                        new_num = _.multiply(new_num, x);
-                                                    } else {
-                                                        a = _.multiply(a, x);
-                                                    }
-                                                });
-                                                num = new_num;
-                                            }
-
-                                            // We need more information about the denominator to decide
-                                            f2 = core.Utils.decompose_fn(num, s, true);
-                                            const fn1 = f2.a;
-                                            const fn2 = f2.b;
-                                            const a_has_sin = fn1.containsFunction('sin');
-                                            const a_has_cos = fn1.containsFunction('cos');
-                                            const b_has_cos = fn2.containsFunction('cos');
-                                            const b_has_sin = fn2.containsFunction('sin');
-                                            if (
-                                                f2.x.value === s &&
-                                                f2.x.isLinear() &&
-                                                !((a_has_sin && b_has_cos) || a_has_cos || b_has_sin)
-                                            ) {
-                                                retval = _.parse(
-                                                    format(
-                                                        '(({1})*cos((sqrt(({2})*({3}))*({0}))/({2})))/({2})',
-                                                        t,
-                                                        f2.a,
-                                                        f.a,
-                                                        f.b
-                                                    )
-                                                );
-                                            } else if (a_has_sin && b_has_cos) {
-                                                const sin = fn1.findFunction('sin');
-                                                const cos = fn2.findFunction('cos');
-                                                // Who has the s?
-                                                if (sin.args[0].equals(cos.args[0]) && !sin.args[0].contains(s)) {
-                                                    b = _.divide(fn2, cos.toUnitMultiplier()).toString();
-                                                    const c = sin.args[0].toString();
-                                                    d = f.b;
-                                                    const e = _.divide(fn1, sin.toUnitMultiplier());
-                                                    exp =
-                                                        '(({1})*({2})*cos({3})*sin(sqrt({4})*({0})))/sqrt({4})+({1})*sin({3})*({5})*cos(sqrt({4})*({0}))';
-                                                    retval = _.parse(format(exp, t, a, b, c, d, e));
-                                                }
+                                        } else if (a_has_sin && b_has_cos) {
+                                            const sin = fn1.findFunction('sin');
+                                            const cos = fn2.findFunction('cos');
+                                            // Who has the s?
+                                            if (sin.args[0].equals(cos.args[0]) && !sin.args[0].contains(s)) {
+                                                b = _.divide(fn2, cos.toUnitMultiplier()).toString();
+                                                const c = sin.args[0].toString();
+                                                d = f.b;
+                                                const e = _.divide(fn1, sin.toUnitMultiplier());
+                                                exp =
+                                                    '(({1})*({2})*cos({3})*sin(sqrt({4})*({0})))/sqrt({4})+({1})*sin({3})*({5})*cos(sqrt({4})*({0}))';
+                                                retval = _.parse(format(exp, t, a, b, c, d, e));
                                             }
                                         }
                                     }
@@ -537,7 +536,7 @@ if (typeof module !== 'undefined') {
                 return retval;
             },
             gVariance(k, args) {
-                const x_ = __.Statistics.mean.apply(__.Statistics, args);
+                const x_ = __.Statistics.mean(...args);
                 const sum = __.Statistics.sum(args, x_);
                 return _.multiply(k, sum);
             },
@@ -564,17 +563,17 @@ if (typeof module !== 'undefined') {
                 const args = [].slice.call(arguments);
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.standardDeviation.apply(this, args[0].elements);
+                    return __.Statistics.standardDeviation(...args[0].elements);
                 }
-                return _.pow(__.Statistics.variance.apply(__.Statistics, args), new NerdamerSymbol(1 / 2));
+                return _.pow(__.Statistics.variance(...args), new NerdamerSymbol(1 / 2));
             },
             sampleStandardDeviation() {
                 const args = [].slice.call(arguments);
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.sampleStandardDeviation.apply(this, args[0].elements);
+                    return __.Statistics.sampleStandardDeviation(...args[0].elements);
                 }
-                return _.pow(__.Statistics.sampleVariance.apply(__.Statistics, args), new NerdamerSymbol(1 / 2));
+                return _.pow(__.Statistics.sampleVariance(...args), new NerdamerSymbol(1 / 2));
             },
             zScore(x, mean, stdev) {
                 return _.divide(_.subtract(x, mean), stdev);

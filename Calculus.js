@@ -845,6 +845,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         return _.multiply(__.integration.poly_integrate(a), Q);
                     }
                 }
+                return undefined;
             },
             // Simple integration of a single polynomial x^(n+1)/(n+1)
             poly_integrate(x) {
@@ -981,6 +982,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     core.Utils.clearU(u);
                     return integral;
                 }
+                return undefined;
             },
 
             by_parts(symbol, dx, depth, o) {
@@ -1205,39 +1207,37 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                         retval = _.divide(f, d);
                                     } else if (x.group === S && x.isLinear()) {
                                         retval = _.divide(__.integration.poly_integrate(symbol), a);
-                                    } else {
                                         // 1/(x^4+1)
-                                        if (x.power.equals(4)) {
-                                            // https://www.freemathhelp.com/forum/threads/55678-difficult-integration-int-1-(1-x-4)-dx
-                                            const br = inBrackets;
-                                            // Apply rule: ax^4+b = (√ax^2+√2∜a∜bx+√b)(√ax^2-√2∜a∜bx+√b)
-                                            // get quadratic factors
-                                            const A = _.parse(`${SQRT + br(a)}*${dx}^2`);
-                                            const B = _.parse(
-                                                `${SQRT + br(2)}*${br(a)}^${br('1/4')}*${br(b)}^${br('1/4')}*${dx}`
-                                            );
-                                            const C = _.parse(SQRT + br(b));
-                                            const f1 = _.add(_.add(A.clone(), B.clone()), C.clone());
-                                            const f2 = _.add(_.subtract(A, B), C);
-                                            // Calculate numerators: [D+E, D-E] -> [√2*b^(3/4)+√b∜ax, √2*b^(3/4)-√b∜ax]
-                                            const D = _.parse(`${SQRT + br(2)}*${br(b)}^${br('3/4')}`);
-                                            const E = _.parse(`${SQRT + br(b)}*${br(b)}^${br('1/4')}*${dx}`);
-                                            // Let F = 2b√2∜b
-                                            const F = _.parse(`${2}*${br(b)}*${SQRT}${br(2)}*${br(b)}^${br('1/4')}`);
-                                            // Calculate the factors
-                                            const L1 = _.divide(
-                                                _.subtract(D.clone(), E.clone()),
-                                                _.multiply(F.clone(), f2)
-                                            );
-                                            const L2 = _.divide(_.add(D, E), _.multiply(F, f1.clone()));
-                                            retval = _.add(
-                                                __.integrate(L1, dx, depth, opt),
-                                                __.integrate(L2, dx, depth, opt)
-                                            );
-                                        } else // Let's try partial fractions
-                                        {
-                                            retval = __.integration.partial_fraction(symbol, dx, depth);
-                                        }
+                                    } else if (x.power.equals(4)) {
+                                        // https://www.freemathhelp.com/forum/threads/55678-difficult-integration-int-1-(1-x-4)-dx
+                                        const br = inBrackets;
+                                        // Apply rule: ax^4+b = (√ax^2+√2∜a∜bx+√b)(√ax^2-√2∜a∜bx+√b)
+                                        // get quadratic factors
+                                        const A = _.parse(`${SQRT + br(a)}*${dx}^2`);
+                                        const B = _.parse(
+                                            `${SQRT + br(2)}*${br(a)}^${br('1/4')}*${br(b)}^${br('1/4')}*${dx}`
+                                        );
+                                        const C = _.parse(SQRT + br(b));
+                                        const f1 = _.add(_.add(A.clone(), B.clone()), C.clone());
+                                        const f2 = _.add(_.subtract(A, B), C);
+                                        // Calculate numerators: [D+E, D-E] -> [√2*b^(3/4)+√b∜ax, √2*b^(3/4)-√b∜ax]
+                                        const D = _.parse(`${SQRT + br(2)}*${br(b)}^${br('3/4')}`);
+                                        const E = _.parse(`${SQRT + br(b)}*${br(b)}^${br('1/4')}*${dx}`);
+                                        // Let F = 2b√2∜b
+                                        const F = _.parse(`${2}*${br(b)}*${SQRT}${br(2)}*${br(b)}^${br('1/4')}`);
+                                        // Calculate the factors
+                                        const L1 = _.divide(
+                                            _.subtract(D.clone(), E.clone()),
+                                            _.multiply(F.clone(), f2)
+                                        );
+                                        const L2 = _.divide(_.add(D, E), _.multiply(F, f1.clone()));
+                                        retval = _.add(
+                                            __.integrate(L1, dx, depth, opt),
+                                            __.integrate(L2, dx, depth, opt)
+                                        );
+                                        // Let's try partial fractions
+                                    } else {
+                                        retval = __.integration.partial_fraction(symbol, dx, depth);
                                     }
                                 } else if (p === -1 / 2) {
                                     // Detect asin and atan
@@ -1665,741 +1665,688 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                     }
                                 }
                                 // Otherwise the denominator is one lumped together symbol
-                                else {
-                                    // Generate an image for
-                                    if (l === 2) {
-                                        // Try u substitution
-                                        try {
-                                            retval = __.integration.u_substitution(symbols, dx);
-                                        } catch (e) {
-                                            /* Failed :`(*/
-                                            if (e.message === 'timeout') {
-                                                throw e;
-                                            }
+                                // Generate an image for
+                                else if (l === 2) {
+                                    // Try u substitution
+                                    try {
+                                        retval = __.integration.u_substitution(symbols, dx);
+                                    } catch (e) {
+                                        /* Failed :`(*/
+                                        if (e.message === 'timeout') {
+                                            throw e;
                                         }
+                                    }
 
-                                        if (!retval) {
-                                            // No success with u substitution so let's try known combinations
-                                            // are they two functions
-                                            const g1 = symbols[0].group;
-                                            const g2 = symbols[1].group;
-                                            let sym1 = symbols[0];
-                                            let sym2 = symbols[1];
-                                            const fn1 = sym1.fname;
-                                            const fn2 = sym2.fname;
-                                            // Reset the symbol minus the coeff
-                                            symbol = _.multiply(sym1.clone(), sym2.clone());
-                                            if (g1 === FN && g2 === FN) {
-                                                if (fn1 === LOG || fn2 === LOG) {
-                                                    retval = __.integration.by_parts(symbol.clone(), dx, depth, opt);
-                                                } else {
-                                                    symbols.sort((s1, s2) => s2.fname > s1.fname);
-                                                    const arg1 = sym1.args[0];
-                                                    // Make sure the arguments are suitable. We don't know how to integrate non-linear arguments
-                                                    if (
-                                                        !arg1.isLinear() ||
-                                                        !(arg1.group === CP || arg1.group === CB || arg1.group === S)
-                                                    ) {
-                                                        __.integration.stop();
-                                                    }
+                                    if (!retval) {
+                                        // No success with u substitution so let's try known combinations
+                                        // are they two functions
+                                        const g1 = symbols[0].group;
+                                        const g2 = symbols[1].group;
+                                        let sym1 = symbols[0];
+                                        let sym2 = symbols[1];
+                                        const fn1 = sym1.fname;
+                                        const fn2 = sym2.fname;
+                                        // Reset the symbol minus the coeff
+                                        symbol = _.multiply(sym1.clone(), sym2.clone());
+                                        if (g1 === FN && g2 === FN) {
+                                            if (fn1 === LOG || fn2 === LOG) {
+                                                retval = __.integration.by_parts(symbol.clone(), dx, depth, opt);
+                                            } else {
+                                                symbols.sort((s1, s2) => s2.fname > s1.fname);
+                                                const arg1 = sym1.args[0];
+                                                // Make sure the arguments are suitable. We don't know how to integrate non-linear arguments
+                                                if (
+                                                    !arg1.isLinear() ||
+                                                    !(arg1.group === CP || arg1.group === CB || arg1.group === S)
+                                                ) {
+                                                    __.integration.stop();
+                                                }
 
-                                                    const decomp = __.integration.decompose_arg(arg1, dx);
-                                                    const x = decomp[1];
-                                                    const a = decomp[0];
-                                                    if (!x.isLinear()) // Again... linear arguments only wrt x
-                                                    {
-                                                        __.integration.stop();
-                                                    }
+                                                const decomp = __.integration.decompose_arg(arg1, dx);
+                                                const x = decomp[1];
+                                                const a = decomp[0];
+                                                if (!x.isLinear()) // Again... linear arguments only wrt x
+                                                {
+                                                    __.integration.stop();
+                                                }
 
-                                                    // They have to have the same arguments and then we have cleared all the check to
-                                                    // make sure we can integrate FN & FN
-                                                    const arg2 = sym2.args[0];
-                                                    // Make sure that their argument matches
-                                                    if (arg1.equals(arg2)) {
-                                                        if (
-                                                            (fn1 === SIN && fn2 === COS) ||
-                                                            (fn1 === COS && fn2 === SIN)
-                                                        ) {
-                                                            if (sym1.power.lessThan(0)) {
-                                                                __.integration.stop();
-                                                            } // We don't know how to handle, sin(x)^n/cos(x)^m where m > n,  yet
-                                                            // if it's in the form sin(x)^n*cos(x)^n then we can just return tan(x)^n which we know how to integrate
-                                                            if (fn1 === SIN && sym1.power.add(sym2.power).equals(0)) {
-                                                                sym1.fname = TAN;
-                                                                sym1.updateHash();
-                                                                retval = __.integrate(sym1, dx, depth);
-                                                            } else if (
-                                                                even(sym1.power) &&
-                                                                fn2 === COS &&
-                                                                sym2.power.lessThan(0)
-                                                            ) {
-                                                                // Transform sin^(2*n) to (1-cos^2)^n
-                                                                const n = Number(sym1.power) / 2;
-                                                                const new_sym = _.parse(
-                                                                    format('(1-cos({0})^2)^({1})', sym1.args[0], n)
-                                                                );
-                                                                retval = __.integrate(
-                                                                    _.expand(_.multiply(new_sym, sym2.clone())),
-                                                                    dx,
-                                                                    depth,
-                                                                    opt
-                                                                );
-                                                            } else if (
-                                                                even(sym1.power) &&
-                                                                fn2 === SIN &&
-                                                                sym2.power.lessThan(0)
-                                                            ) {
-                                                                // Transform cos^(2*n) to (1-sin^2)^n
-                                                                const n = Number(sym1.power) / 2;
-                                                                const new_sym = _.parse(
-                                                                    format('(1-sin({0})^2)^({1})', sym1.args[0], n)
-                                                                );
-                                                                retval = __.integrate(
-                                                                    _.expand(_.multiply(new_sym, sym2.clone())),
-                                                                    dx,
-                                                                    depth,
-                                                                    opt
-                                                                );
-                                                            } else {
-                                                                const p1_even = core.Utils.even(sym1.power);
-                                                                const p2_even = core.Utils.even(sym2.power);
-                                                                retval = new NerdamerSymbol(0);
-                                                                if (!p1_even || !p2_even) {
-                                                                    let u;
-                                                                    let r;
-                                                                    // Since cos(x) is odd it carries du. If sin was odd then it would be the other way around
-                                                                    // know that p1 satifies the odd portion in this case. If p2 did than it would contain r
-                                                                    if (!p1_even) {
-                                                                        // U = sin(x)
-                                                                        u = sym2;
-                                                                        r = sym1;
-                                                                    } else {
-                                                                        u = sym1;
-                                                                        r = sym2;
-                                                                    }
-                                                                    // Get the sign of du. In this case r carries du as stated before and D(cos(x),x) = -sin(x)
-                                                                    const sign = u.fname === COS ? -1 : 1;
-                                                                    const n = r.power;
-                                                                    // Remove the du e.g. cos(x)^2*sin(x)^3 dx -> cos(x)^2*sin(x)^2*sin(x). We're left with two
-                                                                    // even powers afterwards which can be transformed
-                                                                    const k = (n - 1) / 2;
-                                                                    // Make the transformation cos(x)^2 = 1 - sin(x)^2
-                                                                    const trigTrans = _.parse(
-                                                                        `(1-${u.fname}${core.Utils.inBrackets(
-                                                                            arg1
-                                                                        )}^2)^${k}`
-                                                                    );
-                                                                    const sym = _.expand(
-                                                                        _.multiply(
-                                                                            new NerdamerSymbol(sign),
-                                                                            _.multiply(u.clone(), trigTrans)
-                                                                        )
-                                                                    );
-                                                                    // We can now just loop through and integrate each since it's now just a polynomial with functions
-                                                                    sym.each(elem => {
-                                                                        retval = _.add(
-                                                                            retval,
-                                                                            __.integration.poly_integrate(elem.clone())
-                                                                        );
-                                                                    });
-                                                                } else {
-                                                                    // Performs double angle transformation
-                                                                    const double_angle = function (s) {
-                                                                        const pow = s.power;
-                                                                        const k = pow / 2;
-                                                                        let e;
-                                                                        if (s.fname === COS) {
-                                                                            e = `((1/2)+(cos(2*(${
-                                                                                s.args[0]
-                                                                            }))/2))^${k}`;
-                                                                        } else {
-                                                                            e = `((1/2)-(cos(2*(${
-                                                                                s.args[0]
-                                                                            }))/2))^${k}`;
-                                                                        }
-
-                                                                        return _.parse(e);
-                                                                    };
-                                                                    // They're both even so transform both using double angle identities and we'll just
-                                                                    // be able to integrate by the sum of integrals
-                                                                    const daA = double_angle(sym1);
-                                                                    const daB = double_angle(sym2);
-                                                                    const t = _.multiply(daA, daB);
-                                                                    const sym = _.expand(t);
-                                                                    sym.each(elem => {
-                                                                        retval = _.add(
-                                                                            retval,
-                                                                            __.integrate(elem, dx, depth)
-                                                                        );
-                                                                    });
-                                                                    return _.multiply(retval, coeff);
-                                                                }
-                                                            }
-                                                        }
-                                                        // Tan(x)*sec(x)^n
-                                                        else if (
-                                                            fn1 === SEC &&
-                                                            fn2 === TAN &&
-                                                            x.isLinear() &&
-                                                            sym2.isLinear()
-                                                        ) {
-                                                            retval = _.parse(
-                                                                format('sec({0})^({1})/({1})', sym1.args[0], sym1.power)
-                                                            );
-                                                        } else if (fn1 === TAN && fn2 === SEC && x.isLinear()) {
-                                                            // Remaining: tan(x)^3*sec(x)^6
-                                                            if (sym1.isLinear() && sym2.isLinear()) {
-                                                                retval = _.divide(
-                                                                    _.symfunction(SEC, [arg1.clone()]),
-                                                                    a
-                                                                );
-                                                            } else if (even(sym1.power)) {
-                                                                const p = Number(sym1.power) / 2;
-                                                                // Transform tangent
-                                                                const t = _.parse(
-                                                                    format('(sec({0})^2-1)^({1})', sym1.args[0], p)
-                                                                );
-                                                                retval = __.integrate(
-                                                                    _.expand(_.multiply(t, sym2)),
-                                                                    dx,
-                                                                    depth
-                                                                );
-                                                            } else {
-                                                                __.integration.stop();
-                                                            }
-                                                        } else if (fn1 === SEC && fn2 === COS) {
-                                                            sym1.fname = COS;
-                                                            sym1.invert().updateHash();
-                                                            retval = __.integrate(_.multiply(sym1, sym2), dx, depth);
-                                                        } else if (fn1 === SIN && fn2 === CSC) {
-                                                            sym2.fname = SIN;
-                                                            sym2.invert().updateHash();
-                                                            retval = __.integrate(_.multiply(sym1, sym2), dx, depth);
-                                                        }
-                                                        // Tan/cos
-                                                        else if (
-                                                            fn1 === TAN &&
-                                                            (fn2 === COS || fn2 === SIN) &&
+                                                // They have to have the same arguments and then we have cleared all the check to
+                                                // make sure we can integrate FN & FN
+                                                const arg2 = sym2.args[0];
+                                                // Make sure that their argument matches
+                                                if (arg1.equals(arg2)) {
+                                                    if ((fn1 === SIN && fn2 === COS) || (fn1 === COS && fn2 === SIN)) {
+                                                        if (sym1.power.lessThan(0)) {
+                                                            __.integration.stop();
+                                                        } // We don't know how to handle, sin(x)^n/cos(x)^m where m > n,  yet
+                                                        // if it's in the form sin(x)^n*cos(x)^n then we can just return tan(x)^n which we know how to integrate
+                                                        if (fn1 === SIN && sym1.power.add(sym2.power).equals(0)) {
+                                                            sym1.fname = TAN;
+                                                            sym1.updateHash();
+                                                            retval = __.integrate(sym1, dx, depth);
+                                                        } else if (
+                                                            even(sym1.power) &&
+                                                            fn2 === COS &&
                                                             sym2.power.lessThan(0)
                                                         ) {
-                                                            const t = _.multiply(sym1.fnTransform(), sym2);
-                                                            retval = __.integrate(_.expand(t), dx, depth);
-                                                        } else {
-                                                            const t = _.multiply(
-                                                                sym1.fnTransform(),
-                                                                sym2.fnTransform()
+                                                            // Transform sin^(2*n) to (1-cos^2)^n
+                                                            const n = Number(sym1.power) / 2;
+                                                            const new_sym = _.parse(
+                                                                format('(1-cos({0})^2)^({1})', sym1.args[0], n)
                                                             );
-                                                            retval = __.integrate(_.expand(t), dx, depth);
-                                                        }
-                                                    }
-                                                    // TODO: In progress
-                                                    else if (
-                                                        (fn1 === SIN || fn1 === COS) &&
-                                                        (fn2 === SIN || fn2 === COS)
-                                                    ) {
-                                                        if (sym1.isLinear() && sym2.isLinear()) {
-                                                            // If in the form cos(a*x)*sin(b*x)
-                                                            if (sym1.args[0].isLinear() && sym2.args[0].isLinear()) {
-                                                                // Use identity (sin(b*x+a*x)+sin(b*x-a*x))/2
-                                                                let ax;
-                                                                let bx;
-                                                                if (fn2 === SIN) {
-                                                                    ax = sym1.args[0];
-                                                                    bx = sym2.args[0];
-                                                                } else {
-                                                                    bx = sym1.args[0];
-                                                                    ax = sym2.args[0];
-                                                                }
-
-                                                                // Make the transformation
-                                                                const f = _.parse(
-                                                                    format(
-                                                                        '(sin(({1})+({0}))+sin(({1})-({0})))/2',
-                                                                        ax.toString(),
-                                                                        bx.toString()
-                                                                    )
-                                                                );
-
-                                                                // Integrate it
-                                                                retval = __.integrate(f, dx, depth);
-                                                            } else {
-                                                                const transformed = trigTransform(symbols);
-                                                                retval = __.integrate(_.expand(transformed), dx, depth);
-                                                            }
-                                                        } else {
-                                                            let transformed = new NerdamerSymbol(1);
-                                                            symbols.map(s => {
-                                                                const transformed_s = s.fnTransform();
-                                                                transformed = _.multiply(transformed, transformed_s);
-                                                            });
-                                                            const t = _.expand(transformed);
-
-                                                            retval = __.integrate(t, dx, depth);
-
-                                                            if (retval.hasIntegral()) {
-                                                                retval = __.integrate(
-                                                                    trigTransform(transformed.collectSymbols()),
-                                                                    dx,
-                                                                    depth
-                                                                );
-                                                            }
-                                                        }
-                                                    } else {
-                                                        __.integration.stop();
-                                                    }
-                                                }
-                                            } else if (g1 === FN && g2 === S) {
-                                                const sym1_is_linear = sym1.isLinear();
-                                                if (sym1.fname === COS && sym1_is_linear && sym2.power.equals(-1)) {
-                                                    retval = _.symfunction('Ci', [sym1.args[0]]);
-                                                } else if (sym1.fname === COS && sym2.power.equals(-1)) {
-                                                    retval = __.integrate(
-                                                        _.multiply(sym1.fnTransform(), sym2.clone()),
-                                                        dx,
-                                                        depth
-                                                    );
-                                                } else if (
-                                                    sym1.fname === COSH &&
-                                                    sym1_is_linear &&
-                                                    sym2.power.equals(-1)
-                                                ) {
-                                                    retval = _.symfunction('Chi', [sym1.args[0]]);
-                                                } else if (sym1.fname === COSH && sym2.power.equals(-1)) {
-                                                    retval = __.integrate(
-                                                        _.multiply(sym1.fnTransform(), sym2.clone()),
-                                                        dx,
-                                                        depth
-                                                    );
-                                                } else if (
-                                                    sym1.fname === SIN &&
-                                                    sym1_is_linear &&
-                                                    sym2.power.equals(-1)
-                                                ) {
-                                                    retval = _.symfunction('Si', [sym1.args[0]]);
-                                                } else if (sym1.fname === SIN && sym2.power.equals(-1)) {
-                                                    retval = __.integrate(
-                                                        _.multiply(sym1.fnTransform(), sym2.clone()),
-                                                        dx,
-                                                        depth
-                                                    );
-                                                } else if (
-                                                    sym1.fname === SINH &&
-                                                    sym1_is_linear &&
-                                                    sym2.power.equals(-1)
-                                                ) {
-                                                    retval = _.symfunction('Shi', [sym1.args[0]]);
-                                                } else if (sym1.fname === SINH && sym2.power.equals(-1)) {
-                                                    retval = __.integrate(
-                                                        _.multiply(sym1.fnTransform(), sym2.clone()),
-                                                        dx,
-                                                        depth
-                                                    );
-                                                } else if (sym1.fname === LOG && sym2.power.equals(-1)) {
-                                                    // Log(x)^n/x = log(x)^(n+1)/(n+1)
-                                                    retval = __.integration.poly_integrate(sym1, dx, depth);
-                                                } else if (sym1.fname === 'erf') {
-                                                    if (sym2.power.equals(1)) {
-                                                        const dc = __.integration.decompose_arg(sym1.args[0], dx);
-                                                        const a_ = dc[0];
-                                                        const x_ = dc[1];
-                                                        const arg = sym1.args[0].toString();
-                                                        retval = _.parse(
-                                                            format(
-                                                                '(e^(-(({2}))^2)*(sqrt(pi)*e^((({2}))^2)*(2*({0})^2*({1})^2-3)*erf(({2}))+2*({0})*({1})-2))/(4*sqrt(pi)*({0})^2)',
-                                                                a_,
-                                                                x_,
-                                                                arg
-                                                            )
-                                                        );
-                                                    }
-                                                } else {
-                                                    // Since group S is guaranteed convergence we need not worry about tracking depth of integration
-                                                    retval = __.integration.by_parts(symbol, dx, depth, opt);
-                                                }
-                                            } else if (g1 === EX && g2 === S) {
-                                                const x =
-                                                    fn1 === LOG
-                                                        ? __.integration.decompose_arg(sym1.args[0], dx)[1]
-                                                        : null;
-                                                if (
-                                                    sym1.isE() &&
-                                                    (sym1.power.group === S || sym1.power.group === CB) &&
-                                                    sym2.power.equals(-1)
-                                                ) {
-                                                    retval = _.symfunction('Ei', [sym1.power.clone()]);
-                                                } else if (fn1 === LOG && x.value === sym2.value) {
-                                                    retval = __.integration.poly_integrate(sym1, dx, depth);
-                                                } else {
-                                                    retval = __.integration.by_parts(symbol, dx, depth, opt);
-                                                }
-                                            } else if (g1 === PL && g2 === S) {
-                                                // First try to reduce the top
-                                                if (sym2.value === sym1.value && sym1.power.equals(-1)) {
-                                                    // Find the lowest power in the denominator
-                                                    const pd = Math.min.apply(null, core.Utils.keys(sym1.symbols));
-                                                    // Get the lowest common value between denominator and numerator
-                                                    const pc = Math.min(pd, sym2.power);
-                                                    // Reduce both denominator and numerator by that factor
-                                                    const factor = sym2.clone();
-                                                    factor.power = new Frac(pc);
-                                                    sym2 = _.divide(sym2, factor.clone()); // Reduce the denominator
-                                                    let t = new NerdamerSymbol(0);
-                                                    sym1.each(elem => {
-                                                        t = _.add(t, _.divide(elem.clone(), factor.clone()));
-                                                    });
-                                                    t.multiplier = sym1.multiplier;
-                                                    symbol = _.divide(sym2, t);
-                                                } else {
-                                                    symbol = _.expand(symbol);
-                                                }
-                                                retval = __.integration.partial_fraction(symbol, dx, depth);
-                                            } else if (g1 === CP && g2 === S) {
-                                                const f = sym1.clone().toLinear();
-                                                const f_is_linear = core.Algebra.degree(f, _.parse(dx)).equals(1);
-                                                // Handle cases x^(2*n)/sqrt(1-x^2)
-                                                if (sym1.power.equals(-1 / 2)) {
-                                                    const decomp = __.integration.decompose_arg(
-                                                        sym1.clone().toLinear(),
-                                                        dx
-                                                    );
-                                                    const a = decomp[0].negate();
-                                                    const x = decomp[1];
-                                                    const b = decomp[3];
-                                                    const p1 = Number(sym1.power);
-                                                    const p2 = Number(sym2.power);
-                                                    if (isInt(p2) && core.Utils.even(p2) && x.power.equals(2)) {
-                                                        // If the substitution
-                                                        let c = _.divide(
-                                                            _.multiply(
-                                                                _.pow(b.clone(), new NerdamerSymbol(2)),
-                                                                _.symfunction(SQRT, [_.divide(b.clone(), a.clone())])
-                                                            ),
-                                                            _.pow(a.clone(), new NerdamerSymbol(2))
-                                                        );
-                                                        c = _.multiply(c, _.symfunction(SQRT, [b]).invert());
-                                                        const dummy = _.parse('sin(u)');
-                                                        dummy.power = dummy.power.multiply(sym2.power);
-                                                        const integral = __.integrate(dummy, 'u', depth);
-                                                        const bksub = _.parse(`${ASIN}(${SQRT}(${a}/${b})*${dx})`);
-                                                        retval = _.multiply(
-                                                            c,
-                                                            integral.sub(new NerdamerSymbol('u'), bksub)
-                                                        );
-                                                    } else if (p1 === -1 / 2) {
-                                                        const u_transform = function (func, subst) {
-                                                            const intg = _.parse(
-                                                                __.integrate(func, dx, depth, opt).sub(
-                                                                    dx,
-                                                                    format(subst, dx)
-                                                                )
-                                                            );
-                                                            if (!intg.hasIntegral()) {
-                                                                return intg;
-                                                            }
-                                                        };
-                                                        if (p2 === -1) {
-                                                            retval = u_transform(
-                                                                _.expand(
-                                                                    _.expand(
-                                                                        _.pow(
-                                                                            _.multiply(sym1.invert(), sym2.invert()),
-                                                                            new NerdamerSymbol(2)
-                                                                        )
-                                                                    )
-                                                                ).invert(),
-                                                                'sqrt(1-1/({0})^2)'
-                                                            );
-                                                        } else if (p2 === -2) {
-                                                            // Apply transformation to see if it matches asin(x)
-                                                            retval = u_transform(
-                                                                _.sqrt(
-                                                                    _.expand(
-                                                                        _.divide(
-                                                                            _.pow(
-                                                                                symbol,
-                                                                                new NerdamerSymbol(2)
-                                                                            ).invert(),
-                                                                            _.pow(
-                                                                                new NerdamerSymbol(dx),
-                                                                                new NerdamerSymbol(2)
-                                                                            )
-                                                                        ).negate()
-                                                                    )
-                                                                ).invert(),
-                                                                'sqrt(1-1/({0})^2)'
-                                                            );
-                                                        }
-                                                    }
-                                                } else if (sym1.power.equals(-1) && sym2.isLinear() && f_is_linear) {
-                                                    retval = __.integration.partial_fraction(symbol, dx, depth);
-                                                } else if (!sym1.power.lessThan(0) && isInt(sym1.power)) {
-                                                    // Sum of integrals
-                                                    const expanded = _.expand(sym1);
-                                                    retval = new NerdamerSymbol(0);
-                                                    expanded.each(elem => {
-                                                        if (elem.group === PL) {
-                                                            elem.each(inner => {
-                                                                retval = _.add(
-                                                                    retval,
-                                                                    __.integrate(
-                                                                        _.multiply(sym2.clone(), inner),
-                                                                        dx,
-                                                                        depth
-                                                                    )
-                                                                );
-                                                            });
-                                                        } else {
-                                                            retval = _.add(
-                                                                retval,
-                                                                __.integrate(_.multiply(sym2.clone(), elem), dx, depth)
-                                                            );
-                                                        }
-                                                    });
-                                                } else if (sym1.power.lessThan(-2)) {
-                                                    retval = __.integration.by_parts(symbol, dx, depth, opt);
-                                                } else if (sym1.power.lessThan(0) && sym2.power.greaterThan(1)) {
-                                                    const decomp = __.integration.decompose_arg(
-                                                        sym1.clone().toLinear(),
-                                                        dx
-                                                    );
-                                                    const _a = decomp[0].negate();
-                                                    const x = decomp[1];
-                                                    const b = decomp[3];
-                                                    const fn = sym1.clone().toLinear();
-
-                                                    if (x.group !== PL && x.isLinear()) {
-                                                        const p = Number(sym2.power);
-                                                        const du = '_u_';
-                                                        const u = new NerdamerSymbol(du);
-                                                        // Pull the integral with the subsitution
-                                                        const U = _.expand(
-                                                            _.divide(
-                                                                _.pow(
-                                                                    _.subtract(u.clone(), b.clone()),
-                                                                    new NerdamerSymbol(p)
-                                                                ),
-                                                                u.clone()
-                                                            )
-                                                        );
-                                                        const scope = {};
-
-                                                        // Generate a scope for resubbing the symbol
-                                                        scope[du] = fn;
-                                                        const U2 = _.parse(U, scope);
-                                                        retval = __.integrate(U2, dx, 0);
-                                                    } else if (
-                                                        sym2.power.greaterThan(x.power) ||
-                                                        sym2.power.equals(x.power)
-                                                    ) {
-                                                        // Factor out coefficients
-                                                        const factors = new core.Algebra.Classes.Factors();
-                                                        sym1 = core.Algebra.Factor.coeffFactor(sym1.invert(), factors);
-                                                        const div = core.Algebra.divide(sym2, sym1);
-                                                        // It assumed that the result will be of group CB
-                                                        if (div.group !== CB) {
-                                                            retval = new NerdamerSymbol(0);
-                                                            div.each(elem => {
-                                                                retval = _.add(retval, __.integrate(elem, dx, depth));
-                                                            });
-                                                            // Put back the factors
-                                                            factors.each(factor => {
-                                                                retval = _.divide(retval, factor);
-                                                            });
-
-                                                            retval = _.expand(retval);
-                                                        } else {
-                                                            // Try something else
-                                                            retval = __.integration.by_parts(symbol, dx, depth, opt);
-                                                        }
-                                                    } else {
-                                                        retval = __.integration.partial_fraction(symbol, dx, depth);
-                                                    }
-                                                } else {
-                                                    // Handle cases such as (1-x^2)^(n/2)*x^(m) where n is odd ___ cracking knuckles... This can get a little hairy
-                                                    if (sym1.power.den.equals(2)) {
-                                                        // Assume the function is in the form (a^2-b*x^n)^(m/2)
-                                                        const dc = __.integration.decompose_arg(
-                                                            sym1.clone().toLinear(),
-                                                            dx
-                                                        );
-                                                        // Using the above definition
-                                                        const a = dc[3];
-                                                        const x = dc[1];
-                                                        const b = dc[0];
-                                                        const _bx = dc[2];
-                                                        if (x.power.equals(2) && b.lessThan(0)) {
-                                                            // If n is even && b is negative
-                                                            // make a equal 1 so we can do a trig sub
-                                                            if (!a.equals(1)) {
-                                                                // Divide a out of everything
-                                                                // move a to the coeff
-                                                                coeff = _.multiply(
-                                                                    coeff,
-                                                                    _.pow(a, new NerdamerSymbol(2))
-                                                                );
-                                                            }
-                                                            const u = dx;
-                                                            const c = _.divide(
-                                                                _.pow(b.clone().negate(), new NerdamerSymbol(1 / 2)),
-                                                                _.pow(a, new NerdamerSymbol(1 / 2))
-                                                            );
-                                                            const du = _.symfunction(COS, [new NerdamerSymbol(u)]);
-                                                            const cosn = _.pow(
-                                                                _.symfunction(COS, [new NerdamerSymbol(u)]),
-                                                                new NerdamerSymbol(sym1.power.num)
-                                                            );
-                                                            const X = _.pow(
-                                                                _.symfunction(SIN, [new NerdamerSymbol(u)]),
-                                                                new NerdamerSymbol(sym2.power)
-                                                            );
-                                                            const val = _.multiply(_.multiply(cosn, du), X);
-                                                            const integral = __.integrate(val, u, depth);
-                                                            // But remember that u = asin(sqrt(b)*a*x)
-                                                            retval = integral.sub(
-                                                                u,
-                                                                _.symfunction(ASIN, [
-                                                                    _.multiply(new NerdamerSymbol(dx), c),
-                                                                ])
-                                                            );
-                                                        } else {
-                                                            retval = __.integration.partial_fraction(
-                                                                symbol,
+                                                            retval = __.integrate(
+                                                                _.expand(_.multiply(new_sym, sym2.clone())),
                                                                 dx,
                                                                 depth,
                                                                 opt
                                                             );
+                                                        } else if (
+                                                            even(sym1.power) &&
+                                                            fn2 === SIN &&
+                                                            sym2.power.lessThan(0)
+                                                        ) {
+                                                            // Transform cos^(2*n) to (1-sin^2)^n
+                                                            const n = Number(sym1.power) / 2;
+                                                            const new_sym = _.parse(
+                                                                format('(1-sin({0})^2)^({1})', sym1.args[0], n)
+                                                            );
+                                                            retval = __.integrate(
+                                                                _.expand(_.multiply(new_sym, sym2.clone())),
+                                                                dx,
+                                                                depth,
+                                                                opt
+                                                            );
+                                                        } else {
+                                                            const p1_even = core.Utils.even(sym1.power);
+                                                            const p2_even = core.Utils.even(sym2.power);
+                                                            retval = new NerdamerSymbol(0);
+                                                            if (!p1_even || !p2_even) {
+                                                                let u;
+                                                                let r;
+                                                                // Since cos(x) is odd it carries du. If sin was odd then it would be the other way around
+                                                                // know that p1 satifies the odd portion in this case. If p2 did than it would contain r
+                                                                if (!p1_even) {
+                                                                    // U = sin(x)
+                                                                    u = sym2;
+                                                                    r = sym1;
+                                                                } else {
+                                                                    u = sym1;
+                                                                    r = sym2;
+                                                                }
+                                                                // Get the sign of du. In this case r carries du as stated before and D(cos(x),x) = -sin(x)
+                                                                const sign = u.fname === COS ? -1 : 1;
+                                                                const n = r.power;
+                                                                // Remove the du e.g. cos(x)^2*sin(x)^3 dx -> cos(x)^2*sin(x)^2*sin(x). We're left with two
+                                                                // even powers afterwards which can be transformed
+                                                                const k = (n - 1) / 2;
+                                                                // Make the transformation cos(x)^2 = 1 - sin(x)^2
+                                                                const trigTrans = _.parse(
+                                                                    `(1-${u.fname}${core.Utils.inBrackets(
+                                                                        arg1
+                                                                    )}^2)^${k}`
+                                                                );
+                                                                const sym = _.expand(
+                                                                    _.multiply(
+                                                                        new NerdamerSymbol(sign),
+                                                                        _.multiply(u.clone(), trigTrans)
+                                                                    )
+                                                                );
+                                                                // We can now just loop through and integrate each since it's now just a polynomial with functions
+                                                                sym.each(elem => {
+                                                                    retval = _.add(
+                                                                        retval,
+                                                                        __.integration.poly_integrate(elem.clone())
+                                                                    );
+                                                                });
+                                                            } else {
+                                                                // Performs double angle transformation
+                                                                const double_angle = function (s) {
+                                                                    const pow = s.power;
+                                                                    const k = pow / 2;
+                                                                    let e;
+                                                                    if (s.fname === COS) {
+                                                                        e = `((1/2)+(cos(2*(${s.args[0]}))/2))^${k}`;
+                                                                    } else {
+                                                                        e = `((1/2)-(cos(2*(${s.args[0]}))/2))^${k}`;
+                                                                    }
+
+                                                                    return _.parse(e);
+                                                                };
+                                                                // They're both even so transform both using double angle identities and we'll just
+                                                                // be able to integrate by the sum of integrals
+                                                                const daA = double_angle(sym1);
+                                                                const daB = double_angle(sym2);
+                                                                const t = _.multiply(daA, daB);
+                                                                const sym = _.expand(t);
+                                                                sym.each(elem => {
+                                                                    retval = _.add(
+                                                                        retval,
+                                                                        __.integrate(elem, dx, depth)
+                                                                    );
+                                                                });
+                                                                return _.multiply(retval, coeff);
+                                                            }
                                                         }
-                                                    } else if (f_is_linear) {
-                                                        retval = __.integration.partial_fraction(symbol, dx, depth);
                                                     }
-                                                }
-                                            } else if (sym1.isComposite() && sym2.isComposite()) {
-                                                // Sum of integrals
-                                                retval = new NerdamerSymbol(0);
-                                                if (sym1.power.greaterThan(0) && sym2.power.greaterThan(0)) {
-                                                    // Combine and pull the integral of each
-                                                    const sym = _.expand(symbol);
-                                                    sym.each(elem => {
-                                                        retval = _.add(retval, __.integrate(elem, dx, depth));
-                                                    }, true);
-                                                } else {
-                                                    const p1 = Number(sym1.power);
-                                                    const p2 = Number(sym2.power);
-                                                    if (p1 < 0 && p2 > 0) {
-                                                        // Swap
-                                                        const t = sym1;
-                                                        sym1 = sym2;
-                                                        sym2 = t;
-                                                    }
-                                                    if (p1 === -1 && p2 === -1) {
-                                                        retval = __.integration.partial_fraction(symbol, dx);
-                                                    } else {
-                                                        sym1.each(elem => {
-                                                            const k = _.multiply(elem, sym2.clone());
-                                                            const intg = __.integrate(k, dx, depth);
-                                                            retval = _.add(retval, intg);
-                                                        });
-                                                    }
-                                                }
-                                            } else if (g1 === CP && symbols[0].power.greaterThan(0)) {
-                                                sym1 = _.expand(sym1);
-                                                retval = new NerdamerSymbol(0);
-                                                sym1.each(elem => {
-                                                    retval = _.add(
-                                                        retval,
-                                                        __.integrate(_.multiply(elem, sym2.clone()), dx, depth)
-                                                    );
-                                                }, true);
-                                            } else if (g1 === FN && g2 === EX && core.Utils.in_htrig(sym1.fname)) {
-                                                sym1 = sym1.fnTransform();
-                                                retval = __.integrate(_.expand(_.multiply(sym1, sym2)), dx, depth);
-                                            } else if ((g1 === FN && g2 === CP) || (g2 === FN && g1 === CP)) {
-                                                if (g2 === FN && g1 === CP) {
-                                                    const t = sym1;
-                                                    sym1 = sym2;
-                                                    sym2 = t; // Swap
-                                                }
-                                                let p;
-                                                let q;
-                                                let sa;
-                                                let sb;
-                                                const du = NerdamerSymbol.unwrapSQRT(__.diff(sym1.clone(), dx), true);
-                                                const sym2_clone = NerdamerSymbol.unwrapSQRT(sym2, true);
-                                                if (du.power.equals(sym2_clone.power)) {
-                                                    p = new NerdamerSymbol(sym2.power);
-                                                    sa = du.clone().toLinear();
-                                                    sb = sym2.clone().toLinear();
-                                                    q = core.Algebra.divide(sa.toLinear(), sb);
-                                                    if (q.isConstant()) {
-                                                        const nq = _.pow(q, p.negate());
-                                                        retval = _.multiply(
-                                                            nq,
-                                                            __.integration.poly_integrate(sym1.clone())
+                                                    // Tan(x)*sec(x)^n
+                                                    else if (
+                                                        fn1 === SEC &&
+                                                        fn2 === TAN &&
+                                                        x.isLinear() &&
+                                                        sym2.isLinear()
+                                                    ) {
+                                                        retval = _.parse(
+                                                            format('sec({0})^({1})/({1})', sym1.args[0], sym1.power)
                                                         );
+                                                    } else if (fn1 === TAN && fn2 === SEC && x.isLinear()) {
+                                                        // Remaining: tan(x)^3*sec(x)^6
+                                                        if (sym1.isLinear() && sym2.isLinear()) {
+                                                            retval = _.divide(_.symfunction(SEC, [arg1.clone()]), a);
+                                                        } else if (even(sym1.power)) {
+                                                            const p = Number(sym1.power) / 2;
+                                                            // Transform tangent
+                                                            const t = _.parse(
+                                                                format('(sec({0})^2-1)^({1})', sym1.args[0], p)
+                                                            );
+                                                            retval = __.integrate(
+                                                                _.expand(_.multiply(t, sym2)),
+                                                                dx,
+                                                                depth
+                                                            );
+                                                        } else {
+                                                            __.integration.stop();
+                                                        }
+                                                    } else if (fn1 === SEC && fn2 === COS) {
+                                                        sym1.fname = COS;
+                                                        sym1.invert().updateHash();
+                                                        retval = __.integrate(_.multiply(sym1, sym2), dx, depth);
+                                                    } else if (fn1 === SIN && fn2 === CSC) {
+                                                        sym2.fname = SIN;
+                                                        sym2.invert().updateHash();
+                                                        retval = __.integrate(_.multiply(sym1, sym2), dx, depth);
+                                                    }
+                                                    // Tan/cos
+                                                    else if (
+                                                        fn1 === TAN &&
+                                                        (fn2 === COS || fn2 === SIN) &&
+                                                        sym2.power.lessThan(0)
+                                                    ) {
+                                                        const t = _.multiply(sym1.fnTransform(), sym2);
+                                                        retval = __.integrate(_.expand(t), dx, depth);
+                                                    } else {
+                                                        const t = _.multiply(sym1.fnTransform(), sym2.fnTransform());
+                                                        retval = __.integrate(_.expand(t), dx, depth);
+                                                    }
+                                                }
+                                                // TODO: In progress
+                                                else if ((fn1 === SIN || fn1 === COS) && (fn2 === SIN || fn2 === COS)) {
+                                                    if (sym1.isLinear() && sym2.isLinear()) {
+                                                        // If in the form cos(a*x)*sin(b*x)
+                                                        if (sym1.args[0].isLinear() && sym2.args[0].isLinear()) {
+                                                            // Use identity (sin(b*x+a*x)+sin(b*x-a*x))/2
+                                                            let ax;
+                                                            let bx;
+                                                            if (fn2 === SIN) {
+                                                                ax = sym1.args[0];
+                                                                bx = sym2.args[0];
+                                                            } else {
+                                                                bx = sym1.args[0];
+                                                                ax = sym2.args[0];
+                                                            }
+
+                                                            // Make the transformation
+                                                            const f = _.parse(
+                                                                format(
+                                                                    '(sin(({1})+({0}))+sin(({1})-({0})))/2',
+                                                                    ax.toString(),
+                                                                    bx.toString()
+                                                                )
+                                                            );
+
+                                                            // Integrate it
+                                                            retval = __.integrate(f, dx, depth);
+                                                        } else {
+                                                            const transformed = trigTransform(symbols);
+                                                            retval = __.integrate(_.expand(transformed), dx, depth);
+                                                        }
+                                                    } else {
+                                                        let transformed = new NerdamerSymbol(1);
+                                                        symbols.forEach(s => {
+                                                            const transformed_s = s.fnTransform();
+                                                            transformed = _.multiply(transformed, transformed_s);
+                                                        });
+                                                        const t = _.expand(transformed);
+
+                                                        retval = __.integrate(t, dx, depth);
+
+                                                        if (retval.hasIntegral()) {
+                                                            retval = __.integrate(
+                                                                trigTransform(transformed.collectSymbols()),
+                                                                dx,
+                                                                depth
+                                                            );
+                                                        }
                                                     }
                                                 } else {
-                                                    retval = __.integration.by_parts(symbol, dx, depth, opt);
+                                                    __.integration.stop();
                                                 }
-                                            } else {
-                                                const syma = sym1.clone().toLinear();
-                                                const symb = sym2.clone().toLinear();
-                                                if (
-                                                    g1 === EX &&
-                                                    g2 === EX &&
-                                                    sym1.power.contains(dx) &&
-                                                    sym2.power.contains(dx) &&
-                                                    !syma.contains(dx) &&
-                                                    !symb.contains(dx)
-                                                ) {
+                                            }
+                                        } else if (g1 === FN && g2 === S) {
+                                            const sym1_is_linear = sym1.isLinear();
+                                            if (sym1.fname === COS && sym1_is_linear && sym2.power.equals(-1)) {
+                                                retval = _.symfunction('Ci', [sym1.args[0]]);
+                                            } else if (sym1.fname === COS && sym2.power.equals(-1)) {
+                                                retval = __.integrate(
+                                                    _.multiply(sym1.fnTransform(), sym2.clone()),
+                                                    dx,
+                                                    depth
+                                                );
+                                            } else if (sym1.fname === COSH && sym1_is_linear && sym2.power.equals(-1)) {
+                                                retval = _.symfunction('Chi', [sym1.args[0]]);
+                                            } else if (sym1.fname === COSH && sym2.power.equals(-1)) {
+                                                retval = __.integrate(
+                                                    _.multiply(sym1.fnTransform(), sym2.clone()),
+                                                    dx,
+                                                    depth
+                                                );
+                                            } else if (sym1.fname === SIN && sym1_is_linear && sym2.power.equals(-1)) {
+                                                retval = _.symfunction('Si', [sym1.args[0]]);
+                                            } else if (sym1.fname === SIN && sym2.power.equals(-1)) {
+                                                retval = __.integrate(
+                                                    _.multiply(sym1.fnTransform(), sym2.clone()),
+                                                    dx,
+                                                    depth
+                                                );
+                                            } else if (sym1.fname === SINH && sym1_is_linear && sym2.power.equals(-1)) {
+                                                retval = _.symfunction('Shi', [sym1.args[0]]);
+                                            } else if (sym1.fname === SINH && sym2.power.equals(-1)) {
+                                                retval = __.integrate(
+                                                    _.multiply(sym1.fnTransform(), sym2.clone()),
+                                                    dx,
+                                                    depth
+                                                );
+                                            } else if (sym1.fname === LOG && sym2.power.equals(-1)) {
+                                                // Log(x)^n/x = log(x)^(n+1)/(n+1)
+                                                retval = __.integration.poly_integrate(sym1, dx, depth);
+                                            } else if (sym1.fname === 'erf') {
+                                                if (sym2.power.equals(1)) {
+                                                    const dc = __.integration.decompose_arg(sym1.args[0], dx);
+                                                    const a_ = dc[0];
+                                                    const x_ = dc[1];
+                                                    const arg = sym1.args[0].toString();
                                                     retval = _.parse(
                                                         format(
-                                                            '(({0})^(({2})*({4}))*({1})^(({3})*({4})))/(log(({0})^({2}))+log(({1})^({3})))',
-                                                            syma.toString(),
-                                                            symb.toString(),
-                                                            sym1.power.multiplier.toString(),
-                                                            sym2.power.multiplier.toString(),
-                                                            dx
+                                                            '(e^(-(({2}))^2)*(sqrt(pi)*e^((({2}))^2)*(2*({0})^2*({1})^2-3)*erf(({2}))+2*({0})*({1})-2))/(4*sqrt(pi)*({0})^2)',
+                                                            a_,
+                                                            x_,
+                                                            arg
                                                         )
                                                     );
+                                                }
+                                            } else {
+                                                // Since group S is guaranteed convergence we need not worry about tracking depth of integration
+                                                retval = __.integration.by_parts(symbol, dx, depth, opt);
+                                            }
+                                        } else if (g1 === EX && g2 === S) {
+                                            const x =
+                                                fn1 === LOG ? __.integration.decompose_arg(sym1.args[0], dx)[1] : null;
+                                            if (
+                                                sym1.isE() &&
+                                                (sym1.power.group === S || sym1.power.group === CB) &&
+                                                sym2.power.equals(-1)
+                                            ) {
+                                                retval = _.symfunction('Ei', [sym1.power.clone()]);
+                                            } else if (fn1 === LOG && x.value === sym2.value) {
+                                                retval = __.integration.poly_integrate(sym1, dx, depth);
+                                            } else {
+                                                retval = __.integration.by_parts(symbol, dx, depth, opt);
+                                            }
+                                        } else if (g1 === PL && g2 === S) {
+                                            // First try to reduce the top
+                                            if (sym2.value === sym1.value && sym1.power.equals(-1)) {
+                                                // Find the lowest power in the denominator
+                                                const pd = Math.min.apply(null, core.Utils.keys(sym1.symbols));
+                                                // Get the lowest common value between denominator and numerator
+                                                const pc = Math.min(pd, sym2.power);
+                                                // Reduce both denominator and numerator by that factor
+                                                const factor = sym2.clone();
+                                                factor.power = new Frac(pc);
+                                                sym2 = _.divide(sym2, factor.clone()); // Reduce the denominator
+                                                let t = new NerdamerSymbol(0);
+                                                sym1.each(elem => {
+                                                    t = _.add(t, _.divide(elem.clone(), factor.clone()));
+                                                });
+                                                t.multiplier = sym1.multiplier;
+                                                symbol = _.divide(sym2, t);
+                                            } else {
+                                                symbol = _.expand(symbol);
+                                            }
+                                            retval = __.integration.partial_fraction(symbol, dx, depth);
+                                        } else if (g1 === CP && g2 === S) {
+                                            const f = sym1.clone().toLinear();
+                                            const f_is_linear = core.Algebra.degree(f, _.parse(dx)).equals(1);
+                                            // Handle cases x^(2*n)/sqrt(1-x^2)
+                                            if (sym1.power.equals(-1 / 2)) {
+                                                const decomp = __.integration.decompose_arg(
+                                                    sym1.clone().toLinear(),
+                                                    dx
+                                                );
+                                                const a = decomp[0].negate();
+                                                const x = decomp[1];
+                                                const b = decomp[3];
+                                                const p1 = Number(sym1.power);
+                                                const p2 = Number(sym2.power);
+                                                if (isInt(p2) && core.Utils.even(p2) && x.power.equals(2)) {
+                                                    // If the substitution
+                                                    let c = _.divide(
+                                                        _.multiply(
+                                                            _.pow(b.clone(), new NerdamerSymbol(2)),
+                                                            _.symfunction(SQRT, [_.divide(b.clone(), a.clone())])
+                                                        ),
+                                                        _.pow(a.clone(), new NerdamerSymbol(2))
+                                                    );
+                                                    c = _.multiply(c, _.symfunction(SQRT, [b]).invert());
+                                                    const dummy = _.parse('sin(u)');
+                                                    dummy.power = dummy.power.multiply(sym2.power);
+                                                    const integral = __.integrate(dummy, 'u', depth);
+                                                    const bksub = _.parse(`${ASIN}(${SQRT}(${a}/${b})*${dx})`);
+                                                    retval = _.multiply(
+                                                        c,
+                                                        integral.sub(new NerdamerSymbol('u'), bksub)
+                                                    );
+                                                } else if (p1 === -1 / 2) {
+                                                    const u_transform = function (func, subst) {
+                                                        const intg = _.parse(
+                                                            __.integrate(func, dx, depth, opt).sub(
+                                                                dx,
+                                                                format(subst, dx)
+                                                            )
+                                                        );
+                                                        if (!intg.hasIntegral()) {
+                                                            return intg;
+                                                        }
+                                                        return undefined;
+                                                    };
+                                                    if (p2 === -1) {
+                                                        retval = u_transform(
+                                                            _.expand(
+                                                                _.expand(
+                                                                    _.pow(
+                                                                        _.multiply(sym1.invert(), sym2.invert()),
+                                                                        new NerdamerSymbol(2)
+                                                                    )
+                                                                )
+                                                            ).invert(),
+                                                            'sqrt(1-1/({0})^2)'
+                                                        );
+                                                    } else if (p2 === -2) {
+                                                        // Apply transformation to see if it matches asin(x)
+                                                        retval = u_transform(
+                                                            _.sqrt(
+                                                                _.expand(
+                                                                    _.divide(
+                                                                        _.pow(symbol, new NerdamerSymbol(2)).invert(),
+                                                                        _.pow(
+                                                                            new NerdamerSymbol(dx),
+                                                                            new NerdamerSymbol(2)
+                                                                        )
+                                                                    ).negate()
+                                                                )
+                                                            ).invert(),
+                                                            'sqrt(1-1/({0})^2)'
+                                                        );
+                                                    }
+                                                }
+                                            } else if (sym1.power.equals(-1) && sym2.isLinear() && f_is_linear) {
+                                                retval = __.integration.partial_fraction(symbol, dx, depth);
+                                            } else if (!sym1.power.lessThan(0) && isInt(sym1.power)) {
+                                                // Sum of integrals
+                                                const expanded = _.expand(sym1);
+                                                retval = new NerdamerSymbol(0);
+                                                expanded.each(elem => {
+                                                    if (elem.group === PL) {
+                                                        elem.each(inner => {
+                                                            retval = _.add(
+                                                                retval,
+                                                                __.integrate(_.multiply(sym2.clone(), inner), dx, depth)
+                                                            );
+                                                        });
+                                                    } else {
+                                                        retval = _.add(
+                                                            retval,
+                                                            __.integrate(_.multiply(sym2.clone(), elem), dx, depth)
+                                                        );
+                                                    }
+                                                });
+                                            } else if (sym1.power.lessThan(-2)) {
+                                                retval = __.integration.by_parts(symbol, dx, depth, opt);
+                                            } else if (sym1.power.lessThan(0) && sym2.power.greaterThan(1)) {
+                                                const decomp = __.integration.decompose_arg(
+                                                    sym1.clone().toLinear(),
+                                                    dx
+                                                );
+                                                const _a = decomp[0].negate();
+                                                const x = decomp[1];
+                                                const b = decomp[3];
+                                                const fn = sym1.clone().toLinear();
+
+                                                if (x.group !== PL && x.isLinear()) {
+                                                    const p = Number(sym2.power);
+                                                    const du = '_u_';
+                                                    const u = new NerdamerSymbol(du);
+                                                    // Pull the integral with the subsitution
+                                                    const U = _.expand(
+                                                        _.divide(
+                                                            _.pow(
+                                                                _.subtract(u.clone(), b.clone()),
+                                                                new NerdamerSymbol(p)
+                                                            ),
+                                                            u.clone()
+                                                        )
+                                                    );
+                                                    const scope = {};
+
+                                                    // Generate a scope for resubbing the symbol
+                                                    scope[du] = fn;
+                                                    const U2 = _.parse(U, scope);
+                                                    retval = __.integrate(U2, dx, 0);
+                                                } else if (
+                                                    sym2.power.greaterThan(x.power) ||
+                                                    sym2.power.equals(x.power)
+                                                ) {
+                                                    // Factor out coefficients
+                                                    const factors = new core.Algebra.Classes.Factors();
+                                                    sym1 = core.Algebra.Factor.coeffFactor(sym1.invert(), factors);
+                                                    const div = core.Algebra.divide(sym2, sym1);
+                                                    // It assumed that the result will be of group CB
+                                                    if (div.group !== CB) {
+                                                        retval = new NerdamerSymbol(0);
+                                                        div.each(elem => {
+                                                            retval = _.add(retval, __.integrate(elem, dx, depth));
+                                                        });
+                                                        // Put back the factors
+                                                        factors.each(factor => {
+                                                            retval = _.divide(retval, factor);
+                                                        });
+
+                                                        retval = _.expand(retval);
+                                                    } else {
+                                                        // Try something else
+                                                        retval = __.integration.by_parts(symbol, dx, depth, opt);
+                                                    }
                                                 } else {
-                                                    retval = __.integration.by_parts(symbol, dx, depth, opt);
+                                                    retval = __.integration.partial_fraction(symbol, dx, depth);
+                                                }
+                                                // Handle cases such as (1-x^2)^(n/2)*x^(m) where n is odd ___ cracking knuckles... This can get a little hairy
+                                            } else if (sym1.power.den.equals(2)) {
+                                                // Assume the function is in the form (a^2-b*x^n)^(m/2)
+                                                const dc = __.integration.decompose_arg(sym1.clone().toLinear(), dx);
+                                                // Using the above definition
+                                                const a = dc[3];
+                                                const x = dc[1];
+                                                const b = dc[0];
+                                                const _bx = dc[2];
+                                                if (x.power.equals(2) && b.lessThan(0)) {
+                                                    // If n is even && b is negative
+                                                    // make a equal 1 so we can do a trig sub
+                                                    if (!a.equals(1)) {
+                                                        // Divide a out of everything
+                                                        // move a to the coeff
+                                                        coeff = _.multiply(coeff, _.pow(a, new NerdamerSymbol(2)));
+                                                    }
+                                                    const u = dx;
+                                                    const c = _.divide(
+                                                        _.pow(b.clone().negate(), new NerdamerSymbol(1 / 2)),
+                                                        _.pow(a, new NerdamerSymbol(1 / 2))
+                                                    );
+                                                    const du = _.symfunction(COS, [new NerdamerSymbol(u)]);
+                                                    const cosn = _.pow(
+                                                        _.symfunction(COS, [new NerdamerSymbol(u)]),
+                                                        new NerdamerSymbol(sym1.power.num)
+                                                    );
+                                                    const X = _.pow(
+                                                        _.symfunction(SIN, [new NerdamerSymbol(u)]),
+                                                        new NerdamerSymbol(sym2.power)
+                                                    );
+                                                    const val = _.multiply(_.multiply(cosn, du), X);
+                                                    const integral = __.integrate(val, u, depth);
+                                                    // But remember that u = asin(sqrt(b)*a*x)
+                                                    retval = integral.sub(
+                                                        u,
+                                                        _.symfunction(ASIN, [_.multiply(new NerdamerSymbol(dx), c)])
+                                                    );
+                                                } else {
+                                                    retval = __.integration.partial_fraction(symbol, dx, depth, opt);
+                                                }
+                                            } else if (f_is_linear) {
+                                                retval = __.integration.partial_fraction(symbol, dx, depth);
+                                            }
+                                        } else if (sym1.isComposite() && sym2.isComposite()) {
+                                            // Sum of integrals
+                                            retval = new NerdamerSymbol(0);
+                                            if (sym1.power.greaterThan(0) && sym2.power.greaterThan(0)) {
+                                                // Combine and pull the integral of each
+                                                const sym = _.expand(symbol);
+                                                sym.each(elem => {
+                                                    retval = _.add(retval, __.integrate(elem, dx, depth));
+                                                }, true);
+                                            } else {
+                                                const p1 = Number(sym1.power);
+                                                const p2 = Number(sym2.power);
+                                                if (p1 < 0 && p2 > 0) {
+                                                    // Swap
+                                                    const t = sym1;
+                                                    sym1 = sym2;
+                                                    sym2 = t;
+                                                }
+                                                if (p1 === -1 && p2 === -1) {
+                                                    retval = __.integration.partial_fraction(symbol, dx);
+                                                } else {
+                                                    sym1.each(elem => {
+                                                        const k = _.multiply(elem, sym2.clone());
+                                                        const intg = __.integrate(k, dx, depth);
+                                                        retval = _.add(retval, intg);
+                                                    });
                                                 }
                                             }
-                                        }
-                                    } else if (
-                                        l === 3 &&
-                                        ((symbols[2].group === S && symbols[2].power.lessThan(2)) ||
-                                            symbols[0].group === CP)
-                                    ) {
-                                        let first = symbols[0];
-                                        if (first.group === CP) {
-                                            // TODO {support higher powers of x in the future}
-                                            if (first.power.greaterThan(1)) {
-                                                first = _.expand(first);
-                                            }
-                                            const r = _.multiply(symbols[1], symbols[2]);
+                                        } else if (g1 === CP && symbols[0].power.greaterThan(0)) {
+                                            sym1 = _.expand(sym1);
                                             retval = new NerdamerSymbol(0);
-                                            first.each(elem => {
-                                                const prod = _.multiply(elem, r.clone());
-                                                const intg = __.integrate(prod, dx, depth);
-                                                retval = _.add(retval, intg);
+                                            sym1.each(elem => {
+                                                retval = _.add(
+                                                    retval,
+                                                    __.integrate(_.multiply(elem, sym2.clone()), dx, depth)
+                                                );
                                             }, true);
+                                        } else if (g1 === FN && g2 === EX && core.Utils.in_htrig(sym1.fname)) {
+                                            sym1 = sym1.fnTransform();
+                                            retval = __.integrate(_.expand(_.multiply(sym1, sym2)), dx, depth);
+                                        } else if ((g1 === FN && g2 === CP) || (g2 === FN && g1 === CP)) {
+                                            if (g2 === FN && g1 === CP) {
+                                                const t = sym1;
+                                                sym1 = sym2;
+                                                sym2 = t; // Swap
+                                            }
+                                            let p;
+                                            let q;
+                                            let sa;
+                                            let sb;
+                                            const du = NerdamerSymbol.unwrapSQRT(__.diff(sym1.clone(), dx), true);
+                                            const sym2_clone = NerdamerSymbol.unwrapSQRT(sym2, true);
+                                            if (du.power.equals(sym2_clone.power)) {
+                                                p = new NerdamerSymbol(sym2.power);
+                                                sa = du.clone().toLinear();
+                                                sb = sym2.clone().toLinear();
+                                                q = core.Algebra.divide(sa.toLinear(), sb);
+                                                if (q.isConstant()) {
+                                                    const nq = _.pow(q, p.negate());
+                                                    retval = _.multiply(
+                                                        nq,
+                                                        __.integration.poly_integrate(sym1.clone())
+                                                    );
+                                                }
+                                            } else {
+                                                retval = __.integration.by_parts(symbol, dx, depth, opt);
+                                            }
                                         } else {
-                                            // Try integration by parts although technically it will never work
-                                            retval = __.integration.by_parts(symbol, dx, depth, opt);
+                                            const syma = sym1.clone().toLinear();
+                                            const symb = sym2.clone().toLinear();
+                                            if (
+                                                g1 === EX &&
+                                                g2 === EX &&
+                                                sym1.power.contains(dx) &&
+                                                sym2.power.contains(dx) &&
+                                                !syma.contains(dx) &&
+                                                !symb.contains(dx)
+                                            ) {
+                                                retval = _.parse(
+                                                    format(
+                                                        '(({0})^(({2})*({4}))*({1})^(({3})*({4})))/(log(({0})^({2}))+log(({1})^({3})))',
+                                                        syma.toString(),
+                                                        symb.toString(),
+                                                        sym1.power.multiplier.toString(),
+                                                        sym2.power.multiplier.toString(),
+                                                        dx
+                                                    )
+                                                );
+                                            } else {
+                                                retval = __.integration.by_parts(symbol, dx, depth, opt);
+                                            }
                                         }
-                                    } else if (all_functions(symbols)) {
-                                        let t = new NerdamerSymbol(1);
-                                        for (let i = 0, len = symbols.length; i < len; i++) {
-                                            t = _.multiply(t, symbols[i].fnTransform());
-                                        }
-                                        t = _.expand(t);
-                                        retval = __.integrate(t, dx, depth);
-                                    } else {
-                                        // One more go
-                                        const transformed = trigTransform(symbols);
-                                        retval = __.integrate(_.expand(transformed), dx, depth);
                                     }
+                                } else if (
+                                    l === 3 &&
+                                    ((symbols[2].group === S && symbols[2].power.lessThan(2)) ||
+                                        symbols[0].group === CP)
+                                ) {
+                                    let first = symbols[0];
+                                    if (first.group === CP) {
+                                        // TODO {support higher powers of x in the future}
+                                        if (first.power.greaterThan(1)) {
+                                            first = _.expand(first);
+                                        }
+                                        const r = _.multiply(symbols[1], symbols[2]);
+                                        retval = new NerdamerSymbol(0);
+                                        first.each(elem => {
+                                            const prod = _.multiply(elem, r.clone());
+                                            const intg = __.integrate(prod, dx, depth);
+                                            retval = _.add(retval, intg);
+                                        }, true);
+                                    } else {
+                                        // Try integration by parts although technically it will never work
+                                        retval = __.integration.by_parts(symbol, dx, depth, opt);
+                                    }
+                                } else if (all_functions(symbols)) {
+                                    let t = new NerdamerSymbol(1);
+                                    for (let i = 0, len = symbols.length; i < len; i++) {
+                                        t = _.multiply(t, symbols[i].fnTransform());
+                                    }
+                                    t = _.expand(t);
+                                    retval = __.integrate(t, dx, depth);
+                                } else {
+                                    // One more go
+                                    const transformed = trigTransform(symbols);
+                                    retval = __.integrate(_.expand(transformed), dx, depth);
                                 }
                             }
 
@@ -2481,7 +2428,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             },
             divide(f, g, x, lim, depth) {
                 if (depth++ > Settings.max_lim_depth) {
-                    return;
+                    return undefined;
                 }
 
                 const _fin = f.clone();
@@ -2504,7 +2451,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         return _.divide(_.multiply(fm, __.Limit.interval('-1', '1')), gm);
                     }
                     // TODO: Support more limits
-                    __.Limit.diverges();
+                    return __.Limit.diverges();
                 }
 
                 const isInfinity = function (L) {
@@ -2558,7 +2505,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     // Console.log("L'Hospital likely endless loop");
                     // console.log("  f:"+f);
                     // console.log("  g:"+g);
-                    return;
+                    return undefined;
                 }
 
                 // REMEMBER:
@@ -2632,7 +2579,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 depth ||= 1;
 
                 if (depth++ > Settings.max_lim_depth) {
-                    return;
+                    return undefined;
                 }
 
                 // Store the multiplier
@@ -2732,39 +2679,34 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                     }
                                     if (evaluates) {
                                         retval = trial;
-                                    } else {
                                         // If the limit converges. We'll deal with non-convergent ones later
-                                        if (__.Limit.isConvergent(arg)) {
-                                            if (symbol.fname === LOG) {
-                                                switch (arg.toString()) {
-                                                    // Lim -> 0
-                                                    case '0':
-                                                        retval = NerdamerSymbol.infinity().negate();
-                                                        break;
-                                                    case 'Infinity':
-                                                        retval = NerdamerSymbol.infinity();
-                                                        break;
-                                                    case '-Infinity':
-                                                        retval = NerdamerSymbol.infinity();
-                                                        break;
-                                                }
-                                            } else if (
-                                                (symbol.fname === COS || symbol.fname === SIN) &&
-                                                lim.isInfinity
-                                            ) {
-                                                retval = __.Limit.interval(-1, 1);
-                                            } else if (symbol.fname === TAN) {
-                                                const s_arg = symbol.args[0];
-                                                const n = s_arg.getNum();
-                                                const d = s_arg.getDenom();
-                                                const pi = n.toUnitMultiplier();
-                                                if (lim.isInfinity || (pi.equals('pi') && d.equals(2))) {
-                                                    retval = __.Limit.diverges();
-                                                }
-                                            } else if (symbol.fname === Settings.FACTORIAL) {
-                                                if (arg.isInfinity) {
-                                                    return NerdamerSymbol.infinity();
-                                                }
+                                    } else if (__.Limit.isConvergent(arg)) {
+                                        if (symbol.fname === LOG) {
+                                            switch (arg.toString()) {
+                                                // Lim -> 0
+                                                case '0':
+                                                    retval = NerdamerSymbol.infinity().negate();
+                                                    break;
+                                                case 'Infinity':
+                                                    retval = NerdamerSymbol.infinity();
+                                                    break;
+                                                case '-Infinity':
+                                                    retval = NerdamerSymbol.infinity();
+                                                    break;
+                                            }
+                                        } else if ((symbol.fname === COS || symbol.fname === SIN) && lim.isInfinity) {
+                                            retval = __.Limit.interval(-1, 1);
+                                        } else if (symbol.fname === TAN) {
+                                            const s_arg = symbol.args[0];
+                                            const n = s_arg.getNum();
+                                            const d = s_arg.getDenom();
+                                            const pi = n.toUnitMultiplier();
+                                            if (lim.isInfinity || (pi.equals('pi') && d.equals(2))) {
+                                                retval = __.Limit.diverges();
+                                            }
+                                        } else if (symbol.fname === Settings.FACTORIAL) {
+                                            if (arg.isInfinity) {
+                                                return NerdamerSymbol.infinity();
                                             }
                                         }
                                     }
@@ -2877,7 +2819,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                                 throw e;
                                             }
                                             if (depth++ > Settings.max_lim_depth) {
-                                                return;
+                                                return undefined;
                                             }
                                             retval = __.Limit.limit(__.diff(symbol, x), x, lim, depth);
                                         }
