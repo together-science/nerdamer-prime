@@ -570,9 +570,6 @@ export default defineConfig([
             'id-length': 'off',
             'id-denylist': 'off',
 
-            // Snake_case is used in some internal variables
-            camelcase: 'off',
-
             // Mathematical code often uses ++ and -- operators
             'no-plusplus': 'off',
 

@@ -1296,15 +1296,15 @@ describe('Nerdamer core', () => {
         // Given
         const testCases = [
             {
-                given: 'continued_fraction(2.145474, 11)',
+                given: 'continuedFraction(2.145474, 11)',
                 expected: '[1,2,[6,1,6,1,16,8,2,1,3,2]]',
             },
             {
-                given: 'continued_fraction(-6/7)',
+                given: 'continuedFraction(-6/7)',
                 expected: '[-1,0,[1,6]]',
             },
             {
-                given: 'continued_fraction(sqrt(2), 5)',
+                given: 'continuedFraction(sqrt(2), 5)',
                 expected: '[1,1,[2,2,2,2,2]]',
             },
         ];

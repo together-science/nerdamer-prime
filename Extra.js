@@ -108,12 +108,11 @@ if (typeof module !== 'undefined') {
                     } else {
                         // Try to integrate for a solution
                         // we need at least the Laplace integration depth
-                        const depth_is_lower =
-                            core.Settings.integration_depth < core.Settings.Laplace_integration_depth;
+                        const depthIsLower = core.Settings.integration_depth < core.Settings.Laplace_integration_depth;
 
-                        let saved_integration_depth;
-                        if (depth_is_lower) {
-                            saved_integration_depth = core.Settings.integration_depth; // Save the depth
+                        let savedIntegrationDepth;
+                        if (depthIsLower) {
+                            savedIntegrationDepth = core.Settings.integration_depth; // Save the depth
                             core.Settings.integration_depth = core.Settings.Laplace_integration_depth; // Transforms need a little more room
                         }
 
@@ -122,8 +121,8 @@ if (typeof module !== 'undefined') {
                             () => {
                                 const u = t;
                                 const sym = symbol.sub(t, u);
-                                const integration_expr = _.parse(`e^(-${s}*${u})*${sym}`);
-                                retval = core.Calculus.integrate(integration_expr, u);
+                                const integrationExpr = _.parse(`e^(-${s}*${u})*${sym}`);
+                                retval = core.Calculus.integrate(integrationExpr, u);
                                 if (retval.hasIntegral()) {
                                     retval = _.symfunction('laplace', [symbol, t, s]);
                                     return;
@@ -138,9 +137,9 @@ if (typeof module !== 'undefined') {
 
                         retval = core.Utils.block('PARSE2NUMBER', () => _.parse(retval), true);
 
-                        if (depth_is_lower) // Put the integration depth as it was
+                        if (depthIsLower) // Put the integration depth as it was
                         {
-                            core.Settings.integration_depth = saved_integration_depth;
+                            core.Settings.integration_depth = savedIntegrationDepth;
                         }
                     }
                 }
@@ -148,7 +147,7 @@ if (typeof module !== 'undefined') {
                 return _.multiply(retval, coeff);
             },
             inverse(symbol, s_, t) {
-                const input_symbol = symbol.clone();
+                const inputSymbol = symbol.clone();
                 return core.Utils.block(
                     'POSITIVE_MULTIPLIERS',
                     () => {
@@ -160,7 +159,7 @@ if (typeof module !== 'undefined') {
 
                         if (symbol.group === S || symbol.group === CB || symbol.isComposite()) {
                             let p;
-                            let den_p;
+                            let denP;
                             let a;
                             let b;
                             let d;
@@ -179,10 +178,10 @@ if (typeof module !== 'undefined') {
                             // den = core.Algebra.Factor.factor(symbol.getDenom().invert(null, true));
 
                             if (den.group === CP || den.group === PL) {
-                                den_p = den.power.clone();
+                                denP = den.power.clone();
                                 den.toLinear();
                             } else {
-                                den_p = new core.Frac(1);
+                                denP = new core.Frac(1);
                             }
 
                             // Convert s to a string
@@ -215,7 +214,7 @@ if (typeof module !== 'undefined') {
                                 retval = _.divide(_.pow(t, new NerdamerSymbol(p)), new NerdamerSymbol(fact));
                                 // Wrap it up
                                 finalize();
-                            } else if (den.group === CP && den_p.equals(1)) {
+                            } else if (den.group === CP && denP.equals(1)) {
                                 if (f.x.group === core.groups.PL && core.Algebra.degree(den).equals(2)) {
                                     // Possibly in the form 1/(s^2+2*s+1)
                                     // Try factoring to get it in a more familiar form{
@@ -231,15 +230,15 @@ if (typeof module !== 'undefined') {
                                     t = _.divide(t, f.a.clone());
 
                                     // Don't add factorial of one or zero
-                                    p = den_p - 1;
-                                    fact = p === 0 || p === 1 ? '1' : `(${den_p}-1)!`;
+                                    p = denP - 1;
+                                    fact = p === 0 || p === 1 ? '1' : `(${denP}-1)!`;
                                     retval = _.parse(
                                         format(
                                             '(({0})^({3}-1)*e^(-(({2})*({0}))/({1})))/(({4})*({1})^({3}))',
                                             t,
                                             f.a,
                                             f.b,
-                                            den_p,
+                                            denP,
                                             fact
                                         )
                                     );
@@ -261,29 +260,29 @@ if (typeof module !== 'undefined') {
                                     else {
                                         a = new NerdamerSymbol(1);
                                         if (num.group === CB) {
-                                            let new_num = new NerdamerSymbol(1);
+                                            let newNum = new NerdamerSymbol(1);
                                             num.each(x => {
                                                 if (x.contains(s)) {
-                                                    new_num = _.multiply(new_num, x);
+                                                    newNum = _.multiply(newNum, x);
                                                 } else {
                                                     a = _.multiply(a, x);
                                                 }
                                             });
-                                            num = new_num;
+                                            num = newNum;
                                         }
 
                                         // We need more information about the denominator to decide
                                         f2 = core.Utils.decompose_fn(num, s, true);
                                         const fn1 = f2.a;
                                         const fn2 = f2.b;
-                                        const a_has_sin = fn1.containsFunction('sin');
-                                        const a_has_cos = fn1.containsFunction('cos');
-                                        const b_has_cos = fn2.containsFunction('cos');
-                                        const b_has_sin = fn2.containsFunction('sin');
+                                        const aHasSin = fn1.containsFunction('sin');
+                                        const aHasCos = fn1.containsFunction('cos');
+                                        const bHasCos = fn2.containsFunction('cos');
+                                        const bHasSin = fn2.containsFunction('sin');
                                         if (
                                             f2.x.value === s &&
                                             f2.x.isLinear() &&
-                                            !((a_has_sin && b_has_cos) || a_has_cos || b_has_sin)
+                                            !((aHasSin && bHasCos) || aHasCos || bHasSin)
                                         ) {
                                             retval = _.parse(
                                                 format(
@@ -294,7 +293,7 @@ if (typeof module !== 'undefined') {
                                                     f.b
                                                 )
                                             );
-                                        } else if (a_has_sin && b_has_cos) {
+                                        } else if (aHasSin && bHasCos) {
                                             const sin = fn1.findFunction('sin');
                                             const cos = fn2.findFunction('cos');
                                             // Who has the s?
@@ -320,7 +319,7 @@ if (typeof module !== 'undefined') {
                             ) {
                                 b = _.divide(num.clone(), _.parse('sqrt(pi)'));
                                 retval = _.parse(format('(2*({2})*sqrt({0}))/({1})', t, f.a, b, num));
-                            } else if (den_p.equals(2) && f.x.power.equals(2)) {
+                            } else if (denP.equals(2) && f.x.power.equals(2)) {
                                 if (!num.contains(s)) {
                                     a = _.divide(num, new NerdamerSymbol(2));
                                     exp =
@@ -330,7 +329,7 @@ if (typeof module !== 'undefined') {
                                     // Decompose the numerator to check value of s
                                     f2 = core.Utils.decompose_fn(_.expand(num.clone()), s, true);
                                     if (f2.x.isComposite()) {
-                                        const s_terms = [];
+                                        const sTerms = [];
                                         // First collect the factors e.g. (a)(bx)(cx^2+d)
                                         const symbols = num
                                             .collectSymbols(x => {
@@ -350,7 +349,7 @@ if (typeof module !== 'undefined') {
                                         for (let i = 0; i < symbols.length; i++) {
                                             const fc = symbols[i];
                                             if (fc.x.value === s) {
-                                                s_terms.push(fc);
+                                                sTerms.push(fc);
                                             } else {
                                                 a = _.multiply(a, fc.symbol);
                                             }
@@ -361,17 +360,17 @@ if (typeof module !== 'undefined') {
                                         //    has the highest power
                                         // We can now check for the next type s(s^2-a^2)/(s^2+a^2)^2
                                         if (
-                                            s_terms[0].x.power.equals(2) &&
-                                            s_terms[1].x.power.equals(1) &&
-                                            s_terms[1].b.equals(0) &&
-                                            !s_terms[0].b.equals(0)
+                                            sTerms[0].x.power.equals(2) &&
+                                            sTerms[1].x.power.equals(1) &&
+                                            sTerms[1].b.equals(0) &&
+                                            !sTerms[0].b.equals(0)
                                         ) {
-                                            b = s_terms[0].a.negate();
+                                            b = sTerms[0].a.negate();
                                             exp =
                                                 '-(({1})*({2})*({5})*({0})*sin((sqrt(({4})*({5}))*({0}))/({4})))/' +
                                                 '(2*({4})^2*sqrt(({4})*({5})))-(({1})*({3})*({0})*sin((sqrt(({4})*({5}))*({0}))/({4})))' +
                                                 '/(2*({4})*sqrt(({4})*({5})))+(({1})*({2})*cos((sqrt(({4})*({5}))*({0}))/({4})))/({4})^2';
-                                            retval = _.parse(format(exp, t, a, b, s_terms[0].b, f.a, f.b));
+                                            retval = _.parse(format(exp, t, a, b, sTerms[0].b, f.a, f.b));
                                         }
                                     } else if (f2.x.isLinear()) {
                                         a = _.divide(f2.a, new NerdamerSymbol(2));
@@ -396,7 +395,7 @@ if (typeof module !== 'undefined') {
                                 }
                             } else if (symbol.isComposite()) {
                                 // 1/(s+1)^2
-                                if (den_p.equals(2) && f.x.group === S) {
+                                if (denP.equals(2) && f.x.group === S) {
                                     retval = _.parse(`(${m})*(${t})*e^(-(${f.b})*(${t}))`);
                                 } else {
                                     retval = new NerdamerSymbol(0);
@@ -410,7 +409,7 @@ if (typeof module !== 'undefined') {
                             }
                         }
 
-                        retval ||= _.symfunction('ilt', [input_symbol, s_, t]);
+                        retval ||= _.symfunction('ilt', [inputSymbol, s_, t]);
 
                         return retval;
                     },

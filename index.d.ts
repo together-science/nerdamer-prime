@@ -739,7 +739,7 @@ declare namespace nerdamer {
     export import tri = nerdamerPrime.tri;
     export import parens = nerdamerPrime.parens;
     export import line = nerdamerPrime.line;
-    export import continued_fraction = nerdamerPrime.continued_fraction;
+    export import continuedFraction = nerdamerPrime.continuedFraction;
 
     // Calculus Functions
     export import sum = nerdamerPrime.sum;
@@ -785,8 +785,8 @@ declare namespace nerdamer {
     export import union = nerdamerPrime.union;
     export import intersection = nerdamerPrime.intersection;
     export import difference = nerdamerPrime.difference;
-    export import is_subset = nerdamerPrime.is_subset;
-    export import is_in = nerdamerPrime.is_in;
+    export import isSubset = nerdamerPrime.isSubset;
+    export import isIn = nerdamerPrime.isIn;
     export import intersects = nerdamerPrime.intersects;
     export import contains = nerdamerPrime.contains;
 
@@ -1387,7 +1387,7 @@ declare namespace nerdamerPrime {
     function tri(expression: ExpressionParam): NerdamerExpression;
     function parens(expression: ExpressionParam): NerdamerExpression;
     function line(p1: ExpressionParam, p2: ExpressionParam, variable?: string): NerdamerExpression;
-    function continued_fraction(expression: ExpressionParam, terms?: number): NerdamerExpression;
+    function continuedFraction(expression: ExpressionParam, terms?: number): NerdamerExpression;
 
     // #endregion
 
@@ -1613,8 +1613,8 @@ declare namespace nerdamerPrime {
     function union(set1: ExpressionParam, set2: ExpressionParam): NerdamerCore.Set;
     function intersection(set1: ExpressionParam, set2: ExpressionParam): NerdamerCore.Set;
     function difference(set1: ExpressionParam, set2: ExpressionParam): NerdamerCore.Set;
-    function is_subset(set1: ExpressionParam, set2: ExpressionParam): boolean;
-    function is_in(element: ExpressionParam, set: ExpressionParam): boolean;
+    function isSubset(set1: ExpressionParam, set2: ExpressionParam): boolean;
+    function isIn(element: ExpressionParam, set: ExpressionParam): boolean;
     function intersects(set1: ExpressionParam, set2: ExpressionParam): boolean;
     function contains(container: ExpressionParam, element: ExpressionParam): boolean;
 
