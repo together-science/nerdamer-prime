@@ -645,23 +645,22 @@ export default defineConfig([
             '@typescript-eslint/consistent-type-imports': 'off',
             '@typescript-eslint/prefer-for-of': 'off',
 
-            // Disable code style rules for test files
-            'max-lines-per-function': 'off',
-            'max-statements': 'off',
-            complexity: 'off',
-            'no-magic-numbers': 'off',
-            'id-length': 'off',
-            'id-denylist': 'off',
-            'no-underscore-dangle': 'off',
+            // Mathematical code often uses ++ and -- operators
             'no-plusplus': 'off',
-            'no-case-declarations': 'off',
-            radix: 'off',
-            'require-unicode-regexp': 'off',
-            'prefer-named-capture-group': 'off',
-            curly: 'off',
-            'array-callback-return': 'off',
+
+            // Test files often use short variable names for brevity
+            'id-length': 'off',
+
+            // Test files legitimately use magic numbers for test values
+            'no-magic-numbers': 'off',
+
+            // Complex functions often have many parameters and statements
+            'max-params': 'off',
+            'max-statements': 'off',
+            'max-lines-per-function': 'off',
+            'max-lines': 'off',
+            complexity: 'off',
             'max-depth': 'off',
-            'no-eval': 'off',
         },
     },
 

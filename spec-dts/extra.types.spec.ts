@@ -166,13 +166,13 @@ describe('Nerdamer Extra Module Type Definitions', () => {
         // Note: smpvar function has strict mathematical requirements (needs n>1 with variance)
         // The type definition is correct but we verify signature only
         // Expected: (values: ExpressionParam[]) => NerdamerExpression
-        const _smpvarCheck: (values: any[]) => NerdamerExpression = nerdamer.smpvar;
-        expectType<(values: any[]) => NerdamerExpression>(_smpvarCheck);
+        const smpvarCheck: (values: any[]) => NerdamerExpression = nerdamer.smpvar;
+        expectType<(values: any[]) => NerdamerExpression>(smpvarCheck);
 
         // Note: smpstdev function has same mathematical requirements as smpvar
         // The type definition is correct but we verify signature only
-        const _smpstdevCheck: (values: any[]) => NerdamerExpression = nerdamer.smpstdev;
-        expectType<(values: any[]) => NerdamerExpression>(_smpstdevCheck);
+        const smpstdevCheck: (values: any[]) => NerdamerExpression = nerdamer.smpstdev;
+        expectType<(values: any[]) => NerdamerExpression>(smpstdevCheck);
 
         const zScore: NerdamerExpression = nerdamer.zscore(75, 70, 5);
         expectType<NerdamerExpression>(zScore);

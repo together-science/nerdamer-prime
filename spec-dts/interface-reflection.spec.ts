@@ -5,7 +5,8 @@ import tsMorph from 'ts-morph';
 describe('Nerdamer TypeScript Interface Reflection', () => {
     let project: tsMorph.Project;
     let sourceFile: tsMorph.SourceFile;
-    let _typeChecker: tsMorph.TypeChecker;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let typeChecker: tsMorph.TypeChecker;
 
     /**
      * Helper to get method-like members from an interface. The index.d.ts uses property signatures with function types
@@ -13,10 +14,14 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
      * whose type is a function type.
      */
     const getMethodLikeMembers = (iface: tsMorph.InterfaceDeclaration | undefined): string[] => {
-        if (!iface) return [];
+        if (!iface) {
+            return [];
+        }
         const methodNames: string[] = [];
         // Check actual method signatures
-        iface.getMethods().forEach(m => methodNames.push(m.getName()));
+        iface.getMethods().forEach(m => {
+            methodNames.push(m.getName());
+        });
         // Check property signatures with function types
         iface.getProperties().forEach(p => {
             const typeNode = p.getTypeNode();
@@ -37,7 +42,9 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
               getParameters: () => { getTypeNode: () => tsMorph.TypeNode | undefined }[];
           }
         | undefined => {
-        if (!iface) return undefined;
+        if (!iface) {
+            return undefined;
+        }
         // Try method signature first
         const method = iface.getMethod(name);
         if (method) {
@@ -70,7 +77,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
         });
 
         sourceFile = project.getSourceFileOrThrow('index.d.ts');
-        _typeChecker = project.getTypeChecker();
+        typeChecker = project.getTypeChecker();
     });
 
     describe('Core Type Aliases', () => {
@@ -145,9 +152,9 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const nerdamerExpression = sourceFile.getInterface('NerdamerExpression');
             expect(nerdamerExpression).toBeDefined();
 
-            const extends_ = nerdamerExpression?.getExtends();
-            expect(extends_).toHaveLength(1);
-            expect(extends_?.[0]?.getText()).toBe('CoreExpressionBase');
+            const extendsClause = nerdamerExpression?.getExtends();
+            expect(extendsClause).toHaveLength(1);
+            expect(extendsClause?.[0]?.getText()).toBe('CoreExpressionBase');
         });
 
         it('should have NerdamerExpression with essential arithmetic methods', () => {
@@ -261,7 +268,8 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
         it('should validate comparison operations work as TypeScript suggests', () => {
             const expr1 = (nerdamerRuntime as any)('5');
-            const _expr2 = (nerdamerRuntime as any)('3');
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const expr2 = (nerdamerRuntime as any)('3');
 
             // Test comparison methods if they exist
             if (typeof expr1.eq === 'function') {

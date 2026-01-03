@@ -71,9 +71,11 @@ describe('Arity Mismatch Investigation', () => {
             // Analyze function source code
             const functionSource = runtimeFunction.toString();
             const usesArguments = functionSource.includes('arguments');
-            const argMatches = functionSource.match(/arguments\[(\d+)\]/g) || [];
+            const argMatches = functionSource.match(/arguments\[(?:\d+)\]/gu) || [];
             const maxArgIndex =
-                argMatches.length > 0 ? Math.max(...argMatches.map((m: string) => parseInt(/\d+/.exec(m)![0]))) + 1 : 0;
+                argMatches.length > 0
+                    ? Math.max(...argMatches.map((m: string) => parseInt(/\d+/u.exec(m)![0], 10))) + 1
+                    : 0;
             console.log(`   Uses arguments object: ${usesArguments}`);
             if (usesArguments) {
                 console.log(`   Max argument index used: ${maxArgIndex}`);
@@ -84,15 +86,17 @@ describe('Arity Mismatch Investigation', () => {
             let functionalTest = 'Not tested';
             try {
                 switch (funcName) {
-                    case 'atan2':
+                    case 'atan2': {
                         const result1 = runtimeFunction(1, 2);
                         functionalTest = `✅ Works: atan2(1,2) = ${result1?.toString?.() || result1}`;
                         break;
-                    case 'solve':
+                    }
+                    case 'solve': {
                         const result2 = runtimeFunction('x^2-4', 'x');
                         functionalTest = `✅ Works: solve('x^2-4','x') returns ${typeof result2}`;
                         break;
-                    case 'matget':
+                    }
+                    case 'matget': {
                         const testMatrix = nerdamerRuntime.matrix([
                             [1, 2],
                             [3, 4],
@@ -100,24 +104,29 @@ describe('Arity Mismatch Investigation', () => {
                         const result3 = runtimeFunction(testMatrix, 0, 1);
                         functionalTest = `✅ Works: matget(matrix,0,1) = ${result3?.toString?.() || result3}`;
                         break;
-                    case 'cross':
+                    }
+                    case 'cross': {
                         const v1 = nerdamerRuntime.vector([1, 0, 0]);
                         const v2 = nerdamerRuntime.vector([0, 1, 0]);
                         const result4 = runtimeFunction(v1, v2);
                         functionalTest = `✅ Works: cross(v1,v2) returns ${typeof result4}`;
                         break;
-                    case 'diff':
+                    }
+                    case 'diff': {
                         const result5 = runtimeFunction('x^2', 'x');
                         functionalTest = `✅ Works: diff('x^2','x') = ${result5?.toString?.() || result5}`;
                         break;
-                    case 'integrate':
+                    }
+                    case 'integrate': {
                         const result6 = runtimeFunction('x^2', 'x');
                         functionalTest = `✅ Works: integrate('x^2','x') = ${result6?.toString?.() || result6}`;
                         break;
-                    case 'defint':
+                    }
+                    case 'defint': {
                         const result7 = runtimeFunction('x', 0, 1, 'x');
                         functionalTest = `✅ Works: defint('x',0,1,'x') = ${result7?.toString?.() || result7}`;
                         break;
+                    }
                 }
             } catch (error) {
                 functionalTest = `❌ Error: ${error instanceof Error ? error.message : String(error)}`;
@@ -366,10 +375,10 @@ describe('Arity Mismatch Investigation', () => {
 
             // Additional argument pattern analysis
             if (usesArguments) {
-                const argMatches = functionSource.match(/arguments\[(\d+)\]/g) || [];
+                const argMatches = functionSource.match(/arguments\[(?:\d+)\]/gu) || [];
                 const maxArgIndex =
                     argMatches.length > 0
-                        ? Math.max(...argMatches.map((m: string) => parseInt(/\d+/.exec(m)![0]))) + 1
+                        ? Math.max(...argMatches.map((m: string) => parseInt(/\d+/u.exec(m)![0], 10))) + 1
                         : 0;
                 console.log(`   Arguments pattern: max index ${maxArgIndex}, ${argMatches.length} references`);
             }

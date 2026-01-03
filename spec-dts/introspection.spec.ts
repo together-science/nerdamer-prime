@@ -224,7 +224,9 @@ describe('Nerdamer AST Introspection Tests', () => {
 
         if (typeValidationErrors.length > 0) {
             console.log('\n=== Critical Return Type Validation Errors ===');
-            typeValidationErrors.forEach(error => console.log('❌', error));
+            typeValidationErrors.forEach(validationError => {
+                console.log('❌', validationError);
+            });
         }
 
         // This test should fail if there are type mismatches to highlight the issues
@@ -538,7 +540,7 @@ describe('Nerdamer AST Introspection Tests', () => {
                         // Check if function uses arguments object or rest parameters (both are valid patterns)
                         const functionSource = runtimeFunction.toString();
                         const usesArguments = functionSource.includes('arguments');
-                        const usesRestParams = /\(\.\.\.|\(\s*\w+\s*,\s*\.\.\./.test(functionSource);
+                        const usesRestParams = /\(\.\.\.|\(\s*\w+\s*,\s*\.\.\./u.test(functionSource);
                         const usesVariableArgs = usesArguments || usesRestParams;
 
                         // Known functions that work correctly despite arity differences
@@ -701,7 +703,9 @@ describe('Nerdamer AST Introspection Tests', () => {
 
         if (primeValidationErrors.length > 0) {
             console.log('\n=== Critical nerdamerPrime Function Validation Errors ===');
-            primeValidationErrors.forEach(error => console.log('❌', error));
+            primeValidationErrors.forEach(validationError => {
+                console.log('❌', validationError);
+            });
         }
 
         // This test should highlight issues in the nerdamerPrime namespace
@@ -725,22 +729,22 @@ describe('Nerdamer AST Introspection Tests', () => {
                 const fullText = jsDoc.getFullText();
                 if (typeof fullText === 'string') {
                     // Parse @test-valid-args
-                    const validArgsMatch = /@test-valid-args\s*(\[.*?\])/.exec(fullText);
-                    if (validArgsMatch?.[1]) {
+                    const validArgsMatch = /@test-valid-args\s*(?<args>\[.*?\])/u.exec(fullText);
+                    if (validArgsMatch?.groups?.['args']) {
                         try {
-                            metadata.validArgs = JSON.parse(validArgsMatch[1]);
-                        } catch (e) {
-                            console.warn(`Failed to parse @test-valid-args for function: ${e}`);
+                            metadata.validArgs = JSON.parse(validArgsMatch.groups['args']);
+                        } catch (parseError) {
+                            console.warn(`Failed to parse @test-valid-args for function: ${parseError}`);
                         }
                     }
 
                     // Parse @test-invalid-args
-                    const invalidArgsMatch = /@test-invalid-args\s*(\[.*?\])/.exec(fullText);
-                    if (invalidArgsMatch?.[1]) {
+                    const invalidArgsMatch = /@test-invalid-args\s*(?<args>\[.*?\])/u.exec(fullText);
+                    if (invalidArgsMatch?.groups?.['args']) {
                         try {
-                            metadata.invalidArgs = JSON.parse(invalidArgsMatch[1]);
-                        } catch (e) {
-                            console.warn(`Failed to parse @test-invalid-args for function: ${e}`);
+                            metadata.invalidArgs = JSON.parse(invalidArgsMatch.groups['args']);
+                        } catch (parseError) {
+                            console.warn(`Failed to parse @test-invalid-args for function: ${parseError}`);
                         }
                     }
                 }
@@ -755,10 +759,11 @@ describe('Nerdamer AST Introspection Tests', () => {
                 if (typeof arg === 'string' && arg.includes('nerdamer.')) {
                     // Evaluate nerdamer expressions by replacing nerdamer. with nerdamerRuntime.
                     try {
-                        const evaluatedArg = arg.replace(/nerdamer\./g, 'nerdamerRuntime.');
-                        return eval(evaluatedArg);
-                    } catch (e) {
-                        console.warn(`Failed to evaluate test argument "${arg}": ${e}`);
+                        const evaluatedArg = arg.replace(/nerdamer\./gu, 'nerdamerRuntime.');
+                        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+                        return new Function('nerdamerRuntime', `return ${evaluatedArg}`)(nerdamerRuntime);
+                    } catch (evalError) {
+                        console.warn(`Failed to evaluate test argument "${arg}": ${evalError}`);
                         return arg;
                     }
                 }
@@ -1014,8 +1019,8 @@ describe('Nerdamer AST Introspection Tests', () => {
                             console.log(`  Comment content:`, comment);
 
                             if (typeof comment === 'string') {
-                                const validMatch = /@test-valid-args\s*\[(.*?)\]/.exec(comment);
-                                const invalidMatch = /@test-invalid-args\s*\[(.*?)\]/.exec(comment);
+                                const validMatch = /@test-valid-args\\s*\\[(?<args>.*?)\\]/u.exec(comment);
+                                const invalidMatch = /@test-invalid-args\\s*\\[(?<args>.*?)\\]/u.exec(comment);
                                 console.log(`  Valid args match:`, validMatch);
                                 console.log(`  Invalid args match:`, invalidMatch);
                             }
@@ -1150,7 +1155,9 @@ describe('Nerdamer AST Introspection Tests', () => {
 
         if (metadataValidationErrors.length > 0) {
             console.log('\n=== Metadata-Enhanced Testing Validation Errors ===');
-            metadataValidationErrors.forEach(error => console.log('❌', error));
+            metadataValidationErrors.forEach(validationError => {
+                console.log('❌', validationError);
+            });
         }
 
         // This test should highlight issues found through metadata-enhanced testing
