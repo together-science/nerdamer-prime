@@ -1852,7 +1852,7 @@ if (typeof module !== 'undefined') {
 
                 // Round to 15 digits
                 solutions = solutions.map(a =>
-                    !a.isConstant() ? a : new NerdamerSymbol(Number(Number(a).toPrecision(15)))
+                    a.isConstant() ? new NerdamerSymbol(Number(Number(a).toPrecision(15))) : a
                 );
 
                 // Uniquefy to epsilon

@@ -248,19 +248,8 @@ if (typeof module !== 'undefined') {
                                     // Wrap it up
                                     finalize();
                                 } else if (f.x.group === S && f.x.power.equals(2)) {
-                                    if (!num.contains(s)) {
-                                        retval = _.parse(
-                                            format(
-                                                '(({1})*sin((sqrt(({2})*({3}))*({0}))/({2})))/sqrt(({2})*({3}))',
-                                                t,
-                                                num,
-                                                f.a,
-                                                f.b
-                                            )
-                                        );
-                                    }
-                                    // A*s/(b*s^2+c^2)
-                                    else {
+                                    if (num.contains(s)) {
+                                        // A*s/(b*s^2+c^2)
                                         a = new NerdamerSymbol(1);
                                         if (num.group === CB) {
                                             let newNum = new NerdamerSymbol(1);
@@ -310,6 +299,16 @@ if (typeof module !== 'undefined') {
                                                 retval = _.parse(format(exp, t, a, b, c, d, e));
                                             }
                                         }
+                                    } else {
+                                        retval = _.parse(
+                                            format(
+                                                '(({1})*sin((sqrt(({2})*({3}))*({0}))/({2})))/sqrt(({2})*({3}))',
+                                                t,
+                                                num,
+                                                f.a,
+                                                f.b
+                                            )
+                                        );
                                     }
                                 }
                             } else if (
@@ -323,12 +322,7 @@ if (typeof module !== 'undefined') {
                                 b = _.divide(num.clone(), _.parse('sqrt(pi)'));
                                 retval = _.parse(format('(2*({2})*sqrt({0}))/({1})', t, f.a, b, num));
                             } else if (denP.equals(2) && f.x.power.equals(2)) {
-                                if (!num.contains(s)) {
-                                    a = _.divide(num, new NerdamerSymbol(2));
-                                    exp =
-                                        '(({1})*sin((sqrt(({2})*({3}))*({0}))/({2})))/(({3})*sqrt(({2})*({3})))-(({1})*({0})*cos((sqrt(({2})*({3}))*({0}))/({2})))/(({2})*({3}))';
-                                    retval = _.parse(format(exp, t, a, f.a, f.b));
-                                } else {
+                                if (num.contains(s)) {
                                     // Decompose the numerator to check value of s
                                     f2 = core.Utils.decompose_fn(_.expand(num.clone()), s, true);
                                     if (f2.x.isComposite()) {
@@ -343,8 +337,8 @@ if (typeof module !== 'undefined') {
                                             })
                                             // Then sort them by power hightest to lowest
                                             .sort((x1, x2) => {
-                                                const p1 = x1.x.value !== s ? 0 : x1.x.power;
-                                                const p2 = x2.x.value !== s ? 0 : x2.x.power;
+                                                const p1 = x1.x.value === s ? x1.x.power : 0;
+                                                const p2 = x2.x.value === s ? x2.x.power : 0;
                                                 return p2 - p1;
                                             });
                                         a = new NerdamerSymbol(-1);
@@ -395,6 +389,11 @@ if (typeof module !== 'undefined') {
                                             retval = _.parse(format(exp, t, a, f.a, f.b, d));
                                         }
                                     }
+                                } else {
+                                    a = _.divide(num, new NerdamerSymbol(2));
+                                    exp =
+                                        '(({1})*sin((sqrt(({2})*({3}))*({0}))/({2})))/(({3})*sqrt(({2})*({3})))-(({1})*({0})*cos((sqrt(({2})*({3}))*({0}))/({2})))/(({2})*({3}))';
+                                    retval = _.parse(format(exp, t, a, f.a, f.b));
                                 }
                             } else if (symbol.isComposite()) {
                                 // 1/(s+1)^2
@@ -507,9 +506,7 @@ if (typeof module !== 'undefined') {
                         }
                         const freq = map[x];
                         // Check if it's in the inverse already
-                        if (!(freq in inverse)) {
-                            inverse[freq] = x;
-                        } else {
+                        if (freq in inverse) {
                             const e = inverse[freq];
                             // If it's already an array then just add it
                             if (isArray(e)) {
@@ -519,6 +516,8 @@ if (typeof module !== 'undefined') {
                             else {
                                 inverse[freq] = [x, inverse[freq]];
                             }
+                        } else {
+                            inverse[freq] = x;
                         }
                     }
                     // The keys now represent the maxes. We want the max of those keys

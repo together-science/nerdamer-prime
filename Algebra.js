@@ -1087,7 +1087,9 @@ if (typeof module !== 'undefined') {
                 // We need a new variable name so why not use one of the existing
                 const val = core.Utils.text(x, 'hash');
                 const tvar = map[val];
-                if (!tvar) {
+                if (tvar) {
+                    subbed.push(x.altVar(tvar));
+                } else {
                     // Generate a unique enough name
                     // GM make sure it's not the name of an existing variable
                     let i = 0;
@@ -1098,8 +1100,6 @@ if (typeof module !== 'undefined') {
                     } while (vars.has(t));
                     map[val] = t;
                     subbed.push(x.altVar(t));
-                } else {
-                    subbed.push(x.altVar(tvar));
                 }
             } else if (x.group === CB || x.group === PL || x.group === CP) {
                 subbed.push(core.Utils.subFunctions(x, map));
@@ -1356,13 +1356,15 @@ if (typeof module !== 'undefined') {
                     let temp;
                     iPar.b = iPar.a = 0.0; // The quadratic is zeroed
 
-                    if (tFlag !== 3) {
-                        if (tFlag !== 2) {
-                            a4 = a + u * b + h * f;
-                            a5 = c + (u + v * f) * d;
-                        } else {
+                    if (tFlag === 3) {
+                        // No action needed when tFlag is 3
+                    } else {
+                        if (tFlag === 2) {
                             a4 = (a + g) * f + h;
                             a5 = (f + u) * c + v * d;
+                        } else {
+                            a4 = a + u * b + h * f;
+                            a5 = c + (u + v * f) * d;
                         }
 
                         // Evaluate new quadratic coefficients
@@ -1393,7 +1395,7 @@ if (typeof module !== 'undefined') {
                     iPar.sr = iPar.si = iPar.lr = iPar.li = 0.0;
 
                     if (a === 0) {
-                        iPar.sr = b1 !== 0 ? -(c / b1) : iPar.sr;
+                        iPar.sr = b1 === 0 ? iPar.sr : -(c / b1);
                         return;
                     }
                     if (c === 0) {
@@ -1416,7 +1418,7 @@ if (typeof module !== 'undefined') {
                         // Real zeros
                         d = b >= 0 ? -d : d;
                         iPar.lr = (-b + d) / a;
-                        iPar.sr = iPar.lr !== 0 ? c / iPar.lr / a : iPar.sr;
+                        iPar.sr = iPar.lr === 0 ? iPar.sr : c / iPar.lr / a;
                     } else {
                         // Complex conjugate zeros
                         iPar.lr = iPar.sr = -(b / a);
@@ -1745,13 +1747,13 @@ if (typeof module !== 'undefined') {
                         vv = vi = sdPar.b;
 
                         // Estimate s
-                        ss = K[degree - 1] !== 0.0 ? -(poly[degree] / K[degree - 1]) : 0.0;
+                        ss = K[degree - 1] === 0.0 ? 0.0 : -(poly[degree] / K[degree - 1]);
                         ts = tv = 1.0;
 
                         if (j !== 0 && tFlag !== 3) {
                             // Compute relative measures of convergence of s and v sequences
-                            tv = vv !== 0.0 ? Math.abs((vv - ovv) / vv) : tv;
-                            ts = ss !== 0.0 ? Math.abs((ss - oss) / ss) : ts;
+                            tv = vv === 0.0 ? tv : Math.abs((vv - ovv) / vv);
+                            ts = ss === 0.0 ? ts : Math.abs((ss - oss) / ss);
 
                             // If decreasing, multiply the two most recent convergence measures
                             tvv = tv < otv ? tv * otv : 1.0;
@@ -2075,7 +2077,12 @@ if (typeof module !== 'undefined') {
                             // Second stage calculation, fixed quadratic
                             fxshfrAk1(DBL_EPSILON, MDP1, 20 * jj, sr, bnd, K, degree, poly, NN, qp, u, fxshfrPar);
 
-                            if (fxshfrPar.NZ !== 0) {
+                            if (fxshfrPar.NZ === 0) {
+                                // If the iteration is unsuccessful, another quadratic is chosen after restoring K
+                                for (let idx = 0; idx < degree; idx++) {
+                                    K[idx] = temp[idx];
+                                }
+                            } else {
                                 // The second stage jumps directly to one of the third stage iterations and
                                 // returns here if successful. Deflate the polynomial, store the zero or
                                 // zeros, and return to the main algorithm.
@@ -2087,16 +2094,13 @@ if (typeof module !== 'undefined') {
                                 for (let idx = 0; idx < NN; idx++) {
                                     poly[idx] = qp[idx];
                                 }
-                                if (fxshfrPar.NZ !== 1) {
+                                if (fxshfrPar.NZ === 1) {
+                                    // Single zero found, no additional zeros to store
+                                } else {
                                     zeroReal[j + 1] = fxshfrPar.lzr;
                                     zeroImag[j + 1] = fxshfrPar.lzi;
                                 }
                                 break;
-                            } else {
-                                // If the iteration is unsuccessful, another quadratic is chosen after restoring K
-                                for (let idx = 0; idx < degree; idx++) {
-                                    K[idx] = temp[idx];
-                                }
                             }
                         }
                         // Return with failure if no convergence with 20 shifts
@@ -2912,7 +2916,19 @@ if (typeof module !== 'undefined') {
                             factors.add(x);
                         });
 
-                        if (!multiVar) {
+                        if (multiVar) {
+                            // Try sum and difference of cubes
+                            symbol = __.Factor.cubeFactor(symbol, factors);
+
+                            symbol = __.Factor.mfactor(symbol, factors);
+
+                            // Put back the sign of power
+                            factors.each(x => {
+                                if (sign < 0) {
+                                    x.power.negate();
+                                }
+                            });
+                        } else {
                             // Pass in vars[0] for safety
                             const v = vars[0];
 
@@ -2941,18 +2957,6 @@ if (typeof module !== 'undefined') {
                             if (symbol.equals(untouched)) {
                                 symbol = __.Factor.quadFactor(symbol, factors);
                             }
-                        } else {
-                            // Try sum and difference of cubes
-                            symbol = __.Factor.cubeFactor(symbol, factors);
-
-                            symbol = __.Factor.mfactor(symbol, factors);
-
-                            // Put back the sign of power
-                            factors.each(x => {
-                                if (sign < 0) {
-                                    x.power.negate();
-                                }
-                            });
                         }
 
                         // Last minute clean up
@@ -3085,18 +3089,7 @@ if (typeof module !== 'undefined') {
                 if (symbol.isComposite()) {
                     const gcd = core.Math2.QGCD.apply(null, symbol.coeffs());
 
-                    if (!gcd.equals(1)) {
-                        symbol.each(x => {
-                            if (x.isComposite()) {
-                                x.each(y => {
-                                    y.multiplier = y.multiplier.divide(gcd);
-                                });
-                            } else {
-                                x.multiplier = x.multiplier.divide(gcd);
-                            }
-                        });
-                        symbol.updateHash();
-                    } else {
+                    if (gcd.equals(1)) {
                         // TODO: This should probably go to the prototype
                         const power = function (sym) {
                             let p;
@@ -3133,6 +3126,17 @@ if (typeof module !== 'undefined') {
                                 }, true);
                             }
                         }
+                    } else {
+                        symbol.each(x => {
+                            if (x.isComposite()) {
+                                x.each(y => {
+                                    y.multiplier = y.multiplier.divide(gcd);
+                                });
+                            } else {
+                                x.multiplier = x.multiplier.divide(gcd);
+                            }
+                        });
+                        symbol.updateHash();
                     }
 
                     if (factors) {
@@ -3902,11 +3906,11 @@ if (typeof module !== 'undefined') {
             let den;
             const factored = core.Algebra.Factor.factorInner(symbol1.clone());
             den = factored.getDenom();
-            if (!den.isConstant('all')) {
-                symbol1 = _.expand(NerdamerSymbol.unwrapPARENS(_.multiply(factored, den.clone())));
-            } else // Reset the denominator since we're not dividing by it anymore
-            {
+            if (den.isConstant('all')) {
+                // Reset the denominator since we're not dividing by it anymore
                 den = new NerdamerSymbol(1);
+            } else {
+                symbol1 = _.expand(NerdamerSymbol.unwrapPARENS(_.multiply(factored, den.clone())));
             }
             const result = __.div(symbol1, symbol2);
             const remainder = _.divide(result[1], symbol2);
@@ -4195,14 +4199,14 @@ if (typeof module !== 'undefined') {
                         if (fdt.sum.greaterThan(fnt.sum) && fnt.len() > 1) {
                             for (let i = 0; i < fnt.terms.length; i++) {
                                 const d = fdt.terms[i].subtract(fnt.terms[i]);
-                                if (!d.equals(0)) {
+                                if (d.equals(0)) {
+                                    den.terms[i] = new Frac(0);
+                                } else {
                                     const nd = d.add(new Frac(1));
                                     den.terms[i] = d;
                                     for (let j = 0; j < s1.length; j++) {
                                         s1[j].terms[i] = s1[j].terms[i].add(nd);
                                     }
-                                } else {
-                                    den.terms[i] = new Frac(0);
                                 }
                             }
                         }
@@ -5361,14 +5365,14 @@ if (typeof module !== 'undefined') {
         try {
             let retval;
             // Equation?
-            if (typeof this.symbol.LHS !== 'undefined') {
+            if (typeof this.symbol.LHS === 'undefined') {
+                retval = new core.Expression(__.Simplify.simplify(this.symbol));
+            } else {
                 // Don't have access to equation here, so we clone instead
                 const eq = this.symbol.clone();
                 eq.LHS = __.Simplify.simplify(eq.LHS);
                 eq.RHS = __.Simplify.simplify(eq.RHS);
                 retval = eq;
-            } else {
-                retval = new core.Expression(__.Simplify.simplify(this.symbol));
             }
             return retval;
         } catch (error) {

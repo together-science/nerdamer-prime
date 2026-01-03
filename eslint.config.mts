@@ -589,9 +589,6 @@ export default defineConfig([
 
             // Underscore-prefixed variables denote internal/private usage
             'no-underscore-dangle': 'off',
-
-            // Ternary usage patterns
-            'no-negated-condition': 'off',
         },
     },
 

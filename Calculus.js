@@ -308,30 +308,30 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 const { fname } = symbol;
 
                 if (fname === COS && map[SIN]) {
-                    if (map[SIN].args[0].toString() !== symbol.args[0].toString()) {
-                        t = cosAsinBtransform(symbol, map[SIN]);
-                    } else {
+                    if (map[SIN].args[0].toString() === symbol.args[0].toString()) {
                         t = cosAsinAtransform(symbol, map[SIN]);
+                    } else {
+                        t = cosAsinBtransform(symbol, map[SIN]);
                     }
                     delete map[SIN];
 
                     retval = _.multiply(retval, t);
                 } else if (fname === SIN && map[COS]) {
-                    if (map[COS].args[0].toString() !== symbol.args[0].toString()) {
-                        t = cosAsinBtransform(symbol, map[COS]);
-                    } else {
+                    if (map[COS].args[0].toString() === symbol.args[0].toString()) {
                         t = cosAsinAtransform(symbol, map[COS]);
+                    } else {
+                        t = cosAsinBtransform(symbol, map[COS]);
                     }
                     delete map[COS];
 
                     retval = _.multiply(retval, t);
                 } else if (fname === SIN && map[SIN]) {
-                    if (map[SIN].args[0].toString() !== symbol.args[0].toString()) {
-                        t = sinAsinBtransform(symbol, map[SIN]);
-                        delete map[SIN];
-                    } else {
+                    if (map[SIN].args[0].toString() === symbol.args[0].toString()) {
                         // This should actually be redundant code but let's put just in case
                         t = _.multiply(symbol, map[SIN]);
+                        delete map[SIN];
+                    } else {
+                        t = sinAsinBtransform(symbol, map[SIN]);
                         delete map[SIN];
                     }
 
@@ -960,12 +960,12 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                             t = part[0].clone();
                         }
 
-                        if (!u) {
+                        if (u) {
+                            dv = _.multiply(dv, t); // Everything else belongs to dv
+                        } else {
                             u = t; // The first u encountered gets chosen
                             u.multiplier = u.multiplier.multiply(symbol.multiplier); // The first one gets the mutliplier
-                        } else {
-                            dv = _.multiply(dv, t);
-                        } // Everything else belongs to dv
+                        }
                     }
                 }
 
@@ -1350,9 +1350,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                     depth -= p;
                                 } // It needs more room to find the integral
 
-                                if (!arg.isComposite()) {
-                                    retval = _.multiply(_.parse(m), __.integration.by_parts(symbol, dx, depth, opt));
-                                } else {
+                                if (arg.isComposite()) {
                                     // Integral u du
                                     const u = core.Utils.getU(symbol);
                                     const f = _.pow(_.parse(LOG + inBrackets(u)), new NerdamerSymbol(p));
@@ -1360,6 +1358,8 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                     const uDu = _.multiply(f, du);
                                     const integral = __.integrate(uDu, u, depth, opt);
                                     retval = _.multiply(_.parse(m), integral.sub(u, arg));
+                                } else {
+                                    retval = _.multiply(_.parse(m), __.integration.by_parts(symbol, dx, depth, opt));
                                 }
                             } else if (fname === TAN && symbol.power.lessThan(0)) {
                                 // Convert to cotangent
@@ -1624,21 +1624,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
                             // If we only have one symbol left then let's not waste time. Just pull the integral
                             // and let the chips fall where they may
-                            if (cfsymbol.group !== CB) {
-                                if (cfsymbol.equals(1)) {
-                                    return __.integrate(_.expand(symbol), dx, depth);
-                                }
-
-                                // Only factor for multivariate which are polynomials
-                                if (
-                                    cfsymbol.clone().toLinear().isPoly(true) &&
-                                    core.Utils.variables(cfsymbol).length > 1
-                                ) {
-                                    cfsymbol = core.Algebra.Factor.factorInner(cfsymbol);
-                                }
-
-                                retval = __.integrate(cfsymbol, dx, depth);
-                            } else {
+                            if (cfsymbol.group === CB) {
                                 // We collect the symbols and sort them descending group, descending power, descending alpabethically
                                 const symbols = cfsymbol
                                     .collectSymbols()
@@ -1771,13 +1757,13 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                                                 let r;
                                                                 // Since cos(x) is odd it carries du. If sin was odd then it would be the other way around
                                                                 // know that p1 satifies the odd portion in this case. If p2 did than it would contain r
-                                                                if (!p1Even) {
+                                                                if (p1Even) {
+                                                                    u = sym1;
+                                                                    r = sym2;
+                                                                } else {
                                                                     // U = sin(x)
                                                                     u = sym2;
                                                                     r = sym1;
-                                                                } else {
-                                                                    u = sym1;
-                                                                    r = sym2;
                                                                 }
                                                                 // Get the sign of du. In this case r carries du as stated before and D(cos(x),x) = -sin(x)
                                                                 const sign = u.fname === COS ? -1 : 1;
@@ -2165,7 +2151,10 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                                     sym1 = core.Algebra.Factor.coeffFactor(sym1.invert(), factors);
                                                     const div = core.Algebra.divide(sym2, sym1);
                                                     // It assumed that the result will be of group CB
-                                                    if (div.group !== CB) {
+                                                    if (div.group === CB) {
+                                                        // Try something else
+                                                        retval = __.integration.by_parts(symbol, dx, depth, opt);
+                                                    } else {
                                                         retval = new NerdamerSymbol(0);
                                                         div.each(elem => {
                                                             retval = _.add(retval, __.integrate(elem, dx, depth));
@@ -2176,9 +2165,6 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                                         });
 
                                                         retval = _.expand(retval);
-                                                    } else {
-                                                        // Try something else
-                                                        retval = __.integration.by_parts(symbol, dx, depth, opt);
                                                     }
                                                 } else {
                                                     retval = __.integration.partial_fraction(symbol, dx, depth);
@@ -2354,6 +2340,20 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                     const transformed = trigTransform(symbols);
                                     retval = __.integrate(_.expand(transformed), dx, depth);
                                 }
+                            } else {
+                                if (cfsymbol.equals(1)) {
+                                    return __.integrate(_.expand(symbol), dx, depth);
+                                }
+
+                                // Only factor for multivariate which are polynomials
+                                if (
+                                    cfsymbol.clone().toLinear().isPoly(true) &&
+                                    core.Utils.variables(cfsymbol).length > 1
+                                ) {
+                                    cfsymbol = core.Algebra.Factor.factorInner(cfsymbol);
+                                }
+
+                                retval = __.integrate(cfsymbol, dx, depth);
                             }
 
                             retval = _.multiply(retval, coeff);
