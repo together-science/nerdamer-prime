@@ -37,7 +37,7 @@ describe('Nerdamer AST Introspection Tests', () => {
         }
 
         // Helper function to get method parameters
-        function getMethodParameters(methodDeclaration: any): Array<{ name: string; type: string; optional: boolean }> {
+        function getMethodParameters(methodDeclaration: any): { name: string; type: string; optional: boolean }[] {
             if (!methodDeclaration.getParameters) {
                 return [];
             }
@@ -92,7 +92,7 @@ describe('Nerdamer AST Introspection Tests', () => {
         }
 
         // Helper function to generate test arguments for methods
-        function generateTestArguments(parameters: Array<{ name: string; type: string; optional: boolean }>): any[] {
+        function generateTestArguments(parameters: { name: string; type: string; optional: boolean }[]): any[] {
             const testExpr = nerdamerRuntime('x + 1');
             const args: any[] = [];
 
@@ -224,7 +224,9 @@ describe('Nerdamer AST Introspection Tests', () => {
 
         if (typeValidationErrors.length > 0) {
             console.log('\n=== Critical Return Type Validation Errors ===');
-            typeValidationErrors.forEach(error => console.log('❌', error));
+            typeValidationErrors.forEach(validationError => {
+                console.log('❌', validationError);
+            });
         }
 
         // This test should fail if there are type mismatches to highlight the issues
@@ -253,7 +255,7 @@ describe('Nerdamer AST Introspection Tests', () => {
         // Helper function to get function parameters
         function getFunctionParameters(
             functionDeclaration: any
-        ): Array<{ name: string; type: string; optional: boolean; rest: boolean }> {
+        ): { name: string; type: string; optional: boolean; rest: boolean }[] {
             if (!functionDeclaration.getParameters) {
                 return [];
             }
@@ -316,9 +318,9 @@ describe('Nerdamer AST Introspection Tests', () => {
                 void: v => v === undefined,
                 NerdamerExpression: isProperNerdamerExpression,
                 'NerdamerCore.Vector': v =>
-                    v && typeof v === 'object' && typeof v.toString === 'function' && v.symbol && v.symbol.group === 8,
+                    v && typeof v === 'object' && typeof v.toString === 'function' && v.symbol?.group === 8,
                 'NerdamerCore.Matrix': v =>
-                    v && typeof v === 'object' && typeof v.toString === 'function' && v.symbol && v.symbol.group === 8,
+                    v && typeof v === 'object' && typeof v.toString === 'function' && v.symbol?.group === 8,
                 'NerdamerCore.Set': v => v && typeof v === 'object' && typeof v.toString === 'function',
                 NerdamerEquation: v => v && typeof v === 'object' && v.LHS && v.RHS,
                 'typeof nerdamer': v => typeof v === 'function',
@@ -326,10 +328,11 @@ describe('Nerdamer AST Introspection Tests', () => {
 
             // Special handling for overloaded functions
             if (functionName === 'supported') {
-                // supported() with no args returns string[], with string arg returns boolean
+                // Supported() with no args returns string[], with string arg returns boolean
                 if (Array.isArray(actualValue)) {
                     return declaredType === 'string[]' || (typeMap['string[]']?.(actualValue) ?? false);
-                } else if (typeof actualValue === 'boolean') {
+                }
+                if (typeof actualValue === 'boolean') {
                     return declaredType === 'boolean' || (typeMap['boolean']?.(actualValue) ?? false);
                 }
                 return false;
@@ -383,7 +386,7 @@ describe('Nerdamer AST Introspection Tests', () => {
 
         // Helper function to generate test arguments for nerdamerPrime functions
         function generatePrimeTestArguments(
-            parameters: Array<{ name: string; type: string; optional: boolean; rest: boolean }>
+            parameters: { name: string; type: string; optional: boolean; rest: boolean }[]
         ): any[] {
             const testExpr = nerdamerRuntime('x + 1');
             const args: any[] = [];
@@ -534,31 +537,33 @@ describe('Nerdamer AST Introspection Tests', () => {
                         const requiredParams = parameters.filter(p => !p.optional && !p.rest).length;
                         const runtimeArity = runtimeFunction.length;
 
-                        // Check if function uses arguments object (common JavaScript pattern)
+                        // Check if function uses arguments object or rest parameters (both are valid patterns)
                         const functionSource = runtimeFunction.toString();
                         const usesArguments = functionSource.includes('arguments');
+                        const usesRestParams = /\(\.\.\.|\(\s*\w+\s*,\s*\.\.\./u.test(functionSource);
+                        const usesVariableArgs = usesArguments || usesRestParams;
 
                         // Known functions that work correctly despite arity differences
                         // These use arguments object or have internal params for recursion
                         const knownWorkingFunctions = new Set([
-                            'matset', // uses arguments, works with 4 params
-                            'sum', // uses arguments, works with 4 params
-                            'product', // uses arguments, works with 4 params
-                            'solveEquations', // internal recursion params, works with 1-2 params
+                            'matset', // Uses arguments, works with 4 params
+                            'sum', // Uses arguments, works with 4 params
+                            'product', // Uses arguments, works with 4 params
+                            'solveEquations', // Internal recursion params, works with 1-2 params
                         ]);
 
                         // Skip validation for known working functions
                         if (knownWorkingFunctions.has(functionName)) {
                             functionAnalysis[functionName].arityPattern = 'known-working';
                             functionAnalysis[functionName].tested = 'arity-analysis';
-                            functionAnalysis[functionName].usesArguments = usesArguments;
+                            functionAnalysis[functionName].usesArguments = usesVariableArgs;
                             functionAnalysis[functionName].runtimeArity = runtimeArity;
                             functionAnalysis[functionName].requiredParams = requiredParams;
                             continue;
                         }
 
-                        // If function has zero arity but uses arguments, this is likely intentional
-                        if (runtimeArity === 0 && usesArguments) {
+                        // If function has zero arity but uses arguments or rest params, this is likely intentional
+                        if (runtimeArity === 0 && usesVariableArgs) {
                             // Try a functional test to see if it actually works
                             let functionallyWorks = false;
                             try {
@@ -597,15 +602,15 @@ describe('Nerdamer AST Introspection Tests', () => {
                             const arityError = `${functionName}: Runtime arity ${runtimeArity} vs required parameters ${requiredParams}`;
                             functionAnalysis[functionName].errors.push(arityError);
                             primeValidationErrors.push(arityError);
-                        } else if (runtimeArity === 0 && !usesArguments && requiredParams > 0) {
-                            // Zero arity without arguments object usage - potentially problematic
-                            const arityError = `${functionName}: Zero arity but requires ${requiredParams} parameters and doesn't use arguments object`;
+                        } else if (runtimeArity === 0 && !usesVariableArgs && requiredParams > 0) {
+                            // Zero arity without arguments object or rest params usage - potentially problematic
+                            const arityError = `${functionName}: Zero arity but requires ${requiredParams} parameters and doesn't use arguments object or rest parameters`;
                             functionAnalysis[functionName].errors.push(arityError);
                             primeValidationErrors.push(arityError);
                         }
 
                         functionAnalysis[functionName].tested = 'arity-analysis';
-                        functionAnalysis[functionName].usesArguments = usesArguments;
+                        functionAnalysis[functionName].usesArguments = usesVariableArgs;
                         functionAnalysis[functionName].runtimeArity = runtimeArity;
                         functionAnalysis[functionName].requiredParams = requiredParams;
                     }
@@ -698,7 +703,9 @@ describe('Nerdamer AST Introspection Tests', () => {
 
         if (primeValidationErrors.length > 0) {
             console.log('\n=== Critical nerdamerPrime Function Validation Errors ===');
-            primeValidationErrors.forEach(error => console.log('❌', error));
+            primeValidationErrors.forEach(validationError => {
+                console.log('❌', validationError);
+            });
         }
 
         // This test should highlight issues in the nerdamerPrime namespace
@@ -722,22 +729,22 @@ describe('Nerdamer AST Introspection Tests', () => {
                 const fullText = jsDoc.getFullText();
                 if (typeof fullText === 'string') {
                     // Parse @test-valid-args
-                    const validArgsMatch = fullText.match(/@test-valid-args\s*(\[.*?\])/);
-                    if (validArgsMatch?.[1]) {
+                    const validArgsMatch = /@test-valid-args\s*(?<args>\[.*?\])/u.exec(fullText);
+                    if (validArgsMatch?.groups?.['args']) {
                         try {
-                            metadata.validArgs = JSON.parse(validArgsMatch[1]);
-                        } catch (e) {
-                            console.warn(`Failed to parse @test-valid-args for function: ${e}`);
+                            metadata.validArgs = JSON.parse(validArgsMatch.groups['args']);
+                        } catch (parseError) {
+                            console.warn(`Failed to parse @test-valid-args for function: ${parseError}`);
                         }
                     }
 
                     // Parse @test-invalid-args
-                    const invalidArgsMatch = fullText.match(/@test-invalid-args\s*(\[.*?\])/);
-                    if (invalidArgsMatch?.[1]) {
+                    const invalidArgsMatch = /@test-invalid-args\s*(?<args>\[.*?\])/u.exec(fullText);
+                    if (invalidArgsMatch?.groups?.['args']) {
                         try {
-                            metadata.invalidArgs = JSON.parse(invalidArgsMatch[1]);
-                        } catch (e) {
-                            console.warn(`Failed to parse @test-invalid-args for function: ${e}`);
+                            metadata.invalidArgs = JSON.parse(invalidArgsMatch.groups['args']);
+                        } catch (parseError) {
+                            console.warn(`Failed to parse @test-invalid-args for function: ${parseError}`);
                         }
                     }
                 }
@@ -752,10 +759,11 @@ describe('Nerdamer AST Introspection Tests', () => {
                 if (typeof arg === 'string' && arg.includes('nerdamer.')) {
                     // Evaluate nerdamer expressions by replacing nerdamer. with nerdamerRuntime.
                     try {
-                        const evaluatedArg = arg.replace(/nerdamer\./g, 'nerdamerRuntime.');
-                        return eval(evaluatedArg);
-                    } catch (e) {
-                        console.warn(`Failed to evaluate test argument "${arg}": ${e}`);
+                        const evaluatedArg = arg.replace(/nerdamer\./gu, 'nerdamerRuntime.');
+                        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
+                        return new Function('nerdamerRuntime', `return ${evaluatedArg}`)(nerdamerRuntime);
+                    } catch (evalError) {
+                        console.warn(`Failed to evaluate test argument "${arg}": ${evalError}`);
                         return arg;
                     }
                 }
@@ -781,7 +789,7 @@ describe('Nerdamer AST Introspection Tests', () => {
         // Helper function to get function parameters
         function getFunctionParameters(
             functionDeclaration: any
-        ): Array<{ name: string; type: string; optional: boolean; rest: boolean }> {
+        ): { name: string; type: string; optional: boolean; rest: boolean }[] {
             if (!functionDeclaration.getParameters) {
                 return [];
             }
@@ -894,7 +902,8 @@ describe('Nerdamer AST Introspection Tests', () => {
                             actualValue.symbol === undefined ||
                             (actualValue.symbol && typeof actualValue.symbol === 'object')
                         );
-                    } else if (declaredType.includes('NerdamerSymbol')) {
+                    }
+                    if (declaredType.includes('NerdamerSymbol')) {
                         // NerdamerSymbol is required, undefined is NOT allowed
                         if (actualValue.symbol === undefined) {
                             console.log(
@@ -936,23 +945,23 @@ describe('Nerdamer AST Introspection Tests', () => {
 
             // Check for complex types containing known patterns
             if (declaredType.includes('NerdamerExpression')) {
-                const validator = typeValidators['NerdamerExpression'];
-                return validator ? validator(actualValue) : false;
+                const exprValidator = typeValidators['NerdamerExpression'];
+                return exprValidator ? exprValidator(actualValue) : false;
             }
 
             if (declaredType.includes('Vector')) {
-                const validator = typeValidators['NerdamerCore.Vector'];
-                return validator ? validator(actualValue) : false;
+                const vecValidator = typeValidators['NerdamerCore.Vector'];
+                return vecValidator ? vecValidator(actualValue) : false;
             }
 
             if (declaredType.includes('Matrix')) {
-                const validator = typeValidators['NerdamerCore.Matrix'];
-                return validator ? validator(actualValue) : false;
+                const matValidator = typeValidators['NerdamerCore.Matrix'];
+                return matValidator ? matValidator(actualValue) : false;
             }
 
             if (declaredType.includes('nerdamer')) {
-                const validator = typeValidators['typeof nerdamer'];
-                return validator ? validator(actualValue) : false;
+                const nerdValidator = typeValidators['typeof nerdamer'];
+                return nerdValidator ? nerdValidator(actualValue) : false;
             }
 
             // For unknown types, be conservative but log it
@@ -1010,8 +1019,8 @@ describe('Nerdamer AST Introspection Tests', () => {
                             console.log(`  Comment content:`, comment);
 
                             if (typeof comment === 'string') {
-                                const validMatch = comment.match(/@test-valid-args\s*\[(.*?)\]/);
-                                const invalidMatch = comment.match(/@test-invalid-args\s*\[(.*?)\]/);
+                                const validMatch = /@test-valid-args\\s*\\[(?<args>.*?)\\]/u.exec(comment);
+                                const invalidMatch = /@test-invalid-args\\s*\\[(?<args>.*?)\\]/u.exec(comment);
                                 console.log(`  Valid args match:`, validMatch);
                                 console.log(`  Invalid args match:`, invalidMatch);
                             }
@@ -1146,7 +1155,9 @@ describe('Nerdamer AST Introspection Tests', () => {
 
         if (metadataValidationErrors.length > 0) {
             console.log('\n=== Metadata-Enhanced Testing Validation Errors ===');
-            metadataValidationErrors.forEach(error => console.log('❌', error));
+            metadataValidationErrors.forEach(validationError => {
+                console.log('❌', validationError);
+            });
         }
 
         // This test should highlight issues found through metadata-enhanced testing

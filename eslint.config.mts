@@ -5,7 +5,11 @@ import jsdoc from 'eslint-plugin-jsdoc';
 import prettierPlugin from 'eslint-plugin-prettier';
 import { defineConfig } from 'eslint/config';
 import globals from 'globals';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import tseslint from 'typescript-eslint';
+
+const currentDir = dirname(fileURLToPath(import.meta.url));
 
 // =============================================================================
 // Shared Constants
@@ -62,31 +66,6 @@ const LEGACY_CORE_FILES = [
     'all.js',
 ];
 
-/** Rules disabled for legacy JavaScript code. These are turned off to allow gradual modernization. */
-const LEGACY_JS_DISABLED_RULES: Linter.RulesRecord = {
-    'no-var': 'off',
-    'prefer-const': 'off',
-    curly: 'off',
-    'object-shorthand': 'off',
-    'prefer-template': 'off',
-    'prefer-arrow-callback': 'off',
-    'no-redeclare': 'off',
-    'no-unused-vars': 'off',
-    'no-console': 'off',
-    eqeqeq: 'off',
-    'no-shadow': 'off',
-    'no-use-before-define': 'off',
-    'prettier/prettier': 'off',
-    'no-useless-escape': 'off',
-    'dot-notation': 'off',
-    'no-undef': 'off',
-    'no-sparse-arrays': 'off',
-    'no-prototype-builtins': 'off',
-    'no-case-declarations': 'off',
-    'arrow-body-style': 'off',
-    'no-loss-of-precision': 'off',
-};
-
 // =============================================================================
 // JSDoc Configuration
 // =============================================================================
@@ -100,23 +79,23 @@ const jsdocRules: Linter.RulesRecord = {
     'jsdoc/require-property-description': 'off',
     'jsdoc/require-returns': 'off',
     'jsdoc/require-param': 'off',
-    'jsdoc/tag-lines': 'off',
+    'jsdoc/tag-lines': ['error', 'any', { startLines: 1 }],
     'jsdoc/require-returns-check': 'off',
     'jsdoc/require-param-type': 'off',
     'jsdoc/require-returns-type': 'off',
-    'jsdoc/no-multi-asterisks': 'off',
+    'jsdoc/no-multi-asterisks': 'error',
     'jsdoc/reject-function-type': 'off',
     'jsdoc/reject-any-type': 'off',
 
     // Rules that catch real issues
-    'jsdoc/check-param-names': 'warn',
-    'jsdoc/check-tag-names': 'warn',
-    'jsdoc/valid-types': 'warn',
+    'jsdoc/check-param-names': 'error',
+    'jsdoc/check-tag-names': 'error',
+    'jsdoc/valid-types': 'error',
 
     // Type checking - enable defaults now that we've renamed Symbol to NerdamerSymbol
     // This will flag String->string, Number->number, Boolean->boolean conversions
     'jsdoc/check-types': [
-        'warn',
+        'error',
         {
             noDefaults: false,
             unifyParentAndChildTypeChecks: true,
@@ -125,7 +104,7 @@ const jsdocRules: Linter.RulesRecord = {
 
     // Allow nerdamer-specific and common type aliases
     'jsdoc/no-undefined-types': [
-        'warn',
+        'error',
         {
             definedTypes: [...NERDAMER_TYPES, ...ALLOWED_TYPE_ALIASES],
         },
@@ -170,7 +149,7 @@ const baseJsRules: Linter.RulesRecord = {
 
     // Modern syntax preferences
     'object-shorthand': ['error', 'always'],
-    'prefer-template': 'warn',
+    'prefer-template': 'error',
     'prefer-arrow-callback': [
         'error',
         {
@@ -178,33 +157,208 @@ const baseJsRules: Linter.RulesRecord = {
             allowUnboundThis: false,
         },
     ],
-    'arrow-body-style': ['warn', 'as-needed'],
+    'arrow-body-style': ['error', 'as-needed'],
     'no-duplicate-imports': 'error',
 
     // Best practices
+    'accessor-pairs': 'error',
+    'block-scoped-var': 'error',
+    camelcase: ['error', { properties: 'never', ignoreDestructuring: true, allow: ['^_'] }],
+    'class-methods-use-this': ['error', { exceptMethods: [] }],
+    'consistent-return': 'error',
+    'default-param-last': 'error',
     eqeqeq: ['error', 'always', { null: 'ignore' }],
     curly: ['error', 'all'],
     'default-case-last': 'error',
     'dot-notation': 'error',
+    'func-name-matching': 'error',
+    'func-names': ['error', 'as-needed'],
+    'grouped-accessor-pairs': ['error', 'getBeforeSet'],
+    'guard-for-in': 'error',
+    'logical-assignment-operators': ['error', 'always', { enforceForIfStatements: true }],
+    'max-depth': ['error', { max: 6 }],
+    'max-nested-callbacks': ['error', { max: 5 }],
+    'max-params': ['error', { max: 6 }],
+    'new-cap': ['error', { newIsCap: true, capIsNew: false, newIsCapExceptions: ['bigInt', 'bigDec'] }],
+    'no-alert': 'error',
+    'no-array-constructor': 'error',
+    'no-bitwise': ['error', { allow: ['~', '<<', '>>', '>>>'] }],
+    'no-caller': 'error',
+    'no-constructor-return': 'error',
+    'no-div-regex': 'error',
+    'no-else-return': ['error', { allowElseIf: false }],
+    'no-empty-function': ['error', { allow: ['arrowFunctions'] }],
+    'no-eq-null': 'off', // We use eqeqeq with null: 'ignore' instead
+    'no-eval': 'error',
+    'no-extend-native': 'error',
+    'no-extra-bind': 'error',
+    'no-extra-label': 'error',
+    'no-implicit-coercion': ['error', { allow: ['!!'] }],
+    'no-implicit-globals': 'error',
+    'no-implied-eval': 'error',
+    'no-invalid-this': 'error',
+    'no-iterator': 'error',
+    'no-label-var': 'error',
+    'no-labels': 'error',
+    'no-lone-blocks': 'error',
+    'no-lonely-if': 'error',
+    'no-loop-func': 'error',
+    'no-multi-assign': 'error',
     'no-multi-str': 'error',
+    'no-negated-condition': 'error',
+    'no-nested-ternary': 'error',
+    'no-new': 'error',
+    'no-new-func': 'error',
+    'no-new-wrappers': 'error',
+    'no-object-constructor': 'error',
+    'no-octal-escape': 'error',
+    'no-param-reassign': ['error', { props: false }],
+    'no-plusplus': ['error', { allowForLoopAfterthoughts: true }],
+    'no-proto': 'error',
+    'no-return-assign': ['error', 'except-parens'],
     'no-return-await': 'error',
+    'no-script-url': 'error',
+    'no-self-compare': 'error',
+    'no-sequences': 'error',
+    'no-template-curly-in-string': 'error',
     'no-throw-literal': 'error',
+    'no-undef-init': 'error',
+    'no-unmodified-loop-condition': 'error',
+    'no-unneeded-ternary': 'error',
+    'no-unused-expressions': ['error', { allowShortCircuit: true, allowTernary: true }],
+    'no-useless-call': 'error',
+    'no-useless-computed-key': 'error',
     'no-useless-concat': 'error',
+    'no-useless-constructor': 'error',
+    'no-useless-rename': 'error',
+    'no-useless-return': 'error',
+    'no-void': 'error',
+    'one-var': ['error', 'never'],
+    'operator-assignment': ['error', 'always'],
+    'prefer-destructuring': [
+        'error',
+        {
+            VariableDeclarator: { array: false, object: true },
+            AssignmentExpression: { array: false, object: false },
+        },
+    ],
+    'prefer-exponentiation-operator': 'error',
+    'prefer-named-capture-group': 'warn',
+    'prefer-numeric-literals': 'error',
+    'prefer-object-has-own': 'error',
+    'prefer-object-spread': 'error',
     'prefer-promise-reject-errors': 'error',
+    'prefer-regex-literals': 'error',
+    'prefer-rest-params': 'error',
+    'prefer-spread': 'error',
     radix: 'error',
+    'require-atomic-updates': 'error',
+    'require-await': 'error',
+    'require-unicode-regexp': 'warn',
+    'sort-imports': ['error', { ignoreCase: true, ignoreDeclarationSort: true }],
+    'sort-vars': ['error', { ignoreCase: true }],
+    'spaced-comment': ['error', 'always', { markers: ['/'], exceptions: ['-', '+', '*'] }],
+    strict: ['error', 'never'],
+    'symbol-description': 'error',
+    'unicode-bom': ['error', 'never'],
+    'vars-on-top': 'error',
     yoda: ['error', 'never'],
+
+    // Complexity limits (warnings to track but not block)
+    complexity: ['warn', { max: 30 }],
+    'max-classes-per-file': ['warn', { max: 3 }],
+    'max-lines': ['warn', { max: 1000, skipBlankLines: true, skipComments: true }],
+    'max-lines-per-function': ['warn', { max: 200, skipBlankLines: true, skipComments: true }],
+    'max-statements': ['warn', { max: 50 }],
+
+    // Code quality warnings
+    'capitalized-comments': [
+        'warn',
+        'always',
+        {
+            ignoreConsecutiveComments: true,
+            ignoreInlineComments: true,
+            ignorePattern: 'pragma|ignore|prettier-ignore|eslint|webpack|istanbul|c8|v8|tsc',
+        },
+    ],
+    'id-denylist': ['warn', 'e', 'err', 'cb', 'callback', 'data', 'temp', 'tmp'],
+    'id-length': ['warn', { min: 2, exceptions: ['i', 'j', 'k', 'n', 'm', 'x', 'y', 'z', 'a', 'b', 'c', 'd', '_'] }],
+    'no-await-in-loop': 'warn',
+    'no-inline-comments': 'off', // Allow inline comments
+    'no-magic-numbers': [
+        'warn',
+        {
+            ignore: [-1, 0, 1, 2, 10, 100],
+            ignoreArrayIndexes: true,
+            ignoreDefaultValues: true,
+            enforceConst: true,
+        },
+    ],
+    'no-ternary': 'off', // Ternaries are fine when used appropriately
+    'no-underscore-dangle': ['warn', { allowAfterThis: true, allowFunctionParams: true }],
+    'no-undefined': 'off', // Allow undefined - it's safer in modern JS
+    'no-warning-comments': ['warn', { terms: ['fixme', 'xxx', 'hack'], location: 'start' }],
+    'sort-keys': 'off', // Too restrictive for most codebases
+
+    // Potential errors (from eslint:recommended but explicitly configured)
+    'array-callback-return': ['error', { allowImplicit: true, checkForEach: true }],
+    'no-async-promise-executor': 'error',
+    'no-class-assign': 'error',
+    'no-compare-neg-zero': 'error',
+    'no-cond-assign': ['error', 'except-parens'],
+    'no-const-assign': 'error',
+    'no-constant-binary-expression': 'error',
+    'no-constant-condition': ['error', { checkLoops: false }],
+    'no-control-regex': 'error',
+    'no-dupe-args': 'error',
+    'no-dupe-else-if': 'error',
+    'no-dupe-keys': 'error',
+    'no-duplicate-case': 'error',
+    'no-empty': ['error', { allowEmptyCatch: true }],
+    'no-empty-character-class': 'error',
+    'no-empty-pattern': 'error',
+    'no-ex-assign': 'error',
+    'no-fallthrough': ['error', { allowEmptyCase: true }],
+    'no-func-assign': 'error',
+    'no-import-assign': 'error',
+    'no-inner-declarations': 'error',
+    'no-invalid-regexp': 'error',
+    'no-irregular-whitespace': 'error',
+    'no-loss-of-precision': 'error',
+    'no-misleading-character-class': 'error',
+    'no-new-native-nonconstructor': 'error',
+    'no-obj-calls': 'error',
+    'no-promise-executor-return': ['error', { allowVoid: true }],
+    'no-prototype-builtins': 'error',
+    'no-regex-spaces': 'error',
+    'no-setter-return': 'error',
+    'no-sparse-arrays': 'error',
+    'no-unexpected-multiline': 'error',
+    'no-unreachable': 'error',
+    'no-unreachable-loop': 'error',
+    'no-unsafe-finally': 'error',
+    'no-unsafe-negation': ['error', { enforceForOrderingRelations: true }],
+    'no-unsafe-optional-chaining': ['error', { disallowArithmeticOperators: true }],
+    'no-unused-private-class-members': 'error',
+    'no-useless-backreference': 'error',
+    'use-isnan': ['error', { enforceForSwitchCase: true, enforceForIndexOf: true }],
+    'valid-typeof': ['error', { requireStringLiterals: true }],
+
+    // Additional potential error rules
+    'for-direction': 'error',
+    'getter-return': 'error',
 };
 
 // =============================================================================
-// TypeScript Rules
+// TypeScript Rules (Overrides for presets)
 // =============================================================================
 
 /**
- * TypeScript-specific rules applied to .ts/.tsx files. These extend/override the base rules with TypeScript
- * equivalents.
+ * TypeScript rule overrides. We use tseslint.configs.strictTypeChecked and stylisticTypeChecked as bases, then apply
+ * these customizations.
  */
-const typescriptRules: Linter.RulesRecord = {
-    // Disable base rules that have TypeScript equivalents
+const typescriptRuleOverrides: Linter.RulesRecord = {
+    // Disable base ESLint rules that conflict with TypeScript equivalents
     'no-unused-vars': 'off',
     'no-shadow': 'off',
     'no-use-before-define': 'off',
@@ -212,9 +366,7 @@ const typescriptRules: Linter.RulesRecord = {
     'no-dupe-class-members': 'off',
     'no-return-await': 'off',
 
-    // TypeScript equivalents (rules that replace base ESLint rules)
-    '@typescript-eslint/no-redeclare': 'error',
-    '@typescript-eslint/no-dupe-class-members': 'error',
+    // Custom configurations for rules from presets
     '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -225,7 +377,6 @@ const typescriptRules: Linter.RulesRecord = {
             caughtErrors: 'none',
         },
     ],
-    '@typescript-eslint/no-shadow': 'error',
     '@typescript-eslint/no-use-before-define': [
         'error',
         {
@@ -235,30 +386,24 @@ const typescriptRules: Linter.RulesRecord = {
             typedefs: true,
         },
     ],
-    '@typescript-eslint/return-await': ['error', 'in-try-catch'],
-
-    // Type annotations and inference
-    '@typescript-eslint/explicit-function-return-type': [
-        'warn',
-        {
-            allowExpressions: true,
-            allowTypedFunctionExpressions: true,
-            allowHigherOrderFunctions: true,
-            allowDirectConstAssertionInArrowFunctions: true,
-            allowConciseArrowFunctionExpressionsStartingWithVoid: true,
-        },
-    ],
-    '@typescript-eslint/no-explicit-any': 'warn',
-    '@typescript-eslint/no-non-null-assertion': 'warn',
-    '@typescript-eslint/no-inferrable-types': [
+    '@typescript-eslint/ban-ts-comment': [
         'error',
         {
-            ignoreParameters: true,
-            ignoreProperties: true,
+            'ts-expect-error': 'allow-with-description',
+            'ts-ignore': false,
+            'ts-nocheck': false,
+            'ts-check': false,
         },
     ],
-
-    // Type imports and definitions
+    '@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }],
+    '@typescript-eslint/strict-boolean-expressions': [
+        'error',
+        {
+            allowString: true,
+            allowNumber: true,
+            allowNullableObject: true,
+        },
+    ],
     '@typescript-eslint/consistent-type-imports': [
         'error',
         {
@@ -267,11 +412,26 @@ const typescriptRules: Linter.RulesRecord = {
             fixStyle: 'inline-type-imports',
         },
     ],
-    '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
-    '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
+    '@typescript-eslint/no-inferrable-types': [
+        'error',
+        {
+            ignoreParameters: true,
+            ignoreProperties: true,
+        },
+    ],
 
-    // Code style
-    '@typescript-eslint/member-ordering': 'warn',
+    // Additional rules not in presets
+    '@typescript-eslint/explicit-function-return-type': [
+        'error',
+        {
+            allowExpressions: true,
+            allowTypedFunctionExpressions: true,
+            allowHigherOrderFunctions: true,
+            allowDirectConstAssertionInArrowFunctions: true,
+            allowConciseArrowFunctionExpressionsStartingWithVoid: true,
+        },
+    ],
+    '@typescript-eslint/member-ordering': 'error',
     '@typescript-eslint/method-signature-style': ['error', 'property'],
     '@typescript-eslint/naming-convention': [
         'error',
@@ -289,70 +449,10 @@ const typescriptRules: Linter.RulesRecord = {
             format: ['PascalCase'],
         },
     ],
-
-    // Error prevention
-    '@typescript-eslint/ban-ts-comment': [
-        'error',
-        {
-            'ts-expect-error': 'allow-with-description',
-            'ts-ignore': false,
-            'ts-nocheck': false,
-            'ts-check': false,
-        },
-    ],
-    '@typescript-eslint/no-duplicate-enum-values': 'error',
-    '@typescript-eslint/no-empty-object-type': [
-        'error',
-        {
-            allowInterfaces: 'with-single-extends',
-        },
-    ],
-
-    // Promise handling (type-checked)
-    '@typescript-eslint/no-floating-promises': 'error',
-    '@typescript-eslint/no-misused-promises': 'error',
+    '@typescript-eslint/no-import-type-side-effects': 'error',
+    '@typescript-eslint/prefer-readonly': 'error',
     '@typescript-eslint/promise-function-async': 'error',
-    '@typescript-eslint/require-await': 'error',
-
-    // Type safety (warnings for gradual adoption)
-    '@typescript-eslint/no-redundant-type-constituents': 'warn',
-    '@typescript-eslint/no-unnecessary-condition': 'warn',
-    '@typescript-eslint/no-unnecessary-type-assertion': 'error',
-    '@typescript-eslint/no-unsafe-assignment': 'warn',
-    '@typescript-eslint/no-unsafe-call': 'warn',
-    '@typescript-eslint/no-unsafe-member-access': 'warn',
-    '@typescript-eslint/no-unsafe-return': 'warn',
-
-    // Modern syntax preferences
-    '@typescript-eslint/prefer-nullish-coalescing': 'warn',
-    '@typescript-eslint/prefer-optional-chain': 'error',
-    '@typescript-eslint/prefer-readonly': 'warn',
-    '@typescript-eslint/prefer-string-starts-ends-with': 'error',
-
-    // Strictness
-    '@typescript-eslint/strict-boolean-expressions': [
-        'warn',
-        {
-            allowString: true,
-            allowNumber: true,
-            allowNullableObject: true,
-        },
-    ],
-    '@typescript-eslint/switch-exhaustiveness-check': 'error',
-};
-
-// =============================================================================
-// Test File Rules
-// =============================================================================
-
-/** Relaxed TypeScript rules for test files. */
-const testFileTypescriptOverrides: Linter.RulesRecord = {
-    '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/no-non-null-assertion': 'off',
-    '@typescript-eslint/no-unsafe-assignment': 'off',
-    '@typescript-eslint/no-unsafe-call': 'off',
-    '@typescript-eslint/no-unsafe-member-access': 'off',
-    '@typescript-eslint/no-unsafe-return': 'off',
+    '@typescript-eslint/no-shadow': 'error',
 };
 
 // =============================================================================
@@ -398,24 +498,26 @@ export default defineConfig([
     },
 
     // -------------------------------------------------------------------------
-    // TypeScript Configuration
+    // TypeScript Configuration (using preset configs)
     // -------------------------------------------------------------------------
+    ...tseslint.configs.strictTypeChecked.map(config => ({
+        ...config,
+        files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
+    })),
+    ...tseslint.configs.stylisticTypeChecked.map(config => ({
+        ...config,
+        files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
+    })),
     {
-        name: 'typescript/base',
+        name: 'typescript/overrides',
         files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
         languageOptions: {
-            parser: tseslint.parser,
             parserOptions: {
                 project: './tsconfig.json',
-                tsconfigRootDir: import.meta.dirname,
-                ecmaVersion: 2024,
-                sourceType: 'module',
+                tsconfigRootDir: currentDir,
             },
         },
-        plugins: {
-            '@typescript-eslint': tseslint.plugin,
-        },
-        rules: typescriptRules,
+        rules: typescriptRuleOverrides,
     },
 
     // -------------------------------------------------------------------------
@@ -453,11 +555,41 @@ export default defineConfig([
 
     // -------------------------------------------------------------------------
     // Legacy Nerdamer Core Files
+    // These files have relaxed linting rules because they are mature,
+    // mathematically complex code that uses patterns not ideal for modern JS
+    // but work correctly and are too risky to refactor without extensive testing.
     // -------------------------------------------------------------------------
     {
         name: 'legacy/core',
         files: LEGACY_CORE_FILES,
-        rules: LEGACY_JS_DISABLED_RULES,
+        rules: {
+            // Parameter reassignment is common in mathematical algorithms
+            'no-param-reassign': 'off',
+
+            // Short variable names (a, b, x, y, etc.) are conventional in math
+            'id-length': 'off',
+            'id-denylist': 'off',
+
+            // Mathematical code often uses ++ and -- operators
+            'no-plusplus': 'off',
+
+            // Complex math functions often have many parameters and statements
+            'max-params': 'off',
+            'max-statements': 'off',
+            'max-lines-per-function': 'off',
+            'max-lines': 'off',
+            complexity: 'off',
+            'max-depth': 'off',
+
+            // Chained assignment is used for efficiency in numerical code
+            'no-multi-assign': 'off',
+
+            // Magic numbers are common in mathematical constants/algorithms
+            'no-magic-numbers': 'off',
+
+            // Underscore-prefixed variables denote internal/private usage
+            'no-underscore-dangle': 'off',
+        },
     },
 
     // -------------------------------------------------------------------------
@@ -467,72 +599,117 @@ export default defineConfig([
         name: 'legacy/spec',
         files: ['spec/**/*.js'],
         rules: {
-            ...LEGACY_JS_DISABLED_RULES,
-            // Additionally disable JSDoc for legacy test files
-            'jsdoc/check-param-names': 'off',
-            'jsdoc/check-tag-names': 'off',
-            'jsdoc/check-types': 'off',
-            'jsdoc/valid-types': 'off',
-            'jsdoc/no-undefined-types': 'off',
+            // Test files use /* global expect */ but expect is already defined
+            // via jasmine/jest globals, so we disable the no-redeclare check
+            'no-redeclare': 'off',
+
+            // Test files legitimately use magic numbers for test values
+            'no-magic-numbers': 'off',
+
+            // Test files often use short variable names for brevity
+            'id-length': 'off',
+            'id-denylist': 'off',
+
+            // Test files can have many statements and lines per function
+            'max-statements': 'off',
+            'max-lines-per-function': 'off',
+            'max-lines': 'off',
         },
     },
 
     // -------------------------------------------------------------------------
     // TypeScript Spec Files (spec-dts)
+    // These are type specification tests that intentionally test various type
+    // patterns including unsafe operations and any types.
     // -------------------------------------------------------------------------
     {
         name: 'spec-dts/overrides',
         files: ['spec-dts/**/*.ts'],
         rules: {
-            // Relax rules for type specification tests
-            ...testFileTypescriptOverrides,
+            // Disable all TypeScript unsafe/any rules - these tests intentionally
+            // use any types to verify type definitions work correctly
+            '@typescript-eslint/no-unsafe-assignment': 'off',
+            '@typescript-eslint/no-unsafe-call': 'off',
+            '@typescript-eslint/no-unsafe-member-access': 'off',
             '@typescript-eslint/no-unsafe-argument': 'off',
-            '@typescript-eslint/no-unnecessary-condition': 'off',
-            '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+            '@typescript-eslint/no-unsafe-return': 'off',
+            '@typescript-eslint/no-explicit-any': 'off',
+            '@typescript-eslint/no-require-imports': 'off',
+            '@typescript-eslint/no-unnecessary-type-parameters': 'off',
+            '@typescript-eslint/no-empty-function': 'off',
             '@typescript-eslint/strict-boolean-expressions': 'off',
             '@typescript-eslint/prefer-nullish-coalescing': 'off',
-            '@typescript-eslint/prefer-optional-chain': 'off',
+            '@typescript-eslint/restrict-template-expressions': 'off',
+            '@typescript-eslint/no-non-null-assertion': 'off',
+            '@typescript-eslint/no-unnecessary-condition': 'off',
             '@typescript-eslint/consistent-type-imports': 'off',
-            '@typescript-eslint/no-shadow': 'off',
-            '@typescript-eslint/no-unused-vars': [
-                'warn',
-                {
-                    argsIgnorePattern: '^_',
-                    varsIgnorePattern: '^_',
-                    caughtErrors: 'none',
-                },
-            ],
-            'no-case-declarations': 'off',
-            'no-undef': 'off',
-            curly: 'off',
-            radix: 'off',
-            'dot-notation': 'off',
-            'arrow-body-style': 'off',
+            '@typescript-eslint/prefer-for-of': 'off',
+
+            // Mathematical code often uses ++ and -- operators
+            'no-plusplus': 'off',
+
+            // Test files often use short variable names for brevity
+            'id-length': 'off',
+
+            // Test files legitimately use magic numbers for test values
+            'no-magic-numbers': 'off',
+
+            // Complex functions often have many parameters and statements
+            'max-params': 'off',
+            'max-statements': 'off',
+            'max-lines-per-function': 'off',
+            'max-lines': 'off',
+            complexity: 'off',
+            'max-depth': 'off',
         },
     },
 
     // -------------------------------------------------------------------------
     // Type Definition File (index.d.ts)
+    // This is a type definition file for an existing JavaScript library.
+    // It must reflect the actual runtime API, which includes:
+    // - Interfaces without 'I' prefix (matching JS class names)
+    // - Method signatures (matching JS method definitions)
+    // - Forward references (types are used before defined for readability)
+    // - Some 'any' types (for truly dynamic JavaScript APIs)
+    // - Empty interfaces extending base types (semantic type aliases)
     // -------------------------------------------------------------------------
     {
         name: 'type-definitions',
         files: ['index.d.ts'],
         rules: {
-            // Disable strict TypeScript rules for legacy type definitions
-            '@typescript-eslint/method-signature-style': 'off',
+            // Interface naming - type definitions must match actual JS class/object names
             '@typescript-eslint/naming-convention': 'off',
+
+            // Forward references are necessary for readable type definitions
             '@typescript-eslint/no-use-before-define': 'off',
-            '@typescript-eslint/array-type': 'off',
+
+            // Method signatures are idiomatic in .d.ts files
+            '@typescript-eslint/method-signature-style': 'off',
+
+            // Empty interfaces are used as semantic type aliases
+            '@typescript-eslint/no-empty-object-type': 'off',
+
+            // Some APIs are genuinely dynamic and need 'any'
             '@typescript-eslint/no-explicit-any': 'off',
+
+            // Function type is needed for some callback APIs
+            '@typescript-eslint/no-unsafe-function-type': 'off',
+
+            // Union types may include redundant constituents for documentation
             '@typescript-eslint/no-redundant-type-constituents': 'off',
+
+            // Overload signatures are sometimes clearer as separate declarations
+            '@typescript-eslint/unified-signatures': 'off',
+
+            // Member ordering is less important in .d.ts files
             '@typescript-eslint/member-ordering': 'off',
-            '@typescript-eslint/no-unnecessary-condition': 'off',
-            '@typescript-eslint/prefer-nullish-coalescing': 'off',
-            '@typescript-eslint/strict-boolean-expressions': 'off',
-            'jsdoc/check-param-names': 'off',
-            'jsdoc/require-throws-type': 'off',
-            'jsdoc/no-undefined-types': 'off',
-            'prettier/prettier': 'off',
+
+            // Adjacent overloads rule can conflict with logical grouping
+            '@typescript-eslint/adjacent-overload-signatures': 'off',
+
+            // Identifier restrictions don't apply to documenting external APIs
+            'id-denylist': 'off',
         },
     },
 
@@ -554,6 +731,9 @@ export default defineConfig([
 
             // Type declarations (generated, in types/ folder)
             'types/**/*.d.ts',
+
+            // Generated spec output
+            'spec-dts/dist/',
 
             // Temporary files
             'temp/',

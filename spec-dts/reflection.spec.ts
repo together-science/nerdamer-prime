@@ -22,16 +22,15 @@ describe('Nerdamer API Surface Reflection Test', () => {
         tsExportedDeclarations = nerdamerNamespace.getExportedDeclarations();
 
         // Get all exported functions, variables, etc. from the namespace
-        tsApiExports = (Array.from(tsExportedDeclarations.keys()) as string[])
-            .filter((name: string) => {
-                // Filter out internal types and interfaces that aren't expected on the runtime object
-                return (
+        tsApiExports = Array.from(tsExportedDeclarations.keys())
+            .filter(
+                (name: string) =>
+                    // Filter out internal types and interfaces that aren't expected on the runtime object
                     !name.startsWith('Nerdamer') &&
                     !name.endsWith('Constructor') &&
                     !name.includes('Interface') &&
                     name !== 'NerdamerCore'
-                );
-            })
+            )
             .sort();
     });
 
@@ -63,7 +62,9 @@ describe('Nerdamer API Surface Reflection Test', () => {
             const runtimeValue = (nerdamerRuntime as any)[exportName];
             const tsDeclarations = tsExportedDeclarations.get(exportName) || [];
 
-            if (tsDeclarations.length === 0) continue;
+            if (tsDeclarations.length === 0) {
+                continue;
+            }
 
             const tsDeclaration = tsDeclarations[0];
             const isRuntimeFunction = typeof runtimeValue === 'function';
@@ -157,7 +158,9 @@ describe('Nerdamer API Surface Reflection Test', () => {
             const runtimeValue = (nerdamerRuntime as any)[exportName];
             const tsDeclarations = tsExportedDeclarations.get(exportName) || [];
 
-            if (typeof runtimeValue !== 'function' || tsDeclarations.length === 0) continue;
+            if (typeof runtimeValue !== 'function' || tsDeclarations.length === 0) {
+                continue;
+            }
 
             const tsDeclaration = tsDeclarations[0];
 
@@ -325,7 +328,7 @@ describe('Nerdamer API Surface Reflection Test', () => {
                 if (primeDeclarations.length > 0) {
                     const primeDeclaration = primeDeclarations[0];
 
-                    if (primeDeclaration && primeDeclaration.getKind) {
+                    if (primeDeclaration?.getKind) {
                         const kindName = primeDeclaration.getKindName?.() || 'Unknown';
                         namespaceAnalysis[kindName] = (namespaceAnalysis[kindName] || 0) + 1;
 
@@ -382,11 +385,7 @@ describe('Nerdamer API Surface Reflection Test', () => {
                     }
 
                     // Check for missing JSDoc or type annotations
-                    if (
-                        tsDeclaration.getJsDocs &&
-                        tsDeclaration.getJsDocs().length === 0 &&
-                        kindName === 'FunctionDeclaration'
-                    ) {
+                    if (tsDeclaration.getJsDocs?.().length === 0 && kindName === 'FunctionDeclaration') {
                         // Note: Not flagging this as an error since many functions may not have JSDoc
                     }
                 }
