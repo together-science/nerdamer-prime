@@ -1,4 +1,4 @@
-import { NerdamerExpression, SolveResult } from '../index';
+import type { NerdamerExpression, SolveResult } from '../index';
 
 // Import complete nerdamer with all modules for runtime
 const nerdamer = require('../all');

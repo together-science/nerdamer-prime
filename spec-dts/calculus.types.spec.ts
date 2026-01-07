@@ -1,4 +1,4 @@
-import { NerdamerExpression } from '../index';
+import type { NerdamerExpression } from '../index';
 
 // Import complete nerdamer with all modules for runtime
 const nerdamer = require('../all');
