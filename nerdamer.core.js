@@ -79,6 +79,160 @@ const nerdamerBigDecimal =
 const nerdamerConstants =
     typeof globalThis.nerdamerConstants === 'undefined' ? require('./constants.js') : globalThis.nerdamerConstants;
 
+// Fraction Object ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// This static utility object converts decimals to fractions.
+
+/** Static utility object for converting decimals to fractions. */
+const Fraction = {
+    /**
+     * Converts a decimal to a fraction
+     *
+     * @param {number | string} value
+     * @param {object} [_opts]
+     * @returns {Array} - An array containing the denominator and the numerator
+     */
+    convert(value, _opts) {
+        const numValue = Number(value);
+        let frac;
+        if (numValue === 0) {
+            frac = [0, 1];
+        } else if (Math.abs(numValue) < 1e-6 || Math.abs(numValue) > 1e20) {
+            const qc = this.quickConversion(numValue);
+            if (qc[1] <= 1e16) {
+                const abs = Math.abs(numValue);
+                const sign = numValue / abs;
+                frac = this.fullConversion(abs.toFixed(`${qc[1]}`.length - 1));
+                frac[0] *= sign;
+            } else {
+                frac = qc;
+            }
+        } else {
+            frac = this.fullConversion(numValue);
+        }
+        return frac;
+    },
+    /**
+     * If the fraction is too small or too large this gets called instead of fullConversion method
+     *
+     * @param {number | string} value
+     * @returns {Array} - An array containing the denominator and the numerator
+     */
+    quickConversion(value) {
+        const stripSign = function (s) {
+            // Explicitely convert to a string
+            if (typeof s !== 'string') {
+                s = s.toString();
+            }
+
+            let sign = '';
+
+            // Remove and store the sign
+            const start = s.charAt(0);
+            if (start === '-') {
+                s = s.substr(1, s.length);
+                sign = '-';
+            } else if (start === '+') {
+                // Just remove the plus sign
+                s = s.substr(1, s.length);
+            }
+
+            return {
+                sign,
+                value: s,
+            };
+        };
+
+        function convert(val) {
+            // Explicitely convert to a decimal
+            if (Scientific.isScientific(val)) {
+                val = scientificToDecimal(val);
+            }
+
+            // Split the value into the sign and the value
+            const nparts = stripSign(val);
+
+            // Split it at the decimal. We'll refer to it as the coeffient parts
+            const cparts = nparts.value.split('.');
+
+            // Combine the entire number by removing leading zero and adding the decimal part
+            // This would be teh same as moving the decimal point to the end
+            let num;
+            // We're dealing with integers
+            if (cparts.length === 1) {
+                num = cparts[0];
+            } else {
+                num = cparts[0] + cparts[1];
+            }
+            const n = cparts[1] ? cparts[1].length : 0;
+            // Generate the padding for the zeros
+            const den = `1${'0'.repeat(n)}`;
+
+            if (num !== '0') {
+                num = num.replace(/^0+/u, '');
+            }
+            return [nparts.sign + num, den];
+        }
+
+        return convert(value);
+    },
+    /**
+     * Returns a good approximation of a fraction. This method gets called by convert
+     * http://mathforum.org/library/drmath/view/61772.html Decimal To Fraction Conversion - A Simpler Version Dr
+     * Peterson
+     *
+     * @param {number | string} dec
+     * @returns {Array} - An array containing the denominator and the numerator
+     */
+    fullConversion(dec) {
+        const numDec = Number(dec);
+        // This doesn't work for values approaching as small as epsilon
+        const epsilon = Math.abs(numDec) > 1e10 ? 1e-16 : 1e-30;
+        let done = false;
+        // You can adjust the epsilon to a larger number if you don't need very high precision
+        let n1 = 0;
+        let d1 = 1;
+        let n2 = 1;
+        let d2 = 0;
+        let n = 0;
+        let q = numDec;
+        let num;
+        let den;
+        // Relative epsilon for rounding large q values to nearest integer.
+        // This fixes floating-point precision errors in reciprocals (e.g., 1/1e-15 = 999999999999999.9).
+        // We use ~45x Number.EPSILON to allow for accumulated rounding errors.
+        // This is independent of Settings.PRECISION since we're dealing with IEEE 754 double limits.
+        const roundingEpsilon = 1e-14; // ~45 * Number.EPSILON (2.2e-16)
+        while (!done) {
+            n++;
+            // For very large q values, round to nearest integer if within floating-point error
+            let a;
+            if (Math.abs(q) > 1e10) {
+                const rounded = Math.round(q);
+                const relDiff = Math.abs(q - rounded) / Math.abs(rounded);
+                a = relDiff < roundingEpsilon ? rounded : Math.floor(q);
+            } else {
+                a = Math.floor(q);
+            }
+            num = n1 + a * n2;
+            den = d1 + a * d2;
+            const e = q - a;
+            if (e < epsilon) {
+                done = true;
+            }
+            q = 1 / e;
+            n1 = n2;
+            d1 = d2;
+            n2 = num;
+            d2 = den;
+            if (Math.abs(num / den - numDec) < epsilon || n > 30) {
+                done = true;
+            }
+        }
+        return [num, den];
+    },
+};
+
 // Frac Class ===================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
 // Dependencies are injected via the `deps` object which is set by the IIFE after initialization.
@@ -93,7 +247,7 @@ const nerdamerConstants =
  *     scientificToDecimal: (num: number) => string;
  *     DivisionByZero: new (msg: string) => Error;
  *     Settings: any;
- *     Fraction: { convert: Function; quickConversion: Function; fullConversion: Function };
+ *     Fraction: typeof Fraction;
  * }}
  */
 const FracDeps = {
@@ -103,7 +257,7 @@ const FracDeps = {
     scientificToDecimal: () => '',
     DivisionByZero: Error,
     Settings: { PRECISION: 21, USE_BIG: false },
-    Fraction: { convert: () => [0, 1], quickConversion: () => [0, 1], fullConversion: () => [0, 1] },
+    Fraction,
 };
 
 /**
@@ -4635,7 +4789,7 @@ const nerdamer = (function initNerdamerCore(imports) {
     // evaluate is now defined outside IIFE
     let LaTeX = null; // LaTeX object, defined at line ~11020
     let C = null; // Math2 object, Defined at line ~1745
-    let Fraction = null; // Fraction object, Defined at line ~10871
+    // Fraction is now defined outside IIFE
     let Build = null; // Build object, Defined at line ~12723
     let isSymbol = null; // IsSymbol function, Defined at line ~478
     // firstObject is now defined outside IIFE
@@ -14224,157 +14378,7 @@ const nerdamer = (function initNerdamerCore(imports) {
     ConvertToLaTeXDeps._ = _;
     ConvertToLaTeXDeps.C = C;
 
-    /* "STATIC" */
-    // converts a number to a fraction.
-    Fraction = {
-        /**
-         * Converts a decimal to a fraction
-         *
-         * @param {number} value
-         * @param {object} _opts
-         * @returns {Array} - An array containing the denominator and the numerator
-         */
-        convert(value, _opts) {
-            let frac;
-            if (value === 0) {
-                frac = [0, 1];
-            } else if (Math.abs(value) < 1e-6 || Math.abs(value) > 1e20) {
-                const qc = this.quickConversion(Number(value));
-                if (qc[1] <= 1e16) {
-                    const abs = Math.abs(value);
-                    const sign = value / abs;
-                    frac = this.fullConversion(abs.toFixed(`${qc[1]}`.length - 1));
-                    frac[0] *= sign;
-                } else {
-                    frac = qc;
-                }
-            } else {
-                frac = this.fullConversion(value);
-            }
-            return frac;
-        },
-        /**
-         * If the fraction is too small or too large this gets called instead of fullConversion method
-         *
-         * @param {number} value
-         * @returns {Array} - An array containing the denominator and the numerator
-         */
-        quickConversion(value) {
-            const stripSign = function (s) {
-                // Explicitely convert to a string
-                if (typeof s !== 'string') {
-                    s = s.toString();
-                }
-
-                let sign = '';
-
-                // Remove and store the sign
-                const start = s.charAt(0);
-                if (start === '-') {
-                    s = s.substr(1, s.length);
-                    sign = '-';
-                } else if (start === '+') {
-                    // Just remove the plus sign
-                    s = s.substr(1, s.length);
-                }
-
-                return {
-                    sign,
-                    value: s,
-                };
-            };
-
-            function convert(val) {
-                // Explicitely convert to a decimal
-                if (Scientific.isScientific(val)) {
-                    val = scientificToDecimal(val);
-                }
-
-                // Split the value into the sign and the value
-                const nparts = stripSign(val);
-
-                // Split it at the decimal. We'll refer to it as the coeffient parts
-                const cparts = nparts.value.split('.');
-
-                // Combine the entire number by removing leading zero and adding the decimal part
-                // This would be teh same as moving the decimal point to the end
-                let num;
-                // We're dealing with integers
-                if (cparts.length === 1) {
-                    num = cparts[0];
-                } else {
-                    num = cparts[0] + cparts[1];
-                }
-                const n = cparts[1] ? cparts[1].length : 0;
-                // Generate the padding for the zeros
-                const den = `1${'0'.repeat(n)}`;
-
-                if (num !== '0') {
-                    num = num.replace(/^0+/u, '');
-                }
-                return [nparts.sign + num, den];
-            }
-
-            return convert(value);
-        },
-        /**
-         * Returns a good approximation of a fraction. This method gets called by convert
-         * http://mathforum.org/library/drmath/view/61772.html Decimal To Fraction Conversion - A Simpler Version Dr
-         * Peterson
-         *
-         * @param {number} dec
-         * @returns {Array} - An array containing the denominator and the numerator
-         */
-        fullConversion(dec) {
-            // This doesn't work for values approaching as small as epsilon
-            const epsilon = Math.abs(dec) > 1e10 ? 1e-16 : 1e-30;
-            let done = false;
-            // You can adjust the epsilon to a larger number if you don't need very high precision
-            let n1 = 0;
-            let d1 = 1;
-            let n2 = 1;
-            let d2 = 0;
-            let n = 0;
-            let q = dec;
-            let num;
-            let den;
-            // Relative epsilon for rounding large q values to nearest integer.
-            // This fixes floating-point precision errors in reciprocals (e.g., 1/1e-15 = 999999999999999.9).
-            // We use ~45x Number.EPSILON to allow for accumulated rounding errors.
-            // This is independent of Settings.PRECISION since we're dealing with IEEE 754 double limits.
-            const roundingEpsilon = 1e-14; // ~45 * Number.EPSILON (2.2e-16)
-            while (!done) {
-                n++;
-                // For very large q values, round to nearest integer if within floating-point error
-                let a;
-                if (Math.abs(q) > 1e10) {
-                    const rounded = Math.round(q);
-                    const relDiff = Math.abs(q - rounded) / Math.abs(rounded);
-                    a = relDiff < roundingEpsilon ? rounded : Math.floor(q);
-                } else {
-                    a = Math.floor(q);
-                }
-                num = n1 + a * n2;
-                den = d1 + a * d2;
-                const e = q - a;
-                if (e < epsilon) {
-                    done = true;
-                }
-                q = 1 / e;
-                n1 = n2;
-                d1 = d2;
-                n2 = num;
-                d2 = den;
-                if (Math.abs(num / den - dec) < epsilon || n > 30) {
-                    done = true;
-                }
-            }
-            return [num, den];
-        },
-    };
-
-    // Complete FracDeps initialization now that Fraction is defined
-    FracDeps.Fraction = Fraction;
+    // Fraction is now defined outside IIFE (before Frac class)
 
     // The latex generator
     LaTeX = {
