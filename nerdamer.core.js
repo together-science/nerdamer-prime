@@ -3755,33 +3755,14 @@ Expression.prototype.toTeX = Expression.prototype.latex;
 // Dependencies are injected via VectorDeps which is set by the IIFE after initialization.
 
 /**
- * Dependency container for Vector class. Populated by the IIFE during initialization.
+ * Dependency container for Vector class. Populated by the IIFE during initialization. Only IIFE-scope values and
+ * forward-referenced values need injection.
  *
- * @type {{
- *     Frac: typeof Frac;
- *     NerdamerSymbol: any;
- *     isVector: (x: any) => boolean;
- *     isArray: (x: any) => boolean;
- *     isMatrix: (x: any) => boolean;
- *     isSymbol: (x: any) => boolean;
- *     block: Function;
- *     _: any;
- *     Settings: { PRECISION: number };
- *     text: Function;
- *     LaTeX: any;
- * }}
+ * @type {{ _: any; Settings: { PRECISION: number }; LaTeX: any }}
  */
 const VectorDeps = {
-    Frac,
-    NerdamerSymbol: /** @type {any} */ (null),
-    isVector: () => false,
-    isArray,
-    isMatrix: () => false,
-    isSymbol: () => false,
-    block,
     _: /** @type {any} */ (null),
     Settings: { PRECISION: 1e-14 },
-    text: () => '',
     LaTeX: /** @type {any} */ (null),
 };
 
@@ -3791,12 +3772,12 @@ const VectorDeps = {
  * @param {...any} rest
  */
 function Vector(v, ...rest) {
-    this.multiplier = new VectorDeps.Frac(1);
-    if (VectorDeps.isVector(v)) {
+    this.multiplier = new Frac(1);
+    if (isVector(v)) {
         this.elements = /** @type {any[]} */ (v.elements)?.slice(0) ?? [];
-    } else if (VectorDeps.isArray(v)) {
+    } else if (isArray(v)) {
         this.elements = v.slice(0);
-    } else if (VectorDeps.isMatrix(v)) {
+    } else if (isMatrix(v)) {
         if (v.elements.length === 1) {
             this.elements = [...v.elements[0]];
             this.rowVector = true;
@@ -3855,8 +3836,8 @@ Vector.prototype = {
     },
 
     set(i, val) {
-        if (!VectorDeps.isSymbol(val)) {
-            val = new VectorDeps.NerdamerSymbol(val);
+        if (!isSymbol(val)) {
+            val = new NerdamerSymbol(val);
         }
         this.elements[i] = val;
     },
@@ -3868,12 +3849,7 @@ Vector.prototype = {
 
     // Returns the modulus ('length') of the vector
     modulus() {
-        return VectorDeps.block(
-            'SAFE',
-            () => VectorDeps._.pow(this.dot(this.clone()), new VectorDeps.NerdamerSymbol(0.5)),
-            undefined,
-            this
-        );
+        return block('SAFE', () => VectorDeps._.pow(this.dot(this.clone()), new NerdamerSymbol(0.5)), undefined, this);
     },
 
     // Returns true iff the vector is equal to the argument
@@ -3934,7 +3910,7 @@ Vector.prototype = {
 
     // Returns a new vector created by normalizing the receiver
     toUnitVector() {
-        return VectorDeps.block(
+        return block(
             'SAFE',
             () => {
                 const r = this.modulus();
@@ -3950,7 +3926,7 @@ Vector.prototype = {
 
     // Returns the angle between the vector and the argument (also a vector)
     angleFrom(vector) {
-        return VectorDeps.block(
+        return block(
             'SAFE',
             () => {
                 const V = vector.elements || vector;
@@ -3958,17 +3934,17 @@ Vector.prototype = {
                 if (n !== V.length) {
                     return null;
                 }
-                let dot = new VectorDeps.NerdamerSymbol(0);
-                let mod1 = new VectorDeps.NerdamerSymbol(0);
-                let mod2 = new VectorDeps.NerdamerSymbol(0);
+                let dot = new NerdamerSymbol(0);
+                let mod1 = new NerdamerSymbol(0);
+                let mod2 = new NerdamerSymbol(0);
                 // Work things out in parallel to save time
                 this.each((x, i) => {
                     dot = VectorDeps._.add(dot, VectorDeps._.multiply(x, V[i - 1]));
                     mod1 = VectorDeps._.add(mod1, VectorDeps._.multiply(x, x)); // Will not conflict in safe block
                     mod2 = VectorDeps._.add(mod2, VectorDeps._.multiply(V[i - 1], V[i - 1])); // Will not conflict in safe block
                 });
-                mod1 = VectorDeps._.pow(mod1, new VectorDeps.NerdamerSymbol(0.5));
-                mod2 = VectorDeps._.pow(mod2, new VectorDeps.NerdamerSymbol(0.5));
+                mod1 = VectorDeps._.pow(mod1, new NerdamerSymbol(0.5));
+                mod2 = VectorDeps._.pow(mod2, new NerdamerSymbol(0.5));
                 const product = VectorDeps._.multiply(mod1, mod2);
                 if (product.valueOf() === 0) {
                     return null;
@@ -3982,7 +3958,7 @@ Vector.prototype = {
                 if (thetaVal > 1) {
                     theta = 1;
                 }
-                return new VectorDeps.NerdamerSymbol(Math.acos(/** @type {number} */ (theta)));
+                return new NerdamerSymbol(Math.acos(/** @type {number} */ (theta)));
             },
             undefined,
             this
@@ -4009,7 +3985,7 @@ Vector.prototype = {
 
     // Returns the result of adding the argument to the vector
     add(vector) {
-        return VectorDeps.block(
+        return block(
             'SAFE',
             () => {
                 const V = vector.elements || vector;
@@ -4025,7 +4001,7 @@ Vector.prototype = {
 
     // Returns the result of subtracting the argument from the vector
     subtract(vector) {
-        return VectorDeps.block(
+        return block(
             'SAFE',
             () => {
                 const V = vector.elements || vector;
@@ -4051,11 +4027,11 @@ Vector.prototype = {
     // Returns the scalar product of the vector with the argument
     // Both vectors must have equal dimensionality
     dot(vector) {
-        return VectorDeps.block(
+        return block(
             'SAFE',
             () => {
                 const V = vector.elements || vector;
-                let product = new VectorDeps.NerdamerSymbol(0);
+                let product = new NerdamerSymbol(0);
                 let n = this.elements.length;
                 if (n !== V.length) {
                     return null;
@@ -4079,7 +4055,7 @@ Vector.prototype = {
         }
         const rowVector = this.rowVector && vector.rowVector;
         const A = this.elements;
-        return VectorDeps.block(
+        return block(
             'SAFE',
             () => {
                 const result = new Vector([
@@ -4114,9 +4090,9 @@ Vector.prototype = {
         return m;
     },
     magnitude() {
-        let magnitude = new VectorDeps.NerdamerSymbol(0);
+        let magnitude = new NerdamerSymbol(0);
         this.each(e => {
-            magnitude = VectorDeps._.add(magnitude, VectorDeps._.pow(e, new VectorDeps.NerdamerSymbol(2)));
+            magnitude = VectorDeps._.add(magnitude, VectorDeps._.pow(e, new NerdamerSymbol(2)));
         });
         return VectorDeps._.sqrt(magnitude);
     },
@@ -4135,11 +4111,11 @@ Vector.prototype = {
         return index;
     },
     text_(x, options) {
-        const result = VectorDeps.text(this, options);
+        const result = text(this, options);
         return (this.rowVector ? '[' : '') + result + (this.rowVector ? ']' : '');
     },
     text(x, options) {
-        const result = VectorDeps.text(this, options);
+        const result = text(this, options);
         return (this.rowVector ? '[' : '') + result + (this.rowVector ? ']' : '');
     },
     toString() {
@@ -4156,36 +4132,15 @@ Vector.prototype = {
 
 // Matrix Class =====================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
-// Dependencies are injected via MatrixDeps which is set by the IIFE after initialization.
+// Uses module-scope values directly. MatrixDeps only provides the parser (_) from the IIFE.
 
 /**
  * Dependency container for Matrix class. Populated by the IIFE during initialization.
  *
- * @type {{
- *     Frac: typeof Frac;
- *     NerdamerSymbol: any;
- *     Vector: typeof Vector;
- *     isMatrix: (x: any) => boolean;
- *     isVector: (x: any) => boolean;
- *     isArray: (x: any) => boolean;
- *     isSymbol: (x: any) => boolean;
- *     block: Function;
- *     _: any;
- *     err: Function;
- *     LaTeX: any;
- * }}
+ * @type {{ _: any; LaTeX: any }}
  */
 const MatrixDeps = {
-    Frac,
-    NerdamerSymbol: /** @type {any} */ (null),
-    Vector,
-    isMatrix: () => false,
-    isVector: () => false,
-    isArray,
-    isSymbol: () => false,
-    block,
     _: /** @type {any} */ (null),
-    err: () => {},
     LaTeX: /** @type {any} */ (null),
 };
 
@@ -4194,12 +4149,12 @@ const MatrixDeps = {
  * @param {...any} args
  */
 function Matrix(...args) {
-    this.multiplier = new MatrixDeps.Frac(1);
+    this.multiplier = new Frac(1);
     const m = args;
     const l = m.length;
     let i;
     const el = [];
-    if (MatrixDeps.isMatrix(m)) {
+    if (isMatrix(m)) {
         // If it's a matrix then make a clone
         for (i = 0; i < l; i++) {
             el.push(m[i].slice(0));
@@ -4210,15 +4165,15 @@ function Matrix(...args) {
         let rl;
         for (i = 0; i < l; i++) {
             row = m[i];
-            if (MatrixDeps.isVector(row)) {
+            if (isVector(row)) {
                 row = row.elements;
             }
-            if (!MatrixDeps.isArray(row)) {
+            if (!isArray(row)) {
                 row = [row];
             }
             rl = row.length;
             if (lw && lw !== rl) {
-                MatrixDeps.err('Unable to create Matrix. Row dimensions do not match!');
+                err('Unable to create Matrix. Row dimensions do not match!');
             }
             el.push(row);
             lw = rl;
@@ -4231,7 +4186,7 @@ Matrix.identity = function identity(n) {
     for (let i = 0; i < n; i++) {
         m.elements.push([]);
         for (let j = 0; j < n; j++) {
-            m.set(i, j, i === j ? new MatrixDeps.NerdamerSymbol(1) : new MatrixDeps.NerdamerSymbol(0));
+            m.set(i, j, i === j ? new NerdamerSymbol(1) : new NerdamerSymbol(0));
         }
     }
     return m;
@@ -4248,7 +4203,7 @@ Matrix.fromArray = function fromArray(arr) {
 Matrix.zeroMatrix = function zeroMatrix(rows, cols) {
     const m = new Matrix();
     for (let i = 0; i < rows; i++) {
-        m.elements.push(MatrixDeps.Vector.arrayPrefill(cols, new MatrixDeps.NerdamerSymbol(0)));
+        m.elements.push(Vector.arrayPrefill(cols, new NerdamerSymbol(0)));
     }
     return m;
 };
@@ -4270,10 +4225,10 @@ Matrix.prototype = {
     },
     set(row, column, value, raw) {
         this.elements[row] ||= [];
-        if (raw || MatrixDeps.isSymbol(value)) {
+        if (raw || isSymbol(value)) {
             this.elements[row][column] = value;
         } else {
-            this.elements[row][column] = new MatrixDeps.NerdamerSymbol(value);
+            this.elements[row][column] = new NerdamerSymbol(value);
         }
     },
     cols() {
@@ -4336,7 +4291,7 @@ Matrix.prototype = {
         const r = this.rows();
         const rr = m.rows();
         if (r !== rr) {
-            MatrixDeps.err("Cannot augment matrix. Rows don't match.");
+            err("Cannot augment matrix. Rows don't match.");
         }
         for (let i = 0; i < r; i++) {
             this.elements[i] = this.elements[i].concat(m.elements[i]);
@@ -4352,7 +4307,7 @@ Matrix.prototype = {
             m.elements[i] = [];
             for (let j = 0; j < c; j++) {
                 const symbol = this.elements[i][j];
-                m.elements[i][j] = MatrixDeps.isSymbol(symbol) ? symbol.clone() : symbol;
+                m.elements[i][j] = isSymbol(symbol) ? symbol.clone() : symbol;
             }
         }
         return m;
@@ -4372,9 +4327,9 @@ Matrix.prototype = {
     // Ported from Sylvester.js
     invert() {
         if (!this.isSquare()) {
-            MatrixDeps.err('Matrix is not square!');
+            err('Matrix is not square!');
         }
-        return MatrixDeps.block(
+        return block(
             'SAFE',
             () => {
                 let ni = this.elements.length;
@@ -4435,7 +4390,7 @@ Matrix.prototype = {
     },
     // Ported from Sylvester.js
     toRightTriangular() {
-        return MatrixDeps.block(
+        return block(
             'SAFE',
             () => {
                 const M = this.clone();
@@ -4480,7 +4435,7 @@ Matrix.prototype = {
                                 // to loop over and correct rounding errors later
                                 els.push(
                                     p <= i
-                                        ? new MatrixDeps.NerdamerSymbol(0)
+                                        ? new NerdamerSymbol(0)
                                         : MatrixDeps._.subtract(
                                               M.elements[j][p].clone(),
                                               MatrixDeps._.multiply(M.elements[i][p].clone(), multiplier.clone())
@@ -4520,7 +4475,7 @@ Matrix.prototype = {
     },
     // Returns true if the matrix can multiply the argument from the left
     canMultiplyFromLeft(matrix) {
-        const l = MatrixDeps.isMatrix(matrix) ? matrix.elements.length : matrix.length;
+        const l = isMatrix(matrix) ? matrix.elements.length : matrix.length;
         // This.columns should equal matrix.rows
         return this.elements[0].length === l;
     },
@@ -4528,7 +4483,7 @@ Matrix.prototype = {
         return this.rows() === matrix.rows() && this.cols() === matrix.cols();
     },
     multiply(matrix) {
-        return MatrixDeps.block(
+        return block(
             'SAFE',
             () => {
                 const M = matrix.elements || matrix;
@@ -4538,8 +4493,8 @@ Matrix.prototype = {
                         const rows = this.rows();
                         for (let i = 0; i < rows; i++) {
                             const e = MatrixDeps._.multiply(
-                                new MatrixDeps.Vector(this.elements[i]),
-                                new MatrixDeps.Vector(matrix.elements[i])
+                                new Vector(this.elements[i]),
+                                new Vector(matrix.elements[i])
                             );
                             MM.elements[i] = e.elements;
                         }
@@ -4564,7 +4519,7 @@ Matrix.prototype = {
                     nj = kj;
                     do {
                         j = kj - nj;
-                        sum = new MatrixDeps.NerdamerSymbol(0);
+                        sum = new NerdamerSymbol(0);
                         nc = cols;
                         do {
                             c = cols - nc;
@@ -4611,7 +4566,7 @@ Matrix.prototype = {
     },
     toVector() {
         if (this.rows() === 1 || this.cols() === 1) {
-            const v = new MatrixDeps.Vector();
+            const v = new Vector();
             v.elements = this.elements;
             return v;
         }
@@ -4663,44 +4618,29 @@ Matrix.prototype.each = Matrix.prototype.eachElement;
 // Dependencies are injected via BuildDeps which is set by the IIFE after initialization.
 
 /**
- * Dependency container for Build object. Populated by the IIFE during initialization.
+ * Dependency container for Build object. Populated by the IIFE during initialization. Contains IIFE-local values and
+ * forward-referenced values.
  *
  * @type {{
- *     Math2: any;
- *     Frac: typeof Frac;
- *     NerdamerSymbol: any;
- *     isInt: Function;
- *     nround: Function;
- *     even: Function;
- *     block: Function;
  *     _: any;
- *     variables: Function;
- *     inBrackets: Function;
- *     FN: number;
  *     N: number;
- *     S: number;
  *     P: number;
+ *     S: number;
  *     EX: number;
+ *     FN: number;
  *     CB: number;
+ *     Math2: any;
  * }}
  */
 const BuildDeps = {
-    Math2: {},
-    Frac,
-    NerdamerSymbol: null,
-    isInt: () => false,
-    nround: (x, _s) => x,
-    even: () => false,
-    block: (name, fn) => fn(),
     _: null,
-    variables: () => [],
-    inBrackets: str => `(${str})`,
-    FN: 5,
     N: 1,
-    S: 3,
     P: 2,
+    S: 3,
     EX: 4,
+    FN: 5,
     CB: 7,
+    Math2: /** @type {any} */ ({}),
 };
 
 /** Build object for compiling mathematical expressions to JavaScript functions. */
@@ -4783,29 +4723,18 @@ const Build = {
      * @returns {Function}
      */
     build(symbol, argArray) {
-        const {
-            Math2,
-            NerdamerSymbol: NerdamerSymbolClass,
-            block: blockFn,
-            _,
-            variables: variablesFn,
-            inBrackets: wrapInBrackets,
-            FN,
-            N,
-            S,
-            P,
-            EX,
-            CB,
-        } = BuildDeps;
+        // Module-scope values used directly: Math2, NerdamerSymbol, block, variables, inBrackets
+        // IIFE-local values from BuildDeps:
+        const { _, FN, N, S, P, EX, CB } = BuildDeps;
 
-        symbol = blockFn('PARSE2NUMBER', () => _.parse(symbol), true);
-        let args = variablesFn(symbol);
+        symbol = block('PARSE2NUMBER', () => _.parse(symbol), true);
+        let args = variables(symbol);
         const supplements = [];
         let dependencies = [];
         const ftext = function (sym, xports) {
             // Fix for #545 - Parentheses confuse build.
             if (sym.fname === '') {
-                sym = NerdamerSymbolClass.unwrapPARENS(sym);
+                sym = NerdamerSymbol.unwrapPARENS(sym);
             }
             xports ||= [];
             const c = [];
@@ -4824,12 +4753,12 @@ const Build = {
                     let ft = ftext(s, xports)[0];
                     // Wrap it in brackets if it's group PL or CP
                     if (s.isComposite()) {
-                        ft = wrapInBrackets(ft);
+                        ft = inBrackets(ft);
                     }
                     cc.push(ft);
                 }
                 let retval = cc.join(d);
-                retval = retval && !sym.multiplier.equals(1) ? wrapInBrackets(retval) : retval;
+                retval = retval && !sym.multiplier.equals(1) ? inBrackets(retval) : retval;
                 return retval;
             };
             const ftextFunction = function (bn) {
@@ -4842,7 +4771,7 @@ const Build = {
                         // Make sure you're not adding the function twice
                         // Math2 functions aren't part of the standard javascript
                         // Math library and must be exported.
-                        let fnStr = Math2[bn].toString();
+                        let fnStr = BuildDeps.Math2[bn].toString();
                         // Handle ES6 method shorthand like "factorial(x) { ... }" -> "function factorial(x) { ... }"
                         if (!fnStr.startsWith('function') && !fnStr.startsWith('(') && !fnStr.startsWith('async')) {
                             fnStr = `function ${fnStr}`;
@@ -4852,7 +4781,7 @@ const Build = {
                     }
                     retval = bn;
                 }
-                retval += wrapInBrackets(sym.args.map(x => ftext(x, xports)[0]).join(','));
+                retval += inBrackets(sym.args.map(x => ftext(x, xports)[0]).join(','));
 
                 return retval;
             };
@@ -4898,7 +4827,7 @@ const Build = {
             if (sym.group !== N && !sym.power.equals(1)) {
                 const pow = ftext(_.parse(sym.power));
                 xports.push(pow[1]);
-                value = `Math.pow${wrapInBrackets(`${value},${pow[0]}`)}`;
+                value = `Math.pow${inBrackets(`${value},${pow[0]}`)}`;
             }
 
             if (value) {
@@ -4946,55 +4875,42 @@ const Build = {
 // Dependencies are injected via LaTeXDeps which is set by the IIFE after initialization.
 
 /**
- * Dependency container for LaTeX object. Populated by the IIFE during initialization.
+ * Dependency container for LaTeX object. Populated by the IIFE during initialization. Contains IIFE-local values and
+ * forward-referenced values.
  *
  * @type {{
  *     _: any;
- *     isArray: Function;
- *     isSymbol: Function;
- *     isMatrix: Function;
- *     isVector: Function;
- *     isSet: Function;
- *     isNegative: Function;
- *     inBrackets: Function;
  *     Settings: any;
  *     SQRT: string;
  *     ABS: string;
  *     PARENTHESIS: string;
  *     FACTORIAL: string;
  *     DOUBLEFACTORIAL: string;
- *     FN: number;
- *     S: number;
- *     P: number;
  *     N: number;
+ *     P: number;
+ *     S: number;
+ *     EX: number;
+ *     FN: number;
  *     CB: number;
  *     CP: number;
- *     EX: number;
  *     Parser: any;
  * }}
  */
 const LaTeXDeps = {
     _: null,
-    isArray: () => false,
-    isSymbol: () => false,
-    isMatrix: () => false,
-    isVector: () => false,
-    isSet: () => false,
-    isNegative: () => false,
-    inBrackets: str => `(${str})`,
-    Settings: {},
+    Settings: /** @type {any} */ ({}),
     SQRT: 'sqrt',
     ABS: 'abs',
     PARENTHESIS: 'parens',
     FACTORIAL: 'factorial',
     DOUBLEFACTORIAL: 'dfactorial',
-    FN: 5,
-    S: 3,
-    P: 2,
     N: 1,
+    P: 2,
+    S: 3,
+    EX: 4,
+    FN: 5,
     CB: 7,
     CP: 8,
-    EX: 4,
     Parser: null,
 };
 
@@ -5011,17 +4927,7 @@ const LaTeX = {
      * @returns {string}
      */
     latex(symbol, option) {
-        const {
-            _: parser,
-            isArray: checkIsArray,
-            isSymbol: checkIsSymbol,
-            isMatrix: checkIsMatrix,
-            isVector: checkIsVector,
-            isSet: checkIsSet,
-            isNegative: checkIsNegative,
-            P: GROUP_P,
-            CB: GROUP_CB,
-        } = LaTeXDeps;
+        const { _: parser, P: GROUP_P, CB: GROUP_CB } = LaTeXDeps;
 
         // It might be an array
         if (symbol.clone) {
@@ -5031,19 +4937,19 @@ const LaTeX = {
             symbol = symbol.elements;
         }
 
-        if (checkIsArray(symbol)) {
+        if (isArray(symbol)) {
             const LaTeXArray = [];
             for (let i = 0; i < symbol.length; i++) {
                 let sym = symbol[i];
                 // This way I can generate LaTeX on an array of strings.
-                if (!checkIsSymbol(sym)) {
+                if (!isSymbol(sym)) {
                     sym = parser.parse(sym);
                 }
                 LaTeXArray.push(this.latex(sym, option));
             }
             return this.brackets(LaTeXArray.join(', '), 'square');
         }
-        if (checkIsMatrix(symbol)) {
+        if (isMatrix(symbol)) {
             let TeX = '\\begin{pmatrix}\n';
             for (let i = 0; i < symbol.elements.length; i++) {
                 const rowTeX = [];
@@ -5059,7 +4965,7 @@ const LaTeX = {
             TeX += '\\end{pmatrix}';
             return TeX;
         }
-        if (checkIsVector(symbol)) {
+        if (isVector(symbol)) {
             let TeX = '\\left[';
             for (let i = 0; i < symbol.elements.length; i++) {
                 TeX += `${this.latex(symbol.elements[i], option)} ${i === symbol.elements.length - 1 ? '' : ',\\,'}`;
@@ -5067,7 +4973,7 @@ const LaTeX = {
             TeX += '\\right]';
             return TeX;
         }
-        if (checkIsSet(symbol)) {
+        if (isSet(symbol)) {
             let TeX = '\\{';
             for (let i = 0; i < symbol.elements.length; i++) {
                 TeX += `${this.latex(symbol.elements[i], option)} ${i === symbol.elements.length - 1 ? '' : ',\\,'}`;
@@ -5080,7 +4986,7 @@ const LaTeX = {
 
         const decimal = option === 'decimal' || option === 'decimals';
         const { power } = symbol;
-        const invert = checkIsNegative(power);
+        const invert = isNegative(power);
         const negative = symbol.multiplier.lessThan(0);
 
         if (symbol.group === GROUP_P && decimal) {
@@ -5108,13 +5014,13 @@ const LaTeX = {
         // The power is simple since it requires no additional formatting. We can get it to a
         // string right away. pass in true to neglect unit powers
         if (decimal) {
-            p = checkIsSymbol(power) ? LaTeX.latex(power, option) : String(power.toDecimal());
+            p = isSymbol(power) ? LaTeX.latex(power, option) : String(power.toDecimal());
             if (String(p) === '1') {
                 p = '';
             }
         }
         // Get the latex representation
-        else if (checkIsSymbol(power)) {
+        else if (isSymbol(power)) {
             p = this.latex(power, option);
         }
         // Get it as a fraction
@@ -5217,9 +5123,6 @@ const LaTeX = {
      */
     value(symbol, inverted, option, negative) {
         const {
-            isSymbol: checkIsSymbol,
-            isNegative: checkIsNegative,
-            Settings: settings,
             SQRT,
             ABS,
             PARENTHESIS,
@@ -5304,15 +5207,18 @@ const LaTeX = {
                 v[index] = `\\left \\lceil${this.braces(input[0])}\\right \\rceil`;
             }
             // Capture log(a, b)
-            else if (fname === settings.LOG && input.length > 1) {
-                v[index] = `\\mathrm${this.braces(settings.LOG)}_${this.braces(input[1])}${this.brackets(input[0])}`;
+            else if (fname === LaTeXDeps.Settings.LOG && input.length > 1) {
+                v[index] =
+                    `\\mathrm${this.braces(LaTeXDeps.Settings.LOG)}_${this.braces(input[1])}${this.brackets(input[0])}`;
             }
             // Capture log(a, b)
-            else if (fname === settings.LOG10) {
-                v[index] = `\\mathrm${this.braces(settings.LOG)}_${this.braces('10')}${this.brackets(input[0])}`;
-            } else if (fname === settings.LOG2) {
-                v[index] = `\\mathrm${this.braces(settings.LOG)}_${this.braces('2')}${this.brackets(input[0])}`;
-            } else if (fname === settings.LOG1P) {
+            else if (fname === LaTeXDeps.Settings.LOG10) {
+                v[index] =
+                    `\\mathrm${this.braces(LaTeXDeps.Settings.LOG)}_${this.braces('10')}${this.brackets(input[0])}`;
+            } else if (fname === LaTeXDeps.Settings.LOG2) {
+                v[index] =
+                    `\\mathrm${this.braces(LaTeXDeps.Settings.LOG)}_${this.braces('2')}${this.brackets(input[0])}`;
+            } else if (fname === LaTeXDeps.Settings.LOG1P) {
                 v[index] = `\\ln${this.brackets(`1 + ${input[0]}`)}`;
             } else if (fname === 'sum') {
                 const a = input[0];
@@ -5347,8 +5253,8 @@ const LaTeX = {
                 group === GROUP_CP || previousGroup === GROUP_CP
                     ? (x, y) => y.group - x.group
                     : (x, y) => {
-                          const px = checkIsSymbol(x.power) ? -1 : x.power;
-                          const py = checkIsSymbol(y.power) ? -1 : y.power;
+                          const px = isSymbol(x.power) ? -1 : x.power;
+                          const py = isSymbol(y.power) ? -1 : y.power;
                           return py - px;
                       }
             );
@@ -5398,7 +5304,7 @@ const LaTeX = {
 
             // Generate latex for each of them
             symbol.each(x => {
-                const isDenom = checkIsNegative(x.power);
+                const isDenom = isNegative(x.power);
                 let laTex;
 
                 if (isDenom) {
@@ -5617,14 +5523,12 @@ const LaTeX = {
      * @returns {{ type: string; value: string }[] & { type?: string }}
      */
     filterTokens(tokens) {
-        const { isArray: checkIsArray } = LaTeXDeps;
-
         /** @type {{ type: string; value: string }[] & { type?: string }} */
         const filtered = /** @type {{ type: string; value: string }[] & { type?: string }} */ ([]);
 
         // Copy over the type of the scope
-        if (checkIsArray(tokens)) {
-            filtered.type = tokens.type;
+        if (isArray(tokens)) {
+            filtered.type = /** @type {any} */ (tokens).type;
         }
 
         // The items that need to be disposed
@@ -5634,7 +5538,7 @@ const LaTeX = {
             const nextToken = tokens[i + 1];
             if (token.value === '\\' && nextToken.value === '\\') {
                 filtered.push(token);
-            } else if (checkIsArray(token)) {
+            } else if (isArray(token)) {
                 filtered.push(/** @type {any} */ (LaTeX.filterTokens(token)));
             } else if (d.indexOf(token.value) === -1) {
                 filtered.push(token);
@@ -5649,7 +5553,7 @@ const LaTeX = {
      * @returns {string}
      */
     parse(rawTokens) {
-        const { inBrackets: wrapInBrackets, SQRT } = LaTeXDeps;
+        const { SQRT } = LaTeXDeps;
 
         let i;
         let l;
@@ -5701,7 +5605,7 @@ const LaTeX = {
                 if (token.value === SQRT && tokens[i + 1].type === 'vector' && tokens[i + 2].type === 'NerdamerSet') {
                     const base = parseNext();
                     const expr = parseNext();
-                    retval += `${expr}^${wrapInBrackets(`1/${base}`)}`;
+                    retval += `${expr}^${inBrackets(`1/${base}`)}`;
                 } else {
                     retval += token.value + parseNext();
                 }
@@ -5712,7 +5616,7 @@ const LaTeX = {
                 // Get the variable of integration
                 let dx = next().value;
                 dx = get(dx.substring(1, dx.length));
-                retval += `integrate${wrapInBrackets(`${f},${dx}`)}`;
+                retval += `integrate${inBrackets(`${f},${dx}`)}`;
             } else if (token.value === 'int_') {
                 const lower = parseNext(); // Lower
                 i++; // Skip the ^
@@ -5741,7 +5645,7 @@ const LaTeX = {
                     i++;
                     dx = next().value;
                 }
-                retval += `defint${wrapInBrackets(`${f},${lower},${u},${dx}`)}`;
+                retval += `defint${inBrackets(`${f},${lower},${u},${dx}`)}`;
             } else if (token.value && token.value.startsWith('int_')) {
                 // Var l = parseNext(); // lower
                 const intLower = token.value.replace('int_', '');
@@ -5771,7 +5675,7 @@ const LaTeX = {
                     i++;
                     dx = next().value;
                 }
-                retval += `defint${wrapInBrackets(`${f},${intLower},${u},${dx}`)}`;
+                retval += `defint${inBrackets(`${f},${intLower},${u},${dx}`)}`;
             } else if (token.value === 'mathrm') {
                 const f = tokens[++i][0].value;
                 retval += f + parseNext();
@@ -5783,10 +5687,10 @@ const LaTeX = {
                 i++; // Skip the caret
                 const end = parseNext();
                 const f = parseNext();
-                retval += fn + wrapInBrackets([f, get(nxt[0]), get(nxt[2]), get(end)].join(','));
+                retval += fn + inBrackets([f, get(nxt[0]), get(nxt[2]), get(end)].join(','));
             } else if (token.value === 'lim_') {
                 const nxt = next();
-                retval += `limit${wrapInBrackets([parseNext(), get(nxt[0]), get(nxt[2])].join(','))}`;
+                retval += `limit${inBrackets([parseNext(), get(nxt[0]), get(nxt[2])].join(','))}`;
             } else if (token.value === 'begin') {
                 const nxt = next();
                 if (Array.isArray(nxt)) {
@@ -5812,7 +5716,7 @@ const LaTeX = {
             }
         }
 
-        return wrapInBrackets(retval);
+        return inBrackets(retval);
     },
 };
 
@@ -7622,8 +7526,8 @@ function importFunctions() {
  */
 const TextDeps = {
     bigInt: null,
-    isSymbol: null,
-    isVector: null,
+    isSymbol: /** @type {any} */ (null),
+    isVector: /** @type {any} */ (null),
     N: 1,
     P: 2,
     S: 3,
@@ -7635,6 +7539,15 @@ const TextDeps = {
     CUSTOM_OPERATORS: {},
 };
 
+/**
+ * Convert an object to its text representation.
+ *
+ * @param {any} obj
+ * @param {string} [option]
+ * @param {any} [useGroup]
+ * @param {number} [decp]
+ * @returns {string}
+ */
 function text(obj, option = undefined, useGroup = undefined, decp = undefined) {
     const asHash = option === 'hash';
     // Whether to wrap numbers in brackets
@@ -7809,7 +7722,7 @@ function text(obj, option = undefined, useGroup = undefined, decp = undefined) {
             // Only add the multiplier
             if (String(p) !== '1') {
                 // Is it a symbol
-                if (TextDeps.isSymbol(p)) {
+                if (isSymbol(p)) {
                     power = text(p, opt);
                 } else {
                     power = p;
@@ -15890,28 +15803,21 @@ const nerdamer = (function initNerdamerCore(imports) {
     ChainDeps._clearFunctions = _clearFunctions;
     ChainDeps._initConstants = () => _.initConstants();
 
-    // LaTeXDeps initialization
+    // LaTeXDeps initialization (IIFE-local and forward-referenced values)
     LaTeXDeps._ = _;
-    LaTeXDeps.isArray = isArray;
-    LaTeXDeps.isSymbol = isSymbol;
-    LaTeXDeps.isMatrix = isMatrix;
-    LaTeXDeps.isVector = isVector;
-    LaTeXDeps.isSet = isSet;
-    LaTeXDeps.isNegative = isNegative;
-    LaTeXDeps.inBrackets = inBrackets;
     LaTeXDeps.Settings = Settings;
     LaTeXDeps.SQRT = SQRT;
     LaTeXDeps.ABS = ABS;
     LaTeXDeps.PARENTHESIS = PARENTHESIS;
     LaTeXDeps.FACTORIAL = FACTORIAL;
     LaTeXDeps.DOUBLEFACTORIAL = DOUBLEFACTORIAL;
-    LaTeXDeps.FN = FN;
-    LaTeXDeps.S = S;
-    LaTeXDeps.P = P;
     LaTeXDeps.N = N;
+    LaTeXDeps.P = P;
+    LaTeXDeps.S = S;
+    LaTeXDeps.EX = EX;
+    LaTeXDeps.FN = FN;
     LaTeXDeps.CB = CB;
     LaTeXDeps.CP = CP;
-    LaTeXDeps.EX = EX;
     LaTeXDeps.Parser = Parser;
 
     // Initialize LaTeX.parser (requires Parser to be defined)
@@ -15959,30 +15865,13 @@ const nerdamer = (function initNerdamerCore(imports) {
     ExpressionsDeps._ = _;
     // Note: ExpressionsDeps.Math2 and ExpressionsDeps.Expression are initialized after C is defined
 
-    // VectorDeps initialization
-    VectorDeps.Frac = Frac;
-    VectorDeps.NerdamerSymbol = NerdamerSymbol;
-    VectorDeps.isVector = isVector;
-    VectorDeps.isArray = isArray;
-    VectorDeps.isMatrix = isMatrix;
-    VectorDeps.isSymbol = isSymbol;
-    VectorDeps.block = block;
+    // VectorDeps initialization - IIFE-scope and forward-referenced values
     VectorDeps._ = _;
     VectorDeps.Settings = Settings;
-    VectorDeps.text = text;
     VectorDeps.LaTeX = LaTeX;
 
-    // MatrixDeps initialization
-    MatrixDeps.Frac = Frac;
-    MatrixDeps.NerdamerSymbol = NerdamerSymbol;
-    MatrixDeps.Vector = Vector;
-    MatrixDeps.isMatrix = isMatrix;
-    MatrixDeps.isVector = isVector;
-    MatrixDeps.isArray = isArray;
-    MatrixDeps.isSymbol = isSymbol;
-    MatrixDeps.block = block;
+    // MatrixDeps initialization - IIFE-scope and forward-referenced values
     MatrixDeps._ = _;
-    MatrixDeps.err = err;
     MatrixDeps.LaTeX = LaTeX;
 
     // SetDeps initialization
@@ -15994,23 +15883,15 @@ const nerdamer = (function initNerdamerCore(imports) {
     CollectionDeps._ = _;
     CollectionDeps.block = block;
 
-    // BuildDeps initialization
-    BuildDeps.Math2 = Math2;
-    BuildDeps.Frac = Frac;
-    BuildDeps.NerdamerSymbol = NerdamerSymbol;
-    BuildDeps.isInt = isInt;
-    BuildDeps.nround = nround;
-    BuildDeps.even = even;
-    BuildDeps.block = block;
+    // BuildDeps initialization (only IIFE-local values)
     BuildDeps._ = _;
-    BuildDeps.variables = variables;
-    BuildDeps.inBrackets = inBrackets;
-    BuildDeps.FN = FN;
     BuildDeps.N = N;
-    BuildDeps.S = S;
     BuildDeps.P = P;
+    BuildDeps.S = S;
     BuildDeps.EX = EX;
+    BuildDeps.FN = FN;
     BuildDeps.CB = CB;
+    BuildDeps.Math2 = Math2;
 
     // Build runtime dependencies (references to IIFE-local values)
     Build.dependencies = {
