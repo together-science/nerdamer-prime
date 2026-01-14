@@ -9573,20 +9573,14 @@ const nerdamer = (function initNerdamerCore(imports) {
     // Version ======================================================================
     const _version = '1.1.16';
 
-    // Import bigInt
-    const { bigInt } = imports;
-    const { bigDec } = imports;
+    // Import bigInt and bigDec
+    const { bigInt, bigDec } = imports;
+    const { PRIMES, PRIMES_SET } = imports.constants;
 
-    // NerdamerSet the precision to js precision
-    bigDec.set({
-        precision: 250,
-    });
+    // Set the precision to js precision
+    bigDec.set({ precision: 250 });
 
     const Groups = {};
-
-    // Import constants
-    const { PRIMES } = imports.constants;
-    const { PRIMES_SET } = imports.constants;
 
     const CUSTOM_OPERATORS = {};
 
@@ -9632,16 +9626,7 @@ const nerdamer = (function initNerdamerCore(imports) {
     const CP = (Groups.CP = 8); // A symbol/expression composed of one variable and any other symbol or number x+1 or x+y
 
     const CONST_HASH = (Settings.CONST_HASH = '#');
-
-    const { PARENTHESIS } = Settings;
-
-    const { SQRT } = Settings;
-
-    const { ABS } = Settings;
-
-    const { FACTORIAL } = Settings;
-
-    const { DOUBLEFACTORIAL } = Settings;
+    const { PARENTHESIS, SQRT, ABS, FACTORIAL, DOUBLEFACTORIAL } = Settings;
 
     const EXPRESSIONS = [];
     const VARS = {};
@@ -9685,28 +9670,12 @@ const nerdamer = (function initNerdamerCore(imports) {
     ValidateNameDeps.VALIDATION_REGEX = Settings.VALIDATION_REGEX;
 
     IsPrimeDeps.PRIMES_SET = PRIMES_SET;
+    Object.assign(PrimeFactorsDeps, { PRIMES, PRIMES_SET });
 
-    PrimeFactorsDeps.PRIMES = PRIMES;
-    PrimeFactorsDeps.PRIMES_SET = PRIMES_SET;
-
-    // Initialize VariablesDeps with group constants
-    VariablesDeps.EX = EX;
-    VariablesDeps.CP = CP;
-    VariablesDeps.CB = CB;
-    VariablesDeps.S = S;
-    VariablesDeps.PL = PL;
-    VariablesDeps.FN = FN;
-
-    // Initialize SeparateDeps with group constants
-    SeparateDeps.S = S;
-    SeparateDeps.FN = FN;
-    SeparateDeps.EX = EX;
-    SeparateDeps.ABS = ABS;
-
-    // Initialize GroupConstantsDeps with symbol group constants (shared by isNumericSymbol, isVariableSymbol, allNumbers)
-    GroupConstantsDeps.N = N;
-    GroupConstantsDeps.P = P;
-    GroupConstantsDeps.S = S;
+    // Initialize Deps with group constants
+    Object.assign(VariablesDeps, { EX, CP, CB, S, PL, FN });
+    Object.assign(SeparateDeps, { S, FN, EX, ABS });
+    Object.assign(GroupConstantsDeps, { N, P, S });
 
     // Utility functions now defined outside IIFE:
     // isNegative, stringReplace, range, keys, firstObject, compare, _setFunction,
@@ -9718,7 +9687,8 @@ const nerdamer = (function initNerdamerCore(imports) {
     // Consolidated into ParserDeps._: getCoeffs, compare, arraySum, mix, convertToVector, importFunctions, evaluate
     // Remaining: NrootsDeps._, SeparateDeps._, DecomposeFnDeps._, InternalSetFunctionDeps._, ClearFunctionsDeps._
 
-    // Initialize DecomposeFnDeps with group constant
+    // Initialize Deps with additional group constants
+    Object.assign(NrootsDeps, { FN, P, N });
     DecomposeFnDeps.CP = CP;
 
     // Initialize BlockDeps with Settings reference
@@ -9751,12 +9721,14 @@ const nerdamer = (function initNerdamerCore(imports) {
     };
 
     // Math2Deps initialization
-    Math2Deps.bigInt = bigInt;
-    Math2Deps.BIG_LOG_CACHE = imports.constants.BIG_LOG_CACHE;
-    Math2Deps.PRIMES = PRIMES;
-    Math2Deps.NerdamerSymbol = NerdamerSymbol;
-    Math2Deps.CB = CB;
-    Math2Deps.P = P;
+    Object.assign(Math2Deps, {
+        bigInt,
+        BIG_LOG_CACHE: imports.constants.BIG_LOG_CACHE,
+        PRIMES,
+        NerdamerSymbol,
+        CB,
+        P,
+    });
 
     Settings.FUNCTION_MODULES.push(Math2);
     reserveNames(/** @type {object} */ (Math2));
@@ -9830,64 +9802,71 @@ const nerdamer = (function initNerdamerCore(imports) {
     };
 
     // ExpressionDeps initialization
-    ExpressionDeps.EXPRESSIONS = EXPRESSIONS;
-    ExpressionDeps.Settings = Settings;
-    ExpressionDeps.LaTeX = LaTeX;
-    ExpressionDeps.text = text;
-    ExpressionDeps.variables = variables;
-    ExpressionDeps.isVector = isVector;
-    ExpressionDeps.isSymbol = isSymbol;
-    ExpressionDeps.isExpression = isExpression;
-    ExpressionDeps.isNumericSymbol = isNumericSymbol;
-    ExpressionDeps.isFraction = isFraction;
-    ExpressionDeps.isArray = isArray;
+    Object.assign(ExpressionDeps, {
+        EXPRESSIONS,
+        Settings,
+        LaTeX,
+        text,
+        variables,
+        isVector,
+        isSymbol,
+        isExpression,
+        isNumericSymbol,
+        isFraction,
+        isArray,
+    });
     // Note: ExpressionDeps._ and ExpressionDeps.Build are initialized after Parser is created
 
     // ScientificDeps initialization
-    ScientificDeps.Settings = Settings;
-    ScientificDeps.nround = nround;
+    Object.assign(ScientificDeps, { Settings, nround });
 
     // FracDeps initialization
-    FracDeps.bigInt = bigInt;
-    FracDeps.bigDec = bigDec;
-    FracDeps.isInt = isInt;
-    FracDeps.scientificToDecimal = scientificToDecimal;
-    FracDeps.DivisionByZero = DivisionByZero;
-    FracDeps.Settings = Settings;
+    Object.assign(FracDeps, {
+        bigInt,
+        bigDec,
+        isInt,
+        scientificToDecimal,
+        DivisionByZero,
+        Settings,
+    });
     // Note: Fraction is initialized later after it's defined
 
     // NerdamerSymbolDeps initialization
-    NerdamerSymbolDeps.bigDec = bigDec;
-    NerdamerSymbolDeps.bigInt = bigInt;
-    NerdamerSymbolDeps.N = N;
-    NerdamerSymbolDeps.P = P;
-    NerdamerSymbolDeps.S = S;
-    NerdamerSymbolDeps.FN = FN;
-    NerdamerSymbolDeps.PL = PL;
-    NerdamerSymbolDeps.CB = CB;
-    NerdamerSymbolDeps.CP = CP;
-    NerdamerSymbolDeps.EX = EX;
-    NerdamerSymbolDeps.CONST_HASH = CONST_HASH;
-    NerdamerSymbolDeps.isSymbol = isSymbol;
-    NerdamerSymbolDeps.text = text;
-    NerdamerSymbolDeps.variables = variables;
-    NerdamerSymbolDeps.SQRT = SQRT;
-    NerdamerSymbolDeps.PARENTHESIS = PARENTHESIS;
+    Object.assign(NerdamerSymbolDeps, {
+        bigDec,
+        bigInt,
+        N,
+        P,
+        S,
+        FN,
+        PL,
+        CB,
+        CP,
+        EX,
+        CONST_HASH,
+        isSymbol,
+        text,
+        variables,
+        SQRT,
+        PARENTHESIS,
+    });
     // Note: NerdamerSymbolDeps._ is initialized after Parser is created
 
     // TextDeps initialization
-    TextDeps.bigInt = bigInt;
-    TextDeps.isSymbol = isSymbol;
-    TextDeps.isVector = isVector;
-    TextDeps.N = N;
-    TextDeps.P = P;
-    TextDeps.S = S;
-    TextDeps.FN = FN;
-    TextDeps.PL = PL;
-    TextDeps.CB = CB;
-    TextDeps.CP = CP;
-    TextDeps.EX = EX;
-    TextDeps.CUSTOM_OPERATORS = CUSTOM_OPERATORS;
+    Object.assign(TextDeps, {
+        bigInt,
+        isSymbol,
+        isVector,
+        N,
+        P,
+        S,
+        FN,
+        PL,
+        CB,
+        CP,
+        EX,
+        CUSTOM_OPERATORS,
+    });
 
     // Parser =======================================================================
     // Uses modified Shunting-yard algorithm. http://en.wikipedia.org/wiki/Shunting-yard_algorithm
