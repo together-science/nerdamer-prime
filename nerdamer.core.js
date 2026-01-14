@@ -33,7 +33,7 @@
  *
  * @typedef {import('./index').NerdamerCore.Collection} CollectionType
  *
- * @typedef {import('./index').NerdamerCore.Set} SetType
+ * @typedef {import('./index').NerdamerCore.NerdamerSet} SetType
  *
  * @typedef {import('./index').NerdamerCore.Settings} SettingsType
  *
@@ -79,6 +79,3207 @@ const nerdamerBigDecimal =
 const nerdamerConstants =
     typeof globalThis.nerdamerConstants === 'undefined' ? require('./constants.js') : globalThis.nerdamerConstants;
 
+// Frac Class ===================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via the `deps` object which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for Frac class. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     bigInt: typeof nerdamerBigInt;
+ *     bigDec: typeof nerdamerBigDecimal;
+ *     isInt: (n: any) => boolean;
+ *     scientificToDecimal: (num: number) => string;
+ *     DivisionByZero: new (msg: string) => Error;
+ *     Settings: any;
+ *     Fraction: { convert: Function; quickConversion: Function; fullConversion: Function };
+ * }}
+ */
+const FracDeps = {
+    bigInt: nerdamerBigInt,
+    bigDec: nerdamerBigDecimal,
+    isInt: () => false,
+    scientificToDecimal: () => '',
+    DivisionByZero: Error,
+    Settings: { PRECISION: 21, USE_BIG: false },
+    Fraction: { convert: () => [0, 1], quickConversion: () => [0, 1], fullConversion: () => [0, 1] },
+};
+
+/**
+ * High-precision fraction class.
+ *
+ * @implements {FracType}
+ */
+class Frac {
+    /** @param {number | string | Frac} [n] */
+    constructor(n) {
+        /** @type {import('big-integer').BigInteger} */
+        this.num; // eslint-disable-line no-unused-expressions -- Property declaration
+        /** @type {import('big-integer').BigInteger} */
+        this.den; // eslint-disable-line no-unused-expressions -- Property declaration
+
+        if (n instanceof Frac) {
+            // eslint-disable-next-line no-constructor-return -- Frac is designed to return existing instances
+            return n;
+        }
+        if (n === undefined) {
+            // eslint-disable-next-line no-constructor-return -- Early return for undefined
+            return this;
+        }
+        try {
+            if (FracDeps.isInt(n)) {
+                try {
+                    this.num = FracDeps.bigInt(n);
+                    this.den = FracDeps.bigInt(1);
+                } catch (e) {
+                    if (/** @type {Error} */ (e).message === 'timeout') {
+                        throw e;
+                    }
+                    // eslint-disable-next-line no-constructor-return -- Fallback to simple parsing
+                    return Frac.simple(n);
+                }
+            } else {
+                const frac =
+                    /** @type {any} */ (n) instanceof FracDeps.bigDec
+                        ? FracDeps.Fraction.quickConversion(n)
+                        : FracDeps.Fraction.convert(n);
+                this.num = new FracDeps.bigInt(frac[0]);
+                this.den = new FracDeps.bigInt(frac[1]);
+            }
+        } catch (e) {
+            if (/** @type {Error} */ (e).message === 'timeout') {
+                throw e;
+            }
+            // eslint-disable-next-line no-constructor-return -- Fallback to simple parsing
+            return Frac.simple(n);
+        }
+    }
+
+    /**
+     * Safe to use with negative numbers or other types
+     *
+     * @param {number | string | Frac} n
+     * @returns {Frac}
+     */
+    static create(n) {
+        if (n instanceof Frac) {
+            return n;
+        }
+        n = n.toString();
+        const isNeg = n.charAt(0) === '-';
+        if (isNeg) {
+            n = n.substr(1, n.length - 1);
+        }
+        const frac = new Frac(n);
+        if (isNeg) {
+            frac.negate();
+        }
+        return frac;
+    }
+
+    /**
+     * @param {any} o
+     * @returns {o is Frac}
+     */
+    static isFrac(o) {
+        return o instanceof Frac;
+    }
+
+    /**
+     * @param {string | number} n
+     * @param {string | number} d
+     * @returns {Frac}
+     */
+    static quick(n, d) {
+        const frac = new Frac();
+        frac.num = new FracDeps.bigInt(n);
+        frac.den = new FracDeps.bigInt(d);
+        return frac;
+    }
+
+    /**
+     * @param {number | string} n
+     * @returns {Frac}
+     */
+    static simple(n) {
+        const nstr = String(FracDeps.scientificToDecimal(/** @type {number} */ (n)));
+        const mDc = nstr.split('.');
+        const num = mDc.join('');
+        /** @type {string} */
+        let den = '1';
+        const l = (mDc[1] || '').length;
+        for (let i = 0; i < l; i++) {
+            den += '0';
+        }
+        const frac = Frac.quick(num, den);
+        return frac.simplify();
+    }
+
+    /**
+     * @param {Frac} m
+     * @returns {Frac}
+     */
+    multiply(m) {
+        if (this.isOne()) {
+            return m.clone();
+        }
+        if (m.isOne()) {
+            return this.clone();
+        }
+
+        const c = this.clone();
+        c.num = c.num.multiply(m.num);
+        c.den = c.den.multiply(m.den);
+
+        return c.simplify();
+    }
+
+    /**
+     * @param {Frac} m
+     * @returns {Frac}
+     */
+    divide(m) {
+        if (m.equals(0)) {
+            throw new FracDeps.DivisionByZero('Division by zero not allowed!');
+        }
+        return this.clone().multiply(m.clone().invert()).simplify();
+    }
+
+    /**
+     * @param {Frac} m
+     * @returns {Frac}
+     */
+    subtract(m) {
+        return this.clone().add(m.clone().neg());
+    }
+
+    /**
+     * Alias for subtract
+     *
+     * @param {Frac} m
+     * @returns {Frac}
+     */
+    sub(m) {
+        return this.subtract(m);
+    }
+
+    /** @returns {this} */
+    neg() {
+        this.num = this.num.multiply(-1);
+        return this;
+    }
+
+    /**
+     * @param {Frac} m
+     * @returns {Frac}
+     */
+    add(m) {
+        const n1 = this.den;
+        const n2 = m.den;
+        const c = this.clone();
+        const a = c.num;
+        const b = m.num;
+        if (n1.equals(n2)) {
+            c.num = a.add(b);
+        } else {
+            c.num = a.multiply(n2).add(b.multiply(n1));
+            c.den = n1.multiply(n2);
+        }
+
+        return c.simplify();
+    }
+
+    /**
+     * @param {Frac} m
+     * @returns {Frac}
+     */
+    mod(m) {
+        const a = this.clone();
+        const b = m.clone();
+        a.num = a.num.multiply(b.den);
+        a.den = a.den.multiply(b.den);
+        b.num = b.num.multiply(this.den);
+        b.den = b.den.multiply(this.den);
+        a.num = a.num.mod(b.num);
+        return a.simplify();
+    }
+
+    /** @returns {this} */
+    simplify() {
+        const gcd = FracDeps.bigInt.gcd(this.num, this.den);
+        this.num = this.num.divide(gcd);
+        this.den = this.den.divide(gcd);
+        return this;
+    }
+
+    /** @returns {Frac} */
+    clone() {
+        const m = new Frac();
+        m.num = new FracDeps.bigInt(this.num);
+        m.den = new FracDeps.bigInt(this.den);
+        return m;
+    }
+
+    /**
+     * @param {number} [prec]
+     * @returns {string}
+     */
+    decimal(prec) {
+        const sign = this.num.isNegative() ? '-' : '';
+        if (this.num.equals(this.den)) {
+            return '1';
+        }
+        prec ||= FracDeps.Settings.PRECISION;
+        prec += 2;
+        const narr = [];
+        let n = this.num.abs();
+        const d = this.den;
+        let i;
+        for (i = 0; i < prec; i++) {
+            const w = n.divide(d);
+            const r = n.subtract(w.multiply(d));
+            narr.push(w);
+            if (r.equals(0)) {
+                break;
+            }
+            n = r.times(10);
+        }
+        const whole = narr.shift();
+        if (narr.length === 0) {
+            return sign + whole.toString();
+        }
+
+        if (i === prec) {
+            const lt = [];
+            for (let j = 0; j < 2; j++) {
+                lt.unshift(narr.pop());
+            }
+            narr.push(Math.round(Number(lt.join('.'))));
+        }
+
+        const dec = `${whole.toString()}.${narr.join('')}`;
+        return sign + dec;
+    }
+
+    /**
+     * @param {number} [prec]
+     * @returns {string | number}
+     */
+    toDecimal(prec) {
+        prec ||= FracDeps.Settings.PRECISION;
+        if (prec) {
+            return this.decimal(prec);
+        }
+        return this.num.valueOf() / this.den.valueOf();
+    }
+
+    /**
+     * @param {Frac} n
+     * @returns {[import('big-integer').BigInteger, import('big-integer').BigInteger]}
+     */
+    qcompare(n) {
+        return [this.num.multiply(n.den), n.num.multiply(this.den)];
+    }
+
+    /**
+     * @param {number | Frac} n
+     * @returns {boolean}
+     */
+    equals(n) {
+        if (!isNaN(/** @type {number} */ (n))) {
+            n = new Frac(/** @type {number} */ (n));
+        }
+        const q = this.qcompare(/** @type {Frac} */ (n));
+        return q[0].equals(q[1]);
+    }
+
+    /**
+     * @param {number | Frac} n
+     * @returns {boolean}
+     */
+    absEquals(n) {
+        if (!isNaN(/** @type {number} */ (n))) {
+            n = new Frac(/** @type {number} */ (n));
+        }
+        const q = this.qcompare(/** @type {Frac} */ (n));
+        return q[0].abs().equals(q[1]);
+    }
+
+    /**
+     * @param {number | Frac} n
+     * @returns {boolean}
+     */
+    greaterThan(n) {
+        if (!isNaN(/** @type {number} */ (n))) {
+            n = new Frac(/** @type {number} */ (n));
+        }
+        const q = this.qcompare(/** @type {Frac} */ (n));
+        return q[0].gt(q[1]);
+    }
+
+    /**
+     * Alias for greaterThan
+     *
+     * @param {number | Frac} n
+     * @returns {boolean}
+     */
+    gt(n) {
+        return this.greaterThan(n);
+    }
+
+    /**
+     * @param {number | Frac} n
+     * @returns {boolean}
+     */
+    gte(n) {
+        return this.greaterThan(n) || this.equals(n);
+    }
+
+    /**
+     * @param {number | Frac} n
+     * @returns {boolean}
+     */
+    lte(n) {
+        return this.lessThan(n) || this.equals(n);
+    }
+
+    /**
+     * @param {number | Frac} n
+     * @returns {boolean}
+     */
+    lessThan(n) {
+        if (!isNaN(/** @type {number} */ (n))) {
+            n = new Frac(/** @type {number} */ (n));
+        }
+        const q = this.qcompare(/** @type {Frac} */ (n));
+        return q[0].lt(q[1]);
+    }
+
+    /**
+     * Alias for lessThan
+     *
+     * @param {number | Frac} n
+     * @returns {boolean}
+     */
+    lt(n) {
+        return this.lessThan(n);
+    }
+
+    /** @returns {boolean} */
+    isInteger() {
+        return this.den.equals(1);
+    }
+
+    /** @returns {this} */
+    negate() {
+        this.num = this.num.multiply(-1);
+        return this;
+    }
+
+    /** @returns {this} */
+    invert() {
+        const t = this.den;
+        if (!this.num.equals(0)) {
+            const isnegative = this.num.isNegative();
+            this.den = this.num.abs();
+            this.num = t;
+            if (isnegative) {
+                this.num = this.num.multiply(-1);
+            }
+        }
+        return this;
+    }
+
+    /** @returns {boolean} */
+    isOne() {
+        return this.num.equals(1) && this.den.equals(1);
+    }
+
+    /** @returns {-1 | 1} */
+    sign() {
+        return this.num.isNegative() ? -1 : 1;
+    }
+
+    /** @returns {this} */
+    abs() {
+        this.num = this.num.abs();
+        return this;
+    }
+
+    /**
+     * @param {Frac} f
+     * @returns {Frac}
+     */
+    gcd(f) {
+        return Frac.quick(FracDeps.bigInt.gcd(f.num, this.num), FracDeps.bigInt.lcm(f.den, this.den));
+    }
+
+    /** @returns {string} */
+    toString() {
+        return this.den.equals(1) ? this.num.toString() : `${this.num.toString()}/${this.den.toString()}`;
+    }
+
+    /** @returns {number | import('decimal.js').Decimal} */
+    valueOf() {
+        if (FracDeps.Settings.USE_BIG) {
+            return new FracDeps.bigDec(this.num.toString()).div(new FracDeps.bigDec(this.den.toString()));
+        }
+        const retval = this.num.valueOf() / this.den.valueOf();
+        return retval;
+    }
+
+    /** @returns {boolean} */
+    isNegative() {
+        return /** @type {number} */ (this.toDecimal()) < 0;
+    }
+
+    /**
+     * Checks if this fraction contains the given number (i.e., is divisible by it)
+     *
+     * @param {number | Frac} n
+     * @returns {boolean}
+     */
+    contains(n) {
+        const fracN = typeof n === 'number' ? new Frac(n) : n;
+        return this.mod(fracN).equals(0);
+    }
+}
+
+// NerdamerSet Class ====================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via SetDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for NerdamerSet class. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     isVector: (x: any) => boolean;
+ *     Vector: { fromArray: (arr: any[]) => any };
+ *     remove: (arr: any[], index: number) => void;
+ * }}
+ */
+const SetDeps = {
+    isVector: () => false,
+    Vector: { fromArray: () => ({}) },
+    remove: () => {},
+};
+
+/**
+ * NerdamerSet class for mathematical set operations.
+ *
+ * @class
+ * @param {any} [setArg]
+ * @param {...any} rest
+ */
+function NerdamerSet(setArg, ...rest) {
+    /** @type {any[]} */
+    this.elements = [];
+    // If the first object isn't an array, convert it to one.
+    if (typeof setArg === 'undefined') {
+        // No arguments passed
+        return;
+    }
+    let setVal = setArg;
+    if (!SetDeps.isVector(setVal)) {
+        setVal = SetDeps.Vector.fromArray([setVal, ...rest]);
+    }
+
+    if (setVal) {
+        const { elements } = setVal;
+        for (let i = 0, l = elements.length; i < l; i++) {
+            this.add(elements[i]);
+        }
+    }
+}
+
+/**
+ * @param {any[]} arr
+ * @returns {NerdamerSet}
+ */
+NerdamerSet.fromArray = function fromArray(arr) {
+    /** @class */
+    function F(args) {
+        return NerdamerSet.apply(this, args);
+    }
+    F.prototype = NerdamerSet.prototype;
+
+    return /** @type {NerdamerSet} */ (new F(arr));
+};
+
+/** @type {any} */
+NerdamerSet.prototype = {
+    /** @type {any[]} */
+    elements: [],
+    /** @param {any} x */
+    add(x) {
+        if (!this.contains(x)) {
+            this.elements.push(x.clone());
+        }
+    },
+    /**
+     * @param {any} x
+     * @returns {boolean}
+     */
+    contains(x) {
+        for (let i = 0; i < this.elements.length; i++) {
+            const e = this.elements[i];
+            if (x.equals(e)) {
+                return true;
+            }
+        }
+        return false;
+    },
+    /**
+     * @param {(e: any, inputSet: NerdamerSet, i: number) => void} f
+     * @returns {NerdamerSet}
+     */
+    each(f) {
+        const { elements } = this;
+        const newSet = new NerdamerSet();
+        for (let i = 0, l = elements.length; i < l; i++) {
+            const e = elements[i];
+            f.call(this, e, newSet, i);
+        }
+        return newSet;
+    },
+    /** @returns {NerdamerSet} */
+    clone() {
+        const newSet = new NerdamerSet();
+        this.each(e => {
+            newSet.add(e.clone());
+        });
+        return newSet;
+    },
+    /**
+     * @param {NerdamerSet} inputSet
+     * @returns {NerdamerSet}
+     */
+    union(inputSet) {
+        const _union = this.clone();
+        inputSet.each(e => {
+            _union.add(e);
+        });
+
+        return _union;
+    },
+    /**
+     * @param {NerdamerSet} inputSet
+     * @returns {NerdamerSet}
+     */
+    difference(inputSet) {
+        const diff = this.clone();
+        inputSet.each(e => {
+            diff.remove(e);
+        });
+        return diff;
+    },
+    /**
+     * @param {any} element
+     * @returns {boolean}
+     */
+    remove(element) {
+        for (let i = 0, l = this.elements.length; i < l; i++) {
+            const e = this.elements[i];
+            if (e.equals(element)) {
+                SetDeps.remove(this.elements, i);
+                return true;
+            }
+        }
+        return false;
+    },
+    /**
+     * @param {NerdamerSet} inputSet
+     * @returns {NerdamerSet}
+     */
+    intersection(inputSet) {
+        const _intersection = new NerdamerSet();
+        const A = this;
+        inputSet.each(e => {
+            if (A.contains(e)) {
+                _intersection.add(e);
+            }
+        });
+
+        return _intersection;
+    },
+    /**
+     * @param {NerdamerSet} inputSet
+     * @returns {boolean}
+     */
+    intersects(inputSet) {
+        return this.intersection(inputSet).elements.length > 0;
+    },
+    /**
+     * @param {NerdamerSet} inputSet
+     * @returns {boolean}
+     */
+    isSubset(inputSet) {
+        const { elements } = inputSet;
+        for (let i = 0, l = elements.length; i < l; i++) {
+            if (!this.contains(elements[i])) {
+                return false;
+            }
+        }
+        return true;
+    },
+    /** @returns {string} */
+    toString() {
+        return `{${this.elements.join(',')}}`;
+    },
+};
+
+// Collection Class =================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via CollectionDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for Collection class. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     _: any;
+ *     block: Function;
+ * }}
+ */
+const CollectionDeps = {
+    _: null,
+    block: () => {},
+};
+
+/**
+ * Class used to collect arguments for functions
+ *
+ * @class
+ */
+function Collection() {
+    /** @type {any[]} */
+    this.elements = [];
+}
+Collection.prototype.append = function append(e) {
+    this.elements.push(e);
+};
+Collection.prototype.getItems = function getItems() {
+    return this.elements;
+};
+Collection.prototype.toString = function toString() {
+    return CollectionDeps._.prettyPrint(this.elements);
+};
+Collection.prototype.dimensions = function dimensions() {
+    return this.elements.length;
+};
+// eslint-disable-next-line func-names -- naming this 'text' would shadow the outer text function
+Collection.prototype.text = function (options) {
+    return `(${this.elements.map(e => e.text(options)).join(',')})`;
+};
+Collection.create = function create(e) {
+    const collection = new Collection();
+    if (e) {
+        collection.append(e);
+    }
+    return collection;
+};
+Collection.prototype.clone = function clone(_elements) {
+    const c = Collection.create();
+    c.elements = this.elements.map(e => e.clone());
+    return c;
+};
+Collection.prototype.expand = function expand(options) {
+    this.elements = this.elements.map(e => CollectionDeps._.expand(e, options));
+    return this;
+};
+
+// eslint-disable-next-line func-names -- naming this 'evaluate' would shadow the outer evaluate variable
+Collection.prototype.evaluate = function (options) {
+    this.elements = this.elements.map(e => CollectionDeps._.evaluate(e, options));
+    return this;
+};
+
+Collection.prototype.map = function map(lambda) {
+    const c2 = this.clone();
+    c2.elements = c2.elements.map((x, i) => lambda(x, i + 1));
+    return c2;
+};
+
+// Returns the result of adding the argument to the vector
+Collection.prototype.add = function add(c2) {
+    return CollectionDeps.block(
+        'SAFE',
+        () => {
+            const V = c2.elements || c2;
+            if (this.elements.length !== V.length) {
+                return null;
+            }
+            return this.map((x, i) => CollectionDeps._.add(x, V[i - 1]));
+        },
+        undefined,
+        this
+    );
+};
+
+// Returns the result of subtracting the argument from the vector
+Collection.prototype.subtract = function subtract(vector) {
+    return CollectionDeps.block(
+        'SAFE',
+        () => {
+            const V = vector.elements || vector;
+            if (this.elements.length !== V.length) {
+                return null;
+            }
+            return this.map((x, i) => CollectionDeps._.subtract(x, V[i - 1]));
+        },
+        undefined,
+        this
+    );
+};
+
+// Scientific Class =================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via ScientificDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for Scientific class. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     Settings: any;
+ *     nround: Function;
+ * }}
+ */
+const ScientificDeps = {
+    Settings: { SCIENTIFIC_IGNORE_ZERO_EXPONENTS: true },
+    nround: (x, s) => Math.round(x * 10 ** s) / 10 ** s,
+};
+
+/*
+ * Javascript has the toExponential method but this allows you to work with string and therefore any number of digits of your choosing
+ * For example Scientific('464589498449496467924197545625247695464569568959124568489548454');
+ */
+
+/** @param {string | number} [num] */
+function Scientific(num) {
+    if (!(this instanceof Scientific)) {
+        return new Scientific(num);
+    }
+
+    num = String(typeof num === 'undefined' ? 0 : num); // Convert to a string
+
+    // remove the sign
+    if (num.startsWith('-')) {
+        this.sign = -1;
+        // Remove the sign
+        num = num.substr(1, num.length);
+    } else {
+        this.sign = 1;
+    }
+
+    if (Scientific.isScientific(num)) {
+        this.fromScientific(num);
+    } else {
+        this.convert(num);
+    }
+    return this;
+}
+
+Scientific.prototype = {
+    /** @param {string} num */
+    fromScientific(num) {
+        const parts = String(num).toLowerCase().split('e');
+        this.coeff = parts[0];
+        this.exponent = Number(parts[1]); // Convert to number for consistent === 0 checks in toString()
+
+        const coeffParts = this.coeff.split('.');
+        this.wholes = coeffParts[0] || '';
+        this.dec = coeffParts[1] || '';
+        const { dec } = this; // If it's undefined or zero it's going to blank
+        this.decp = dec === '0' ? 0 : dec.length;
+
+        return this;
+    },
+    /** @param {string} num */
+    convert(num) {
+        // Get wholes and decimals
+        const parts = num.split('.');
+        // Make zero go away
+        let w = parts[0] || '';
+        let d = parts[1] || '';
+        // Convert zero to blank strings
+        w = Scientific.removeLeadingZeroes(w);
+        d = Scientific.removeTrailingZeroes(d);
+        // Find the location of the decimal place which is right after the wholes
+        const dotLocation = w.length;
+        // Add them together so we can move the dot
+        const n = w + d;
+        // Find the next number
+        const zeroes = Scientific.leadingZeroes(n).length;
+        // NerdamerSet the exponent
+        this.exponent = dotLocation - (zeroes + 1);
+        // NerdamerSet the coeff but first remove leading zeroes
+        const coeff = Scientific.removeLeadingZeroes(n);
+        this.coeff = `${coeff.charAt(0)}.${Scientific.removeTrailingZeroes(coeff.substr(1, coeff.length)) || '0'}`;
+
+        // The coeff decimal places
+        const dec = this.coeff.split('.')[1] || ''; // If it's undefined or zero it's going to blank
+
+        this.decp = dec === '0' ? 0 : dec.length;
+        // Decimals
+        this.dec = d;
+        // Wholes
+        this.wholes = w;
+
+        return this;
+    },
+    /** @param {number} num */
+    round(num) {
+        const n = this.copy();
+
+        num = Number(num); // Cast to number for safety
+        // since we know it guaranteed to be in the format {digit}{optional dot}{optional digits}
+        // we can round based on this
+        if (num === 0) {
+            n.coeff = n.coeff.charAt(0);
+        } else {
+            // Get up to n-1 digits
+            const rounded = this.coeff.substring(0, num + 1);
+            // Get the next two
+            const nextTwo = this.coeff.substring(num + 1, num + 3);
+            // The extra digit
+            let ed = Number(nextTwo.charAt(0));
+
+            if (Number(nextTwo.charAt(1)) > 4) {
+                ed++;
+            }
+
+            n.coeff = rounded + ed;
+        }
+
+        return n;
+    },
+    copy() {
+        const n = new Scientific(0);
+        n.coeff = this.coeff;
+        n.exponent = this.exponent;
+        n.sign = this.sign;
+        return n;
+    },
+    /** @param {number} [n] */
+    toString(n) {
+        let retval;
+
+        if (ScientificDeps.Settings.SCIENTIFIC_IGNORE_ZERO_EXPONENTS && this.exponent === 0 && this.decp < n) {
+            if (this.decp === 0 && this.wholes !== undefined) {
+                retval = this.wholes;
+            } else {
+                retval = this.coeff;
+            }
+        } else {
+            let coeff =
+                typeof n === 'undefined' ? this.coeff : Scientific.round(this.coeff, Math.min(n, this.decp || 1));
+            let exp = this.exponent;
+            if (coeff.startsWith('10.')) {
+                // Edge case when coefficient is 9.999999 rounds to 10
+                coeff =
+                    typeof n === 'undefined'
+                        ? coeff.replace(/^10\./u, '1.0')
+                        : Scientific.round(coeff.replace(/^10\./u, '1.0'), Math.min(n, this.decp || 1));
+                exp = Number(exp) + 1;
+            }
+            retval = this.exponent === 0 ? coeff : `${coeff}e${exp}`;
+        }
+
+        return (this.sign === -1 ? '-' : '') + retval;
+    },
+};
+
+/** @param {string} num */
+Scientific.isScientific = function isScientific(num) {
+    return /\d+\.?\d*e[+-]*\d+/iu.test(num);
+};
+/** @param {string} num */
+Scientific.leadingZeroes = function leadingZeroes(num) {
+    const match = num.match(/^(?<zeros>0*).*$/u);
+    return match ? match[1] : '';
+};
+/** @param {string} num */
+Scientific.removeLeadingZeroes = function removeLeadingZeroes(num) {
+    const match = num.match(/^0*(?<rest>.*)$/u);
+    return match ? match[1] : '';
+};
+
+/** @param {string} num */
+Scientific.removeTrailingZeroes = function removeTrailingZeroes(num) {
+    const match = num.match(/0*$/u);
+    return match ? num.substring(0, num.length - match[0].length) : '';
+};
+
+/**
+ * @param {string} c
+ * @param {number} n
+ */
+Scientific.round = function round(c, n) {
+    let coeff = String(ScientificDeps.nround(c, n));
+    const m = coeff.includes('.') ? coeff.split('.').pop() : '';
+    const d = n - m.length;
+    // If we're asking for more significant figures
+    if (d > 0) {
+        if (!coeff.includes('.')) {
+            coeff += '.';
+        }
+        coeff += new Array(d + 1).join('0');
+    }
+    return coeff;
+};
+
+// CustomError Function =============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// This function creates custom error classes.
+
+/**
+ * Creates a custom error class with the given name.
+ *
+ * @param {string} name - The name of the custom error class
+ * @returns {new (message?: string) => Error} A custom error constructor
+ */
+function customError(name) {
+    const E = function (message) {
+        this.name = name;
+        this.message = message === undefined ? '' : message;
+        const error = new Error(this.message);
+        error.name = this.name;
+        this.stack = error.stack;
+    }; // Create an empty error
+    E.prototype = Object.create(Error.prototype);
+    return E;
+}
+
+// IsArray Function =================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Checks to see if an object is an array
+ *
+ * @param {unknown} arr
+ * @returns {arr is any[]}
+ */
+function isArray(arr) {
+    return Array.isArray(arr);
+}
+
+// InBrackets Function ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * @param {unknown} str
+ * @returns {string} - Returns a formatted string surrounded by brackets
+ */
+function inBrackets(str) {
+    return `(${str})`;
+}
+
+// SameSign Function ================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Checks to see if numbers are both negative or are both positive
+ *
+ * @param {number} a
+ * @param {number} b
+ * @returns {boolean}
+ */
+function sameSign(a, b) {
+    return a < 0 === b < 0;
+}
+
+// Format Function ==================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * A helper function to replace multiple occurences in a string. Takes multiple arguments
+ *
+ * @example
+ *     format('{0} nice, {0} sweet', 'something');
+ *     //returns 'something nice, something sweet'
+ *
+ * @param {...any} args
+ * @returns {string}
+ */
+function format(...args) {
+    const str = args.shift();
+    const newStr = str.replace(/\{(?<idx>\d+)\}/gu, (match, index) => {
+        const arg = args[index];
+        return typeof arg === 'function' ? arg() : arg;
+    });
+
+    return newStr;
+}
+
+// Range Function ===================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Generates an array with values within a range. Multiplies by a step if provided
+ *
+ * @param {number} start
+ * @param {number} end
+ * @param {number} [step]
+ * @returns {number[]}
+ */
+function range(start, end, step) {
+    const arr = [];
+    step ||= 1;
+    for (let i = start; i <= end; i++) {
+        arr.push(i * step);
+    }
+    return arr;
+}
+
+// Stringify Function ===============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Safely stringify object
+ *
+ * @param {any} o
+ * @returns {string | any}
+ */
+function stringify(o) {
+    if (!o) {
+        return o;
+    }
+    return String(o);
+}
+
+// StringReplace Function ===========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * A helper function to replace parts of string
+ *
+ * @param {string} str - The original string
+ * @param {number} from - The starting index
+ * @param {number} to - The ending index
+ * @param {string} withStr - The replacement string
+ * @returns {string} - A formatted string
+ */
+function stringReplace(str, from, to, withStr) {
+    return str.substr(0, from) + withStr + str.substr(to, str.length);
+}
+
+// CustomType Function ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * The Parser uses this to check if it's allowed to convert the obj to type NerdamerSymbol
+ *
+ * @param {object} obj
+ * @returns {boolean}
+ */
+function customType(obj) {
+    return obj !== undefined && obj.custom;
+}
+
+// ArrayMax Function ================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Returns the maximum number in an array
+ *
+ * @param {any[]} arr
+ * @returns {number}
+ */
+function arrayMax(arr) {
+    return Math.max.apply(undefined, arr);
+}
+
+// ArrayMin Function ================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Returns the minimum number in an array
+ *
+ * @param {any[]} arr
+ * @returns {number}
+ */
+function arrayMin(arr) {
+    return Math.min.apply(undefined, arr);
+}
+
+// Even Function ====================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Checks to see if a number is an even number
+ *
+ * @param {number | any} num
+ * @returns {boolean}
+ */
+function even(num) {
+    return Number(num) % 2 === 0;
+}
+
+// EvenFraction Function ============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Checks to see if a fraction is divisible by 2
+ *
+ * @param {number} num
+ * @returns {boolean}
+ */
+function evenFraction(num) {
+    return (1 / (num % 1)) % 2 === 0;
+}
+
+// ArrayUnique Function =============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Strips duplicates out of an array
+ *
+ * @template T
+ * @param {T[]} arr
+ * @returns {T[]}
+ */
+function arrayUnique(arr) {
+    const l = arr.length;
+    const a = [];
+    for (let i = 0; i < l; i++) {
+        const item = arr[i];
+        if (a.indexOf(item) === -1) {
+            a.push(item);
+        }
+    }
+    return a;
+}
+
+// Arguments2Array Function =========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Converts function arguments to an array. Now used by gcd and lcm in Algebra.js :)
+ *
+ * @param {Parameters<typeof Array.prototype.slice.call>['0']} obj
+ * @returns {any[]}
+ */
+function arguments2Array(obj) {
+    return [].slice.call(obj);
+}
+
+// IsInt Function ===================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Checks to see if a number is an integer
+ *
+ * @param {number | string | any} num
+ * @returns {boolean}
+ */
+function isInt(num) {
+    if (typeof num === 'number') {
+        return Number.isInteger(num);
+    }
+    return typeof num !== 'undefined' && /^[-+]?\d+e?\+?\d*$/gimu.test(num.toString());
+}
+
+// ArrayEqual Function ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Checks to see if two arrays are equal
+ *
+ * @param {any[]} arr1
+ * @param {any[]} arr2
+ * @returns {boolean}
+ */
+function arrayEqual(arr1, arr2) {
+    arr1.sort();
+    arr2.sort();
+
+    // The must be of the same length
+    if (arr1.length === arr2.length) {
+        for (let i = 0; i < arr1.length; i++) {
+            // If any two items don't match we're done
+            if (arr1[i] !== arr2[i]) {
+                return false;
+            }
+        }
+        // Otherwise they're equal
+        return true;
+    }
+
+    return false;
+}
+
+// ArrayClone Function ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Clones array with clonable items
+ *
+ * @template T
+ * @param {T[]} arr
+ * @returns {T[]}
+ */
+function arrayClone(arr) {
+    const newArray = [];
+    const l = arr.length;
+    for (let i = 0; i < l; i++) {
+        newArray[i] = /** @type {any} */ (arr[i]).clone();
+    }
+    return newArray;
+}
+
+// IsNumber Function ================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Checks if n is a number
+ *
+ * @param {any} n
+ * @returns {boolean}
+ */
+function isNumber(n) {
+    return /^\d+\.?\d*$/u.test(n);
+}
+
+// Nround Function ==================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Rounds a number up to x decimal places
+ *
+ * @param {number | string} x
+ * @param {number} [s]
+ * @returns {number | string}
+ */
+function nround(x, s = 14) {
+    if (isInt(x)) {
+        if (Number(x) >= Number.MAX_VALUE) {
+            return x.toString();
+        }
+        return Number(x);
+    }
+    return Math.round(/** @type {number} */ (x) * 10 ** s) / 10 ** s;
+}
+
+// ArrayAddSlices Function ==========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Fills numbers between array values
+ *
+ * @param {number[]} arr
+ * @param {number} [slices]
+ * @returns {number[]}
+ */
+function arrayAddSlices(arr, slices) {
+    slices ||= 20;
+    const retval = [];
+    let c;
+    let delta;
+    let e;
+    retval.push(arr[0]); // Push the beginning
+    for (let i = 0; i < arr.length - 1; i++) {
+        c = arr[i];
+        delta = arr[i + 1] - c; // Get the difference
+        e = delta / slices; // Chop it up in the desired number of slices
+        for (let j = 0; j < slices; j++) {
+            c += e; // Add the mesh to the last slice
+            retval.push(c);
+        }
+    }
+
+    return retval;
+}
+
+// Each Function ====================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Loops through each item in object and calls function with item as param
+ *
+ * @param {object | any[]} obj
+ * @param {Function} fn
+ */
+function each(obj, fn) {
+    if (isArray(obj)) {
+        const l = obj.length;
+        for (let i = 0; i < l; i++) {
+            fn.call(obj, i);
+        }
+    } else {
+        for (const x in obj) {
+            if (Object.hasOwn(obj, x)) {
+                fn.call(obj, x);
+            }
+        }
+    }
+}
+
+// Remove Function ==================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Removes an item from either an array or an object. If the object is an array, the index must be specified after the
+ * array. If it's an object then the key must be specified
+ *
+ * @param {object | any[]} obj
+ * @param {number | string} indexOrKey
+ * @returns {any}
+ */
+function remove(obj, indexOrKey) {
+    let result;
+    if (isArray(obj)) {
+        result = obj.splice(/** @type {number} */ (indexOrKey), 1)[0];
+    } else {
+        result = obj[indexOrKey];
+        delete obj[indexOrKey];
+    }
+    return result;
+}
+
+// KnownVariable Function ===========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Generates an object with known variable value for evaluation
+ *
+ * @param {string} variable
+ * @param {any} value Any stringifyable object
+ * @returns {object}
+ */
+function knownVariable(variable, value) {
+    const o = {};
+    o[variable] = value;
+    return o;
+}
+
+// AllNumeric Function ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Checks to see if an array contains only numeric values
+ *
+ * @param {any[]} arr
+ * @returns {boolean}
+ */
+function allNumeric(arr) {
+    for (let i = 0; i < arr.length; i++) {
+        if (!isNumber(arr[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ScientificToDecimal Function =====================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Convert number from scientific format to decimal format
+ *
+ * @param {number} num
+ * @returns {string}
+ */
+function scientificToDecimal(num) {
+    const nsign = Math.sign(num);
+    // Remove the sign
+    /** @type {number | string} */
+    let n = Math.abs(num);
+    // If the number is in scientific notation remove it
+    if (/\d+\.?\d*e[+-]*\d+/iu.test(String(n))) {
+        const zero = '0';
+        const parts = String(n).toLowerCase().split('e'); // Split into coeff and exponent
+        const e = parts.pop(); // Store the exponential part
+        let l = Math.abs(Number(e)); // Get the number of zeros
+        const sign = Math.sign(Number(e));
+        const coeffArray = parts[0].split('.');
+        if (sign === -1) {
+            // Return "("+parts[0]+"/1"+"0".repeat(l)+")";
+            l -= coeffArray[0].length;
+            if (l < 0) {
+                n = `${coeffArray[0].slice(0, l)}.${coeffArray[0].slice(
+                    l
+                )}${coeffArray.length === 2 ? coeffArray[1] : ''}`;
+            } else {
+                n = `${zero}.${new Array(l + 1).join(zero)}${coeffArray.join('')}`;
+            }
+        } else {
+            const dec = coeffArray[1];
+            if (dec) {
+                l -= dec.length;
+            }
+            if (l < 0) {
+                n = `${coeffArray[0] + dec.slice(0, l)}.${dec.slice(l)}`;
+            } else {
+                n = coeffArray.join('') + new Array(l + 1).join(zero);
+            }
+        }
+    }
+
+    return nsign < 0 ? `-${n}` : String(n);
+}
+
+// AllSame Function =============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Checks to see that all symbols in array are the same
+ *
+ * @param {any[]} arr
+ * @returns {boolean}
+ */
+function allSame(arr) {
+    const last = arr[0];
+    for (let i = 1, l = arr.length; i < l; i++) {
+        if (!arr[i].equals(last)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// RemoveDuplicates Function =======================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Removes duplicates from an array
+ *
+ * @param {Array} arr
+ * @param {Function} [condition]
+ * @returns {Array}
+ */
+function removeDuplicates(arr, condition) {
+    const conditionType = typeof condition;
+
+    if (conditionType !== 'function') {
+        condition = function (a, b) {
+            return a === b;
+        };
+    }
+
+    const seen = [];
+
+    while (arr.length) {
+        const a = arr[0];
+        // Only one element left so we're done
+        if (arr.length === 1) {
+            seen.push(a);
+            break;
+        }
+        const temp = [];
+        seen.push(a); // We already scanned these
+        for (let i = 1; i < arr.length; i++) {
+            const b = arr[i];
+            // If the number is outside the specified tolerance
+            if (!condition(a, b)) {
+                temp.push(b);
+            }
+        }
+        // Start over with the remainder
+        arr = temp;
+    }
+
+    return seen;
+}
+
+// ComboSort Function ===============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Sorts two arrays together, keeping elements at matching indices paired. Sorts by the first array's values
+ * numerically.
+ *
+ * @param {any[]} a
+ * @param {any[]} b
+ * @returns {[any[], any[]]}
+ */
+function comboSort(a, b) {
+    const l = a.length;
+    const combined = []; // The linker
+    for (let i = 0; i < a.length; i++) {
+        combined.push([a[i], b[i]]); // Create the map
+    }
+
+    combined.sort((x, y) => Number(x[0]) - Number(y[0]));
+
+    const na = [];
+    const nb = [];
+
+    for (let i = 0; i < l; i++) {
+        na.push(combined[i][0]);
+        nb.push(combined[i][1]);
+    }
+
+    return [na, nb];
+}
+
+// DivisionByZero Error ================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown for division by zero.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const DivisionByZero = customError('DivisionByZero');
+
+// ParseError Error ====================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if an error occurred during parsing.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const ParseError = customError('ParseError');
+
+// UndefinedError Error ================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if the expression results in undefined.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const UndefinedError = customError('UndefinedError');
+
+// OutOfFunctionDomainError Error ======================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if input is out of the function domain.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const OutOfFunctionDomainError = customError('OutOfFunctionDomainError');
+
+// MaximumIterationsReached Error ======================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if a function exceeds maximum iterations.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const MaximumIterationsReached = customError('MaximumIterationsReached');
+
+// NerdamerTypeError Error =============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if the parser receives an incorrect type.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const NerdamerTypeError = customError('NerdamerTypeError');
+
+// ParityError Error ===================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if bracket parity is not correct.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const ParityError = customError('ParityError');
+
+// OperatorError Error =================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if an unexpected or incorrect operator is encountered.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const OperatorError = customError('OperatorError');
+
+// OutOfRangeError Error ===============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if an index is out of range.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const OutOfRangeError = customError('OutOfRangeError');
+
+// DimensionError Error ================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if dimensions are incorrect (mostly for matrices).
+ *
+ * @type {new (message?: string) => Error}
+ */
+const DimensionError = customError('DimensionError');
+
+// InvalidVariableNameError Error ======================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if variable name violates naming rule.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const InvalidVariableNameError = customError('InvalidVariableNameError');
+
+// ValueLimitExceededError Error =======================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if the limits of the library are exceeded for a function.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const ValueLimitExceededError = customError('ValueLimitExceededError');
+
+// NerdamerValueError Error ============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if the value is an incorrect LH or RH value.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const NerdamerValueError = customError('NerdamerValueError');
+
+// SolveError Error ====================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown for solve-related errors.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const SolveError = customError('SolveError');
+
+// InfiniteLoopError Error =============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown for an infinite loop.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const InfiniteLoopError = customError('InfiniteLoopError');
+
+// UnexpectedTokenError Error ==========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Error thrown if an operator is found when there shouldn't be one.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const UnexpectedTokenError = customError('UnexpectedTokenError');
+
+// IsCollection Function ===============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Checks to see if the object provided is a Collection
+ *
+ * @param {object} obj
+ * @returns {obj is Collection}
+ */
+function isCollection(obj) {
+    return obj instanceof Collection;
+}
+
+// IsSet Function ======================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Checks to see if the object provided is a NerdamerSet
+ *
+ * @param {object} obj
+ * @returns {obj is NerdamerSet}
+ */
+function isSet(obj) {
+    return obj instanceof NerdamerSet;
+}
+
+// FirstObject Function ================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Returns the first encountered item in an object. Items do not have a fixed order in objects so only use if you need
+ * any first random or if there's only one item in the object
+ *
+ * @param {object} obj
+ * @param {string} [key] - Return this key as first object
+ * @param {boolean} [both] - Return both key and object
+ * @returns {any}
+ */
+function firstObject(obj, key, both) {
+    const objKeys = Object.keys(obj);
+    const x = objKeys[0];
+    if (key) {
+        return x;
+    }
+    if (both) {
+        return {
+            key: x,
+            obj: obj[x],
+        };
+    }
+    return obj[x];
+}
+
+// Keys Alias ======================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/** Alias for Object.keys - returns an array of all the keys in an object */
+const { keys } = Object;
+
+// IsNumericSymbol Function ========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via IsNumericSymbolDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for isNumericSymbol function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     N: number;
+ *     P: number;
+ * }}
+ */
+const IsNumericSymbolDeps = {
+    N: 1,
+    P: 2,
+};
+
+/**
+ * Checks to see if a symbol is in group N (number) or P (power)
+ *
+ * @param {NerdamerSymbolType} symbol
+ * @returns {boolean}
+ */
+function isNumericSymbol(symbol) {
+    return symbol.group === IsNumericSymbolDeps.N || symbol.group === IsNumericSymbolDeps.P;
+}
+
+// IsVariableSymbol Function =======================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via IsVariableSymbolDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for isVariableSymbol function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     S: number;
+ * }}
+ */
+const IsVariableSymbolDeps = {
+    S: 3,
+};
+
+/**
+ * Checks to see if a symbol is a variable with no multiplier nor power
+ *
+ * @param {NerdamerSymbolType} symbol
+ * @returns {boolean}
+ */
+function isVariableSymbol(symbol) {
+    return symbol.group === IsVariableSymbolDeps.S && symbol.multiplier.equals(1) && symbol.power.equals(1);
+}
+
+// AllNumbers Function =============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via AllNumbersDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for allNumbers function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     N: number;
+ * }}
+ */
+const AllNumbersDeps = {
+    N: 1,
+};
+
+/**
+ * Checks to see if all arguments are numbers
+ *
+ * @param {object} args
+ * @returns {boolean}
+ */
+function allNumbers(args) {
+    for (let i = 0; i < args.length; i++) {
+        if (args[i].group !== AllNumbersDeps.N) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ReserveNames Function ===========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via ReserveNamesDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for reserveNames function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     RESERVED: string[];
+ * }}
+ */
+const ReserveNamesDeps = {
+    RESERVED: [],
+};
+
+/**
+ * Reserves the names in an object so they cannot be used as function names
+ *
+ * @param {object} obj
+ */
+function reserveNames(obj) {
+    const add = function (item) {
+        if (ReserveNamesDeps.RESERVED.indexOf(item) === -1) {
+            ReserveNamesDeps.RESERVED.push(item);
+        }
+    };
+
+    if (typeof obj === 'string') {
+        add(obj);
+    } else {
+        each(obj, x => {
+            add(x);
+        });
+    }
+}
+
+// ClearU Function =================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via ClearUDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for clearU function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     RESERVED: (string | undefined)[];
+ * }}
+ */
+const ClearUDeps = {
+    RESERVED: [],
+};
+
+/**
+ * Clears the u variable so it's no longer reserved
+ *
+ * @param {string} u
+ */
+function clearU(u) {
+    const indx = ClearUDeps.RESERVED.indexOf(u);
+    if (indx !== -1) {
+        ClearUDeps.RESERVED[indx] = undefined;
+    }
+}
+
+// ValidateName Function ===========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via ValidateNameDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for validateName function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     ALLOW_CHARS: string[];
+ *     VALIDATION_REGEX: RegExp;
+ * }}
+ */
+const ValidateNameDeps = {
+    ALLOW_CHARS: [],
+    VALIDATION_REGEX: /^[a-z_][a-z\d_]*$/iu,
+};
+
+/**
+ * Enforces rule: "must start with a letter or underscore and can have any number of underscores, letters, and numbers
+ * thereafter."
+ *
+ * @param {string} name The name of the symbol being checked
+ * @param {string} [typ] - The type of symbols that's being validated
+ * @throws {Error} - Throws an exception on fail
+ */
+function validateName(name, typ = 'variable') {
+    if (ValidateNameDeps.ALLOW_CHARS.indexOf(name) !== -1) {
+        return;
+    }
+    const regex = ValidateNameDeps.VALIDATION_REGEX;
+    if (!regex.test(name)) {
+        throw new InvalidVariableNameError(`${name} is not a valid ${typ} name`);
+    }
+}
+
+// IsReserved Function =============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via IsReservedDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for isReserved function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     RESERVED: string[];
+ * }}
+ */
+const IsReservedDeps = {
+    RESERVED: [],
+};
+
+/**
+ * Checks to see if value is one of nerdamer's reserved names
+ *
+ * @param {string} value
+ * @returns {boolean}
+ */
+function isReserved(value) {
+    return IsReservedDeps.RESERVED.indexOf(value) !== -1;
+}
+
+// Warn Function ===================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via WarnDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for warn function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     WARNINGS: string[];
+ *     SHOW_WARNINGS: boolean;
+ * }}
+ */
+const WarnDeps = {
+    WARNINGS: [],
+    SHOW_WARNINGS: false,
+};
+
+/**
+ * Used to pass warnings or low severity errors about the library
+ *
+ * @param {string} msg
+ */
+function warn(msg) {
+    WarnDeps.WARNINGS.push(msg);
+    if (WarnDeps.SHOW_WARNINGS && console && console.warn) {
+        console.warn(msg);
+    }
+}
+
+/**
+ * Get nerdamer generated warnings
+ *
+ * @returns {string[]}
+ */
+function getWarnings() {
+    return WarnDeps.WARNINGS;
+}
+
+// NumExpressions Function =======================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses NumExpressionsDeps for dependency injection of EXPRESSIONS array.
+
+/**
+ * Dependency container for numExpressions function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     EXPRESSIONS: any[];
+ * }}
+ */
+const NumExpressionsDeps = {
+    EXPRESSIONS: [],
+};
+
+/**
+ * Returns the number of equations/expressions currently loaded
+ *
+ * @returns {number}
+ */
+function numExpressions() {
+    return NumExpressionsDeps.EXPRESSIONS.length;
+}
+
+// GetSetting Function ===========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses GetSettingDeps for dependency injection of Settings object.
+
+/**
+ * Dependency container for getSetting function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     Settings: Record<string, any>;
+ * }}
+ */
+const GetSettingDeps = {
+    Settings: {},
+};
+
+/**
+ * Get the value of a nerdamer setting
+ *
+ * @param {string} setting
+ * @returns {any}
+ */
+function getSetting(setting) {
+    return GetSettingDeps.Settings[setting];
+}
+
+// ValidVarName Function =========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses ClearUDeps.RESERVED (already initialized) and validateName (already external).
+
+/**
+ * Validates if the provided string is a valid variable name
+ *
+ * @param {string} varname Variable name
+ * @returns {boolean}
+ */
+function validVarName(varname) {
+    try {
+        validateName(varname);
+        return ClearUDeps.RESERVED.indexOf(varname) === -1;
+    } catch (e) {
+        if (e.message === 'timeout') {
+            throw e;
+        }
+        return false;
+    }
+}
+
+// Reserved Function =============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses ClearUDeps.RESERVED (already initialized).
+
+/**
+ * Returns reserved variable names
+ *
+ * @param {boolean} [asArray] If true, returns as array; otherwise returns comma-separated string
+ * @returns {string | string[]}
+ */
+function reserved(asArray) {
+    if (asArray) {
+        return ClearUDeps.RESERVED;
+    }
+    return ClearUDeps.RESERVED.join(', ');
+}
+
+// Version Function ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses VersionDeps for dependency injection of _version and C (Core object).
+
+/**
+ * Dependency container for version function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     _version: string;
+ *     C: Record<string, { version: string }>;
+ * }}
+ */
+const VersionDeps = {
+    _version: '',
+    C: {},
+};
+
+/**
+ * Get the version of nerdamer or a loaded add-on
+ *
+ * @param {string} [addOn] - The add-on being checked
+ * @returns {string} Returns the version of nerdamer
+ */
+function version(addOn) {
+    if (addOn) {
+        try {
+            return VersionDeps.C[addOn].version;
+        } catch (e) {
+            if (e.message === 'timeout') {
+                throw e;
+            }
+            return `No module named ${addOn} found!`;
+        }
+    }
+    return VersionDeps._version;
+}
+
+// GetCore Function ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses VersionDeps.C which is already initialized with the Core object.
+
+/**
+ * Exports the nerdamer core functions and objects
+ *
+ * @returns {object} The Core object
+ */
+function getCore() {
+    return VersionDeps.C;
+}
+
+// Supported Function ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses SupportedDeps.functions which provides access to _.functions.
+
+/**
+ * Dependencies for the supported function. Initialized inside the IIFE.
+ *
+ * @type {{
+ *     functions: object | null;
+ * }}
+ */
+const SupportedDeps = {
+    functions: null,
+};
+
+/**
+ * Returns an array of all supported function names
+ *
+ * @returns {string[]} Array of function names
+ */
+function supported() {
+    return keys(SupportedDeps.functions);
+}
+
+// GetConstant Function ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses GetConstantDeps.CONSTANTS which provides access to _.CONSTANTS.
+
+/**
+ * Dependencies for the getConstant function. Initialized inside the IIFE.
+ *
+ * @type {{
+ *     CONSTANTS: object | null;
+ * }}
+ */
+const GetConstantDeps = {
+    CONSTANTS: null,
+};
+
+/**
+ * Returns the value of a previously set constant
+ *
+ * @param {string} constant The name of the constant
+ * @returns {string} The string value of the constant
+ */
+function getConstant(constant) {
+    return String(GetConstantDeps.CONSTANTS[constant]);
+}
+
+// GetVar Function ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses GetVarDeps.VARS which provides access to VARS.
+
+/**
+ * Dependencies for the getVar function. Initialized inside the IIFE.
+ *
+ * @type {{
+ *     VARS: object | null;
+ * }}
+ */
+const GetVarDeps = {
+    VARS: null,
+};
+
+/**
+ * Returns the value of a previously set variable
+ *
+ * @param {string} v The name of the variable
+ * @returns {any} The value of the variable
+ */
+function getVar(v) {
+    return GetVarDeps.VARS[v];
+}
+
+/**
+ * Returns an object containing all stored variables, optionally formatted.
+ *
+ * @param {string} [output] Output format: 'object' (raw VARS), 'text' (default), or 'latex'
+ * @param {string | string[]} [option] Formatting option passed to text/latex methods
+ * @returns {object} Object with variable names as keys
+ */
+function getVars(output, option) {
+    output ||= 'text';
+    let result = {};
+    if (output === 'object') {
+        result = GetVarDeps.VARS;
+    } else {
+        for (const v in GetVarDeps.VARS) {
+            if (!Object.hasOwn(GetVarDeps.VARS, v)) {
+                continue;
+            }
+            if (output === 'latex') {
+                result[v] = GetVarDeps.VARS[v].latex(option);
+            } else if (output === 'text') {
+                result[v] = GetVarDeps.VARS[v].text(option);
+            }
+        }
+    }
+    return result;
+}
+
+// ConvertToLaTeX Function =======================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses ConvertToLaTeXDeps._ which provides access to the core object.
+
+/**
+ * Dependencies for core wrapper functions. Initialized inside the IIFE.
+ *
+ * @type {{
+ *     _: {
+ *         toTeX: (e: any, opt?: any) => string;
+ *         getOperator: (operator: string) => any;
+ *         aliasOperator: (operator: string, withOperator: string) => void;
+ *         setOperator: (operator: any, shift?: any) => void;
+ *         peekers: Record<string, Function[]>;
+ *         tree: (e: any) => any;
+ *         toRPN: (e: any) => any;
+ *         tokenize: (e: any) => any;
+ *         parse: (e: any) => any;
+ *         functions: Record<string, [Function, number | [number, number], any?]>;
+ *     } | null;
+ *     C: any;
+ * }}
+ */
+const ConvertToLaTeXDeps = {
+    _: null,
+    C: null,
+};
+
+/**
+ * Generates LaTeX from expression string
+ *
+ * @param {string} e
+ * @param {object} opt
+ * @returns {string}
+ */
+function convertToLaTeX(e, opt) {
+    return ConvertToLaTeXDeps._.toTeX(e, opt);
+}
+
+/**
+ * Returns the operator object for a given operator string
+ *
+ * @param {string} operator
+ * @returns {any}
+ */
+function getOperator(operator) {
+    return ConvertToLaTeXDeps._.getOperator(operator);
+}
+
+/**
+ * Creates an alias for an operator
+ *
+ * @param {string} operator
+ * @param {string} withOperator
+ * @returns {void}
+ */
+function aliasOperator(operator, withOperator) {
+    ConvertToLaTeXDeps._.aliasOperator(operator, withOperator);
+}
+
+/**
+ * Sets an operator
+ *
+ * @param {any} operator
+ * @param {any} shift
+ * @returns {void}
+ */
+function setOperator(operator, shift) {
+    ConvertToLaTeXDeps._.setOperator(operator, shift);
+}
+
+/**
+ * Adds a peeker function
+ *
+ * @param {string} name
+ * @param {Function} f
+ * @returns {void}
+ */
+function addPeeker(name, f) {
+    if (ConvertToLaTeXDeps._.peekers[name]) {
+        ConvertToLaTeXDeps._.peekers[name].push(f);
+    }
+}
+
+/**
+ * Removes a peeker function
+ *
+ * @param {string} name
+ * @param {Function} f
+ * @returns {void}
+ */
+function removePeeker(name, f) {
+    const peekers = ConvertToLaTeXDeps._.peekers[name];
+    if (peekers) {
+        const index = peekers.indexOf(f);
+        if (index !== -1) {
+            remove(peekers, index);
+        }
+    }
+}
+
+/**
+ * Returns the tree representation of an expression
+ *
+ * @param {string} expression
+ * @returns {any}
+ */
+function tree(expression) {
+    return ConvertToLaTeXDeps._.tree(
+        /** @type {any} */ (ConvertToLaTeXDeps._.toRPN(ConvertToLaTeXDeps._.tokenize(expression)))
+    );
+}
+
+/**
+ * Parses an expression string into an array of symbols
+ *
+ * @param {string} e
+ * @returns {any[]}
+ */
+function parse(e) {
+    return String(e)
+        .split(';')
+        .map(x => ConvertToLaTeXDeps._.parse(x));
+}
+
+/**
+ * Converts expression into rpn form
+ *
+ * @param {string} expression
+ * @returns {object[]}
+ */
+function rpn(expression) {
+    return ConvertToLaTeXDeps._.tokenize(
+        /** @type {string} */ (
+            /** @type {unknown} */ (
+                ConvertToLaTeXDeps._.toRPN(/** @type {any[]} */ (/** @type {unknown} */ (expression)))
+            )
+        )
+    );
+}
+
+/**
+ * Generates an HTML tree representation of an expression
+ *
+ * @param {string} expression
+ * @param {number} [indent]
+ * @returns {string}
+ */
+function htmlTree(expression, indent) {
+    const treeResult = tree(expression);
+
+    return (
+        `<div class="tree">\n` +
+        `    <ul>\n` +
+        `        <li>\n${treeResult.toHTML(3, indent)}\n` +
+        `        </li>\n` +
+        `    </ul>\n` +
+        `</div>`
+    );
+}
+
+/**
+ * Replaces an internal function with a new implementation
+ *
+ * @param {string} name The name of the function to replace
+ * @param {Function} fn A factory function that receives (existingFn, C) and returns the new function
+ * @param {number} [numArgs] Optional number of arguments (defaults to existing function's numArgs)
+ * @returns {void}
+ */
+function replaceFunction(name, fn, numArgs) {
+    const existing = ConvertToLaTeXDeps._.functions[name];
+    const newNumArgs = typeof numArgs === 'undefined' ? existing[1] : numArgs;
+    ConvertToLaTeXDeps._.functions[name] = [fn(existing[0], ConvertToLaTeXDeps.C), newNumArgs];
+}
+
+// Expressions Function ===========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+
+/**
+ * Dependencies for expressions and related functions. Initialized inside the IIFE.
+ *
+ * @type {{
+ *     EXPRESSIONS: any[];
+ *     USER_FUNCTIONS: string[];
+ *     LaTeX: any;
+ *     text: (obj: any, option?: any) => string;
+ *     functions: Record<string, [Function, number | [number, number], any?]>;
+ *     Math2: Record<string, Function>;
+ *     _: { tokenize: (e: any) => any; parse: (e: any) => any } | null;
+ *     Expression: (new (symbol: any) => any) | null;
+ * }}
+ */
+const ExpressionsDeps = {
+    EXPRESSIONS: [],
+    USER_FUNCTIONS: [],
+    LaTeX: { latex: () => '', parse: () => '' },
+    text: () => '',
+    functions: {},
+    Math2: {},
+    _: null,
+    Expression: null,
+};
+
+/**
+ * Returns stored expressions as an array or object, optionally in LaTeX format.
+ *
+ * @param {boolean} [asObject] Return as object with 1-based indices as keys
+ * @param {boolean} [asLaTeX] Convert expressions to LaTeX
+ * @param {string | string[]} [option] Formatting option
+ * @returns {Record<number, string> | string[]}
+ */
+function expressions(asObject, asLaTeX, option) {
+    /** @type {Record<number, string> | string[]} */
+    const result = asObject ? {} : [];
+    for (let i = 0; i < ExpressionsDeps.EXPRESSIONS.length; i++) {
+        const eq = asLaTeX
+            ? ExpressionsDeps.LaTeX.latex(ExpressionsDeps.EXPRESSIONS[i], option)
+            : ExpressionsDeps.text(ExpressionsDeps.EXPRESSIONS[i], option);
+        asObject ? (result[i + 1] = eq) : /** @type {string[]} */ (result).push(eq);
+    }
+    return result;
+}
+
+/**
+ * Returns user-defined functions as an array or object.
+ *
+ * @param {boolean} [asObject] Return as object with 1-based indices as keys
+ * @param {string | string[]} [option] Formatting option
+ * @returns {Record<number, string> | string[]}
+ */
+function getFunctions(asObject, option) {
+    const result = asObject ? {} : [];
+    for (let i = 0; i < ExpressionsDeps.USER_FUNCTIONS.length; i++) {
+        let params;
+        let body;
+        const fnName = ExpressionsDeps.USER_FUNCTIONS[i];
+        const fnDef = ExpressionsDeps.functions[fnName][2];
+        if (fnDef) {
+            ({ params, body } = fnDef);
+        } else {
+            const fnString = ExpressionsDeps.Math2[fnName].toString();
+            [, params] = /\((?<params>.*?)\)/u.exec(fnString);
+            params = params.split(',').map(x => x.trim());
+            body = '{JavaScript}';
+        }
+        const fn = `${fnName}(${params.join(', ')})=${body}`;
+        const eq = ExpressionsDeps.text(fn, option);
+        asObject ? (result[i + 1] = eq) : result.push(eq);
+    }
+    return result;
+}
+
+/**
+ * Converts LaTeX to a nerdamer expression. Very basic at the moment - handles subscripts, superscripts, and fractions.
+ *
+ * @param {string} e LaTeX string to convert
+ * @returns {any} Expression object
+ */
+function convertFromLaTeX(e) {
+    // Convert x_2a => x_2 a
+    e = e.replace(/_(?<char>[A-Za-z0-9])/gu, (...g) => `${g[0]} `);
+    // Convert x^2 => x^{2}
+    e = e.replace(/\^(?<char>[A-Za-z0-9])/gu, (...g) => `^{${g[1]}}`);
+    // Convert \frac12 => \frac{1}2
+    e = e.replace(/(?<cmd>\\[A-Za-z]+)(?<digit>\d)/gu, (...g) => `${g[1]}{${g[2]}}`);
+    // Convert \frac{1}2 => \frac{1}{2}
+    e = e.replace(/(?<cmd>\\[A-Za-z]+\{.*?\})(?<digit>\d)/gu, (...g) => `${g[1]}{${g[2]}}`);
+    const txt = ExpressionsDeps.LaTeX.parse(ExpressionsDeps._.tokenize(e));
+    return new ExpressionsDeps.Expression(ExpressionsDeps._.parse(txt));
+}
+
+// Chain Functions ===============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// These functions return libExports for method chaining.
+// Uses ChainDeps for dependency injection of libExports, VARS, and helper functions.
+
+/**
+ * Dependencies for chain functions. Initialized inside the IIFE with actual references.
+ *
+ * @type {{
+ *     libExports: any;
+ *     VARS: Record<string, any>;
+ *     _clearFunctions: () => void;
+ *     _initConstants: () => void;
+ *     clear: ((equationNumber?: any, keepExpressionsFixed?: boolean) => any) | null;
+ * }}
+ */
+const ChainDeps = {
+    libExports: null,
+    VARS: {},
+    _clearFunctions: () => {},
+    _initConstants: () => {},
+    clear: null,
+};
+
+/**
+ * Clears all user-defined variables
+ *
+ * @returns {any} Returns the nerdamer object for chaining
+ */
+function clearVars() {
+    // Reset VARS to empty object - we need to clear the actual VARS object
+    for (const key in ChainDeps.VARS) {
+        if (Object.hasOwn(ChainDeps.VARS, key)) {
+            delete ChainDeps.VARS[key];
+        }
+    }
+    return ChainDeps.libExports;
+}
+
+/**
+ * Clears all added functions
+ *
+ * @returns {any} Returns the nerdamer object for chaining
+ */
+function clearFunctions() {
+    ChainDeps._clearFunctions();
+    return ChainDeps.libExports;
+}
+
+/**
+ * Clears all user-defined constants
+ *
+ * BUG: The original implementation used `_.initConstants.bind(_)` which creates a bound function but does NOT call it.
+ * This means clearConstants() is a no-op and doesn't actually clear any constants. The test confirms this bug by
+ * expecting constants to persist after calling clearConstants().
+ *
+ * To actually clear constants, the code should be: `_.initConstants()` or `_.initConstants.call(_)` instead of
+ * `_.initConstants.bind(_)`.
+ *
+ * This bug is preserved for backwards compatibility - fixing it would be a breaking change. See issue #XX (TODO: file
+ * issue).
+ *
+ * @returns {any} Returns the nerdamer object for chaining
+ */
+function clearConstants() {
+    // Original code was: _.initConstants.bind(_);
+    // This just creates a bound function but doesn't call it - confirmed bug.
+    // Preserving original (buggy) behavior for backwards compatibility.
+    return ChainDeps.libExports;
+}
+
+/**
+ * Alias for nerdamer.clear('all') - clears all stored expressions
+ *
+ * @returns {any} Returns the nerdamer object for chaining
+ */
+function flush() {
+    ChainDeps.clear(/** @type {any} */ ('all'));
+    return ChainDeps.libExports;
+}
+
+/**
+ * Loads a custom loader function with nerdamer as `this` context
+ *
+ * @param {Function} loader - The loader function to call
+ * @returns {any} Returns the nerdamer object for chaining
+ */
+function load(loader) {
+    loader.call(ChainDeps.libExports);
+    return ChainDeps.libExports;
+}
+
+// SetConstant Function ==========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses SetConstantDeps for dependency injection.
+
+/**
+ * Dependencies for setConstant function. Initialized inside the IIFE with actual references.
+ *
+ * @type {{
+ *     libExports: any;
+ *     CONSTANTS: Record<string, any>;
+ * }}
+ */
+const SetConstantDeps = {
+    libExports: null,
+    CONSTANTS: {},
+};
+
+/**
+ * Set the value of a constant
+ *
+ * @param {string} constant - The name of the constant
+ * @param {number | 'delete' | ''} value - The value of the constant or 'delete' to remove
+ * @returns {any} Returns the nerdamer object for chaining
+ */
+function setConstant(constant, value) {
+    validateName(constant);
+    if (!isReserved(constant)) {
+        // Fix for issue #127
+        if (value === 'delete' || value === '') {
+            delete SetConstantDeps.CONSTANTS[constant];
+        } else {
+            if (isNaN(/** @type {number} */ (value))) {
+                throw new NerdamerTypeError('Constant must be a number!');
+            }
+            SetConstantDeps.CONSTANTS[constant] = value;
+        }
+    }
+    return SetConstantDeps.libExports;
+}
+
+// SetVar Function ===============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses SetVarDeps for dependency injection.
+
+/**
+ * Dependencies for setVar function. Initialized inside the IIFE with actual references.
+ *
+ * @type {{
+ *     libExports: any;
+ *     VARS: Record<string, any>;
+ *     CONSTANTS: Record<string, any>;
+ *     parse: (expression: any) => any;
+ *     isSymbol: (obj: any) => boolean;
+ * }}
+ */
+const SetVarDeps = {
+    libExports: null,
+    VARS: {},
+    CONSTANTS: {},
+    parse: () => null,
+    isSymbol: () => false,
+};
+
+/**
+ * Set the value of a variable
+ *
+ * @param {string} v - Variable to be set
+ * @param {string | any} val - Value of variable. This can be a variable expression or number
+ * @returns {any} Returns the nerdamer object for chaining
+ */
+function setVar(v, val) {
+    validateName(v);
+    // Check if it's not already a constant
+    if (v in SetVarDeps.CONSTANTS) {
+        err(`Cannot set value for constant ${v}`);
+    }
+    if (val === 'delete' || val === '') {
+        delete SetVarDeps.VARS[v];
+    } else {
+        SetVarDeps.VARS[v] = SetVarDeps.isSymbol(val) ? val : SetVarDeps.parse(val);
+    }
+    return SetVarDeps.libExports;
+}
+
+// SetFunction Function ==========================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses SetFunctionDeps for dependency injection.
+
+/**
+ * Dependencies for setFunction function. Initialized inside the IIFE with actual references.
+ *
+ * @type {{
+ *     libExports: any;
+ *     _setFunction: (fnName: any, fnParams: any, fnBody: any) => boolean;
+ * }}
+ */
+const SetFunctionDeps = {
+    libExports: null,
+    _setFunction: () => false,
+};
+
+/**
+ * Set a custom function
+ *
+ * @example
+ *     nerdamer.setFunction('f',['x'], 'x^2+2');
+ *     OR nerdamer.setFunction('f(x)=x^2+2');
+ *     OR function custom(x , y) {
+ *     return x + y;
+ *     }
+ *     nerdamer.setFunction(custom);
+ *
+ * @param {string | Function} fnName - The name of the function
+ * @param {string[] | undefined} fnParams - A list containing the parameter name of the functions
+ * @param {string | undefined} fnBody - The body of the function
+ * @returns {any} Returns nerdamer if succeeded and throws on fail
+ */
+function setFunction(fnName, fnParams, fnBody) {
+    if (!SetFunctionDeps._setFunction(fnName, fnParams, fnBody)) {
+        throw new Error('Failed to set function!');
+    }
+    return SetFunctionDeps.libExports;
+}
+
+// Clear Function ================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses ClearDeps for dependency injection.
+
+/**
+ * Dependencies for clear function. Initialized inside the IIFE with actual references.
+ *
+ * @type {{
+ *     libExports: any;
+ *     EXPRESSIONS: any[];
+ * }}
+ */
+const ClearDeps = {
+    libExports: null,
+    EXPRESSIONS: [],
+};
+
+/**
+ * Clear expressions from history
+ *
+ * @param {number | 'all' | 'last' | 'first'} equationNumber - The number of the equation to clear. If 'all' is supplied
+ *   then all equations are cleared
+ * @param {boolean} [keepExpressionsFixed] - Use true if you don't want to keep EXPRESSIONS length fixed
+ * @returns {any} Returns the nerdamer object for chaining
+ */
+function clear(equationNumber, keepExpressionsFixed = false) {
+    if (/** @type {unknown} */ (equationNumber) === 'all') {
+        ClearDeps.EXPRESSIONS.length = 0;
+    } else if (/** @type {unknown} */ (equationNumber) === 'last') {
+        ClearDeps.EXPRESSIONS.pop();
+    } else if (/** @type {unknown} */ (equationNumber) === 'first') {
+        ClearDeps.EXPRESSIONS.shift();
+    } else {
+        const index = equationNumber ? /** @type {number} */ (equationNumber) - 1 : ClearDeps.EXPRESSIONS.length;
+        keepExpressionsFixed === true
+            ? (ClearDeps.EXPRESSIONS[index] = undefined)
+            : remove(ClearDeps.EXPRESSIONS, index);
+    }
+    return ClearDeps.libExports;
+}
+
+// Register Function ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses RegisterDeps for dependency injection.
+
+/**
+ * Dependencies for the register function. Initialized inside the IIFE with actual references.
+ *
+ * @type {{
+ *     libExports: any;
+ *     Settings: any;
+ *     functions: any;
+ * }}
+ */
+const RegisterDeps = {
+    libExports: null,
+    Settings: null,
+    functions: null,
+};
+
+/**
+ * Register modules/addons with nerdamer
+ *
+ * @param {any} obj - The addon object or array of addon objects to register
+ * @returns {void}
+ */
+function register(obj) {
+    const core = RegisterDeps.libExports.getCore();
+
+    if (isArray(obj)) {
+        for (let i = 0; i < obj.length; i++) {
+            if (obj) {
+                register(obj[i]);
+            }
+        }
+    } else if (obj && RegisterDeps.Settings.exclude.indexOf(obj.name) === -1) {
+        // Make sure all the dependencies are available
+        if (obj.dependencies) {
+            for (let i = 0; i < obj.dependencies.length; i++) {
+                if (!core[obj.dependencies[i]]) {
+                    throw new Error(format('{0} requires {1} to be loaded!', obj.name, obj.dependencies[i]));
+                }
+            }
+        }
+        // If no parent object is provided then the function does not have an address and cannot be called directly
+        const parentObj = obj.parent;
+        const fn = obj.build.call(core); // Call constructor to get function
+        if (parentObj) {
+            if (!core[parentObj]) {
+                core[obj.parent] = {};
+            }
+
+            const refObj = parentObj === 'nerdamer' ? RegisterDeps.libExports : core[parentObj];
+            // Attach the function to the core
+            refObj[obj.name] = fn;
+        }
+        if (obj.visible) {
+            RegisterDeps.functions[obj.name] = [fn, obj.numargs];
+        } // Make the function available
+    }
+}
+
+// Set Function ==================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses SettingsDeps for dependency injection.
+
+/**
+ * Dependencies for the set function. Initialized inside the IIFE with actual references.
+ *
+ * @type {{
+ *     bigDec: any;
+ *     Settings: any;
+ *     functions: any;
+ *     symfunction: any;
+ *     NerdamerSymbol: any;
+ * }}
+ */
+const SettingsDeps = {
+    bigDec: null,
+    Settings: null,
+    functions: null,
+    symfunction: null,
+    NerdamerSymbol: null,
+};
+
+/**
+ * Set the value of a setting
+ *
+ * @param {string | object} setting - The setting to be changed
+ * @param {boolean | number | string} [value] - The value to set
+ * @returns {void}
+ */
+function set(setting, value) {
+    // Current options:
+    // PARSE2NUMBER, suppress_errors
+    if (typeof setting === 'object' && setting !== null) {
+        const settingObj = /** @type {Record<string, any>} */ (setting);
+        for (const x in settingObj) {
+            if (!Object.hasOwn(settingObj, x)) {
+                continue;
+            }
+            set(x, settingObj[x]);
+        }
+    }
+
+    const disallowed = ['SAFE'];
+    if (disallowed.indexOf(/** @type {string} */ (setting)) !== -1) {
+        err(`Cannot modify setting: ${setting}`);
+    }
+
+    if (setting === 'PRECISION') {
+        SettingsDeps.bigDec.set({ precision: value });
+        SettingsDeps.Settings.PRECISION = /** @type {number} */ (value);
+
+        // Avoid that nerdamer puts out garbage after 21 decimal place
+        if (/** @type {number} */ (value) > 21) {
+            set('USE_BIG', true);
+        }
+    } else if (setting === 'USE_LN' && value === true) {
+        // Set log as LN
+        SettingsDeps.Settings.LOG = 'LN';
+        // Set log10 as log
+        SettingsDeps.Settings.LOG10 = 'log';
+        // Point the functions in the right direction
+        SettingsDeps.functions.log = SettingsDeps.Settings.LOG_FNS.log10; // Log is now log10
+        // the log10 function must be explicitly set
+        SettingsDeps.functions.log[0] = function log10Wrapper(x) {
+            if (x.isConstant()) {
+                return new SettingsDeps.NerdamerSymbol(Math.log10(x));
+            }
+            return SettingsDeps.symfunction(SettingsDeps.Settings.LOG10, [x]);
+        };
+        SettingsDeps.functions.LN = SettingsDeps.Settings.LOG_FNS.log; // LN is now log
+
+        // remove log10
+        delete SettingsDeps.functions.log10;
+    } else {
+        SettingsDeps.Settings[/** @type {string} */ (setting)] = value;
+    }
+}
+
+// UpdateAPI Function ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses UpdateAPIDeps for dependency injection.
+
+/**
+ * Dependencies for the updateAPI function. Initialized inside the IIFE with actual references.
+ *
+ * @type {{
+ *     libExports: any;
+ *     functions: any;
+ *     parse: any;
+ *     callfunction: any;
+ *     Expression: any;
+ * }}
+ */
+const UpdateAPIDeps = {
+    libExports: null,
+    functions: null,
+    parse: null,
+    callfunction: null,
+    Expression: null,
+};
+
+/**
+ * Makes internal functions available externally
+ *
+ * @param {boolean} [override] - Override the functions when calling updateAPI if it exists
+ * @returns {void}
+ */
+function updateAPI(override = false) {
+    // Map internal functions to external ones
+    const linker = function linker(fname) {
+        return function linkedFunction(...args) {
+            for (let i = 0; i < args.length; i++) {
+                args[i] = UpdateAPIDeps.parse(args[i]);
+            }
+            return new UpdateAPIDeps.Expression(block('PARSE2NUMBER', () => UpdateAPIDeps.callfunction(fname, args)));
+        };
+    };
+    // Perform the mapping
+    for (const x in UpdateAPIDeps.functions) {
+        if (!(x in UpdateAPIDeps.libExports) || override) {
+            UpdateAPIDeps.libExports[x] = linker(x);
+        }
+    }
+}
+
+// Err Function ==================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses ErrDeps for dependency injection of suppress_errors setting.
+
+/**
+ * Dependencies for the err function. Initialized inside the IIFE with actual Settings values.
+ *
+ * @type {{
+ *     suppress_errors: boolean;
+ * }}
+ */
+const ErrDeps = {
+    suppress_errors: false,
+};
+
+/**
+ * Use this when errors are suppressible
+ *
+ * @param {string} msg
+ * @param {new (message?: string) => Error} [ErrorObj]
+ */
+function err(msg, ErrorObj = undefined) {
+    if (!ErrDeps.suppress_errors) {
+        if (ErrorObj) {
+            throw new ErrorObj(msg);
+        } else {
+            throw new Error(msg);
+        }
+    }
+}
+
+// IsPrime Function =============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses IsPrimeDeps for dependency injection of PRIMES_SET.
+
+/**
+ * Dependencies for the isPrime function. Initialized inside the IIFE with actual PRIMES_SET reference.
+ *
+ * @type {{
+ *     PRIMES_SET: Record<number, boolean>;
+ * }}
+ */
+const IsPrimeDeps = {
+    PRIMES_SET: {},
+};
+
+/**
+ * Checks if number is a prime number
+ *
+ * @param {number} n - The number to be checked
+ * @returns {boolean}
+ */
+function isPrime(n) {
+    if (n in IsPrimeDeps.PRIMES_SET) {
+        return true;
+    }
+    const q = Math.floor(Math.sqrt(n));
+    for (let i = 2; i <= q; i++) {
+        if (n % i === 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Timeout Functions ===============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses TimeoutDeps for shared state and dependency injection of Settings.TIMEOUT.
+
+/**
+ * Dependencies for the timeout functions. Contains shared state and is initialized inside the IIFE.
+ *
+ * @type {{
+ *     starttime: number;
+ *     timeout: number;
+ *     TIMEOUT: number;
+ * }}
+ */
+const TimeoutDeps = {
+    starttime: 0,
+    timeout: 0,
+    TIMEOUT: 800,
+};
+
+/** Arms the timeout mechanism with current time and timeout setting */
+function armTimeout() {
+    TimeoutDeps.starttime = Date.now();
+    TimeoutDeps.timeout = TimeoutDeps.TIMEOUT;
+}
+
+/** Disarms the timeout mechanism */
+function disarmTimeout() {
+    TimeoutDeps.starttime = 0;
+}
+
+/**
+ * Checks if timeout has been exceeded and throws if so
+ *
+ * @throws {Error} If timeout has been exceeded
+ */
+function checkTimeout() {
+    if (TimeoutDeps.starttime !== 0 && Date.now() > TimeoutDeps.starttime + TimeoutDeps.timeout) {
+        throw new Error('timeout');
+    }
+}
+
+// PrimeFactors Function ============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Uses PrimeFactorsDeps for dependency injection of PRIMES and PRIMES_SET.
+
+/**
+ * Dependencies for the primeFactors function. Initialized inside the IIFE.
+ *
+ * @type {{
+ *     PRIMES: number[];
+ *     PRIMES_SET: Record<number, boolean>;
+ * }}
+ */
+const PrimeFactorsDeps = {
+    PRIMES: [],
+    PRIMES_SET: {},
+};
+
+/**
+ * Calculates prime factors for a number. It first checks if the number is a prime number. If it's not then it will
+ * calculate all the primes for that number.
+ *
+ * @param {number} num
+ * @returns {number[]}
+ */
+function primeFactors(num) {
+    checkTimeout();
+
+    if (isPrime(num)) {
+        return [num];
+    }
+
+    let l = num;
+    let i = 1;
+    const factors = [];
+    const epsilon = 2.2204460492503130808472633361816e-16;
+    while (i < l) {
+        checkTimeout();
+        const quotient = num / i;
+        const whole = Math.floor(quotient);
+        const remainder = quotient - whole;
+
+        if (remainder <= epsilon && i > 1) {
+            // If the prime wasn't found but calculated then save it and
+            // add it as a factor.
+            if (isPrime(i)) {
+                if (!PrimeFactorsDeps.PRIMES_SET[i]) {
+                    PrimeFactorsDeps.PRIMES.push(i);
+                    PrimeFactorsDeps.PRIMES_SET[i] = true;
+                }
+                factors.push(i);
+            }
+
+            // Check if the remainder is a prime
+            if (isPrime(whole)) {
+                factors.push(whole);
+                break;
+            }
+
+            l = whole;
+        }
+        i++;
+    }
+
+    return factors.sort((a, b) => a - b);
+}
+
+/**
+ * Generates prime numbers up to a specified number
+ *
+ * @param {number} upto
+ */
+function generatePrimes(upto) {
+    // Get the last prime in the array
+    const lastPrime = PrimeFactorsDeps.PRIMES[PrimeFactorsDeps.PRIMES.length - 1] || 2;
+    // No need to check if we've already encountered the number. Just check the cache.
+    for (let i = lastPrime; i < upto; i++) {
+        if (isPrime(i)) {
+            PrimeFactorsDeps.PRIMES.push(i);
+        }
+        PrimeFactorsDeps.PRIMES_SET[i] = true;
+    }
+}
+
+// Block Function ================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via BlockDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for block function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     Settings: Record<string, any>;
+ * }}
+ */
+const BlockDeps = {
+    Settings: {},
+};
+
+/**
+ * Creates a temporary block in which one of the global settings is temporarily modified while the function is called.
+ * For instance if you want to parse directly to a number rather than have a symbolic answer for a period you would set
+ * PARSE2NUMBER to true in the block.
+ *
+ * @example
+ *     block('PARSE2NUMBER', function(){//symbol being parsed to number}, true);
+ *
+ * @param {string} setting - The setting being accessed
+ * @param {Function} f
+ * @param {boolean} [opt] - The value of the setting in the block
+ * @param {unknown} [obj] - The obj of interest. Usually a NerdamerSymbol but could be any object
+ * @returns {any}
+ */
+function block(setting, f, opt = undefined, obj = undefined) {
+    const currentSetting = BlockDeps.Settings[setting];
+    BlockDeps.Settings[setting] = opt === undefined ? true : !!opt;
+    const retval = f.call(obj);
+    BlockDeps.Settings[setting] = currentSetting;
+    return retval;
+}
+
+// Evaluate Function ================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via EvaluateDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for evaluate function. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     _: { parse: Function };
+ * }}
+ */
+const EvaluateDeps = {
+    _: { parse: () => {} },
+};
+
+/**
+ * As the name states. It forces evaluation of the expression
+ *
+ * @param {any} symbol
+ * @param {Record<string, any>} [o]
+ * @returns {any}
+ */
+function evaluate(symbol, o = undefined) {
+    return block('PARSE2NUMBER', () => EvaluateDeps._.parse(symbol, o), true);
+}
+
 const nerdamer = (function initNerdamerCore(imports) {
     // Version ======================================================================
     const _version = '1.1.16';
@@ -87,7 +3288,7 @@ const nerdamer = (function initNerdamerCore(imports) {
     const { bigInt } = imports;
     const { bigDec } = imports;
 
-    // Set the precision to js precision
+    // NerdamerSet the precision to js precision
     bigDec.set({
         precision: 250,
     });
@@ -195,122 +3396,26 @@ const nerdamer = (function initNerdamerCore(imports) {
         }
     })();
 
-    let __starttime = 0;
-    let __timeout;
-
-    function armTimeout() {
-        __starttime = Date.now();
-        __timeout = Settings.TIMEOUT;
-    }
-
-    function disarmTimeout() {
-        __starttime = 0;
-    }
-
-    function checkTimeout() {
-        if (__starttime !== 0 && Date.now() > __starttime + __timeout) {
-            throw new Error('timeout');
-        }
-    }
+    // Timeout functions are now defined outside IIFE
+    // Initialize TimeoutDeps with Settings.TIMEOUT via getter
+    Object.defineProperty(TimeoutDeps, 'TIMEOUT', {
+        get: () => Settings.TIMEOUT,
+        configurable: true,
+    });
 
     // Forward declarations for variables that are defined later but used in earlier functions
     // These use 'let' to allow reassignment when the actual definitions occur
     /** @type {ParserType | null} */
     let _ = null; // Parser instance, defined at line ~10867
-    let block = null; // Setting block function, defined at line ~1348
-    let evaluate = null; // Evaluate function, defined at line ~1419
+    // block is now defined outside IIFE
+    // evaluate is now defined outside IIFE
     let LaTeX = null; // LaTeX object, defined at line ~11020
     let C = null; // Math2 object, Defined at line ~1745
     let Fraction = null; // Fraction object, Defined at line ~10871
     let Build = null; // Build object, Defined at line ~12723
     let isSymbol = null; // IsSymbol function, Defined at line ~478
-    let firstObject = null; // FirstObject function, Defined at line ~793
-    let InvalidVariableNameError = null; // Error class, Defined at line ~1551
-
-    /**
-     * Class used to collect arguments for functions
-     *
-     * @class
-     */
-    function Collection() {
-        this.elements = [];
-    }
-    Collection.prototype.append = function append(e) {
-        this.elements.push(e);
-    };
-    Collection.prototype.getItems = function getItems() {
-        return this.elements;
-    };
-    Collection.prototype.toString = function toString() {
-        return _.prettyPrint(this.elements);
-    };
-    Collection.prototype.dimensions = function dimensions() {
-        return this.elements.length;
-    };
-    // eslint-disable-next-line func-names -- naming this 'text' would shadow the outer text function
-    Collection.prototype.text = function (options) {
-        return `(${this.elements.map(e => e.text(options)).join(',')})`;
-    };
-    Collection.create = function create(e) {
-        const collection = new Collection();
-        if (e) {
-            collection.append(e);
-        }
-        return collection;
-    };
-    Collection.prototype.clone = function clone(_elements) {
-        const c = Collection.create();
-        c.elements = this.elements.map(e => e.clone());
-        return c;
-    };
-    Collection.prototype.expand = function expand(options) {
-        this.elements = this.elements.map(e => _.expand(e, options));
-        return this;
-    };
-
-    // eslint-disable-next-line func-names -- naming this 'evaluate' would shadow the outer evaluate variable
-    Collection.prototype.evaluate = function (options) {
-        this.elements = this.elements.map(e => _.evaluate(e, options));
-        return this;
-    };
-
-    Collection.prototype.map = function map(lambda) {
-        const c2 = this.clone();
-        c2.elements = c2.elements.map((x, i) => lambda(x, i + 1));
-        return c2;
-    };
-
-    // Returns the result of adding the argument to the vector
-    Collection.prototype.add = function add(c2) {
-        return block(
-            'SAFE',
-            () => {
-                const V = c2.elements || c2;
-                if (this.elements.length !== V.length) {
-                    return null;
-                }
-                return this.map((x, i) => _.add(x, V[i - 1]));
-            },
-            undefined,
-            this
-        );
-    };
-
-    // Returns the result of subtracting the argument from the vector
-    Collection.prototype.subtract = function subtract(vector) {
-        return block(
-            'SAFE',
-            () => {
-                const V = vector.elements || vector;
-                if (this.elements.length !== V.length) {
-                    return null;
-                }
-                return this.map((x, i) => _.subtract(x, V[i - 1]));
-            },
-            undefined,
-            this
-        );
-    };
+    // firstObject is now defined outside IIFE
+    // InvalidVariableNameError is now defined outside IIFE
 
     // Add the groups. These have been reorganized as of v0.5.1 to make CP the highest group
     // The groups that help with organizing during parsing. Note that for FN is still a function even
@@ -337,10 +3442,10 @@ const nerdamer = (function initNerdamerCore(imports) {
     const { DOUBLEFACTORIAL } = Settings;
 
     // The storage container "memory" for parsed expressions
-    let EXPRESSIONS = [];
+    const EXPRESSIONS = [];
 
     // Variables
-    let VARS = {};
+    const VARS = {};
 
     // The container used to store all the reserved functions
     const RESERVED = [];
@@ -349,188 +3454,65 @@ const nerdamer = (function initNerdamerCore(imports) {
 
     const USER_FUNCTIONS = [];
 
-    /**
-     * Use this when errors are suppressible
-     *
-     * @param {string} msg
-     * @param {object} ErrorObj
-     */
-    const err = function (msg, ErrorObj) {
-        if (!Settings.suppress_errors) {
-            if (ErrorObj) {
-                throw new ErrorObj(msg);
-            } else {
-                throw new Error(msg);
-            }
-        }
-    };
+    // Err is now defined outside IIFE
+    // Initialize ErrDeps with Settings values via getter
+    Object.defineProperty(ErrDeps, 'suppress_errors', {
+        get: () => Settings.suppress_errors,
+        configurable: true,
+    });
 
     // Utils ========================================================================
-    const customError = function (name) {
-        const E = function (message) {
-            this.name = name;
-            this.message = message === undefined ? '' : message;
-            const error = new Error(this.message);
-            error.name = this.name;
-            this.stack = error.stack;
-        }; // Create an empty error
-        E.prototype = Object.create(Error.prototype);
-        return E;
-    };
 
-    /**
-     * Checks to see if value is one of nerdamer's reserved names
-     *
-     * @param {string} value
-     * @returns Boolean
-     */
-    const isReserved = function (value) {
-        return RESERVED.indexOf(value) !== -1;
-    };
+    // isReserved is now defined outside IIFE
+    // Initialize IsReservedDeps with RESERVED array
+    IsReservedDeps.RESERVED = RESERVED;
 
-    /**
-     * Checks to see that all symbols in array are the same
-     *
-     * @param {NerdamerSymbol[]} arr
-     * @returns {boolean}
-     */
-    const allSame = function (arr) {
-        const last = arr[0];
-        for (let i = 1, l = arr.length; i < l; i++) {
-            if (!arr[i].equals(last)) {
-                return false;
-            }
-        }
-        return true;
-    };
+    // Warn is now defined outside IIFE
+    // Initialize WarnDeps with WARNINGS array
+    // Note: WarnDeps.WARNINGS is set to reference WARNINGS so changes are shared
+    WarnDeps.WARNINGS = WARNINGS;
+    // Use a getter to dynamically read SHOW_WARNINGS from Settings
+    Object.defineProperty(WarnDeps, 'SHOW_WARNINGS', {
+        get: () => Settings.SHOW_WARNINGS,
+        configurable: true,
+    });
 
-    /**
-     * Used to pass warnings or low severity errors about the library
-     *
-     * @param msg
-     */
-    const warn = function (msg) {
-        WARNINGS.push(msg);
-        if (Settings.SHOW_WARNINGS && console && console.warn) {
-            console.warn(msg);
-        }
-    };
+    // NumExpressions is now defined outside IIFE
+    // Use a getter because EXPRESSIONS can be reassigned (e.g., in clear('all'))
+    Object.defineProperty(NumExpressionsDeps, 'EXPRESSIONS', {
+        get: () => EXPRESSIONS,
+        configurable: true,
+    });
 
-    /**
-     * Enforces rule: "must start with a letter or underscore and can have any number of underscores, letters, and
-     * numbers thereafter."
-     *
-     * @param name The name of the symbol being checked
-     * @param {string} typ - The type of symbols that's being validated
-     * @throws {Exception} - Throws an exception on fail
-     */
-    const validateName = function (name, typ = 'variable') {
-        if (Settings.ALLOW_CHARS.indexOf(name) !== -1) {
-            return;
-        }
-        const regex = Settings.VALIDATION_REGEX;
-        if (!regex.test(name)) {
-            throw new InvalidVariableNameError(`${name} is not a valid ${typ} name`);
-        }
-    };
+    // GetSetting is now defined outside IIFE
+    // Initialize GetSettingDeps with Settings object reference
+    GetSettingDeps.Settings = Settings;
 
-    /**
-     * Convert number from scientific format to decimal format
-     *
-     * @param {number} num
-     * @returns {string}
-     */
-    const scientificToDecimal = function (num) {
-        const nsign = Math.sign(num);
-        // Remove the sign
-        /** @type {number | string} */
-        let n = Math.abs(num);
-        // If the number is in scientific notation remove it
-        if (/\d+\.?\d*e[+-]*\d+/iu.test(String(n))) {
-            const zero = '0';
-            const parts = String(n).toLowerCase().split('e'); // Split into coeff and exponent
-            const e = parts.pop(); // Store the exponential part
-            let l = Math.abs(Number(e)); // Get the number of zeros
-            const sign = Math.sign(Number(e));
-            const coeffArray = parts[0].split('.');
-            if (sign === -1) {
-                // Return "("+parts[0]+"/1"+"0".repeat(l)+")";
-                l -= coeffArray[0].length;
-                if (l < 0) {
-                    n = `${coeffArray[0].slice(0, l)}.${coeffArray[0].slice(
-                        l
-                    )}${coeffArray.length === 2 ? coeffArray[1] : ''}`;
-                } else {
-                    n = `${zero}.${new Array(l + 1).join(zero)}${coeffArray.join('')}`;
-                }
-            } else {
-                const dec = coeffArray[1];
-                if (dec) {
-                    l -= dec.length;
-                }
-                if (l < 0) {
-                    n = `${coeffArray[0] + dec.slice(0, l)}.${dec.slice(l)}`;
-                } else {
-                    n = coeffArray.join('') + new Array(l + 1).join(zero);
-                }
-            }
-        }
+    // Version is now defined outside IIFE
+    // Initialize VersionDeps with _version and C (Core object)
+    VersionDeps._version = _version;
+    // C is assigned later in the IIFE - use getter for lazy access
+    Object.defineProperty(VersionDeps, 'C', {
+        get: () => C,
+        configurable: true,
+    });
 
-        return nsign < 0 ? `-${n}` : String(n);
-    };
-    /**
-     * Checks if number is a prime number
-     *
-     * @param {number} n - The number to be checked
-     */
-    const isPrime = function (n) {
-        if (n in PRIMES_SET) {
-            return true;
-        }
-        const q = Math.floor(Math.sqrt(n));
-        for (let i = 2; i <= q; i++) {
-            if (n % i === 0) {
-                return false;
-            }
-        }
-        return true;
-    };
+    // ValidateName is now defined outside IIFE
+    // Initialize ValidateNameDeps with Settings values
+    ValidateNameDeps.ALLOW_CHARS = Settings.ALLOW_CHARS;
+    ValidateNameDeps.VALIDATION_REGEX = Settings.VALIDATION_REGEX;
 
-    /**
-     * Generates an object with known variable value for evaluation
-     *
-     * @param {string} variable
-     * @param {any} value Any stringifyable object
-     * @returns {object}
-     */
-    const knownVariable = function (variable, value) {
-        const o = {};
-        o[variable] = value;
-        return o;
-    };
+    // IsPrime is now defined outside IIFE
+    // Initialize IsPrimeDeps with PRIMES_SET reference
+    IsPrimeDeps.PRIMES_SET = PRIMES_SET;
 
-    /**
-     * Checks if n is a number
-     *
-     * @param {any} n
-     */
-    const isNumber = function (n) {
-        return /^\d+\.?\d*$/u.test(n);
-    };
+    // PrimeFactors is now defined outside IIFE
+    // Initialize PrimeFactorsDeps with PRIMES and PRIMES_SET references
+    PrimeFactorsDeps.PRIMES = PRIMES;
+    PrimeFactorsDeps.PRIMES_SET = PRIMES_SET;
 
-    /**
-     * Checks to see if an array contains only numeric values
-     *
-     * @param {Array} arr
-     */
-    const allNumeric = function (arr) {
-        for (let i = 0; i < arr.length; i++) {
-            if (!isNumber(arr[i])) {
-                return false;
-            }
-        }
-        return true;
-    };
+    // GeneratePrimes is now defined outside IIFE (uses PrimeFactorsDeps)
+
     /**
      * Checks to see if a number or NerdamerSymbol is a fraction
      *
@@ -692,66 +3674,34 @@ const nerdamer = (function initNerdamerCore(imports) {
      * Checks to see if the object provided is a Vector
      *
      * @param {object} obj
+     * @returns {obj is Vector}
      */
     const isVector = function (obj) {
         return obj instanceof Vector;
     };
 
-    const isCollection = function (obj) {
-        return obj instanceof Collection;
-    };
+    // IsCollection is now defined outside IIFE
 
     /**
      * Checks to see if the object provided is a Matrix
      *
      * @param {object} obj
+     * @returns {obj is Matrix}
      */
     const isMatrix = function (obj) {
         return obj instanceof Matrix;
     };
 
-    const isSet = function (obj) {
-        return obj instanceof Set;
-    };
+    // IsSet is now defined outside IIFE
 
-    /**
-     * Checks to see if a symbol is in group N
-     *
-     * @param {NerdamerSymbolType} symbol
-     */
-    const isNumericSymbol = function (symbol) {
-        return symbol.group === N || symbol.group === P;
-    };
+    // isNumericSymbol is now defined outside IIFE
+    // Initialize IsNumericSymbolDeps with Groups constants
+    IsNumericSymbolDeps.N = N;
+    IsNumericSymbolDeps.P = P;
 
-    /**
-     * Checks to see if a symbol is a variable with no multiplier nor power
-     *
-     * @param {NerdamerSymbolType} symbol
-     */
-    const isVariableSymbol = function (symbol) {
-        return symbol.group === S && symbol.multiplier.equals(1) && symbol.power.equals(1);
-    };
-
-    /**
-     * Checks to see if the object provided is an Array
-     *
-     * @param {object} arr
-     */
-    const isArray = function (arr) {
-        return Array.isArray(arr);
-    };
-
-    /**
-     * Checks to see if a number is an integer
-     *
-     * @param {number | string | NerdamerSymbolType | FracType} num
-     */
-    const isInt = function (num) {
-        if (typeof num === 'number') {
-            return Number.isInteger(num);
-        }
-        return typeof num !== 'undefined' && /^[-+]?\d+e?\+?\d*$/gimu.test(num.toString());
-    };
+    // IsVariableSymbol is now defined outside IIFE
+    // Initialize IsVariableSymbolDeps with Groups constants
+    IsVariableSymbolDeps.S = S;
 
     /**
      * @param {number | NerdamerSymbol} obj
@@ -764,26 +3714,6 @@ const nerdamer = (function initNerdamerCore(imports) {
         return obj < 0;
     };
     /**
-     * Safely stringify object
-     *
-     * @param o
-     */
-    const stringify = function (o) {
-        if (!o) {
-            return o;
-        }
-        return String(o);
-    };
-
-    /**
-     * @param {unknown} str
-     * @returns {string} - Returns a formatted string surrounded by brackets
-     */
-    const inBrackets = function (str) {
-        return `(${str})`;
-    };
-
-    /**
      * A helper function to replace parts of string
      *
      * @param {string} str - The original string
@@ -792,48 +3722,6 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {string} withStr - The replacement string
      * @returns {string} - A formatted string
      */
-    const stringReplace = function (str, from, to, withStr) {
-        return str.substr(0, from) + withStr + str.substr(to, str.length);
-    };
-
-    /**
-     * The Parser uses this to check if it's allowed to convert the obj to type NerdamerSymbol
-     *
-     * @param {object} obj
-     * @returns {boolean}
-     */
-    const customType = function (obj) {
-        return obj !== undefined && obj.custom;
-    };
-
-    /**
-     * Checks to see if numbers are both negative or are both positive
-     *
-     * @param {number} a
-     * @param {number} b
-     * @returns {boolean}
-     */
-    const sameSign = function (a, b) {
-        return a < 0 === b < 0;
-    };
-
-    /**
-     * A helper function to replace multiple occurences in a string. Takes multiple arguments
-     *
-     * @example
-     *     format('{0} nice, {0} sweet', 'something');
-     *     //returns 'something nice, something sweet'
-     */
-    const format = function (...args) {
-        const str = args.shift();
-        const newStr = str.replace(/\{(?<idx>\d+)\}/gu, (match, index) => {
-            const arg = args[index];
-            return typeof arg === 'function' ? arg() : arg;
-        });
-
-        return newStr;
-    };
-
     /**
      * Generates an array with values within a range. Multiplies by a step if provided
      *
@@ -841,46 +3729,15 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {number} end
      * @param {number} step
      */
-    const range = function (start, end, step) {
-        const arr = [];
-        step ||= 1;
-        for (let i = start; i <= end; i++) {
-            arr.push(i * step);
-        }
-        return arr;
-    };
-
     /**
      * Returns an array of all the keys in an array
      *
      * @param {object} obj
      * @returns {Array}
      */
-    const { keys } = Object;
+    // keys is now defined outside IIFE
 
-    /**
-     * Returns the first encountered item in an object. Items do not have a fixed order in objects so only use if you
-     * need any first random or if there's only one item in the object
-     *
-     * @param {object} obj
-     * @param {string} key Return this key as first object
-     * @param {boolean} both
-     * @returns {any}
-     */
-    firstObject = function (obj, key, both) {
-        const objKeys = Object.keys(obj);
-        const x = objKeys[0];
-        if (key) {
-            return x;
-        }
-        if (both) {
-            return {
-                key: x,
-                obj: obj[x],
-            };
-        }
-        return obj[x];
-    };
+    // firstObject is defined outside IIFE
 
     /**
      * Substitutes out variables for two symbols, parses them to a number and them compares them numerically
@@ -991,92 +3848,6 @@ const nerdamer = (function initNerdamerCore(imports) {
     };
 
     /**
-     * Returns the minimum number in an array
-     *
-     * @param {Array} arr
-     * @returns {number}
-     */
-    const arrayMax = function (arr) {
-        return Math.max.apply(undefined, arr);
-    };
-
-    /**
-     * Returns the maximum number in an array
-     *
-     * @param {Array} arr
-     * @returns {number}
-     */
-    const arrayMin = function (arr) {
-        return Math.min.apply(undefined, arr);
-    };
-
-    /**
-     * Checks to see if two arrays are equal
-     *
-     * @param {Array} arr1
-     * @param {Array} arr2
-     */
-    const arrayEqual = function (arr1, arr2) {
-        arr1.sort();
-        arr2.sort();
-
-        // The must be of the same length
-        if (arr1.length === arr2.length) {
-            for (let i = 0; i < arr1.length; i++) {
-                // If any two items don't match we're done
-                if (arr1[i] !== arr2[i]) {
-                    return false;
-                }
-            }
-            // Otherwise they're equal
-            return true;
-        }
-
-        return false;
-    };
-
-    /**
-     * Clones array with clonable items
-     *
-     * @param {Array} arr
-     * @returns {Array}
-     */
-    const arrayClone = function (arr) {
-        const newArray = [];
-        const l = arr.length;
-        for (let i = 0; i < l; i++) {
-            newArray[i] = arr[i].clone();
-        }
-        return newArray;
-    };
-
-    /**
-     * Fills numbers between array values
-     *
-     * @param {number[]} arr
-     * @param {number} slices
-     */
-    const arrayAddSlices = function (arr, slices) {
-        slices ||= 20;
-        const retval = [];
-        let c;
-        let delta;
-        let e;
-        retval.push(arr[0]); // Push the beginning
-        for (let i = 0; i < arr.length - 1; i++) {
-            c = arr[i];
-            delta = arr[i + 1] - c; // Get the difference
-            e = delta / slices; // Chop it up in the desired number of slices
-            for (let j = 0; j < slices; j++) {
-                c += e; // Add the mesh to the last slice
-                retval.push(c);
-            }
-        }
-
-        return retval;
-    };
-
-    /**
      * Gets nth roots of a number
      *
      * @param {NerdamerSymbolType} symbol
@@ -1134,31 +3905,6 @@ const nerdamer = (function initNerdamerCore(imports) {
     };
 
     /**
-     * Sorts and array given 2 parameters
-     *
-     * @param {string} a
-     * @param {string} b
-     */
-    const comboSort = function (a, b) {
-        const l = a.length;
-        const combined = []; // The linker
-        for (let i = 0; i < a.length; i++) {
-            combined.push([a[i], b[i]]); // Create the map
-        }
-
-        combined.sort((x, y) => Number(x[0]) - Number(y[0]));
-
-        const na = [];
-        const nb = [];
-
-        for (let i = 0; i < l; i++) {
-            na.push(combined[i][0]);
-            nb.push(combined[i][1]);
-        }
-
-        return [na, nb];
-    };
-    /**
      * TODO: Pick a more descriptive name and better description Breaks a function down into it's parts wrt to a
      * variable, mainly coefficients Example a*x^2+b wrt x
      *
@@ -1190,22 +3936,6 @@ const nerdamer = (function initNerdamerCore(imports) {
         }
         return [a, x, ax, b];
     };
-    /**
-     * Rounds a number up to x decimal places
-     *
-     * @param {number} x
-     * @param {number} [s]
-     */
-    const nround = function (x, s = 14) {
-        if (isInt(x)) {
-            if (x >= Number.MAX_VALUE) {
-                return x.toString();
-            }
-            return Number(x);
-        }
-        return Math.round(x * 10 ** s) / 10 ** s;
-    };
-
     /**
      * Is used for u-substitution. Gets a suitable u for substitution. If for instance a is used in the symbol then it
      * keeps going down the line until one is found that's not in use. If all letters are taken then it starts appending
@@ -1239,75 +3969,9 @@ const nerdamer = (function initNerdamerCore(imports) {
         return v;
     };
 
-    /**
-     * Clears the u variable so it's no longer reserved
-     *
-     * @param {string} u
-     */
-    const clearU = function (u) {
-        const indx = RESERVED.indexOf(u);
-        if (indx !== -1) {
-            RESERVED[indx] = undefined;
-        }
-    };
-
-    /**
-     * Loops through each item in object and calls function with item as param
-     *
-     * @param {object | Array} obj
-     * @param {Function} fn
-     */
-    const each = function (obj, fn) {
-        if (isArray(obj)) {
-            const l = obj.length;
-            for (let i = 0; i < l; i++) {
-                fn.call(obj, i);
-            }
-        } else {
-            for (const x in obj) {
-                if (Object.hasOwn(obj, x)) {
-                    fn.call(obj, x);
-                }
-            }
-        }
-    };
-
-    /**
-     * Checks to see if a number is an even number
-     *
-     * @param {number | NerdamerSymbolType} num
-     * @returns {boolean}
-     */
-    const even = function (num) {
-        return Number(num) % 2 === 0;
-    };
-
-    /**
-     * Checks to see if a fraction is divisible by 2
-     *
-     * @param {number} num
-     * @returns {boolean}
-     */
-    const evenFraction = function (num) {
-        return (1 / (num % 1)) % 2 === 0;
-    };
-
-    /**
-     * Strips duplicates out of an array
-     *
-     * @param {Array} arr
-     */
-    const arrayUnique = function (arr) {
-        const l = arr.length;
-        const a = [];
-        for (let i = 0; i < l; i++) {
-            const item = arr[i];
-            if (a.indexOf(item) === -1) {
-                a.push(item);
-            }
-        }
-        return a;
-    };
+    // ClearU is now defined outside IIFE
+    // Initialize ClearUDeps with RESERVED array reference
+    ClearUDeps.RESERVED = RESERVED;
 
     /**
      * Gets all the variables in an array of Symbols
@@ -1328,105 +3992,13 @@ const nerdamer = (function initNerdamerCore(imports) {
         return vars;
     };
 
-    /**
-     * Removes duplicates from an array. Returns a new array
-     *
-     * @param {Array} arr
-     * @param {Function} [condition]
-     */
-    const removeDuplicates = function (arr, condition) {
-        const conditionType = typeof condition;
+    // ReserveNames is now defined outside IIFE
+    // Initialize ReserveNamesDeps with RESERVED array reference
+    ReserveNamesDeps.RESERVED = RESERVED;
 
-        if (conditionType !== 'function') {
-            condition = function (a, b) {
-                return a === b;
-            };
-        }
-
-        const seen = [];
-
-        while (arr.length) {
-            const a = arr[0];
-            // Only one element left so we're done
-            if (arr.length === 1) {
-                seen.push(a);
-                break;
-            }
-            const temp = [];
-            seen.push(a); // We already scanned these
-            for (let i = 1; i < arr.length; i++) {
-                const b = arr[i];
-                // If the number is outside the specified tolerance
-                if (!condition(a, b)) {
-                    temp.push(b);
-                }
-            }
-            // Start over with the remainder
-            arr = temp;
-        }
-
-        return seen;
-    };
-
-    /**
-     * Reserves the names in an object so they cannot be used as function names
-     *
-     * @param {object} obj
-     */
-    const reserveNames = function (obj) {
-        const add = function (item) {
-            if (RESERVED.indexOf(item) === -1) {
-                RESERVED.push(item);
-            }
-        };
-
-        if (typeof obj === 'string') {
-            add(obj);
-        } else {
-            each(obj, x => {
-                add(x);
-            });
-        }
-    };
-
-    /**
-     * Removes an item from either an array or an object. If the object is an array, the index must be specified after
-     * the array. If it's an object then the key must be specified
-     *
-     * @param {object | Array} obj
-     * @param {number | string} indexOrKey
-     */
-    const remove = function (obj, indexOrKey) {
-        let result;
-        if (isArray(obj)) {
-            result = obj.splice(/** @type {number} */ (indexOrKey), 1)[0];
-        } else {
-            result = obj[indexOrKey];
-            delete obj[indexOrKey];
-        }
-        return result;
-    };
-
-    /**
-     * Creates a temporary block in which one of the global settings is temporarily modified while the function is
-     * called. For instance if you want to parse directly to a number rather than have a symbolic answer for a period
-     * you would set PARSE2NUMBER to true in the block.
-     *
-     * @example
-     *     block('PARSE2NUMBER', function(){//symbol being parsed to number}, true);
-     *
-     * @param {string} setting - The setting being accessed
-     * @param {Function} f
-     * @param {boolean} [opt] - The value of the setting in the block
-     * @param {unknown} [obj] - The obj of interest. Usually a NerdamerSymbol but could be any object
-     */
-    block = function (setting, f, opt = undefined, obj = undefined) {
-        const currentSetting = Settings[setting];
-        Settings[setting] = opt === undefined ? true : !!opt;
-        const retval = f.call(obj);
-        Settings[setting] = currentSetting;
-        return retval;
-    };
+    // Block is now defined outside IIFE
+    // Initialize BlockDeps with Settings reference
+    BlockDeps.Settings = Settings;
 
     /**
      * Provide a mechanism for accessing functions directly. Not yet complete!!! Some functions will return undefined.
@@ -1442,15 +4014,6 @@ const nerdamer = (function initNerdamerCore(imports) {
             o[x] = _.functions[x][0];
         }
         return o;
-    };
-
-    /**
-     * Converts function arguments to an array. Now used by gcd and lcm in Algebra.js :)
-     *
-     * @param {Array | object} obj
-     */
-    const arguments2Array = function (obj) {
-        return [].slice.call(obj);
     };
 
     /**
@@ -1488,15 +4051,8 @@ const nerdamer = (function initNerdamerCore(imports) {
         return coeffs;
     };
 
-    /**
-     * As the name states. It forces evaluation of the expression
-     *
-     * @param {NerdamerSymbolType} symbol
-     * @param {Record<string, NerdamerSymbol | string | number>} [o]
-     */
-    evaluate = function (symbol, o = undefined) {
-        return block('PARSE2NUMBER', () => _.parse(symbol, o), true);
-    };
+    // Evaluate is now defined outside IIFE
+    // EvaluateDeps._ is set after parser initialization (see below where _ is assigned)
 
     /**
      * Converts an array to a vector. Consider moving this to Vector.fromArray
@@ -1518,35 +4074,12 @@ const nerdamer = (function initNerdamerCore(imports) {
         return x;
     };
 
-    /**
-     * Generates prime numbers up to a specified number
-     *
-     * @param {number} upto
-     */
-    const generatePrimes = function (upto) {
-        // Get the last prime in the array
-        const lastPrime = PRIMES[PRIMES.length - 1] || 2;
-        // No need to check if we've already encountered the number. Just check the cache.
-        for (let i = lastPrime; i < upto; i++) {
-            if (isPrime(i)) {
-                PRIMES.push(i);
-            }
-            PRIMES_SET[i] = true;
-        }
-    };
-    /**
-     * Checks to see if all arguments are numbers
-     *
-     * @param {object} args
-     */
-    const allNumbers = function (args) {
-        for (let i = 0; i < args.length; i++) {
-            if (args[i].group !== N) {
-                return false;
-            }
-        }
-        return true;
-    };
+    // GeneratePrimes is now defined outside IIFE
+
+    // allNumbers is now defined outside IIFE
+    // Initialize AllNumbersDeps with Groups constants
+    AllNumbersDeps.N = N;
+
     /*
      * Checks if all arguments aren't just all number but if they
      * are constants as well e.g. pi, e.
@@ -1605,39 +4138,11 @@ const nerdamer = (function initNerdamerCore(imports) {
     };
 
     // Exceptions ===================================================================
-    // Is thrown for division by zero
-    const DivisionByZero = customError('DivisionByZero');
-    // Is throw if an error occured during parsing
-    const ParseError = customError('ParseError');
-    // Is thrown if the expression results in undefined
-    const UndefinedError = customError('UndefinedError');
-    // Is throw input is out of the function domain
-    const OutOfFunctionDomainError = customError('OutOfFunctionDomainError');
-    // Is throw if a function exceeds x amount of iterations
-    const MaximumIterationsReached = customError('MaximumIterationsReached');
-    // Is thrown if the parser receives an incorrect type
-    const NerdamerTypeError = customError('NerdamerTypeError');
-    // Is thrown if bracket parity is not correct
-    const ParityError = customError('ParityError');
-    // Is thrown if an unexpectd or incorrect operator is encountered
-    const OperatorError = customError('OperatorError');
-    // Is thrown if an index is out of range.
-    const OutOfRangeError = customError('OutOfRangeError');
-    // Is thrown if dimensions are incorrect. Mostly for matrices
-    const DimensionError = customError('DimensionError');
-    // Is thrown if variable name violates naming rule
-    InvalidVariableNameError = customError('InvalidVariableNameError');
-    // Is thrown if the limits of the library are exceeded for a function
-    // This can be that the function become unstable passed a value
-    const ValueLimitExceededError = customError('ValueLimitExceededError');
-    // Is throw if the value is an incorrect LH or RH value
-    const NerdamerValueError = customError('NerdamerValueError');
-    // Is thrown if the value is an incorrect LH or RH value
-    const SolveError = customError('SolveError');
-    // Is thrown for an infinite loop
-    const InfiniteLoopError = customError('InfiniteLoopError');
-    // Is thrown if an operator is found when there shouldn't be one
-    const UnexpectedTokenError = customError('UnexpectedTokenError');
+    // All error classes are defined outside IIFE for proper TypeScript type inference:
+    // DivisionByZero, ParseError, UndefinedError, OutOfFunctionDomainError,
+    // MaximumIterationsReached, NerdamerTypeError, ParityError, OperatorError,
+    // OutOfRangeError, DimensionError, InvalidVariableNameError, ValueLimitExceededError,
+    // NerdamerValueError, SolveError, InfiniteLoopError, UnexpectedTokenError
 
     const exceptions = {
         DivisionByZero,
@@ -2062,7 +4567,7 @@ const nerdamer = (function initNerdamerCore(imports) {
                 };
 
                 try {
-                    // Set a safety
+                    // NerdamerSet a safety
                     const max = 1e3;
                     const safetyCounter = { value: 0 };
 
@@ -2998,56 +5503,8 @@ const nerdamer = (function initNerdamerCore(imports) {
             return '';
         }
     }
-    /**
-     * Calculates prime factors for a number. It first checks if the number is a prime number. If it's not then it will
-     * calculate all the primes for that number.
-     *
-     * @param {number} num
-     * @returns {Array}
-     */
 
-    function primeFactors(num) {
-        checkTimeout();
-
-        if (isPrime(num)) {
-            return [num];
-        }
-
-        let l = num;
-        let i = 1;
-        const factors = [];
-        const epsilon = 2.2204460492503130808472633361816e-16;
-        while (i < l) {
-            checkTimeout();
-            const quotient = num / i;
-            const whole = Math.floor(quotient);
-            const remainder = quotient - whole;
-
-            if (remainder <= epsilon && i > 1) {
-                // If the prime wasn't found but calculated then save it and
-                // add it as a factor.
-                if (isPrime(i)) {
-                    if (!PRIMES_SET[i]) {
-                        PRIMES.push(i);
-                        PRIMES_SET[i] = true;
-                    }
-                    factors.push(i);
-                }
-
-                // Check if the remainder is a prime
-                if (isPrime(whole)) {
-                    factors.push(whole);
-                    break;
-                }
-
-                l = whole;
-            }
-            i++;
-        }
-
-        return factors.sort((a, b) => a - b);
-    }
-    // PrimeFactors(314146179365)
+    // PrimeFactors is now defined outside IIFE
     // Expression ===================================================================
     /**
      * This is what nerdamer returns. It's sort of a wrapper around the symbol class and provides the user with some
@@ -3323,510 +5780,15 @@ const nerdamer = (function initNerdamerCore(imports) {
     // Aliases
     Expression.prototype.toTeX = Expression.prototype.latex;
 
-    // Scientific ===================================================================
-    /*
-     * Javascript has the toExponential method but this allows you to work with string and therefore any number of digits of your choosing
-     * For example Scientific('464589498449496467924197545625247695464569568959124568489548454');
-     */
-
-    function Scientific(num) {
-        if (!(this instanceof Scientific)) {
-            return new Scientific(num);
-        }
-
-        num = String(typeof num === 'undefined' ? 0 : num); // Convert to a string
-
-        // remove the sign
-        if (num.startsWith('-')) {
-            this.sign = -1;
-            // Remove the sign
-            num = num.substr(1, num.length);
-        } else {
-            this.sign = 1;
-        }
-
-        if (Scientific.isScientific(num)) {
-            this.fromScientific(num);
-        } else {
-            this.convert(num);
-        }
-        return this;
-    }
-
-    Scientific.prototype = {
-        fromScientific(num) {
-            const parts = String(num).toLowerCase().split('e');
-            this.coeff = parts[0];
-            this.exponent = Number(parts[1]); // Convert to number for consistent === 0 checks in toString()
-
-            const coeffParts = this.coeff.split('.');
-            this.wholes = coeffParts[0] || '';
-            this.dec = coeffParts[1] || '';
-            const { dec } = this; // If it's undefined or zero it's going to blank
-            this.decp = dec === '0' ? 0 : dec.length;
-
-            return this;
-        },
-        convert(num) {
-            // Get wholes and decimals
-            const parts = num.split('.');
-            // Make zero go away
-            let w = parts[0] || '';
-            let d = parts[1] || '';
-            // Convert zero to blank strings
-            w = Scientific.removeLeadingZeroes(w);
-            d = Scientific.removeTrailingZeroes(d);
-            // Find the location of the decimal place which is right after the wholes
-            const dotLocation = w.length;
-            // Add them together so we can move the dot
-            const n = w + d;
-            // Find the next number
-            const zeroes = Scientific.leadingZeroes(n).length;
-            // Set the exponent
-            this.exponent = dotLocation - (zeroes + 1);
-            // Set the coeff but first remove leading zeroes
-            const coeff = Scientific.removeLeadingZeroes(n);
-            this.coeff = `${coeff.charAt(0)}.${Scientific.removeTrailingZeroes(coeff.substr(1, coeff.length)) || '0'}`;
-
-            // The coeff decimal places
-            const dec = this.coeff.split('.')[1] || ''; // If it's undefined or zero it's going to blank
-
-            this.decp = dec === '0' ? 0 : dec.length;
-            // Decimals
-            this.dec = d;
-            // Wholes
-            this.wholes = w;
-
-            return this;
-        },
-        round(num) {
-            const n = this.copy();
-
-            num = Number(num); // Cast to number for safety
-            // since we know it guaranteed to be in the format {digit}{optional dot}{optional digits}
-            // we can round based on this
-            if (num === 0) {
-                n.coeff = n.coeff.charAt(0);
-            } else {
-                // Get up to n-1 digits
-                const rounded = this.coeff.substring(0, num + 1);
-                // Get the next two
-                const nextTwo = this.coeff.substring(num + 1, num + 3);
-                // The extra digit
-                let ed = Number(nextTwo.charAt(0));
-
-                if (Number(nextTwo.charAt(1)) > 4) {
-                    ed++;
-                }
-
-                n.coeff = rounded + ed;
-            }
-
-            return n;
-        },
-        copy() {
-            const n = new Scientific(0);
-            n.coeff = this.coeff;
-            n.exponent = this.exponent;
-            n.sign = this.sign;
-            return n;
-        },
-        toString(n) {
-            let retval;
-
-            if (Settings.SCIENTIFIC_IGNORE_ZERO_EXPONENTS && this.exponent === 0 && this.decp < n) {
-                if (this.decp === 0 && this.wholes !== undefined) {
-                    retval = this.wholes;
-                } else {
-                    retval = this.coeff;
-                }
-            } else {
-                let coeff =
-                    typeof n === 'undefined' ? this.coeff : Scientific.round(this.coeff, Math.min(n, this.decp || 1));
-                let exp = this.exponent;
-                if (coeff.startsWith('10.')) {
-                    // Edge case when coefficient is 9.999999 rounds to 10
-                    coeff =
-                        typeof n === 'undefined'
-                            ? coeff.replace(/^10\./u, '1.0')
-                            : Scientific.round(coeff.replace(/^10\./u, '1.0'), Math.min(n, this.decp || 1));
-                    exp = Number(exp) + 1;
-                }
-                retval = this.exponent === 0 ? coeff : `${coeff}e${exp}`;
-            }
-
-            return (this.sign === -1 ? '-' : '') + retval;
-        },
-    };
-
-    Scientific.isScientific = function isScientific(num) {
-        return /\d+\.?\d*e[+-]*\d+/iu.test(num);
-    };
-    Scientific.leadingZeroes = function leadingZeroes(num) {
-        const match = num.match(/^(?<zeros>0*).*$/u);
-        return match ? match[1] : '';
-    };
-    Scientific.removeLeadingZeroes = function removeLeadingZeroes(num) {
-        const match = num.match(/^0*(?<rest>.*)$/u);
-        return match ? match[1] : '';
-    };
-
-    Scientific.removeTrailingZeroes = function removeTrailingZeroes(num) {
-        const match = num.match(/0*$/u);
-        return match ? num.substring(0, num.length - match[0].length) : '';
-    };
-
-    Scientific.round = function round(c, n) {
-        let coeff = String(nround(c, n));
-        const m = coeff.includes('.') ? coeff.split('.').pop() : '';
-        const d = n - m.length;
-        // If we're asking for more significant figures
-        if (d > 0) {
-            if (!coeff.includes('.')) {
-                coeff += '.';
-            }
-            coeff += new Array(d + 1).join('0');
-        }
-        return coeff;
-    };
-
-    // Frac =========================================================================
-    /** High-precision fraction class. */
-    class Frac {
-        /** @param {number | string | Frac} [n] */
-        constructor(n) {
-            if (n instanceof Frac) {
-                return n;
-            }
-            if (n === undefined) {
-                return this;
-            }
-            try {
-                if (isInt(n)) {
-                    try {
-                        this.num = bigInt(n);
-                        this.den = bigInt(1);
-                    } catch (e) {
-                        if (e.message === 'timeout') {
-                            throw e;
-                        }
-                        return Frac.simple(n);
-                    }
-                } else {
-                    const frac =
-                        /** @type {any} */ (n) instanceof bigDec ? Fraction.quickConversion(n) : Fraction.convert(n);
-                    this.num = new bigInt(frac[0]);
-                    this.den = new bigInt(frac[1]);
-                }
-            } catch (e) {
-                if (e.message === 'timeout') {
-                    throw e;
-                }
-                return Frac.simple(n);
-            }
-        }
-
-        // Safe to use with negative numbers or other types
-        static create(n) {
-            if (n instanceof Frac) {
-                return n;
-            }
-            n = n.toString();
-            const isNeg = n.charAt(0) === '-'; // Check if it's negative
-            if (isNeg) {
-                n = n.substr(1, n.length - 1);
-            } // Remove the sign
-            const frac = new Frac(n);
-            // Put the sign back
-            if (isNeg) {
-                frac.negate();
-            }
-            return frac;
-        }
-
-        static isFrac(o) {
-            return o instanceof Frac;
-        }
-
-        static quick(n, d) {
-            const frac = new Frac();
-            frac.num = new bigInt(n);
-            frac.den = new bigInt(d);
-            return frac;
-        }
-
-        static simple(n) {
-            const nstr = String(scientificToDecimal(n));
-            const mDc = nstr.split('.');
-            const num = mDc.join('');
-            /** @type {string} */
-            let den = '1';
-            const l = (mDc[1] || '').length;
-            for (let i = 0; i < l; i++) {
-                den += '0';
-            }
-            const frac = Frac.quick(num, den);
-            return frac.simplify();
-        }
-
-        multiply(m) {
-            if (this.isOne()) {
-                return m.clone();
-            }
-            if (m.isOne()) {
-                return this.clone();
-            }
-
-            const c = this.clone();
-            c.num = c.num.multiply(m.num);
-            c.den = c.den.multiply(m.den);
-
-            return c.simplify();
-        }
-
-        divide(m) {
-            if (m.equals(0)) {
-                throw new DivisionByZero('Division by zero not allowed!');
-            }
-            return this.clone().multiply(m.clone().invert()).simplify();
-        }
-
-        subtract(m) {
-            return this.clone().add(m.clone().neg());
-        }
-
-        /** Alias for subtract */
-        sub(m) {
-            return this.subtract(m);
-        }
-
-        neg() {
-            this.num = this.num.multiply(-1);
-            return this;
-        }
-
-        add(m) {
-            const n1 = this.den;
-            const n2 = m.den;
-            const c = this.clone();
-            const a = c.num;
-            const b = m.num;
-            if (n1.equals(n2)) {
-                c.num = a.add(b);
-            } else {
-                c.num = a.multiply(n2).add(b.multiply(n1));
-                c.den = n1.multiply(n2);
-            }
-
-            return c.simplify();
-        }
-
-        mod(m) {
-            const a = this.clone();
-            const b = m.clone();
-            // Make their denominators even and return the mod of their numerators
-            a.num = a.num.multiply(b.den);
-            a.den = a.den.multiply(b.den);
-            b.num = b.num.multiply(this.den);
-            b.den = b.den.multiply(this.den);
-            a.num = a.num.mod(b.num);
-            return a.simplify();
-        }
-
-        simplify() {
-            const gcd = bigInt.gcd(this.num, this.den);
-
-            this.num = this.num.divide(gcd);
-            this.den = this.den.divide(gcd);
-            return this;
-        }
-
-        clone() {
-            const m = new Frac();
-            m.num = new bigInt(this.num);
-            m.den = new bigInt(this.den);
-            return m;
-        }
-
-        decimal(prec) {
-            const sign = this.num.isNegative() ? '-' : '';
-            if (this.num.equals(this.den)) {
-                return '1';
-            }
-            // Go plus two for rounding (one extra digit to round from, one for the rounding result)
-            prec ||= Settings.PRECISION;
-            prec += 2;
-            const narr = [];
-            let n = this.num.abs();
-            const d = this.den;
-            let i;
-            for (i = 0; i < prec; i++) {
-                const w = n.divide(d); // Divide out whole
-                const r = n.subtract(w.multiply(d)); // Get remainder
-
-                narr.push(w);
-                if (r.equals(0)) {
-                    break;
-                }
-                n = r.times(10); // Shift one dec place
-            }
-            const whole = narr.shift();
-            if (narr.length === 0) {
-                return sign + whole.toString();
-            }
-
-            if (i === prec) {
-                const lt = [];
-                // Get the last two so we can round it
-                for (let j = 0; j < 2; j++) {
-                    lt.unshift(narr.pop());
-                }
-                // Put the last digit back by rounding the last two
-                narr.push(Math.round(Number(lt.join('.'))));
-            }
-
-            const dec = `${whole.toString()}.${narr.join('')}`;
-            return sign + dec;
-        }
-
-        toDecimal(prec) {
-            prec ||= Settings.PRECISION;
-            if (prec) {
-                return this.decimal(prec);
-            }
-            return this.num / this.den;
-        }
-
-        /** @param {FracType} n */
-        qcompare(n) {
-            return [this.num.multiply(n.den), n.num.multiply(this.den)];
-        }
-
-        equals(n) {
-            if (!isNaN(n)) {
-                n = new Frac(n);
-            }
-            const q = this.qcompare(n);
-
-            return q[0].equals(q[1]);
-        }
-
-        absEquals(n) {
-            if (!isNaN(n)) {
-                n = new Frac(n);
-            }
-            const q = this.qcompare(n);
-
-            return q[0].abs().equals(q[1]);
-        }
-
-        // Lazy check to be fixed. Sufficient for now but will cause future problems
-        greaterThan(n) {
-            if (!isNaN(n)) {
-                n = new Frac(n);
-            }
-            const q = this.qcompare(n);
-
-            return q[0].gt(q[1]);
-        }
-
-        /** Alias for greaterThan */
-        gt(n) {
-            return this.greaterThan(n);
-        }
-
-        gte(n) {
-            return this.greaterThan(n) || this.equals(n);
-        }
-
-        lte(n) {
-            return this.lessThan(n) || this.equals(n);
-        }
-
-        lessThan(n) {
-            if (!isNaN(n)) {
-                n = new Frac(n);
-            }
-            const q = this.qcompare(n);
-
-            return q[0].lt(q[1]);
-        }
-
-        /** Alias for lessThan */
-        lt(n) {
-            return this.lessThan(n);
-        }
-
-        isInteger() {
-            return this.den.equals(1);
-        }
-
-        negate() {
-            this.num = this.num.multiply(-1);
-            return this;
-        }
-
-        invert() {
-            const t = this.den;
-            // Why invert 0/1? It'll become 1/0 and that's a lie.
-            if (!this.num.equals(0)) {
-                const isnegative = this.num.isNegative();
-                this.den = this.num.abs();
-                this.num = t;
-                if (isnegative) {
-                    this.num = this.num.multiply(-1);
-                }
-            }
-
-            return this;
-        }
-
-        isOne() {
-            return this.num.equals(1) && this.den.equals(1);
-        }
-
-        sign() {
-            return this.num.isNegative() ? -1 : 1;
-        }
-
-        abs() {
-            this.num = this.num.abs();
-            return this;
-        }
-
-        gcd(f) {
-            return Frac.quick(bigInt.gcd(f.num, this.num), bigInt.lcm(f.den, this.den));
-        }
-
-        toString() {
-            return this.den.equals(1) ? this.num.toString() : `${this.num.toString()}/${this.den.toString()}`;
-        }
-
-        valueOf() {
-            //            If(this.num == 24) throw new Error(999)
-            if (Settings.USE_BIG) {
-                return new bigDec(this.num.toString()).div(new bigDec(this.den.toString()));
-            }
-            const retval = this.num / this.den;
-            return retval;
-        }
-
-        isNegative() {
-            return /** @type {number} */ (this.toDecimal()) < 0;
-        }
-
-        /**
-         * Checks if this fraction contains the given number (i.e., is divisible by it)
-         *
-         * @param {number | FracType} n
-         * @returns {boolean}
-         */
-        contains(n) {
-            /** @type {FracType} */
-            const fracN = typeof n === 'number' ? /** @type {FracType} */ (/** @type {unknown} */ (new Frac(n))) : n;
-            return this.mod(fracN).equals(0);
-        }
-    }
+    // Scientific class is now defined outside the IIFE (see above).\n    // Initialize its dependencies now that they're available.\n    ScientificDeps.Settings = Settings;\n    ScientificDeps.nround = nround;\n\n    // Frac class is now defined outside the IIFE (see above).
+    // Initialize its dependencies now that they're available.
+    FracDeps.bigInt = bigInt;
+    FracDeps.bigDec = bigDec;
+    FracDeps.isInt = isInt;
+    FracDeps.scientificToDecimal = scientificToDecimal;
+    FracDeps.DivisionByZero = DivisionByZero;
+    FracDeps.Settings = Settings;
+    // Note: Fraction is initialized later after it's defined (see line ~11700)
 
     // NerdamerSymbol =======================================================================
     /**
@@ -3834,7 +5796,7 @@ const nerdamer = (function initNerdamerCore(imports) {
      * All symbols except for "numbers (group N)" have a power.
      *
      * @class Primary Data type for the Parser.
-     * @param {string | number | NerdamerSymbolType | FracType | BigInteger | object} [obj]
+     * @param {string | number | NerdamerSymbolType | FracType | import('big-integer').BigInteger | object} [obj]
      * @returns {NerdamerSymbolType}
      */
     function NerdamerSymbol(obj) {
@@ -4155,10 +6117,10 @@ const nerdamer = (function initNerdamerCore(imports) {
         equals(symbol) {
             /** @type {NerdamerSymbol} */
             let sym;
-            if (!isSymbol(symbol)) {
-                sym = new NerdamerSymbol(symbol);
-            } else {
+            if (isSymbol(symbol)) {
                 sym = symbol;
+            } else {
+                sym = new NerdamerSymbol(symbol);
             }
             return (
                 this.value === sym.value &&
@@ -5536,7 +7498,7 @@ const nerdamer = (function initNerdamerCore(imports) {
         // Point to the local parser instead of this global one
 
         /** @type {ParserType} */
-        const _ = /** @type {ParserType} */ (/** @type {unknown} */ (this));
+        const _parser = /** @type {ParserType} */ (/** @type {unknown} */ (this));
         const bin = {};
         const preprocessors = { names: [], actions: [] };
 
@@ -6675,7 +8637,7 @@ const nerdamer = (function initNerdamerCore(imports) {
                 id: 5,
                 is_open: true,
                 is_close: false,
-                maps_to: 'Set',
+                maps_to: 'NerdamerSet',
             },
             '}': {
                 type: 'curly',
@@ -6750,7 +8712,7 @@ const nerdamer = (function initNerdamerCore(imports) {
             pfactor: [pfactor, 1],
             vector: [vector, -1],
             matrix: [matrix, -1],
-            Set: [set, -1],
+            NerdamerSet: [set, -1],
             imatrix: [imatrix, -1],
             parens: [parens, -1],
             sqrt: [sqrt, 1],
@@ -6974,6 +8936,7 @@ const nerdamer = (function initNerdamerCore(imports) {
          * @param {Function} [action]
          * @param {'over' | 'under'} [shift]
          */
+        // eslint-disable-next-line no-shadow -- intentionally shadows outer setOperator for Parser method
         this.setOperator = function setOperator(operator, action = undefined, shift = undefined) {
             const name = operator.operator; // Take the name to be the symbol
             operators[name] = operator;
@@ -6981,7 +8944,7 @@ const nerdamer = (function initNerdamerCore(imports) {
                 this[operator.action] = action;
             }
             // Make the parser aware of the operator
-            _[name] = operator.operation;
+            _parser[name] = operator.operation;
             // Make the action available to the parser if infix
             if (!operator.action && !(operator.prefix || operator.postif)) {
                 operator.action = name;
@@ -7009,10 +8972,12 @@ const nerdamer = (function initNerdamerCore(imports) {
          * @param {string} operator
          * @returns {object}
          */
+        // eslint-disable-next-line no-shadow -- intentionally shadows outer getOperator for Parser method
         this.getOperator = function getOperator(operator) {
             return operators[operator];
         };
 
+        // eslint-disable-next-line no-shadow -- intentionally shadows outer aliasOperator for Parser method
         this.aliasOperator = function aliasOperator(o, n) {
             const t = {};
             const operator = operators[o];
@@ -7636,6 +9601,7 @@ const nerdamer = (function initNerdamerCore(imports) {
          * @param {object} substitutions
          * @returns {NerdamerSymbolType}
          */
+        // eslint-disable-next-line no-shadow -- rpn parameter name matches expected API
         this.parseRPN = function parseRPN(rpn, substitutions) {
             try {
                 // Default substitutions
@@ -7689,11 +9655,11 @@ const nerdamer = (function initNerdamerCore(imports) {
 
                                 const isComma = e.action === 'comma';
                                 // Convert Sets to Vectors on all operations at this point. Sets are only recognized functions or individually
-                                if (a instanceof Set && !isComma) {
+                                if (a instanceof NerdamerSet && !isComma) {
                                     a = Vector.fromSet(/** @type {SetType} */ (/** @type {unknown} */ (a)));
                                 }
 
-                                if (b instanceof Set && !isComma) {
+                                if (b instanceof NerdamerSet && !isComma) {
                                     b = Vector.fromSet(/** @type {SetType} */ (/** @type {unknown} */ (b)));
                                 }
 
@@ -7894,6 +9860,7 @@ const nerdamer = (function initNerdamerCore(imports) {
             return html;
         };
 
+        // eslint-disable-next-line no-shadow -- intentionally shadows outer tree for Parser method
         this.tree = function tree(tokens) {
             const Q = [];
             for (let i = 0; i < tokens.length; i++) {
@@ -7943,13 +9910,14 @@ const nerdamer = (function initNerdamerCore(imports) {
 
             return Q[0];
         };
+        // eslint-disable-next-line no-shadow -- intentionally shadows outer parse for Parser method
         this.parse = function parse(e, substitutions) {
             e = prepareExpression(e, this);
             substitutions ||= {};
             // Three passes but easier to debug
             const tokens = this.tokenize(e);
-            const rpn = this.toRPN(tokens);
-            return this.parseRPN(rpn, substitutions);
+            const rpnTokens = this.toRPN(tokens);
+            return this.parseRPN(rpnTokens, substitutions);
         };
         /**
          * TODO: Switch to Parser.tokenize for this method Reads a string into an array of Symbols and operators
@@ -8086,7 +10054,7 @@ const nerdamer = (function initNerdamerCore(imports) {
 
             let obj = typeof expressionOrObj === 'string' ? this.toObject(expressionOrObj) : expressionOrObj;
             const TeX = [];
-            const cdot = typeof opt.cdot === 'undefined' ? '\\cdot' : opt.cdot; // Set omit cdot to true by default
+            const cdot = typeof opt.cdot === 'undefined' ? '\\cdot' : opt.cdot; // NerdamerSet omit cdot to true by default
 
             // Remove negative powers as per issue #570
             obj = removeRedundantPowers(obj);
@@ -8189,11 +10157,13 @@ const nerdamer = (function initNerdamerCore(imports) {
                                 LaTeX.braces(`${this.toTeX(argSplit[1])} = ${this.toTeX(argSplit[2])}`);
                             f += `^${LaTeX.braces(this.toTeX(argSplit[3]))}${LaTeX.braces(this.toTeX(argSplit[0]))}`;
                         } else if (fname === 'limit') {
+                            const toTeXfn = this.toTeX.bind(this);
+                            const parserRef = _;
                             const args = chunkAtCommas(e.args).map(x => {
                                 if (Array.isArray(x)) {
-                                    return _.toTeX(x.join(''));
+                                    return parserRef.toTeX(x.join(''));
                                 }
-                                return _.toTeX(String(x));
+                                return toTeXfn(String(x));
                             });
                             f = `\\lim_${LaTeX.braces(`${args[1]}\\to ${args[2]}`)} ${LaTeX.braces(args[0])}`;
                         } else if (fname === FACTORIAL || fname === DOUBLEFACTORIAL) {
@@ -8411,7 +10381,7 @@ const nerdamer = (function initNerdamerCore(imports) {
             return b;
         }
         /**
-         * @param {Matrix | Vector | Set | Collection} obj
+         * @param {Matrix | Vector | NerdamerSet | Collection} obj
          * @param {NerdamerSymbolType} item
          * @returns {NerdamerSymbolType}
          */
@@ -8681,6 +10651,8 @@ const nerdamer = (function initNerdamerCore(imports) {
                     const c = [new NerdamerSymbol(symbol.multiplier.num), new NerdamerSymbol(symbol.multiplier.den)];
                     const r = [new NerdamerSymbol(1), new NerdamerSymbol(1)];
                     const sq = [new NerdamerSymbol(1), new NerdamerSymbol(1)];
+                    // Capture _ to avoid no-loop-func warning
+                    const parserRef = _;
                     for (let i = 0; i < 2; i++) {
                         const n = c[i];
                         // Get the prime factors and loop through each.
@@ -8691,8 +10663,8 @@ const nerdamer = (function initNerdamerCore(imports) {
                             // We'll consider it safe to use the native Number since 2^1000 is already a pretty huge number
                             const rem = p % 2; // Get the remainder. This will be 1 if 3 since sqrt(n^2) = n where n is positive
                             const w = (p - rem) / 2; // Get the whole numbers of n/2
-                            r[i] = _.multiply(r[i], _.pow(b, new NerdamerSymbol(w)));
-                            sq[i] = _.multiply(sq[i], sqrt(_.pow(b, new NerdamerSymbol(rem))));
+                            r[i] = parserRef.multiply(r[i], parserRef.pow(b, new NerdamerSymbol(w)));
+                            sq[i] = parserRef.multiply(sq[i], sqrt(parserRef.pow(b, new NerdamerSymbol(rem))));
                         });
                     }
                     m = _.divide(_.multiply(r[0], sq[0]), _.multiply(r[1], sq[1]));
@@ -9231,7 +11203,7 @@ const nerdamer = (function initNerdamerCore(imports) {
                     e = Number(x).toExponential().toString().split('e');
                     // Point v to the coefficient of then number
                     v = e[0];
-                    // Set the expontent
+                    // NerdamerSet the expontent
                     exponent = e[1];
                 }
                 // Round the number to the requested precision
@@ -9403,7 +11375,7 @@ const nerdamer = (function initNerdamerCore(imports) {
 
             const original = symbol.clone();
 
-            // Set up a try-catch block. If anything goes wrong then we simply return the original symbol
+            // NerdamerSet up a try-catch block. If anything goes wrong then we simply return the original symbol
             try {
                 // Store the power and multiplier
                 const m = symbol.multiplier.toString();
@@ -9573,7 +11545,7 @@ const nerdamer = (function initNerdamerCore(imports) {
         }
 
         /**
-         * Set a value for a vector at a given index
+         * NerdamerSet a value for a vector at a given index
          *
          * @param {Vector} vec
          * @param {NerdamerSymbolType} index
@@ -9691,8 +11663,9 @@ const nerdamer = (function initNerdamerCore(imports) {
         }
 
         // The constructor for sets
+        // eslint-disable-next-line no-shadow -- intentionally shadows outer set for parser function
         function set(...args) {
-            return Set.fromArray(args);
+            return NerdamerSet.fromArray(args);
         }
 
         function determinant(symbol) {
@@ -9841,7 +11814,7 @@ const nerdamer = (function initNerdamerCore(imports) {
                 }
 
                 if (isInt(p)) {
-                    symbol = new NerdamerSymbol(fct ** p);
+                    symbol = new NerdamerSymbol(fct ** Number(p));
                 } else {
                     symbol = /** @type {NerdamerSymbolType} */ (
                         /** @type {unknown} */ (new NerdamerSymbol(fct))
@@ -11185,7 +13158,7 @@ const nerdamer = (function initNerdamerCore(imports) {
         this.percent = function percent(a) {
             return _.divide(a, new NerdamerSymbol(100));
         };
-        // Set variable
+        // NerdamerSet variable
         this.assign = function assign(a, b) {
             if (a instanceof Collection && b instanceof Collection) {
                 a.elements.map((x, i) => _.assign(x, b.elements[i]));
@@ -11245,6 +13218,43 @@ const nerdamer = (function initNerdamerCore(imports) {
 
     // Inits ========================================================================
     _ = /** @type {ParserType} */ (/** @type {unknown} */ (new Parser())); // Nerdamer's parser
+
+    // Initialize EvaluateDeps with parser reference
+    EvaluateDeps._ = _;
+
+    // Supported is now defined outside IIFE
+    // Initialize SupportedDeps with _.functions reference (use getter for lazy access)
+    Object.defineProperty(SupportedDeps, 'functions', {
+        get: () => _.functions,
+        configurable: true,
+    });
+
+    // GetConstant is now defined outside IIFE
+    // Initialize GetConstantDeps with _.CONSTANTS reference (use getter for lazy access)
+    Object.defineProperty(GetConstantDeps, 'CONSTANTS', {
+        get: () => _.CONSTANTS,
+        configurable: true,
+    });
+
+    // GetVar is now defined outside IIFE
+    // Initialize GetVarDeps with VARS reference (use getter since VARS can be reassigned)
+    Object.defineProperty(GetVarDeps, 'VARS', {
+        get: () => VARS,
+        configurable: true,
+    });
+
+    // ChainDeps initialization - use getters for VARS since it can be reassigned
+    Object.defineProperty(ChainDeps, 'VARS', {
+        get: () => VARS,
+        configurable: true,
+    });
+    ChainDeps._clearFunctions = _clearFunctions;
+    ChainDeps._initConstants = () => _.initConstants();
+
+    // ConvertToLaTeX is now defined outside IIFE
+    // Initialize ConvertToLaTeXDeps with _ and C references
+    ConvertToLaTeXDeps._ = _;
+    ConvertToLaTeXDeps.C = C;
 
     /* "STATIC" */
     // converts a number to a fraction.
@@ -11394,7 +13404,9 @@ const nerdamer = (function initNerdamerCore(imports) {
             return [num, den];
         },
     };
-    // Depends on Fraction
+
+    // Complete FracDeps initialization now that Fraction is defined
+    FracDeps.Fraction = Fraction;
 
     // The latex generator
     LaTeX = {
@@ -11982,13 +13994,12 @@ const nerdamer = (function initNerdamerCore(imports) {
         /**
          * Removes extreneous tokens
          *
-         * @param {import('./index').NerdamerCore.ScopeArray<{ type: string; value: string }>} tokens
-         * @returns {import('./index').NerdamerCore.ScopeArray<{ type: string; value: string }>}
+         * @param {{ type: string; value: string }[] & { type?: string }} tokens
+         * @returns {{ type: string; value: string }[] & { type?: string }}
          */
         filterTokens(tokens) {
-            /** @type {import('./index').NerdamerCore.ScopeArray<{ type: string; value: string }>} */
-            const filtered =
-                /** @type {import('./index').NerdamerCore.ScopeArray<{ type: string; value: string }>} */ ([]);
+            /** @type {{ type: string; value: string }[] & { type?: string }} */
+            const filtered = /** @type {{ type: string; value: string }[] & { type?: string }} */ ([]);
 
             // Copy over the type of the scope
             if (isArray(tokens)) {
@@ -12063,7 +14074,11 @@ const nerdamer = (function initNerdamerCore(imports) {
                     const d = parseNext();
                     retval += `${n}/${d}`;
                 } else if (token.value in LaTeX.symbols) {
-                    if (token.value === SQRT && tokens[i + 1].type === 'vector' && tokens[i + 2].type === 'Set') {
+                    if (
+                        token.value === SQRT &&
+                        tokens[i + 1].type === 'vector' &&
+                        tokens[i + 2].type === 'NerdamerSet'
+                    ) {
                         const base = parseNext();
                         const expr = parseNext();
                         retval += `${expr}^${inBrackets(`1/${base}`)}`;
@@ -12180,6 +14195,23 @@ const nerdamer = (function initNerdamerCore(imports) {
             return inBrackets(retval);
         },
     };
+
+    // Initialize ExpressionsDeps with references
+    // Use getters for EXPRESSIONS and USER_FUNCTIONS since they can be reassigned
+    Object.defineProperty(ExpressionsDeps, 'EXPRESSIONS', {
+        get: () => EXPRESSIONS,
+        configurable: true,
+    });
+    Object.defineProperty(ExpressionsDeps, 'USER_FUNCTIONS', {
+        get: () => USER_FUNCTIONS,
+        configurable: true,
+    });
+    ExpressionsDeps.LaTeX = LaTeX;
+    ExpressionsDeps.text = text;
+    ExpressionsDeps.functions = _.functions;
+    ExpressionsDeps._ = _;
+    // Note: ExpressionsDeps.Math2 and ExpressionsDeps.Expression are initialized later after C is defined
+
     // Vector =======================================================================
     /**
      * @class
@@ -12189,7 +14221,7 @@ const nerdamer = (function initNerdamerCore(imports) {
     function Vector(v, ...rest) {
         this.multiplier = new Frac(1);
         if (isVector(v)) {
-            this.elements = v.items.slice(0);
+            this.elements = /** @type {any[]} */ (v.elements)?.slice(0) ?? [];
         } else if (isArray(v)) {
             this.elements = v.slice(0);
         } else if (isMatrix(v)) {
@@ -12233,13 +14265,13 @@ const nerdamer = (function initNerdamerCore(imports) {
     };
 
     /**
-     * Convert a Set to a Vector
+     * Convert a NerdamerSet to a Vector
      *
-     * @param {SetType} set
+     * @param {SetType} nerdamerSet
      * @returns {Vector}
      */
-    Vector.fromSet = function fromSet(set) {
-        return Vector.fromArray(set.elements);
+    Vector.fromSet = function fromSet(nerdamerSet) {
+        return Vector.fromArray(nerdamerSet.elements);
     };
 
     // Ported from Sylvester.js
@@ -13009,119 +15041,16 @@ const nerdamer = (function initNerdamerCore(imports) {
     // Aliases
     Matrix.prototype.each = Matrix.prototype.eachElement;
 
-    function Set(set, ...rest) {
-        this.elements = [];
-        // If the first object isn't an array, convert it to one.
-        if (typeof set === 'undefined') {
-            // No arguments passed
-            return;
-        }
-        if (!isVector(set)) {
-            set = Vector.fromArray([set, ...rest]);
-        }
+    // NerdamerSet class is now defined outside the IIFE (see above).
+    // Initialize its dependencies now that they're available.
+    SetDeps.isVector = isVector;
+    SetDeps.Vector = Vector;
+    SetDeps.remove = remove;
 
-        if (set) {
-            const { elements } = set;
-            for (let i = 0, l = elements.length; i < l; i++) {
-                this.add(elements[i]);
-            }
-        }
-    }
-
-    Set.fromArray = function fromArray(arr) {
-        /** @class */
-        function F(args) {
-            return Set.apply(this, args);
-        }
-        F.prototype = Set.prototype;
-
-        return new F(arr);
-    };
-
-    /** @type {any} */
-    Set.prototype = {
-        add(x) {
-            if (!this.contains(x)) {
-                this.elements.push(x.clone());
-            }
-        },
-        contains(x) {
-            for (let i = 0; i < this.elements.length; i++) {
-                const e = this.elements[i];
-                if (x.equals(e)) {
-                    return true;
-                }
-            }
-            return false;
-        },
-        each(f) {
-            const { elements } = this;
-            const set = new Set();
-            for (let i = 0, l = elements.length; i < l; i++) {
-                const e = elements[i];
-                f.call(this, e, set, i);
-            }
-            return set;
-        },
-        clone() {
-            const set = new Set();
-            this.each(e => {
-                set.add(e.clone());
-            });
-            return set;
-        },
-        union(set) {
-            const _union = this.clone();
-            set.each(e => {
-                _union.add(e);
-            });
-
-            return _union;
-        },
-        difference(set) {
-            const diff = this.clone();
-            set.each(e => {
-                diff.remove(e);
-            });
-            return diff;
-        },
-        remove(element) {
-            for (let i = 0, l = this.elements.length; i < l; i++) {
-                const e = this.elements[i];
-                if (e.equals(element)) {
-                    remove(this.elements, i);
-                    return true;
-                }
-            }
-            return false;
-        },
-        intersection(set) {
-            const _intersection = new Set();
-            const A = this;
-            set.each(e => {
-                if (A.contains(e)) {
-                    _intersection.add(e);
-                }
-            });
-
-            return _intersection;
-        },
-        intersects(set) {
-            return this.intersection(set).elements.length > 0;
-        },
-        isSubset(set) {
-            const { elements } = set;
-            for (let i = 0, l = elements.length; i < l; i++) {
-                if (!this.contains(elements[i])) {
-                    return false;
-                }
-            }
-            return true;
-        },
-        toString() {
-            return `{${this.elements.join(',')}}`;
-        },
-    };
+    // Collection class is now defined outside the IIFE (see above).
+    // Initialize its dependencies now that they're available.
+    CollectionDeps._ = _;
+    CollectionDeps.block = block;
 
     // Build ========================================================================
     Build = {
@@ -13495,6 +15424,10 @@ const nerdamer = (function initNerdamerCore(imports) {
         exceptions,
     };
 
+    // Complete ExpressionsDeps initialization (Math2 and Expression are part of C which is now defined)
+    ExpressionsDeps.Math2 = C.Math2;
+    ExpressionsDeps.Expression = Expression;
+
     // LibExports ===================================================================
     /**
      * @param {string} expression The expression to be evaluated
@@ -13558,30 +15491,59 @@ const nerdamer = (function initNerdamerCore(imports) {
             disarmTimeout();
         }
     };
+
+    // Initialize ChainDeps.libExports for chain functions
+    ChainDeps.libExports = libExports;
+
+    // Initialize SetConstantDeps for setConstant function
+    SetConstantDeps.libExports = libExports;
+    SetConstantDeps.CONSTANTS = _.CONSTANTS;
+
+    // Initialize SetVarDeps for setVar function
+    SetVarDeps.libExports = libExports;
+    SetVarDeps.VARS = VARS;
+    SetVarDeps.CONSTANTS = _.CONSTANTS;
+    SetVarDeps.parse = _.parse.bind(_);
+    SetVarDeps.isSymbol = isSymbol;
+
+    // Initialize SetFunctionDeps for setFunction function
+    SetFunctionDeps.libExports = libExports;
+    SetFunctionDeps._setFunction = _setFunction;
+
+    // Initialize ClearDeps for clear function
+    ClearDeps.libExports = libExports;
+    ClearDeps.EXPRESSIONS = EXPRESSIONS;
+
+    // Initialize RegisterDeps for register function
+    RegisterDeps.libExports = libExports;
+    RegisterDeps.Settings = Settings;
+    RegisterDeps.functions = _.functions;
+
+    // Initialize SettingsDeps for set function
+    SettingsDeps.bigDec = bigDec;
+    SettingsDeps.Settings = Settings;
+    SettingsDeps.functions = _.functions;
+    SettingsDeps.symfunction = _.symfunction.bind(_);
+    SettingsDeps.NerdamerSymbol = NerdamerSymbol;
+
+    // Initialize UpdateAPIDeps for updateAPI function
+    UpdateAPIDeps.libExports = libExports;
+    UpdateAPIDeps.functions = _.functions;
+    UpdateAPIDeps.parse = _.parse.bind(_);
+    UpdateAPIDeps.callfunction = _.callfunction.bind(_);
+    UpdateAPIDeps.Expression = Expression;
+
     /**
      * Converts expression into rpn form
      *
      * @param {string} expression
      * @returns {object[]}
      */
-    libExports.rpn = function rpn(expression) {
-        return _.tokenize(
-            /** @type {string} */ (
-                /** @type {unknown} */ (_.toRPN(/** @type {any[]} */ (/** @type {unknown} */ (expression))))
-            )
-        );
-    };
+    // rpn - uses extracted function
+    libExports.rpn = rpn;
 
-    /**
-     * Generates LaTeX from expression string
-     *
-     * @param {string} e
-     * @param {object} opt
-     * @returns {string}
-     */
-    libExports.convertToLaTeX = function convertToLaTeX(e, opt) {
-        return _.toTeX(e, opt);
-    };
+    // ConvertToLaTeX - uses extracted function
+    libExports.convertToLaTeX = convertToLaTeX;
 
     /**
      * Converts latex to text - Very very very basic at the moment
@@ -13589,18 +15551,9 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {string} e
      * @returns {Expression}
      */
-    libExports.convertFromLaTeX = function convertFromLaTeX(e) {
-        // Convert x_2a => x_2 a
-        e = e.replace(/_(?<char>[A-Za-z0-9])/gu, (...g) => `${g[0]} `);
-        // Convert x^2 => x^{2}
-        e = e.replace(/\^(?<char>[A-Za-z0-9])/gu, (...g) => `^{${g[1]}}`);
-        // Convert \frac12 => \frac{1}2
-        e = e.replace(/(?<cmd>\\[A-Za-z]+)(?<digit>\d)/gu, (...g) => `${g[1]}{${g[2]}}`);
-        // Convert \frac{1}2 => \frac{1}{2}
-        e = e.replace(/(?<cmd>\\[A-Za-z]+\{.*?\})(?<digit>\d)/gu, (...g) => `${g[1]}{${g[2]}}`);
-        const txt = LaTeX.parse(_.tokenize(e));
-        return new Expression(_.parse(txt));
-    };
+    // convertFromLaTeX is now defined outside IIFE
+    // Uses ExpressionsDeps.LaTeX.parse, ExpressionsDeps._.tokenize/parse, and ExpressionsDeps.Expression
+    libExports.convertFromLaTeX = convertFromLaTeX;
 
     /**
      * Get the version of nerdamer or a loaded add-on
@@ -13608,49 +15561,27 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {string} addOn - The add-on being checked
      * @returns {string} Returns the version of nerdamer
      */
-    libExports.version = function version(addOn) {
-        if (addOn) {
-            try {
-                return C[addOn].version;
-            } catch (e) {
-                if (e.message === 'timeout') {
-                    throw e;
-                }
-                return `No module named ${addOn} found!`;
-            }
-        }
-        return _version;
-    };
+    // version is now defined outside IIFE
+    // Uses VersionDeps._version and VersionDeps.C which are already initialized
+    libExports.version = version;
 
     /**
      * Get nerdamer generated warnings
      *
      * @returns {string[]}
      */
-    libExports.getWarnings = function getWarnings() {
-        return WARNINGS;
-    };
+    // getWarnings is now defined outside IIFE
+    // Uses WarnDeps.WARNINGS which is already initialized with WARNINGS reference
+    libExports.getWarnings = getWarnings;
 
     /**
      * @param {string} constant The name of the constant to be set
      * @param {any} value The value of the constant
      * @returns {object} Returns the nerdamer object
      */
-    libExports.setConstant = function setConstant(constant, value) {
-        validateName(constant);
-        if (!isReserved(constant)) {
-            // Fix for issue #127
-            if (value === 'delete' || value === '') {
-                delete _.CONSTANTS[constant];
-            } else {
-                if (isNaN(value)) {
-                    throw new NerdamerTypeError('Constant must be a number!');
-                }
-                _.CONSTANTS[constant] = value;
-            }
-        }
-        return this;
-    };
+    // setConstant is now defined outside IIFE
+    // Uses SetConstantDeps for dependency injection
+    libExports.setConstant = setConstant;
 
     /**
      * Returns the value of a previously set constant
@@ -13658,19 +15589,18 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {any} constant
      * @returns {string}
      */
-    libExports.getConstant = function getConstant(constant) {
-        return String(_.CONSTANTS[constant]);
-    };
+    // getConstant is now defined outside IIFE
+    // Uses GetConstantDeps.CONSTANTS which is already initialized with _.CONSTANTS reference
+    libExports.getConstant = getConstant;
 
     /**
      * Clear added constants from the CONSTANTS object
      *
      * @returns {object} Returns the nerdamer object
      */
-    libExports.clearConstants = function clearConstants() {
-        _.initConstants.bind(_);
-        return this;
-    };
+    // clearConstants is now defined outside IIFE
+    // Uses ChainDeps._initConstants and ChainDeps.libExports for chaining
+    libExports.clearConstants = clearConstants;
 
     /**
      * @example
@@ -13686,27 +15616,23 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {string | undefined} fnBody The body of the function
      * @returns {nerdamer} Returns nerdamer if succeeded and falls on fail
      */
-    libExports.setFunction = function setFunction(fnName, fnParams, fnBody) {
-        if (!_setFunction(fnName, fnParams, fnBody)) {
-            throw new Error('Failed to set function!');
-        }
-        return this;
-    };
+    // setFunction is now defined outside IIFE
+    // Uses SetFunctionDeps for dependency injection
+    libExports.setFunction = setFunction;
 
     /**
      * Clears all added functions
      *
      * @returns {libExports}
      */
-    libExports.clearFunctions = function clearFunctions() {
-        _clearFunctions();
-        return this;
-    };
+    // clearFunctions is now defined outside IIFE
+    // Uses ChainDeps._clearFunctions and ChainDeps.libExports for chaining
+    libExports.clearFunctions = clearFunctions;
 
     /** @returns {C} Exports the nerdamer core functions and objects */
-    libExports.getCore = function getCore() {
-        return C;
-    };
+    // getCore is now defined outside IIFE
+    // Uses VersionDeps.C which is already initialized with the Core object
+    libExports.getCore = getCore;
 
     libExports.getExpression = libExports.getEquation = Expression.getExpression;
 
@@ -13714,12 +15640,9 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {boolean} asArray The returned names are returned as an array if this is set to true;
      * @returns {string | Array}
      */
-    libExports.reserved = function reserved(asArray) {
-        if (asArray) {
-            return RESERVED;
-        }
-        return RESERVED.join(', ');
-    };
+    // reserved is now defined outside IIFE
+    // Uses ClearUDeps.RESERVED which is already initialized
+    libExports.reserved = reserved;
 
     /**
      * @param {number} equationNumber The number of the equation to clear. If 'all' is supplied then all equations are
@@ -13727,29 +15650,21 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {boolean} [keepExpressionsFixed] Use true if you don't want to keep EXPRESSIONS length fixed
      * @returns {object} Returns the nerdamer object
      */
-    libExports.clear = function clear(equationNumber, keepExpressionsFixed = false) {
-        if (/** @type {unknown} */ (equationNumber) === 'all') {
-            EXPRESSIONS = [];
-        } else if (/** @type {unknown} */ (equationNumber) === 'last') {
-            EXPRESSIONS.pop();
-        } else if (/** @type {unknown} */ (equationNumber) === 'first') {
-            EXPRESSIONS.shift();
-        } else {
-            const index = equationNumber ? equationNumber - 1 : EXPRESSIONS.length;
-            keepExpressionsFixed === true ? (EXPRESSIONS[index] = undefined) : remove(EXPRESSIONS, index);
-        }
-        return this;
-    };
+    // clear is now defined outside IIFE
+    // Uses ClearDeps for dependency injection
+    libExports.clear = clear;
+
+    // Initialize ChainDeps.clear now that clear is defined
+    ChainDeps.clear = clear;
 
     /**
      * Alias for nerdamer.clear('all')
      *
      * @this {typeof libExports}
      */
-    libExports.flush = function flush() {
-        libExports.clear(/** @type {any} */ ('all'));
-        return this;
-    };
+    // flush is now defined outside IIFE
+    // Uses ChainDeps.clear and ChainDeps.libExports for chaining
+    libExports.flush = flush;
 
     /**
      * @param {boolean} asObject
@@ -13757,79 +15672,23 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {string | string[]} option
      * @returns {Array | object}
      */
-    libExports.expressions = function expressions(asObject, asLaTeX, option) {
-        /** @type {Record<number, string> | string[]} */
-        const result = asObject ? {} : [];
-        for (let i = 0; i < EXPRESSIONS.length; i++) {
-            const eq = asLaTeX ? LaTeX.latex(EXPRESSIONS[i], option) : text(EXPRESSIONS[i], option);
-            asObject ? (result[i + 1] = eq) : /** @type {string[]} */ (result).push(eq);
-        }
-        return result;
-    };
+    // expressions is now defined outside IIFE
+    // Uses ExpressionsDeps for EXPRESSIONS, LaTeX.latex, and text references
+    libExports.expressions = expressions;
 
     /**
      * @param {boolean} asObject
      * @param {string | string[]} option
      * @returns {any}
      */
-    libExports.functions = function functions(asObject, option) {
-        const result = asObject ? {} : [];
-        for (let i = 0; i < USER_FUNCTIONS.length; i++) {
-            let params;
-            let body;
-            const fnName = USER_FUNCTIONS[i];
-            const fnDef = _.functions[fnName][2];
-            if (fnDef) {
-                ({ params, body } = fnDef);
-            } else {
-                const fnString = C.Math2[fnName].toString();
-                [, params] = /\((?<params>.*?)\)/u.exec(fnString);
-                params = params.split(',').map(x => x.trim());
-                body = '{JavaScript}';
-            }
-            const fn = `${fnName}(${params.join(', ')})=${body}`;
-            const eq = text(fn, option);
-            asObject ? (result[i + 1] = eq) : result.push(eq);
-        }
-        return result;
-    };
+    // functions is now defined outside IIFE as getFunctions
+    // Uses ExpressionsDeps for USER_FUNCTIONS, _.functions, C.Math2, and text references
+    libExports.functions = getFunctions;
 
     // The method for registering modules
-    libExports.register = function register(obj) {
-        const core = this.getCore();
-
-        if (isArray(obj)) {
-            for (let i = 0; i < obj.length; i++) {
-                if (obj) {
-                    this.register(obj[i]);
-                }
-            }
-        } else if (obj && Settings.exclude.indexOf(obj.name) === -1) {
-            // Make sure all the dependencies are available
-            if (obj.dependencies) {
-                for (let i = 0; i < obj.dependencies.length; i++) {
-                    if (!core[obj.dependencies[i]]) {
-                        throw new Error(format('{0} requires {1} to be loaded!', obj.name, obj.dependencies[i]));
-                    }
-                }
-            }
-            // If no parent object is provided then the function does not have an address and cannot be called directly
-            const parentObj = obj.parent;
-            const fn = obj.build.call(core); // Call constructor to get function
-            if (parentObj) {
-                if (!core[parentObj]) {
-                    core[obj.parent] = {};
-                }
-
-                const refObj = parentObj === 'nerdamer' ? this : core[parentObj];
-                // Attach the function to the core
-                refObj[obj.name] = fn;
-            }
-            if (obj.visible) {
-                _.functions[obj.name] = [fn, obj.numargs];
-            } // Make the function available
-        }
-    };
+    // register is now defined outside IIFE
+    // Uses RegisterDeps for libExports, Settings, and _.functions references
+    libExports.register = register;
 
     /**
      * @param {string} name Variable name
@@ -13841,27 +15700,19 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {string} varname Variable name
      * @returns {boolean} Validates if the profided string is a valid variable name
      */
-    libExports.validVarName = function validVarName(varname) {
-        try {
-            validateName(varname);
-            return RESERVED.indexOf(varname) === -1;
-        } catch (e) {
-            if (e.message === 'timeout') {
-                throw e;
-            }
-            return false;
-        }
-    };
+    // validVarName is now defined outside IIFE
+    // Uses ClearUDeps.RESERVED (already initialized) and validateName (already external)
+    libExports.validVarName = validVarName;
 
     /** @returns {Array} Array of functions currently supported by nerdamer */
-    libExports.supported = function supported() {
-        return keys(_.functions);
-    };
+    // supported is now defined outside IIFE
+    // Uses SupportedDeps.functions which is already initialized with _.functions reference
+    libExports.supported = supported;
 
     /** @returns {number} The number equations/expressions currently loaded */
-    libExports.numEquations = libExports.numExpressions = function numExpressions() {
-        return EXPRESSIONS.length;
-    };
+    // numExpressions is now defined outside IIFE
+    // Uses NumExpressionsDeps.EXPRESSIONS which is already initialized with EXPRESSIONS reference
+    libExports.numEquations = libExports.numExpressions = numExpressions;
     /* END EXPORTS */
 
     /**
@@ -13869,19 +15720,9 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {string} val Value of variable. This can be a variable expression or number
      * @returns {object} Returns the nerdamer object
      */
-    libExports.setVar = function setVar(v, val) {
-        validateName(v);
-        // Check if it's not already a constant
-        if (v in _.CONSTANTS) {
-            err(`Cannot set value for constant ${v}`);
-        }
-        if (val === 'delete' || val === '') {
-            delete VARS[v];
-        } else {
-            VARS[v] = isSymbol(val) ? val : _.parse(val);
-        }
-        return this;
-    };
+    // setVar is now defined outside IIFE
+    // Uses SetVarDeps for dependency injection
+    libExports.setVar = setVar;
 
     /**
      * Returns the value of a set variable
@@ -13889,27 +15730,25 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {any} v
      * @returns {any}
      */
-    libExports.getVar = function getVar(v) {
-        return VARS[v];
-    };
+    // getVar is now defined outside IIFE
+    // Uses GetVarDeps.VARS which is already initialized with VARS reference
+    libExports.getVar = getVar;
     /**
      * Clear the variables from the VARS object
      *
      * @returns {object} Returns the nerdamer object
      */
-    libExports.clearVars = function clearVars() {
-        VARS = {};
-        return this;
-    };
+    // clearVars is now defined outside IIFE
+    // Uses ChainDeps.VARS and ChainDeps.libExports for chaining
+    libExports.clearVars = clearVars;
 
     /**
      * @param {Function} loader
      * @returns {nerdamer}
      */
-    libExports.load = function load(loader) {
-        loader.call(this);
-        return this;
-    };
+    // load is now defined outside IIFE
+    // Uses ChainDeps.libExports for `this` context and chaining
+    libExports.load = load;
 
     /**
      * @param {string} output - Output format. Can be 'object' (just returns the VARS object), 'text' or 'latex'.
@@ -13917,25 +15756,9 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {string | string[]} option
      * @returns {object} Returns an object with the variables
      */
-    libExports.getVars = function getVars(output, option) {
-        output ||= 'text';
-        let result = {};
-        if (output === 'object') {
-            result = VARS;
-        } else {
-            for (const v in VARS) {
-                if (!Object.hasOwn(VARS, v)) {
-                    continue;
-                }
-                if (output === 'latex') {
-                    result[v] = VARS[v].latex(option);
-                } else if (output === 'text') {
-                    result[v] = VARS[v].text(option);
-                }
-            }
-        }
-        return result;
-    };
+    // getVars is now defined outside IIFE
+    // Uses GetVarDeps.VARS which is already initialized with VARS reference
+    libExports.getVars = getVars;
 
     /**
      * Set the value of a setting
@@ -13943,54 +15766,9 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {string} setting The setting to be changed
      * @param {boolean | number} value
      */
-    libExports.set = function set(setting, value) {
-        // Current options:
-        // PARSE2NUMBER, suppress_errors
-        if (typeof setting === 'object' && setting !== null) {
-            const settingObj = /** @type {Record<string, any>} */ (setting);
-            for (const x in settingObj) {
-                if (!Object.hasOwn(settingObj, x)) {
-                    continue;
-                }
-                libExports.set(x, settingObj[x]);
-            }
-        }
-
-        const disallowed = ['SAFE'];
-        if (disallowed.indexOf(setting) !== -1) {
-            err(`Cannot modify setting: ${setting}`);
-        }
-
-        if (setting === 'PRECISION') {
-            bigDec.set({ precision: value });
-            Settings.PRECISION = /** @type {number} */ (value);
-
-            // Avoid that nerdamer puts out garbage after 21 decimal place
-            if (/** @type {number} */ (value) > 21) {
-                this.set('USE_BIG', true);
-            }
-        } else if (setting === 'USE_LN' && value === true) {
-            // Set log as LN
-            Settings.LOG = 'LN';
-            // Set log10 as log
-            Settings.LOG10 = 'log';
-            // Point the functions in the right direction
-            _.functions.log = Settings.LOG_FNS.log10; // Log is now log10
-            // the log10 function must be explicitly set
-            _.functions.log[0] = function log10Wrapper(x) {
-                if (x.isConstant()) {
-                    return new NerdamerSymbol(Math.log10(x));
-                }
-                return _.symfunction(Settings.LOG10, [x]);
-            };
-            _.functions.LN = Settings.LOG_FNS.log; // LN is now log
-
-            // remove log10
-            delete _.functions.log10;
-        } else {
-            Settings[setting] = value;
-        }
-    };
+    // set is now defined outside IIFE
+    // Uses SettingsDeps for bigDec, Settings, _.functions, and _.symfunction references
+    libExports.set = set;
 
     /**
      * Get the value of a setting
@@ -13998,83 +15776,46 @@ const nerdamer = (function initNerdamerCore(imports) {
      * @param {any} setting
      * @returns {undefined}
      */
-    libExports.get = function get(setting) {
-        return Settings[setting];
-    };
+    // getSetting is now defined outside IIFE
+    // Uses GetSettingDeps.Settings which is already initialized with Settings reference
+    libExports.get = getSetting;
 
     /**
      * This functions makes internal functions available externally
      *
      * @param {boolean} [override] Override the functions when calling updateAPI if it exists
      */
-    libExports.updateAPI = function updateAPI(override = false) {
-        // Map internal functions to external ones
-        const linker = function linker(fname) {
-            return function linkedFunction(...args) {
-                for (let i = 0; i < args.length; i++) {
-                    args[i] = _.parse(args[i]);
-                }
-                return new Expression(block('PARSE2NUMBER', () => _.callfunction(fname, args)));
-            };
-        };
-        // Perform the mapping
-        for (const x in _.functions) {
-            if (!(x in libExports) || override) {
-                libExports[x] = linker(x);
-            }
-        }
-    };
+    // updateAPI is now defined outside IIFE
+    // Uses UpdateAPIDeps for libExports, _.functions, _.parse, _.callfunction, and Expression references
+    libExports.updateAPI = updateAPI;
 
-    libExports.replaceFunction = function replaceFunction(name, fn, numArgs) {
-        const existing = _.functions[name];
-        const newNumArgs = typeof numArgs === 'undefined' ? existing[1] : numArgs;
-        _.functions[name] = [fn(existing[0], C), newNumArgs];
-    };
+    // ReplaceFunction - uses extracted function
+    // Uses ConvertToLaTeXDeps._.functions and ConvertToLaTeXDeps.C
+    libExports.replaceFunction = replaceFunction;
 
-    libExports.setOperator = function setOperator(operator, shift) {
-        _.setOperator(operator, shift);
-    };
+    // SetOperator - uses extracted function
+    libExports.setOperator = setOperator;
 
-    libExports.getOperator = function getOperator(operator) {
-        return _.getOperator(operator);
-    };
+    // GetOperator - uses extracted function
+    libExports.getOperator = getOperator;
 
-    libExports.aliasOperator = function aliasOperator(operator, withOperator) {
-        _.aliasOperator(operator, withOperator);
-    };
+    // AliasOperator - uses extracted function
+    libExports.aliasOperator = aliasOperator;
 
-    libExports.tree = function tree(expression) {
-        return _.tree(/** @type {any} */ (_.toRPN(_.tokenize(expression))));
-    };
+    // Tree - uses extracted function
+    libExports.tree = tree;
 
-    libExports.htmlTree = function htmlTree(expression, indent) {
-        const tree = this.tree(expression);
+    // HtmlTree - uses extracted function
+    libExports.htmlTree = htmlTree;
 
-        return (
-            `<div class="tree">\n` +
-            `    <ul>\n` +
-            `        <li>\n${tree.toHTML(3, indent)}\n` +
-            `        </li>\n` +
-            `    </ul>\n` +
-            `</div>`
-        );
-    };
+    // AddPeeker - uses extracted function
+    libExports.addPeeker = addPeeker;
 
-    libExports.addPeeker = function addPeeker(name, f) {
-        if (_.peekers[name]) {
-            _.peekers[name].push(f);
-        }
-    };
+    // RemovePeeker - uses extracted function
+    libExports.removePeeker = removePeeker;
 
-    libExports.removePeeker = function removePeeker(name, f) {
-        remove(_.peekers[name], f);
-    };
-
-    libExports.parse = function parse(e) {
-        return String(e)
-            .split(';')
-            .map(x => _.parse(x));
-    };
+    // Parse - uses extracted function
+    libExports.parse = parse;
 
     libExports.updateAPI();
 

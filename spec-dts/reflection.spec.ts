@@ -26,7 +26,8 @@ describe('Nerdamer API Surface Reflection Test', () => {
             .filter(
                 (name: string) =>
                     // Filter out internal types and interfaces that aren't expected on the runtime object
-                    !name.startsWith('Nerdamer') &&
+                    // NerdamerSet is an exception - it's a renamed Set to avoid conflicts with native Set
+                    (!name.startsWith('Nerdamer') || name === 'NerdamerSet') &&
                     !name.endsWith('Constructor') &&
                     !name.includes('Interface') &&
                     name !== 'NerdamerCore'

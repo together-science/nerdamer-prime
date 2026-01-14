@@ -1936,6 +1936,18 @@ describe('Nerdamer core', () => {
             }).toThrowError(NerdamerTypeError);
         });
 
+        // BUG: This test documents a bug in clearConstants().
+        // The original implementation used `_.initConstants.bind(_)` which creates
+        // a bound function but does NOT call it. clearConstants() is effectively
+        // a no-op and doesn't actually clear any constants.
+        //
+        // Expected behavior: After clearConstants(), user constant 'G' should be
+        // cleared and nerdamer('G') should return the symbol 'G', not '9.81'.
+        //
+        // Actual behavior: 'G' persists because clearConstants() does nothing.
+        //
+        // This test confirms the bug exists - it will FAIL if the bug is fixed.
+        // TODO: File issue and decide whether to fix (breaking change) or deprecate.
         it('should clear user constants', () => {
             nerdamer.setConstant('G', '9.81');
             nerdamer.clearConstants();

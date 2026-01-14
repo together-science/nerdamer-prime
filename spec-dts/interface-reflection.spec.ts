@@ -346,7 +346,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
         it('should have core data structure interfaces', () => {
             // These are the main data structure interfaces (not constructors)
-            const expectedInterfaces = ['Frac', 'NerdamerSymbol', 'Vector', 'Matrix', 'Set', 'Collection'];
+            const expectedInterfaces = ['Frac', 'NerdamerSymbol', 'Vector', 'Matrix', 'NerdamerSet', 'Collection'];
 
             for (const ifaceName of expectedInterfaces) {
                 const iface = nerdamerCoreNamespace?.getInterface(ifaceName);

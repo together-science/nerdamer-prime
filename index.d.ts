@@ -76,6 +76,8 @@
 // #region Main Exports
 // Import BigInteger type from big-integer library
 import type { BigInteger } from 'big-integer';
+// Import Decimal type from big.js library for high-precision arithmetic
+import type { Big as Decimal } from 'big.js';
 
 // Extend global Math interface with polyfills defined by nerdamer
 declare global {
@@ -788,8 +790,8 @@ declare namespace nerdamer {
     export import laplace = nerdamerPrime.laplace;
     export import ilt = nerdamerPrime.ilt;
 
-    // Set Functions
-    export import Set = nerdamerPrime.Set;
+    // NerdamerSet Functions
+    export import NerdamerSet = nerdamerPrime.NerdamerSet;
     export import C = nerdamerPrime.C;
     export import S = nerdamerPrime.S;
     export import union = nerdamerPrime.union;
@@ -1615,14 +1617,14 @@ declare namespace nerdamerPrime {
 
     // #endregion
 
-    // #region Set Functions
+    // #region NerdamerSet Functions
 
-    function Set(elements?: ExpressionParam[]): NerdamerCore.Set;
+    function NerdamerSet(elements?: ExpressionParam[]): NerdamerCore.NerdamerSet;
     function C(n: ExpressionParam, k: ExpressionParam): NerdamerExpression;
     function S(n: ExpressionParam, k: ExpressionParam): NerdamerExpression;
-    function union(set1: ExpressionParam, set2: ExpressionParam): NerdamerCore.Set;
-    function intersection(set1: ExpressionParam, set2: ExpressionParam): NerdamerCore.Set;
-    function difference(set1: ExpressionParam, set2: ExpressionParam): NerdamerCore.Set;
+    function union(set1: ExpressionParam, set2: ExpressionParam): NerdamerCore.NerdamerSet;
+    function intersection(set1: ExpressionParam, set2: ExpressionParam): NerdamerCore.NerdamerSet;
+    function difference(set1: ExpressionParam, set2: ExpressionParam): NerdamerCore.NerdamerSet;
     function isSubset(set1: ExpressionParam, set2: ExpressionParam): boolean;
     function isIn(element: ExpressionParam, set: ExpressionParam): boolean;
     function intersects(set1: ExpressionParam, set2: ExpressionParam): boolean;
@@ -1925,7 +1927,7 @@ declare namespace nerdamerPrime {
             /** Internal comparison helper - returns [this.num * n.den, n.num * this.den] */
             qcompare(n: Frac): [BigInteger, BigInteger];
             toString(): string;
-            valueOf(): number;
+            valueOf(): number | Decimal;
             /** Creates a copy of this fraction */
             clone(): Frac;
             /** Simplifies this fraction in place, returns this */
@@ -2185,26 +2187,26 @@ declare namespace nerdamerPrime {
             cols(): number;
             /** Clone the matrix */
             clone(): Matrix;
-            /** Set an element at position (i, j) */
+            /** NerdamerSet an element at position (i, j) */
             set(i: number, j: number, value: NerdamerSymbol): void;
         }
 
-        /** Constructor for Set */
+        /** Constructor for NerdamerSet */
         interface SetConstructor {
-            new (set?: Vector): Set;
-            fromArray(arr: any[]): Set;
+            new (set?: Vector): NerdamerSet;
+            fromArray(arr: any[]): NerdamerSet;
         }
 
         /** Represents a mathematical set. */
-        interface Set extends CoreExpressionBase {
+        interface NerdamerSet extends CoreExpressionBase {
             elements: NerdamerSymbol[];
             add(element: NerdamerSymbol): void;
             contains(element: NerdamerSymbol): boolean;
-            union(other: Set): Set;
-            intersection(other: Set): Set;
-            difference(other: Set): Set;
+            union(other: NerdamerSet): NerdamerSet;
+            intersection(other: NerdamerSet): NerdamerSet;
+            difference(other: NerdamerSet): NerdamerSet;
             size(): NerdamerSymbol;
-            each(fn: (e: NerdamerSymbol, newSet: Set, i: number) => void): Set;
+            each(fn: (e: NerdamerSymbol, newSet: NerdamerSet, i: number) => void): NerdamerSet;
         }
 
         /** Constructor for Collection */
@@ -3456,11 +3458,11 @@ declare namespace nerdamerPrime {
             isCollection(obj: any): obj is Collection;
 
             /**
-             * A type guard to check if an object is a Set.
+             * A type guard to check if an object is a NerdamerSet.
              *
              * @param obj The object to check.
              */
-            isSet(obj: any): obj is Set;
+            isSet(obj: any): obj is NerdamerSet;
 
             /**
              * A robust wrapper for `Object.keys`.
@@ -3671,7 +3673,7 @@ declare namespace nerdamerPrime {
             Expression: ExpressionConstructor;
             Vector: VectorConstructor;
             Matrix: MatrixConstructor;
-            Set: SetConstructor;
+            NerdamerSet: SetConstructor;
             Frac: FracConstructor;
             Collection: CollectionConstructor;
             PARSER: Parser;
