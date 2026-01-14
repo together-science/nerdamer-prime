@@ -9804,8 +9804,7 @@ const nerdamer = (function initNerdamerCore(imports) {
 
     const CUSTOM_OPERATORS = {};
 
-    // Settings is now defined outside IIFE
-    // Initialize SettingsConstDeps with constants from imports
+    // SettingsConstDeps initialization
     SettingsConstDeps.LONG_PI = imports.constants.LONG_PI;
     SettingsConstDeps.LONG_E = imports.constants.LONG_E;
 
@@ -9829,19 +9828,10 @@ const nerdamer = (function initNerdamerCore(imports) {
         configurable: true,
     });
 
-    // Forward declarations for variables that are defined later but used in earlier functions
-    // These use 'let' to allow reassignment when the actual definitions occur
+    // Forward declarations for IIFE-local variables defined later
     /** @type {ParserType | null} */
-    let _ = null; // Parser instance, defined at line ~10867
-    // block is now defined outside IIFE
-    // evaluate is now defined outside IIFE
-    // LaTeX is now defined outside IIFE
-    let C = null; // Math2 object, Defined at line ~1745
-    // Fraction is now defined outside IIFE
-    // Build is now defined outside IIFE
-    // isSymbol is now defined outside IIFE
-    // firstObject is now defined outside IIFE
-    // InvalidVariableNameError is now defined outside IIFE
+    let _ = null;
+    let C = null;
 
     // Add the groups. These have been reorganized as of v0.5.1 to make CP the highest group
     // The groups that help with organizing during parsing. Note that for FN is still a function even
@@ -9867,85 +9857,51 @@ const nerdamer = (function initNerdamerCore(imports) {
 
     const { DOUBLEFACTORIAL } = Settings;
 
-    // The storage container "memory" for parsed expressions
     const EXPRESSIONS = [];
-
-    // Variables
     const VARS = {};
-
-    // The container used to store all the reserved functions
     const RESERVED = [];
-
     const WARNINGS = [];
-
     const USER_FUNCTIONS = [];
 
-    // Err is now defined outside IIFE
-    // Initialize ErrDeps with Settings values via getter
+    // ErrDeps initialization
     Object.defineProperty(ErrDeps, 'suppress_errors', {
         get: () => Settings.suppress_errors,
         configurable: true,
     });
 
-    // Utils ========================================================================
+    // Utils - Dependency Initialization =============================================
+    // Most utility functions are now defined outside IIFE. This section initializes
+    // their dependency containers with values from inside the IIFE.
 
-    // isReserved is now defined outside IIFE
-    // Initialize IsReservedDeps with RESERVED array
     IsReservedDeps.RESERVED = RESERVED;
 
-    // Warn is now defined outside IIFE
-    // Initialize WarnDeps with WARNINGS array
-    // Note: WarnDeps.WARNINGS is set to reference WARNINGS so changes are shared
     WarnDeps.WARNINGS = WARNINGS;
-    // Use a getter to dynamically read SHOW_WARNINGS from Settings
     Object.defineProperty(WarnDeps, 'SHOW_WARNINGS', {
         get: () => Settings.SHOW_WARNINGS,
         configurable: true,
     });
 
-    // NumExpressions is now defined outside IIFE
-    // Use a getter because EXPRESSIONS can be reassigned (e.g., in clear('all'))
     Object.defineProperty(NumExpressionsDeps, 'EXPRESSIONS', {
         get: () => EXPRESSIONS,
         configurable: true,
     });
 
-    // GetSetting is now defined outside IIFE
-    // Initialize GetSettingDeps with Settings object reference
     GetSettingDeps.Settings = Settings;
 
-    // Version is now defined outside IIFE
-    // Initialize VersionDeps with _version and C (Core object)
     VersionDeps._version = _version;
-    // C is assigned later in the IIFE - use getter for lazy access
     Object.defineProperty(VersionDeps, 'C', {
         get: () => C,
         configurable: true,
     });
 
-    // ValidateName is now defined outside IIFE
-    // Initialize ValidateNameDeps with Settings values
     ValidateNameDeps.ALLOW_CHARS = Settings.ALLOW_CHARS;
     ValidateNameDeps.VALIDATION_REGEX = Settings.VALIDATION_REGEX;
 
-    // IsPrime is now defined outside IIFE
-    // Initialize IsPrimeDeps with PRIMES_SET reference
     IsPrimeDeps.PRIMES_SET = PRIMES_SET;
 
-    // PrimeFactors is now defined outside IIFE
-    // Initialize PrimeFactorsDeps with PRIMES and PRIMES_SET references
     PrimeFactorsDeps.PRIMES = PRIMES;
     PrimeFactorsDeps.PRIMES_SET = PRIMES_SET;
 
-    // GeneratePrimes is now defined outside IIFE (uses PrimeFactorsDeps)
-
-    // isFraction is now defined outside IIFE
-
-    // IsSymbol is now defined outside the IIFE (see above)
-
-    // isExpression is now defined outside the IIFE (see above)
-
-    // variables function is now defined outside the IIFE (see above)
     // Initialize VariablesDeps with group constants
     VariablesDeps.EX = EX;
     VariablesDeps.CP = CP;
@@ -9954,119 +9910,47 @@ const nerdamer = (function initNerdamerCore(imports) {
     VariablesDeps.PL = PL;
     VariablesDeps.FN = FN;
 
-    // ArraySum is now defined outside IIFE
-    // ArraySumDeps._ is set after parser initialization
-
-    // separate is now defined outside IIFE
     // Initialize SeparateDeps with group constants
     SeparateDeps.S = S;
     SeparateDeps.FN = FN;
     SeparateDeps.EX = EX;
     SeparateDeps.ABS = ABS;
 
-    // FillHoles is now defined outside IIFE
-
-    // IsVector is now defined outside IIFE
-
-    // IsCollection is now defined outside IIFE
-
-    // isMatrix is now defined outside IIFE
-
-    // IsSet is now defined outside IIFE
-
-    // isNumericSymbol is now defined outside IIFE
     // Initialize IsNumericSymbolDeps with Groups constants
     IsNumericSymbolDeps.N = N;
     IsNumericSymbolDeps.P = P;
 
-    // IsVariableSymbol is now defined outside IIFE
     // Initialize IsVariableSymbolDeps with Groups constants
     IsVariableSymbolDeps.S = S;
 
-    // IsNegative is now defined outside IIFE
+    // Utility functions now defined outside IIFE:
+    // isNegative, stringReplace, range, keys, firstObject, compare, _setFunction,
+    // _clearFunctions, nroots, decomposeFn, getU, clearU, arrayGetVariables,
+    // reserveNames, block, importFunctions, getCoeffs, evaluate, convertToVector,
+    // generatePrimes, allNumbers, allConstants, mix
 
-    /**
-     * A helper function to replace parts of string
-     *
-     * @param {string} str - The original string
-     * @param {number} from - The starting index
-     * @param {number} to - The ending index
-     * @param {string} withStr - The replacement string
-     * @returns {string} - A formatted string
-     */
-    /**
-     * Generates an array with values within a range. Multiplies by a step if provided
-     *
-     * @param {number} start
-     * @param {number} end
-     * @param {number} step
-     */
-    /**
-     * Returns an array of all the keys in an array
-     *
-     * @param {object} obj
-     * @returns {Array}
-     */
-    // keys is now defined outside IIFE
+    // Initialize dependency containers with parser reference (set after Parser creation)
+    // CompareDeps._, ArraySumDeps._, SeparateDeps._, DecomposeFnDeps._,
+    // NrootsDeps._, ImportFunctionsDeps._, GetCoeffsDeps._, EvaluateDeps._,
+    // ConvertToVectorDeps._, MixDeps._, InternalSetFunctionDeps._, ClearFunctionsDeps._
 
-    // firstObject is defined outside IIFE
-
-    // compare is now defined outside IIFE
-    // CompareDeps._ is set after parser initialization
-
-    // _setFunction is now defined outside IIFE
-    // SetFunctionDeps._, SetFunctionDeps.C, SetFunctionDeps.USER_FUNCTIONS are set after parser initialization
-
-    // _clearFunctions is now defined outside IIFE
-    // ClearFunctionsDeps._, ClearFunctionsDeps.C, ClearFunctionsDeps.USER_FUNCTIONS are set after parser initialization
-
-    // Nroots is now defined outside IIFE
-    // NrootsDeps._ and NrootsDeps.format are set after parser initialization
-
-    // decomposeFn is now defined outside IIFE
-    // DecomposeFnDeps._ and DecomposeFnDeps.CP are set after parser initialization
+    // Initialize DecomposeFnDeps with group constant
     DecomposeFnDeps.CP = CP;
 
-    // GetU is now defined outside IIFE
     // Initialize GetUDeps with RESERVED array reference
     GetUDeps.RESERVED = RESERVED;
 
-    // ClearU is now defined outside IIFE
     // Initialize ClearUDeps with RESERVED array reference
     ClearUDeps.RESERVED = RESERVED;
 
-    // ArrayGetVariables is now defined outside IIFE
-
-    // ReserveNames is now defined outside IIFE
     // Initialize ReserveNamesDeps with RESERVED array reference
     ReserveNamesDeps.RESERVED = RESERVED;
 
-    // Block is now defined outside IIFE
     // Initialize BlockDeps with Settings reference
     BlockDeps.Settings = Settings;
 
-    // ImportFunctions is now defined outside IIFE
-    // ImportFunctionsDeps._ is set after parser initialization
-
-    // GetCoeffs is now defined outside IIFE
-    // GetCoeffsDeps._ is set after parser initialization (see below where _ is assigned)
-
-    // Evaluate is now defined outside IIFE
-    // EvaluateDeps._ is set after parser initialization (see below where _ is assigned)
-
-    // convertToVector is now defined outside IIFE
-    // ConvertToVectorDeps._ is set after parser initialization
-
-    // GeneratePrimes is now defined outside IIFE
-
-    // allNumbers is now defined outside IIFE
     // Initialize AllNumbersDeps with Groups constants
     AllNumbersDeps.N = N;
-
-    // AllConstants is now defined outside IIFE
-
-    // mix is now defined outside IIFE
-    // MixDeps._ is set after parser initialization
 
     // Exceptions ===================================================================
     // All error classes are defined outside IIFE for proper TypeScript type inference:
@@ -10094,8 +9978,7 @@ const nerdamer = (function initNerdamerCore(imports) {
         UnexpectedTokenError,
     };
 
-    // Math2 is now defined outside IIFE
-    // Initialize Math2Deps with references from inside IIFE
+    // Math2Deps initialization
     Math2Deps.bigInt = bigInt;
     Math2Deps.BIG_LOG_CACHE = imports.constants.BIG_LOG_CACHE;
     Math2Deps.PRIMES = PRIMES;
@@ -10103,9 +9986,8 @@ const nerdamer = (function initNerdamerCore(imports) {
     Math2Deps.CB = CB;
     Math2Deps.P = P;
 
-    // Link the Math2 object to Settings.FUNCTION_MODULES
     Settings.FUNCTION_MODULES.push(Math2);
-    reserveNames(/** @type {object} */ (Math2)); // Reserve the names in Math2
+    reserveNames(/** @type {object} */ (Math2));
 
     // Polyfills ====================================================================
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/
@@ -10175,9 +10057,7 @@ const nerdamer = (function initNerdamerCore(imports) {
         return Math.ceil(x);
     };
 
-    // PrimeFactors is now defined outside IIFE
-    // Expression class is now defined outside the IIFE (see above).
-    // Initialize its dependencies now that they're available (except _ and Build which are set later).
+    // ExpressionDeps initialization
     ExpressionDeps.EXPRESSIONS = EXPRESSIONS;
     ExpressionDeps.Settings = Settings;
     ExpressionDeps.LaTeX = LaTeX;
@@ -10191,18 +10071,20 @@ const nerdamer = (function initNerdamerCore(imports) {
     ExpressionDeps.isArray = isArray;
     // Note: ExpressionDeps._ and ExpressionDeps.Build are initialized after Parser is created
 
-    // Scientific class is now defined outside the IIFE (see above).\n    // Initialize its dependencies now that they're available.\n    ScientificDeps.Settings = Settings;\n    ScientificDeps.nround = nround;\n\n    // Frac class is now defined outside the IIFE (see above).
-    // Initialize its dependencies now that they're available.
+    // ScientificDeps initialization
+    ScientificDeps.Settings = Settings;
+    ScientificDeps.nround = nround;
+
+    // FracDeps initialization
     FracDeps.bigInt = bigInt;
     FracDeps.bigDec = bigDec;
     FracDeps.isInt = isInt;
     FracDeps.scientificToDecimal = scientificToDecimal;
     FracDeps.DivisionByZero = DivisionByZero;
     FracDeps.Settings = Settings;
-    // Note: Fraction is initialized later after it's defined (see line ~11700)
+    // Note: Fraction is initialized later after it's defined
 
-    // NerdamerSymbol is now defined outside the IIFE (see above).
-    // Initialize its dependencies now that they're available.
+    // NerdamerSymbolDeps initialization
     NerdamerSymbolDeps.bigDec = bigDec;
     NerdamerSymbolDeps.bigInt = bigInt;
     NerdamerSymbolDeps.N = N;
@@ -10221,8 +10103,7 @@ const nerdamer = (function initNerdamerCore(imports) {
     NerdamerSymbolDeps.PARENTHESIS = PARENTHESIS;
     // Note: NerdamerSymbolDeps._ is initialized after Parser is created
 
-    // text function is now defined outside the IIFE (see above).
-    // Initialize its dependencies now that they're available.
+    // TextDeps initialization
     TextDeps.bigInt = bigInt;
     TextDeps.isSymbol = isSymbol;
     TextDeps.isVector = isVector;
@@ -15976,97 +15857,40 @@ const nerdamer = (function initNerdamerCore(imports) {
     }
 
     // Inits ========================================================================
-    _ = /** @type {ParserType} */ (/** @type {unknown} */ (new Parser())); // Nerdamer's parser
+    // Initialize parser and all dependency containers that require it
+    _ = /** @type {ParserType} */ (/** @type {unknown} */ (new Parser()));
 
-    // Initialize EvaluateDeps with parser reference
+    // Parser-dependent deps (direct assignment)
     EvaluateDeps._ = _;
-    // Initialize NerdamerSymbolDeps._ now that Parser is created
     NerdamerSymbolDeps._ = _;
-    // Initialize GetCoeffsDeps._ now that Parser is created
     GetCoeffsDeps._ = _;
-    // Initialize NrootsDeps._ now that Parser is created
     NrootsDeps._ = _;
-    // Initialize CompareDeps._ now that Parser is created
     CompareDeps._ = _;
-    // Initialize ArraySumDeps._ now that Parser is created
     ArraySumDeps._ = _;
-    // Initialize SeparateDeps._ now that Parser is created
     SeparateDeps._ = _;
-    // Initialize DecomposeFnDeps._ now that Parser is created
     DecomposeFnDeps._ = _;
-    // Initialize MixDeps._ now that Parser is created
     MixDeps._ = _;
-    // Initialize ConvertToVectorDeps._ now that Parser is created
     ConvertToVectorDeps._ = _;
-    // Initialize ImportFunctionsDeps._ now that Parser is created
     ImportFunctionsDeps._ = _;
-    // Initialize InternalSetFunctionDeps now that Parser is created
     InternalSetFunctionDeps._ = _;
-    // Use getter for C since it's defined later
-    Object.defineProperty(InternalSetFunctionDeps, 'C', {
-        get: () => C,
-        configurable: true,
-    });
-    // Use getter for USER_FUNCTIONS since it's an array that gets modified
-    Object.defineProperty(InternalSetFunctionDeps, 'USER_FUNCTIONS', {
-        get: () => USER_FUNCTIONS,
-        configurable: true,
-    });
-    // Initialize ClearFunctionsDeps now that Parser is created
     ClearFunctionsDeps._ = _;
-    // Use getter for C since it's defined later
-    Object.defineProperty(ClearFunctionsDeps, 'C', {
-        get: () => C,
-        configurable: true,
-    });
-    // Use getter for USER_FUNCTIONS since it's an array that gets modified
-    Object.defineProperty(ClearFunctionsDeps, 'USER_FUNCTIONS', {
-        get: () => USER_FUNCTIONS,
-        configurable: true,
-    });
-
-    // Initialize ExpressionDeps._ now that Parser is created
-    // Note: ExpressionDeps.Build is initialized later after Build is defined
-    ExpressionDeps._ = _;
-
-    // Supported is now defined outside IIFE
-    // Initialize SupportedDeps with _.functions reference (use getter for lazy access)
-    Object.defineProperty(SupportedDeps, 'functions', {
-        get: () => _.functions,
-        configurable: true,
-    });
-
-    // GetConstant is now defined outside IIFE
-    // Initialize GetConstantDeps with _.CONSTANTS reference (use getter for lazy access)
-    Object.defineProperty(GetConstantDeps, 'CONSTANTS', {
-        get: () => _.CONSTANTS,
-        configurable: true,
-    });
-
-    // GetVar is now defined outside IIFE
-    // Initialize GetVarDeps with VARS reference (use getter since VARS can be reassigned)
-    Object.defineProperty(GetVarDeps, 'VARS', {
-        get: () => VARS,
-        configurable: true,
-    });
-
-    // ChainDeps initialization - use getters for VARS since it can be reassigned
-    Object.defineProperty(ChainDeps, 'VARS', {
-        get: () => VARS,
-        configurable: true,
-    });
-    ChainDeps._clearFunctions = _clearFunctions;
-    ChainDeps._initConstants = () => _.initConstants();
-
-    // ConvertToLaTeX is now defined outside IIFE
-    // Initialize ConvertToLaTeXDeps with _ and C references
+    ExpressionDeps._ = _; // Note: ExpressionDeps.Build initialized after Build is defined
     ConvertToLaTeXDeps._ = _;
     ConvertToLaTeXDeps.C = C;
 
-    // Fraction is now defined outside IIFE (before Frac class)
+    // Late-bound deps (getters for values defined/modified later)
+    Object.defineProperty(InternalSetFunctionDeps, 'C', { get: () => C, configurable: true });
+    Object.defineProperty(InternalSetFunctionDeps, 'USER_FUNCTIONS', { get: () => USER_FUNCTIONS, configurable: true });
+    Object.defineProperty(ClearFunctionsDeps, 'C', { get: () => C, configurable: true });
+    Object.defineProperty(ClearFunctionsDeps, 'USER_FUNCTIONS', { get: () => USER_FUNCTIONS, configurable: true });
+    Object.defineProperty(SupportedDeps, 'functions', { get: () => _.functions, configurable: true });
+    Object.defineProperty(GetConstantDeps, 'CONSTANTS', { get: () => _.CONSTANTS, configurable: true });
+    Object.defineProperty(GetVarDeps, 'VARS', { get: () => VARS, configurable: true });
+    Object.defineProperty(ChainDeps, 'VARS', { get: () => VARS, configurable: true });
+    ChainDeps._clearFunctions = _clearFunctions;
+    ChainDeps._initConstants = () => _.initConstants();
 
-    // LaTeX is now defined outside IIFE
-    // Initialize LaTeXDeps with all needed references
+    // LaTeXDeps initialization
     LaTeXDeps._ = _;
     LaTeXDeps.isArray = isArray;
     LaTeXDeps.isSymbol = isSymbol;
@@ -16092,7 +15916,6 @@ const nerdamer = (function initNerdamerCore(imports) {
 
     // Initialize LaTeX.parser (requires Parser to be defined)
     LaTeX.parser = (function createLaTeXParser() {
-        // Create a parser and strip it from everything except the items that you need
         const keep = ['classes', 'setOperator', 'getOperators', 'getBrackets', 'tokenize', 'toRPN', 'tree', 'units'];
         const parser = new Parser();
         for (const x in parser) {
@@ -16100,7 +15923,6 @@ const nerdamer = (function initNerdamerCore(imports) {
                 delete parser[x];
             }
         }
-        // Declare the operators
         parser.setOperator({
             precedence: 8,
             operator: '\\',
@@ -16109,7 +15931,7 @@ const nerdamer = (function initNerdamerCore(imports) {
             postfix: false,
             leftAssoc: true,
             operation(e) {
-                return e; // Bypass the slash
+                return e;
             },
         });
         parser.setOperator({
@@ -16120,33 +15942,24 @@ const nerdamer = (function initNerdamerCore(imports) {
             postfix: false,
             leftAssoc: true,
             operation(e) {
-                return e; // Bypass the slash
+                return e;
             },
         });
-        // Have braces not map to anything. We want them to be return as-is
         const brackets = parser.getBrackets();
         brackets['{'].maps_to = undefined;
         return parser;
     })();
 
-    // Initialize ExpressionsDeps with references
-    // Use getters for EXPRESSIONS and USER_FUNCTIONS since they can be reassigned
-    Object.defineProperty(ExpressionsDeps, 'EXPRESSIONS', {
-        get: () => EXPRESSIONS,
-        configurable: true,
-    });
-    Object.defineProperty(ExpressionsDeps, 'USER_FUNCTIONS', {
-        get: () => USER_FUNCTIONS,
-        configurable: true,
-    });
+    // ExpressionsDeps initialization
+    Object.defineProperty(ExpressionsDeps, 'EXPRESSIONS', { get: () => EXPRESSIONS, configurable: true });
+    Object.defineProperty(ExpressionsDeps, 'USER_FUNCTIONS', { get: () => USER_FUNCTIONS, configurable: true });
     ExpressionsDeps.LaTeX = LaTeX;
     ExpressionsDeps.text = text;
     ExpressionsDeps.functions = _.functions;
     ExpressionsDeps._ = _;
-    // Note: ExpressionsDeps.Math2 and ExpressionsDeps.Expression are initialized later after C is defined
+    // Note: ExpressionsDeps.Math2 and ExpressionsDeps.Expression are initialized after C is defined
 
-    // Vector class is now defined outside the IIFE (see above).
-    // Initialize its dependencies now that they're available.
+    // VectorDeps initialization
     VectorDeps.Frac = Frac;
     VectorDeps.NerdamerSymbol = NerdamerSymbol;
     VectorDeps.isVector = isVector;
@@ -16159,8 +15972,7 @@ const nerdamer = (function initNerdamerCore(imports) {
     VectorDeps.text = text;
     VectorDeps.LaTeX = LaTeX;
 
-    // Matrix class is now defined outside the IIFE (see above).
-    // Initialize its dependencies now that they're available.
+    // MatrixDeps initialization
     MatrixDeps.Frac = Frac;
     MatrixDeps.NerdamerSymbol = NerdamerSymbol;
     MatrixDeps.Vector = Vector;
@@ -16173,19 +15985,16 @@ const nerdamer = (function initNerdamerCore(imports) {
     MatrixDeps.err = err;
     MatrixDeps.LaTeX = LaTeX;
 
-    // NerdamerSet class is now defined outside the IIFE (see above).
-    // Initialize its dependencies now that they're available.
+    // SetDeps initialization
     SetDeps.isVector = isVector;
     SetDeps.Vector = Vector;
     SetDeps.remove = remove;
 
-    // Collection class is now defined outside the IIFE (see above).
-    // Initialize its dependencies now that they're available.
+    // CollectionDeps initialization
     CollectionDeps._ = _;
     CollectionDeps.block = block;
 
-    // Build object is now defined outside the IIFE (see above).
-    // Initialize its dependencies and runtime properties now that they're available.
+    // BuildDeps initialization
     BuildDeps.Math2 = Math2;
     BuildDeps.Frac = Frac;
     BuildDeps.NerdamerSymbol = NerdamerSymbol;
@@ -16203,7 +16012,7 @@ const nerdamer = (function initNerdamerCore(imports) {
     BuildDeps.EX = EX;
     BuildDeps.CB = CB;
 
-    // Initialize Build's runtime dependencies (these reference IIFE-local values)
+    // Build runtime dependencies (references to IIFE-local values)
     Build.dependencies = {
         _rename: {
             'Math2.factorial': 'factorial',
@@ -16249,44 +16058,34 @@ const nerdamer = (function initNerdamerCore(imports) {
         },
     };
 
-    // Initialize Build's reformat functions (these reference IIFE-local values)
+    // Build reformat functions
     Build.reformat = {
-        // This simply extends the build function
         diff(symbol, deps) {
             const v = symbol.args[1].toString();
             const f = `let f = ${Build.build(symbol.args[0].toString(), [v])};`;
             let diffStr = Math2.diff.toString();
-            // Handle ES6 method shorthand
             if (!diffStr.startsWith('function') && !diffStr.startsWith('(') && !diffStr.startsWith('async')) {
                 diffStr = `function ${diffStr}`;
             }
             deps[1] += `let diff = ${diffStr};`;
             deps[1] += f;
-
             return [`diff(f)(${v})`, deps];
         },
     };
 
-    // Initialize ExpressionDeps.Build now that Build is defined
     ExpressionDeps.Build = Build;
 
     // Finalize =====================================================================
-    /* FINALIZE */
     (function finalizeParser() {
         reserveNames(_.CONSTANTS);
         reserveNames(_.functions);
         _.initConstants();
-        // Bug fix for error but needs to be revisited
         _.error ||= err;
-
-        // Store the log and log10 functions
         Settings.LOG_FNS = {
             log: _.functions.log,
             log10: _.functions.log10,
         };
     })();
-
-    /* END FINALIZE */
 
     // Core =========================================================================
     const Utils = {
@@ -16489,288 +16288,48 @@ const nerdamer = (function initNerdamerCore(imports) {
     UpdateAPIDeps.callfunction = _.callfunction.bind(_);
     UpdateAPIDeps.Expression = Expression;
 
-    /**
-     * Converts expression into rpn form
-     *
-     * @param {string} expression
-     * @returns {object[]}
-     */
-    // rpn - uses extracted function
+    // Library exports (most functions defined outside IIFE with dependency injection)
     libExports.rpn = rpn;
-
-    // ConvertToLaTeX - uses extracted function
     libExports.convertToLaTeX = convertToLaTeX;
-
-    /**
-     * Converts latex to text - Very very very basic at the moment
-     *
-     * @param {string} e
-     * @returns {Expression}
-     */
-    // convertFromLaTeX is now defined outside IIFE
-    // Uses ExpressionsDeps.LaTeX.parse, ExpressionsDeps._.tokenize/parse, and ExpressionsDeps.Expression
     libExports.convertFromLaTeX = convertFromLaTeX;
-
-    /**
-     * Get the version of nerdamer or a loaded add-on
-     *
-     * @param {string} addOn - The add-on being checked
-     * @returns {string} Returns the version of nerdamer
-     */
-    // version is now defined outside IIFE
-    // Uses VersionDeps._version and VersionDeps.C which are already initialized
     libExports.version = version;
-
-    /**
-     * Get nerdamer generated warnings
-     *
-     * @returns {string[]}
-     */
-    // getWarnings is now defined outside IIFE
-    // Uses WarnDeps.WARNINGS which is already initialized with WARNINGS reference
     libExports.getWarnings = getWarnings;
-
-    /**
-     * @param {string} constant The name of the constant to be set
-     * @param {any} value The value of the constant
-     * @returns {object} Returns the nerdamer object
-     */
-    // setConstant is now defined outside IIFE
-    // Uses SetConstantDeps for dependency injection
     libExports.setConstant = setConstant;
-
-    /**
-     * Returns the value of a previously set constant
-     *
-     * @param {any} constant
-     * @returns {string}
-     */
-    // getConstant is now defined outside IIFE
-    // Uses GetConstantDeps.CONSTANTS which is already initialized with _.CONSTANTS reference
     libExports.getConstant = getConstant;
-
-    /**
-     * Clear added constants from the CONSTANTS object
-     *
-     * @returns {object} Returns the nerdamer object
-     */
-    // clearConstants is now defined outside IIFE
-    // Uses ChainDeps._initConstants and ChainDeps.libExports for chaining
     libExports.clearConstants = clearConstants;
-
-    /**
-     * @example
-     *     nerdamer.setFunction('f',['x'], 'x^2+2');
-     *     OR nerdamer.setFunction('f(x)=x^2+2');
-     *     OR function custom(x , y) {
-     *     return x + y;
-     *     }
-     *     nerdamer.setFunction(custom);
-     *
-     * @param {string | Function} fnName The name of the function
-     * @param {string[] | undefined} fnParams A list containing the parameter name of the functions
-     * @param {string | undefined} fnBody The body of the function
-     * @returns {nerdamer} Returns nerdamer if succeeded and falls on fail
-     */
-    // setFunction is now defined outside IIFE
-    // Uses SetFunctionDeps for dependency injection
     libExports.setFunction = setFunction;
-
-    /**
-     * Clears all added functions
-     *
-     * @returns {libExports}
-     */
-    // clearFunctions is now defined outside IIFE
-    // Uses ChainDeps._clearFunctions and ChainDeps.libExports for chaining
     libExports.clearFunctions = clearFunctions;
-
-    /** @returns {C} Exports the nerdamer core functions and objects */
-    // getCore is now defined outside IIFE
-    // Uses VersionDeps.C which is already initialized with the Core object
     libExports.getCore = getCore;
-
     libExports.getExpression = libExports.getEquation = Expression.getExpression;
-
-    /**
-     * @param {boolean} asArray The returned names are returned as an array if this is set to true;
-     * @returns {string | Array}
-     */
-    // reserved is now defined outside IIFE
-    // Uses ClearUDeps.RESERVED which is already initialized
     libExports.reserved = reserved;
-
-    /**
-     * @param {number} equationNumber The number of the equation to clear. If 'all' is supplied then all equations are
-     *   cleared
-     * @param {boolean} [keepExpressionsFixed] Use true if you don't want to keep EXPRESSIONS length fixed
-     * @returns {object} Returns the nerdamer object
-     */
-    // clear is now defined outside IIFE
-    // Uses ClearDeps for dependency injection
     libExports.clear = clear;
 
-    // Initialize ChainDeps.clear now that clear is defined
     ChainDeps.clear = clear;
 
-    /**
-     * Alias for nerdamer.clear('all')
-     *
-     * @this {typeof libExports}
-     */
-    // flush is now defined outside IIFE
-    // Uses ChainDeps.clear and ChainDeps.libExports for chaining
     libExports.flush = flush;
-
-    /**
-     * @param {boolean} asObject
-     * @param {boolean} asLaTeX
-     * @param {string | string[]} option
-     * @returns {Array | object}
-     */
-    // expressions is now defined outside IIFE
-    // Uses ExpressionsDeps for EXPRESSIONS, LaTeX.latex, and text references
     libExports.expressions = expressions;
-
-    /**
-     * @param {boolean} asObject
-     * @param {string | string[]} option
-     * @returns {any}
-     */
-    // functions is now defined outside IIFE as getFunctions
-    // Uses ExpressionsDeps for USER_FUNCTIONS, _.functions, C.Math2, and text references
     libExports.functions = getFunctions;
-
-    // The method for registering modules
-    // register is now defined outside IIFE
-    // Uses RegisterDeps for libExports, Settings, and _.functions references
     libExports.register = register;
-
-    /**
-     * @param {string} name Variable name
-     * @returns {boolean} Validates if the profided string is a valid variable name
-     */
     libExports.validateName = validateName;
-
-    /**
-     * @param {string} varname Variable name
-     * @returns {boolean} Validates if the profided string is a valid variable name
-     */
-    // validVarName is now defined outside IIFE
-    // Uses ClearUDeps.RESERVED (already initialized) and validateName (already external)
     libExports.validVarName = validVarName;
-
-    /** @returns {Array} Array of functions currently supported by nerdamer */
-    // supported is now defined outside IIFE
-    // Uses SupportedDeps.functions which is already initialized with _.functions reference
     libExports.supported = supported;
-
-    /** @returns {number} The number equations/expressions currently loaded */
-    // numExpressions is now defined outside IIFE
-    // Uses NumExpressionsDeps.EXPRESSIONS which is already initialized with EXPRESSIONS reference
     libExports.numEquations = libExports.numExpressions = numExpressions;
-    /* END EXPORTS */
-
-    /**
-     * @param {string} v Variable to be set
-     * @param {string} val Value of variable. This can be a variable expression or number
-     * @returns {object} Returns the nerdamer object
-     */
-    // setVar is now defined outside IIFE
-    // Uses SetVarDeps for dependency injection
     libExports.setVar = setVar;
-
-    /**
-     * Returns the value of a set variable
-     *
-     * @param {any} v
-     * @returns {any}
-     */
-    // getVar is now defined outside IIFE
-    // Uses GetVarDeps.VARS which is already initialized with VARS reference
     libExports.getVar = getVar;
-    /**
-     * Clear the variables from the VARS object
-     *
-     * @returns {object} Returns the nerdamer object
-     */
-    // clearVars is now defined outside IIFE
-    // Uses ChainDeps.VARS and ChainDeps.libExports for chaining
     libExports.clearVars = clearVars;
-
-    /**
-     * @param {Function} loader
-     * @returns {nerdamer}
-     */
-    // load is now defined outside IIFE
-    // Uses ChainDeps.libExports for `this` context and chaining
     libExports.load = load;
-
-    /**
-     * @param {string} output - Output format. Can be 'object' (just returns the VARS object), 'text' or 'latex'.
-     *   Default: 'text'
-     * @param {string | string[]} option
-     * @returns {object} Returns an object with the variables
-     */
-    // getVars is now defined outside IIFE
-    // Uses GetVarDeps.VARS which is already initialized with VARS reference
     libExports.getVars = getVars;
-
-    /**
-     * Set the value of a setting
-     *
-     * @param {string} setting The setting to be changed
-     * @param {boolean | number} value
-     */
-    // set is now defined outside IIFE
-    // Uses SettingsDeps for bigDec, Settings, _.functions, and _.symfunction references
     libExports.set = set;
-
-    /**
-     * Get the value of a setting
-     *
-     * @param {any} setting
-     * @returns {undefined}
-     */
-    // getSetting is now defined outside IIFE
-    // Uses GetSettingDeps.Settings which is already initialized with Settings reference
     libExports.get = getSetting;
-
-    /**
-     * This functions makes internal functions available externally
-     *
-     * @param {boolean} [override] Override the functions when calling updateAPI if it exists
-     */
-    // updateAPI is now defined outside IIFE
-    // Uses UpdateAPIDeps for libExports, _.functions, _.parse, _.callfunction, and Expression references
     libExports.updateAPI = updateAPI;
-
-    // ReplaceFunction - uses extracted function
-    // Uses ConvertToLaTeXDeps._.functions and ConvertToLaTeXDeps.C
     libExports.replaceFunction = replaceFunction;
-
-    // SetOperator - uses extracted function
     libExports.setOperator = setOperator;
-
-    // GetOperator - uses extracted function
     libExports.getOperator = getOperator;
-
-    // AliasOperator - uses extracted function
     libExports.aliasOperator = aliasOperator;
-
-    // Tree - uses extracted function
     libExports.tree = tree;
-
-    // HtmlTree - uses extracted function
     libExports.htmlTree = htmlTree;
-
-    // AddPeeker - uses extracted function
     libExports.addPeeker = addPeeker;
-
-    // RemovePeeker - uses extracted function
     libExports.removePeeker = removePeeker;
-
-    // Parse - uses extracted function
     libExports.parse = parse;
 
     libExports.updateAPI();
