@@ -5816,6 +5816,112 @@ const LaTeX = {
     },
 };
 
+// Settings Object ==============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via SettingsConstDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for Settings object constants. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     LONG_PI: string;
+ *     LONG_E: string;
+ * }}
+ */
+const SettingsConstDeps = {
+    LONG_PI: '',
+    LONG_E: '',
+};
+
+/** Configuration settings for nerdamer. */
+const Settings = {
+    // Enables/Disables call peekers. False means callPeekers are disabled and true means callPeekers are enabled.
+    callPeekers: false,
+
+    // The max number up to which to cache primes. Making this too high causes performance issues
+    init_primes: 1000,
+
+    /** @type {string[]} */
+    exclude: [],
+    // If you don't care about division by zero for example then this can be set to true.
+    // Has some nasty side effects so choose carefully.
+    suppress_errors: false,
+    // The global used to invoke the libary to parse to a number. Normally cos(9) for example returns
+    // cos(9) for convenience but parse to number will always try to return a number if set to true.
+    PARSE2NUMBER: false,
+    // This flag forces the a clone to be returned when add, subtract, etc... is called
+    SAFE: false,
+    // The symbol to use for imaginary symbols
+    IMAGINARY: 'i',
+    // The modules used to link numeric function holders
+    /** @type {any[]} */
+    FUNCTION_MODULES: [Math],
+    // Allow certain characters
+    ALLOW_CHARS: ['π'],
+    // Allow nerdamer to convert multi-character variables
+    USE_MULTICHARACTER_VARS: true,
+    // Allow changing of power operator
+    POWER_OPERATOR: '^',
+    // Function catch regex
+    FUNCTION_REGEX: /^\s*(?<fnName>[a-z_][a-z0-9_]*)\((?<fnArgs>[a-z0-9_,\s]*)\)\s*:?=\s*(?<fnBody>.+)\s*$/iu,
+    // The variable validation regex
+    // VALIDATION_REGEX: /^[a-z_][a-z\d\_]*$/i
+    VALIDATION_REGEX:
+        /^[a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ∞][0-9a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ]*$/iu,
+    // The regex used to determine which characters should be included in implied multiplication
+    IMPLIED_MULTIPLICATION_REGEX:
+        /(?<coeff>[+\-/*]*[0-9]+)(?<vars>[a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ]+[+\-/*]*)/giu,
+    // Aliases
+    ALIASES: {
+        π: 'pi',
+        '∞': 'Infinity',
+    },
+    POSITIVE_MULTIPLIERS: false,
+    // Cached items
+    /** @type {{ roots?: Record<string, number> }} */
+    CACHE: {},
+    // Print out warnings or not
+    SILENCE_WARNINGS: false,
+    // Precision
+    PRECISION: 21,
+    // The Expression defaults to this value for decimal places
+    EXPRESSION_DECP: 19,
+    // The text function defaults to this value for decimal places
+    DEFAULT_DECP: 16,
+    // Function mappings
+    VECTOR: 'vector',
+    PARENTHESIS: 'parens',
+    SQRT: 'sqrt',
+    ABS: 'abs',
+    FACTORIAL: 'factorial',
+    DOUBLEFACTORIAL: 'dfactorial',
+    // Reference pi and e - initialized via SettingsConstDeps inside IIFE
+    get LONG_PI() {
+        return SettingsConstDeps.LONG_PI;
+    },
+    get LONG_E() {
+        return SettingsConstDeps.LONG_E;
+    },
+    PI: Math.PI,
+    E: Math.E,
+    LOG: 'log',
+    LOG10: 'log10',
+    LOG10_LATEX: 'log_{10}',
+    LOG2: 'log2',
+    LOG2_LATEX: 'log_{2}',
+    LOG1P: 'log1p',
+    LOG1P_LATEX: 'ln\\left( 1 + {0} \\right)',
+    MAX_EXP: 200000,
+    // The number of scientific place to round to
+    SCIENTIFIC_MAX_DECIMAL_PLACES: 14,
+    // True if ints should not be converted to
+    SCIENTIFIC_IGNORE_ZERO_EXPONENTS: true,
+    // Exponent (absolute value) from which to switch from decimals to scientific in "decimals_or_scientific" mode
+    SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT: 7,
+    // No simplify() or solveFor() should take more ms than this
+    TIMEOUT: 800,
+};
+
 const nerdamer = (function initNerdamerCore(imports) {
     // Version ======================================================================
     const _version = '1.1.16';
@@ -5835,91 +5941,14 @@ const nerdamer = (function initNerdamerCore(imports) {
     const { PRIMES } = imports.constants;
     const { PRIMES_SET } = imports.constants;
 
-    // Settings =====================================================================
     const CUSTOM_OPERATORS = {};
 
-    const Settings = {
-        // Enables/Disables call peekers. False means callPeekers are disabled and true means callPeekers are enabled.
-        callPeekers: false,
+    // Settings is now defined outside IIFE
+    // Initialize SettingsConstDeps with constants from imports
+    SettingsConstDeps.LONG_PI = imports.constants.LONG_PI;
+    SettingsConstDeps.LONG_E = imports.constants.LONG_E;
 
-        // The max number up to which to cache primes. Making this too high causes performance issues
-        init_primes: 1000,
-
-        exclude: [],
-        // If you don't care about division by zero for example then this can be set to true.
-        // Has some nasty side effects so choose carefully.
-        suppress_errors: false,
-        // The global used to invoke the libary to parse to a number. Normally cos(9) for example returns
-        // cos(9) for convenience but parse to number will always try to return a number if set to true.
-        PARSE2NUMBER: false,
-        // This flag forces the a clone to be returned when add, subtract, etc... is called
-        SAFE: false,
-        // The symbol to use for imaginary symbols
-        IMAGINARY: 'i',
-        // The modules used to link numeric function holders
-        /** @type {any[]} */
-        FUNCTION_MODULES: [Math],
-        // Allow certain characters
-        ALLOW_CHARS: ['π'],
-        // Allow nerdamer to convert multi-character variables
-        USE_MULTICHARACTER_VARS: true,
-        // Allow changing of power operator
-        POWER_OPERATOR: '^',
-        // Function catch regex
-        FUNCTION_REGEX: /^\s*(?<fnName>[a-z_][a-z0-9_]*)\((?<fnArgs>[a-z0-9_,\s]*)\)\s*:?=\s*(?<fnBody>.+)\s*$/iu,
-        // The variable validation regex
-        // VALIDATION_REGEX: /^[a-z_][a-z\d\_]*$/i
-        VALIDATION_REGEX:
-            /^[a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ∞][0-9a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ]*$/iu,
-        // The regex used to determine which characters should be included in implied multiplication
-        IMPLIED_MULTIPLICATION_REGEX:
-            /(?<coeff>[+\-/*]*[0-9]+)(?<vars>[a-z_αAβBγΓδΔϵEζZηHθΘιIκKλΛμMνNξΞoOπΠρPσΣτTυϒϕΦχXψΨωΩ]+[+\-/*]*)/giu,
-        // Aliases
-        ALIASES: {
-            π: 'pi',
-            '∞': 'Infinity',
-        },
-        POSITIVE_MULTIPLIERS: false,
-        // Cached items
-        CACHE: {},
-        // Print out warnings or not
-        SILENCE_WARNINGS: false,
-        // Precision
-        PRECISION: 21,
-        // The Expression defaults to this value for decimal places
-        EXPRESSION_DECP: 19,
-        // The text function defaults to this value for decimal places
-        DEFAULT_DECP: 16,
-        // Function mappings
-        VECTOR: 'vector',
-        PARENTHESIS: 'parens',
-        SQRT: 'sqrt',
-        ABS: 'abs',
-        FACTORIAL: 'factorial',
-        DOUBLEFACTORIAL: 'dfactorial',
-        // Reference pi and e (imported from constants.js)
-        LONG_PI: imports.constants.LONG_PI,
-        LONG_E: imports.constants.LONG_E,
-        PI: Math.PI,
-        E: Math.E,
-        LOG: 'log',
-        LOG10: 'log10',
-        LOG10_LATEX: 'log_{10}',
-        LOG2: 'log2',
-        LOG2_LATEX: 'log_{2}',
-        LOG1P: 'log1p',
-        LOG1P_LATEX: 'ln\\left( 1 + {0} \\right)',
-        MAX_EXP: 200000,
-        // The number of scientific place to round to
-        SCIENTIFIC_MAX_DECIMAL_PLACES: 14,
-        // True if ints should not be converted to
-        SCIENTIFIC_IGNORE_ZERO_EXPONENTS: true,
-        // Exponent (absolute value) from which to switch from decimals to scientific in "decimals_or_scientific" mode
-        SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT: 7,
-        // No simplify() or solveFor() should take more ms than this
-        TIMEOUT: 800,
-    };
-
+    // Initialize Settings.CACHE.roots (requires bigInt from imports)
     (function initSettingsCache() {
         Settings.CACHE.roots = {};
         const x = 40;
