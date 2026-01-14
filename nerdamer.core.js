@@ -79,6 +79,372 @@ const nerdamerBigDecimal =
 const nerdamerConstants =
     typeof globalThis.nerdamerConstants === 'undefined' ? require('./constants.js') : globalThis.nerdamerConstants;
 
+// CoreDeps - Centralized Dependency Registry ==================================
+// This single registry replaces 45+ scattered *Deps objects with a unified,
+// hierarchical structure. Benefits:
+// - Single source of truth for all shared dependencies
+// - Clear initialization order (externals -> constants -> classes -> parser)
+// - Lazy getters for values defined later in initialization
+// - Type-safe access patterns
+//
+// Structure:
+//   CoreDeps.ext      - External imports (bigInt, bigDec, constants)
+//   CoreDeps.groups   - Symbol group constants (N, P, S, EX, FN, PL, CB, CP)
+//   CoreDeps.fnNames  - Function name constants (SQRT, ABS, FACTORIAL, etc.)
+//   CoreDeps.settings - Settings reference
+//   CoreDeps.state    - Runtime state (EXPRESSIONS, VARS, RESERVED, etc.)
+//   CoreDeps.classes  - Class constructors (Frac, NerdamerSymbol, Vector, etc.)
+//   CoreDeps.utils    - Utility functions
+//   CoreDeps.parser   - Parser instance (set during IIFE init)
+//   CoreDeps.core     - Core object C (set during IIFE init)
+
+/**
+ * @type {{
+ *     ext: {
+ *         bigInt: any;
+ *         bigDec: any;
+ *         PRIMES: number[];
+ *         PRIMES_SET: Record<number, boolean>;
+ *         LONG_PI: string;
+ *         LONG_E: string;
+ *         BIG_LOG_CACHE: Record<string, any>;
+ *     };
+ *     groups: {
+ *         N: number;
+ *         P: number;
+ *         S: number;
+ *         EX: number;
+ *         FN: number;
+ *         PL: number;
+ *         CB: number;
+ *         CP: number;
+ *     };
+ *     fnNames: {
+ *         SQRT: string;
+ *         ABS: string;
+ *         FACTORIAL: string;
+ *         DOUBLEFACTORIAL: string;
+ *         PARENTHESIS: string;
+ *         LOG: string;
+ *         CONST_HASH: string;
+ *     };
+ *     settings: SettingsType;
+ *     state: {
+ *         EXPRESSIONS: any[];
+ *         VARS: Record<string, any>;
+ *         CONSTANTS: Record<string, any>;
+ *         RESERVED: string[];
+ *         WARNINGS: string[];
+ *         USER_FUNCTIONS: string[];
+ *         CUSTOM_OPERATORS: Record<string, any>;
+ *     };
+ *     classes: {
+ *         Frac: FracConstructor;
+ *         Fraction: typeof Fraction;
+ *         NerdamerSymbol: SymbolConstructor;
+ *         Vector: VectorConstructor;
+ *         Matrix: MatrixConstructor;
+ *         Expression: any;
+ *         Collection: any;
+ *         NerdamerSet: any;
+ *         Scientific: any;
+ *         Parser: any;
+ *         LaTeX: any;
+ *         Math2: any;
+ *         Build: any;
+ *     };
+ *     utils: {
+ *         isSymbol: (x: any) => boolean;
+ *         isVector: (x: any) => boolean;
+ *         isMatrix: (x: any) => boolean;
+ *         isExpression: (x: any) => boolean;
+ *         isNumericSymbol: (x: any) => boolean;
+ *         isFraction: (x: any) => boolean;
+ *         isArray: any;
+ *         isInt: (n: any) => boolean;
+ *         text: (symbol: any, opt?: string) => string;
+ *         variables: (symbol: any, vars?: string[]) => string[];
+ *         scientificToDecimal: (num: any) => string;
+ *         err: (msg: string) => never;
+ *         block: (setting: string, f: Function, opt?: boolean, obj?: unknown) => any;
+ *         evaluate: (symbol: any, o?: Record<string, any>) => any;
+ *         reserveNames: (obj: object) => void;
+ *         nround: (n: number, precision?: number) => number;
+ *         remove: (arr: any[], index: number) => any;
+ *         _setFunction: (fnName: any, fnParams?: any, fnBody?: any) => boolean;
+ *         _clearFunctions: () => void;
+ *         symfunction: (fname: string, args: any[]) => any;
+ *         callfunction: (fname: string, args: any[]) => any;
+ *     };
+ *     exceptions: {
+ *         DivisionByZero: any;
+ *         ParseError: any;
+ *         OutOfFunctionDomainError: any;
+ *         UndefinedError: any;
+ *         MaximumIterationsReached: any;
+ *         NerdamerTypeError: any;
+ *         ParityError: any;
+ *         OperatorError: any;
+ *         OutOfRangeError: any;
+ *         DimensionError: any;
+ *         InvalidVariableNameError: any;
+ *         ValueLimitExceededError: any;
+ *         NerdamerValueError: any;
+ *         SolveError: any;
+ *         InfiniteLoopError: any;
+ *         UnexpectedTokenError: any;
+ *     };
+ *     parser: ParserType | null;
+ *     core: any;
+ *     libExports: any;
+ *     version: string;
+ * }}
+ */
+const CoreDeps = {
+    // External imports - available immediately
+    ext: {
+        bigInt: nerdamerBigInt,
+        bigDec: nerdamerBigDecimal,
+        PRIMES: nerdamerConstants.PRIMES,
+        PRIMES_SET: nerdamerConstants.PRIMES_SET,
+        LONG_PI: nerdamerConstants.LONG_PI,
+        LONG_E: nerdamerConstants.LONG_E,
+        BIG_LOG_CACHE: nerdamerConstants.BIG_LOG_CACHE,
+    },
+
+    // Symbol group constants - available immediately
+    groups: {
+        N: 1, // A number
+        P: 2, // A number with a rational power e.g. 2^(3/5)
+        S: 3, // A single variable e.g. x
+        EX: 4, // An exponential
+        FN: 5, // A function
+        PL: 6, // Same name, different powers e.g. 1/x + x^2
+        CB: 7, // Multiplication composite e.g. x*y
+        CP: 8, // Addition composite e.g. x+1 or x+y
+    },
+
+    // Function name constants - available immediately
+    fnNames: {
+        SQRT: 'sqrt',
+        ABS: 'abs',
+        FACTORIAL: 'factorial',
+        DOUBLEFACTORIAL: 'dfactorial',
+        PARENTHESIS: 'parens',
+        LOG: 'log',
+        CONST_HASH: '#',
+    },
+
+    // Settings reference - set by IIFE
+    settings: /** @type {any} */ (null),
+
+    // Runtime state - arrays/objects set by IIFE
+    state: {
+        EXPRESSIONS: /** @type {any[]} */ ([]),
+        VARS: /** @type {Record<string, any>} */ ({}),
+        CONSTANTS: /** @type {Record<string, any>} */ ({}),
+        RESERVED: /** @type {string[]} */ ([]),
+        WARNINGS: /** @type {string[]} */ ([]),
+        USER_FUNCTIONS: /** @type {string[]} */ ([]),
+        CUSTOM_OPERATORS: /** @type {Record<string, any>} */ ({}),
+    },
+
+    // Class constructors - set by IIFE after class definitions
+    classes: {
+        Frac: /** @type {any} */ (null),
+        Fraction: /** @type {any} */ (null),
+        NerdamerSymbol: /** @type {any} */ (null),
+        Vector: /** @type {any} */ (null),
+        Matrix: /** @type {any} */ (null),
+        Expression: /** @type {any} */ (null),
+        Collection: /** @type {any} */ (null),
+        NerdamerSet: /** @type {any} */ (null),
+        Scientific: /** @type {any} */ (null),
+        Parser: /** @type {any} */ (null),
+        LaTeX: /** @type {any} */ (null),
+        Math2: /** @type {any} */ (null),
+        Build: /** @type {any} */ (null),
+    },
+
+    // Utility functions - set incrementally as they become available
+    utils: {
+        isSymbol: /** @type {any} */ (() => false),
+        isVector: /** @type {any} */ (() => false),
+        isMatrix: /** @type {any} */ (() => false),
+        isExpression: /** @type {any} */ (() => false),
+        isNumericSymbol: /** @type {any} */ (() => false),
+        isFraction: /** @type {any} */ (() => false),
+        isArray: /** @type {any} */ (null),
+        isInt: /** @type {any} */ (() => false),
+        text: /** @type {any} */ (() => ''),
+        variables: /** @type {any} */ (() => []),
+        scientificToDecimal: /** @type {any} */ (() => ''),
+        err: /** @type {any} */ (
+            msg => {
+                throw new Error(msg);
+            }
+        ),
+        block: /** @type {any} */ (() => null),
+        evaluate: /** @type {any} */ (() => null),
+        reserveNames: /** @type {any} */ (() => {}),
+        nround: /** @type {any} */ (n => n),
+        remove: /** @type {any} */ (() => {}),
+        _setFunction: /** @type {any} */ (() => false),
+        _clearFunctions: /** @type {any} */ (() => {}),
+        symfunction: /** @type {any} */ (() => null),
+        callfunction: /** @type {any} */ (() => null),
+    },
+
+    // Exception classes - use getters since they're defined later in the file
+    exceptions: {
+        get DivisionByZero() {
+            return DivisionByZero;
+        },
+        get ParseError() {
+            return ParseError;
+        },
+        get OutOfFunctionDomainError() {
+            return OutOfFunctionDomainError;
+        },
+        get UndefinedError() {
+            return UndefinedError;
+        },
+        get MaximumIterationsReached() {
+            return MaximumIterationsReached;
+        },
+        get NerdamerTypeError() {
+            return NerdamerTypeError;
+        },
+        get ParityError() {
+            return ParityError;
+        },
+        get OperatorError() {
+            return OperatorError;
+        },
+        get OutOfRangeError() {
+            return OutOfRangeError;
+        },
+        get DimensionError() {
+            return DimensionError;
+        },
+        get InvalidVariableNameError() {
+            return InvalidVariableNameError;
+        },
+        get ValueLimitExceededError() {
+            return ValueLimitExceededError;
+        },
+        get NerdamerValueError() {
+            return NerdamerValueError;
+        },
+        get SolveError() {
+            return SolveError;
+        },
+        get InfiniteLoopError() {
+            return InfiniteLoopError;
+        },
+        get UnexpectedTokenError() {
+            return UnexpectedTokenError;
+        },
+    },
+
+    // Parser instance - set by IIFE after Parser creation
+    parser: /** @type {any} */ (null),
+
+    // Core object C - set by IIFE at end
+    core: /** @type {any} */ (null),
+
+    // Library exports function - set by IIFE
+    libExports: /** @type {any} */ (null),
+
+    // Version string
+    version: '1.1.16',
+};
+
+// Groups object - maps to CoreDeps.groups for external access
+const Groups = {
+    N: CoreDeps.groups.N,
+    P: CoreDeps.groups.P,
+    S: CoreDeps.groups.S,
+    EX: CoreDeps.groups.EX,
+    FN: CoreDeps.groups.FN,
+    PL: CoreDeps.groups.PL,
+    CB: CoreDeps.groups.CB,
+    CP: CoreDeps.groups.CP,
+};
+
+// Custom operators registry - populated by IIFE
+const CUSTOM_OPERATORS = {};
+
+// ============================================================================
+// Math Polyfills
+// ============================================================================
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/
+Math.sign ||= function sign(x) {
+    x = Number(x); // Convert to a number
+    if (x === 0 || isNaN(x)) {
+        return x;
+    }
+    return x > 0 ? 1 : -1;
+};
+
+Math.cosh ||= function cosh(x) {
+    const y = Math.exp(x);
+    return (y + 1 / y) / 2;
+};
+
+Math.sech ||= function sech(x) {
+    return 1 / Math.cosh(x);
+};
+
+Math.csch ||= function csch(x) {
+    return 1 / Math.sinh(x);
+};
+
+Math.coth ||= function coth(x) {
+    return 1 / Math.tanh(x);
+};
+
+Math.sinh ||= function sinh(x) {
+    const y = Math.exp(x);
+    return (y - 1 / y) / 2;
+};
+
+Math.tanh ||= function tanh(x) {
+    if (x === Infinity) {
+        return 1;
+    }
+    if (x === -Infinity) {
+        return -1;
+    }
+    const y = Math.exp(2 * x);
+    return (y - 1) / (y + 1);
+};
+
+Math.asinh ||= function asinh(x) {
+    if (x === -Infinity) {
+        return x;
+    }
+    return Math.log(x + Math.sqrt(x * x + 1));
+};
+
+Math.acosh ||= function acosh(x) {
+    return Math.log(x + Math.sqrt(x * x - 1));
+};
+
+Math.atanh ||= function atanh(x) {
+    return Math.log((1 + x) / (1 - x)) / 2;
+};
+
+Math.trunc ||= function trunc(x) {
+    if (isNaN(x)) {
+        return NaN;
+    }
+    if (x > 0) {
+        return Math.floor(x);
+    }
+    return Math.ceil(x);
+};
+
 // Fraction Object ==============================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
 // This static utility object converts decimals to fractions.
@@ -233,12 +599,15 @@ const Fraction = {
     },
 };
 
+// Assign Fraction to CoreDeps immediately
+CoreDeps.classes.Fraction = /** @type {any} */ (Fraction);
+
 // Frac Class ===================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
-// Dependencies are injected via the `deps` object which is set by the IIFE after initialization.
+// Dependencies are accessed via CoreDeps for centralized management.
 
 /**
- * Dependency container for Frac class. Populated by the IIFE during initialization.
+ * Dependency accessor for Frac class. Uses CoreDeps as the single source of truth for all dependencies.
  *
  * @type {{
  *     bigInt: typeof nerdamerBigInt;
@@ -251,13 +620,27 @@ const Fraction = {
  * }}
  */
 const FracDeps = {
-    bigInt: nerdamerBigInt,
-    bigDec: nerdamerBigDecimal,
-    isInt: () => false,
-    scientificToDecimal: () => '',
-    DivisionByZero: Error,
-    Settings: { PRECISION: 21, USE_BIG: false },
-    Fraction,
+    get bigInt() {
+        return CoreDeps.ext.bigInt;
+    },
+    get bigDec() {
+        return CoreDeps.ext.bigDec;
+    },
+    get isInt() {
+        return CoreDeps.utils.isInt;
+    },
+    get scientificToDecimal() {
+        return CoreDeps.utils.scientificToDecimal;
+    },
+    get DivisionByZero() {
+        return DivisionByZero;
+    },
+    get Settings() {
+        return CoreDeps.settings;
+    },
+    get Fraction() {
+        return Fraction;
+    },
 };
 
 /**
@@ -700,12 +1083,15 @@ class Frac {
     }
 }
 
+// Assign Frac to CoreDeps immediately for early access
+CoreDeps.classes.Frac = /** @type {any} */ (Frac);
+
 // NerdamerSet Class ====================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
-// Dependencies are injected via SetDeps which is set by the IIFE after initialization.
+// Dependencies are accessed via CoreDeps for centralized management.
 
 /**
- * Dependency container for NerdamerSet class. Populated by the IIFE during initialization.
+ * Dependency accessor for NerdamerSet class. Uses CoreDeps as the single source of truth.
  *
  * @type {{
  *     isVector: (x: any) => boolean;
@@ -714,9 +1100,15 @@ class Frac {
  * }}
  */
 const SetDeps = {
-    isVector: () => false,
-    Vector: { fromArray: () => ({}) },
-    remove: () => {},
+    get isVector() {
+        return CoreDeps.utils.isVector;
+    },
+    get Vector() {
+        return CoreDeps.classes.Vector;
+    },
+    get remove() {
+        return remove;
+    }, // Remove is defined later in file
 };
 
 /**
@@ -883,6 +1275,9 @@ NerdamerSet.prototype = {
     },
 };
 
+// Assign NerdamerSet to CoreDeps immediately
+CoreDeps.classes.NerdamerSet = NerdamerSet;
+
 // Collection Class =================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
 // Dependencies are injected via CollectionDeps which is set by the IIFE after initialization.
@@ -896,8 +1291,12 @@ NerdamerSet.prototype = {
  * }}
  */
 const CollectionDeps = {
-    _: null,
-    block: () => {},
+    get _() {
+        return CoreDeps.parser;
+    },
+    get block() {
+        return CoreDeps.utils.block;
+    },
 };
 
 /**
@@ -986,6 +1385,9 @@ Collection.prototype.subtract = function subtract(vector) {
     );
 };
 
+// Assign Collection to CoreDeps immediately
+CoreDeps.classes.Collection = Collection;
+
 // Scientific Class =================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
 // Dependencies are injected via ScientificDeps which is set by the IIFE after initialization.
@@ -999,8 +1401,12 @@ Collection.prototype.subtract = function subtract(vector) {
  * }}
  */
 const ScientificDeps = {
-    Settings: { SCIENTIFIC_IGNORE_ZERO_EXPONENTS: true },
-    nround: (x, s) => Math.round(x * 10 ** s) / 10 ** s,
+    get Settings() {
+        return CoreDeps.settings;
+    },
+    get nround() {
+        return CoreDeps.utils.nround;
+    },
 };
 
 /*
@@ -1181,6 +1587,9 @@ Scientific.round = function round(c, n) {
     }
     return coeff;
 };
+
+// Assign Scientific to CoreDeps immediately
+CoreDeps.classes.Scientific = Scientific;
 
 // CustomError Function =============================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
@@ -1986,8 +2395,8 @@ function firstObject(obj, key, both) {
 const { keys } = Object;
 
 // GroupConstantsDeps ==============================================================
-// Shared dependency container for group constants. These constants define
-// the type groups for nerdamer symbols. Populated by the IIFE during initialization.
+// Accessor for group constants. These constants define the type groups for nerdamer symbols.
+// Uses CoreDeps as the single source of truth.
 
 /**
  * @type {{
@@ -2002,20 +2411,34 @@ const { keys } = Object;
  * }}
  */
 const GroupConstantsDeps = {
-    N: 1,
-    P: 2,
-    S: 3,
-    EX: 4,
-    FN: 5,
-    PL: 6,
-    CB: 7,
-    CP: 8,
+    get N() {
+        return CoreDeps.groups.N;
+    },
+    get P() {
+        return CoreDeps.groups.P;
+    },
+    get S() {
+        return CoreDeps.groups.S;
+    },
+    get EX() {
+        return CoreDeps.groups.EX;
+    },
+    get FN() {
+        return CoreDeps.groups.FN;
+    },
+    get PL() {
+        return CoreDeps.groups.PL;
+    },
+    get CB() {
+        return CoreDeps.groups.CB;
+    },
+    get CP() {
+        return CoreDeps.groups.CP;
+    },
 };
 
 // ParserDeps ======================================================================
-// Shared dependency container for the Parser and functions that need parser access.
-// Contains group constants, function name constants, and external imports.
-// Populated by the IIFE during initialization.
+// Accessor for Parser dependencies. Uses CoreDeps as the single source of truth.
 
 /**
  * @type {{
@@ -2039,23 +2462,57 @@ const GroupConstantsDeps = {
  * }}
  */
 const ParserDeps = {
-    _: null,
-    N: 1,
-    P: 2,
-    S: 3,
-    EX: 4,
-    FN: 5,
-    PL: 6,
-    CB: 7,
-    CP: 8,
-    SQRT: 'sqrt',
-    ABS: 'abs',
-    FACTORIAL: 'factorial',
-    DOUBLEFACTORIAL: 'dfactorial',
-    PARENTHESIS: 'parens',
-    bigDec: null,
-    PRIMES: [],
-    VARS: {},
+    get _() {
+        return CoreDeps.parser;
+    },
+    get N() {
+        return CoreDeps.groups.N;
+    },
+    get P() {
+        return CoreDeps.groups.P;
+    },
+    get S() {
+        return CoreDeps.groups.S;
+    },
+    get EX() {
+        return CoreDeps.groups.EX;
+    },
+    get FN() {
+        return CoreDeps.groups.FN;
+    },
+    get PL() {
+        return CoreDeps.groups.PL;
+    },
+    get CB() {
+        return CoreDeps.groups.CB;
+    },
+    get CP() {
+        return CoreDeps.groups.CP;
+    },
+    get SQRT() {
+        return CoreDeps.fnNames.SQRT;
+    },
+    get ABS() {
+        return CoreDeps.fnNames.ABS;
+    },
+    get FACTORIAL() {
+        return CoreDeps.fnNames.FACTORIAL;
+    },
+    get DOUBLEFACTORIAL() {
+        return CoreDeps.fnNames.DOUBLEFACTORIAL;
+    },
+    get PARENTHESIS() {
+        return CoreDeps.fnNames.PARENTHESIS;
+    },
+    get bigDec() {
+        return CoreDeps.ext.bigDec;
+    },
+    get PRIMES() {
+        return CoreDeps.ext.PRIMES;
+    },
+    get VARS() {
+        return CoreDeps.state.VARS;
+    },
 };
 
 /**
@@ -2102,7 +2559,9 @@ function allNumbers(args) {
  * }}
  */
 const ReservedDeps = {
-    RESERVED: [],
+    get RESERVED() {
+        return CoreDeps.state.RESERVED;
+    },
 };
 
 /**
@@ -2151,7 +2610,9 @@ function clearU(u) {
  * }}
  */
 const ValidateNameDeps = {
-    ALLOW_CHARS: [],
+    get ALLOW_CHARS() {
+        return CoreDeps.settings?.ALLOW_CHARS ?? [];
+    },
     VALIDATION_REGEX: /^[a-z_][a-z\d_]*$/iu,
 };
 
@@ -2196,8 +2657,12 @@ function isReserved(value) {
  * }}
  */
 const WarnDeps = {
-    WARNINGS: [],
-    SHOW_WARNINGS: false,
+    get WARNINGS() {
+        return CoreDeps.state.WARNINGS;
+    },
+    get SHOW_WARNINGS() {
+        return !(CoreDeps.settings?.SILENCE_WARNINGS ?? true);
+    },
 };
 
 /**
@@ -2233,7 +2698,9 @@ function getWarnings() {
  * }}
  */
 const NumExpressionsDeps = {
-    EXPRESSIONS: [],
+    get EXPRESSIONS() {
+        return CoreDeps.state.EXPRESSIONS;
+    },
 };
 
 /**
@@ -2257,7 +2724,9 @@ function numExpressions() {
  * }}
  */
 const GetSettingDeps = {
-    Settings: {},
+    get Settings() {
+        return CoreDeps.settings;
+    },
 };
 
 /**
@@ -2320,8 +2789,12 @@ function reserved(asArray) {
  * }}
  */
 const VersionDeps = {
-    _version: '',
-    C: {},
+    get _version() {
+        return CoreDeps.version;
+    },
+    get C() {
+        return CoreDeps.core;
+    },
 };
 
 /**
@@ -2341,7 +2814,7 @@ function version(addOn) {
             return `No module named ${addOn} found!`;
         }
     }
-    return VersionDeps._version;
+    return CoreDeps.version;
 }
 
 // GetCore Function ==============================================================
@@ -2369,7 +2842,9 @@ function getCore() {
  * }}
  */
 const SupportedDeps = {
-    functions: null,
+    get functions() {
+        return CoreDeps.parser?.functions;
+    },
 };
 
 /**
@@ -2393,7 +2868,9 @@ function supported() {
  * }}
  */
 const GetConstantDeps = {
-    CONSTANTS: null,
+    get CONSTANTS() {
+        return CoreDeps.parser?.CONSTANTS;
+    },
 };
 
 /**
@@ -2418,7 +2895,9 @@ function getConstant(constant) {
  * }}
  */
 const GetVarDeps = {
-    VARS: null,
+    get VARS() {
+        return CoreDeps.state.VARS;
+    },
 };
 
 /**
@@ -2482,8 +2961,12 @@ function getVars(output, option) {
  * }}
  */
 const ConvertToLaTeXDeps = {
-    _: null,
-    C: null,
+    get _() {
+        return CoreDeps.parser;
+    },
+    get C() {
+        return CoreDeps.core;
+    },
 };
 
 /**
@@ -2651,14 +3134,30 @@ function replaceFunction(name, fn, numArgs) {
  * }}
  */
 const ExpressionsDeps = {
-    EXPRESSIONS: [],
-    USER_FUNCTIONS: [],
-    LaTeX: { latex: () => '', parse: () => '' },
-    text: () => '',
-    functions: {},
-    Math2: {},
-    _: null,
-    Expression: null,
+    get EXPRESSIONS() {
+        return CoreDeps.state.EXPRESSIONS;
+    },
+    get USER_FUNCTIONS() {
+        return CoreDeps.state.USER_FUNCTIONS;
+    },
+    get LaTeX() {
+        return CoreDeps.classes.LaTeX;
+    },
+    get text() {
+        return CoreDeps.utils.text;
+    },
+    get functions() {
+        return CoreDeps.parser?.functions ?? {};
+    },
+    get Math2() {
+        return CoreDeps.classes.Math2;
+    },
+    get _() {
+        return CoreDeps.parser;
+    },
+    get Expression() {
+        return CoreDeps.classes.Expression;
+    },
 };
 
 /**
@@ -2746,11 +3245,21 @@ function convertFromLaTeX(e) {
  * }}
  */
 const ChainDeps = {
-    libExports: null,
-    VARS: {},
-    _clearFunctions: () => {},
-    _initConstants: () => {},
-    clear: null,
+    get libExports() {
+        return CoreDeps.libExports;
+    },
+    get VARS() {
+        return CoreDeps.state.VARS;
+    },
+    get _clearFunctions() {
+        return CoreDeps.utils._clearFunctions;
+    },
+    get _initConstants() {
+        return CoreDeps.parser?.initConstants ?? (() => {});
+    },
+    get clear() {
+        return clear;
+    },
 };
 
 /**
@@ -2834,8 +3343,12 @@ function load(loader) {
  * }}
  */
 const SetConstantDeps = {
-    libExports: null,
-    CONSTANTS: {},
+    get libExports() {
+        return CoreDeps.libExports;
+    },
+    get CONSTANTS() {
+        return CoreDeps.state.CONSTANTS;
+    },
 };
 
 /**
@@ -2877,11 +3390,22 @@ function setConstant(constant, value) {
  * }}
  */
 const SetVarDeps = {
-    libExports: null,
-    VARS: {},
-    CONSTANTS: {},
-    parse: () => null,
-    isSymbol: () => false,
+    get libExports() {
+        return CoreDeps.libExports;
+    },
+    get VARS() {
+        return CoreDeps.state.VARS;
+    },
+    get CONSTANTS() {
+        return CoreDeps.state.CONSTANTS;
+    },
+    get parse() {
+        const { parser } = CoreDeps;
+        return parser?.parse?.bind(parser) ?? (() => null);
+    },
+    get isSymbol() {
+        return CoreDeps.utils.isSymbol;
+    },
 };
 
 /**
@@ -2918,8 +3442,12 @@ function setVar(v, val) {
  * }}
  */
 const SetFunctionDeps = {
-    libExports: null,
-    _setFunction: () => false,
+    get libExports() {
+        return CoreDeps.libExports;
+    },
+    get _setFunction() {
+        return CoreDeps.utils._setFunction;
+    },
 };
 
 /**
@@ -2958,8 +3486,12 @@ function setFunction(fnName, fnParams, fnBody) {
  * }}
  */
 const ClearDeps = {
-    libExports: null,
-    EXPRESSIONS: [],
+    get libExports() {
+        return CoreDeps.libExports;
+    },
+    get EXPRESSIONS() {
+        return CoreDeps.state.EXPRESSIONS;
+    },
 };
 
 /**
@@ -3000,9 +3532,15 @@ function clear(equationNumber, keepExpressionsFixed = false) {
  * }}
  */
 const RegisterDeps = {
-    libExports: null,
-    Settings: null,
-    functions: null,
+    get libExports() {
+        return CoreDeps.libExports;
+    },
+    get Settings() {
+        return CoreDeps.settings;
+    },
+    get functions() {
+        return CoreDeps.parser?.functions ?? {};
+    },
 };
 
 /**
@@ -3063,11 +3601,21 @@ function register(obj) {
  * }}
  */
 const SettingsDeps = {
-    bigDec: null,
-    Settings: null,
-    functions: null,
-    symfunction: null,
-    NerdamerSymbol: null,
+    get bigDec() {
+        return CoreDeps.ext.bigDec;
+    },
+    get Settings() {
+        return CoreDeps.settings;
+    },
+    get functions() {
+        return CoreDeps.parser?.functions ?? {};
+    },
+    get symfunction() {
+        return CoreDeps.utils.symfunction;
+    },
+    get NerdamerSymbol() {
+        return CoreDeps.classes.NerdamerSymbol;
+    },
 };
 
 /**
@@ -3142,11 +3690,22 @@ function set(setting, value) {
  * }}
  */
 const UpdateAPIDeps = {
-    libExports: null,
-    functions: null,
-    parse: null,
-    callfunction: null,
-    Expression: null,
+    get libExports() {
+        return CoreDeps.libExports;
+    },
+    get functions() {
+        return CoreDeps.parser?.functions ?? {};
+    },
+    get parse() {
+        const { parser } = CoreDeps;
+        return parser?.parse?.bind(parser) ?? (() => null);
+    },
+    get callfunction() {
+        return CoreDeps.utils.callfunction;
+    },
+    get Expression() {
+        return CoreDeps.classes.Expression;
+    },
 };
 
 /**
@@ -3185,7 +3744,9 @@ function updateAPI(override = false) {
  * }}
  */
 const ErrDeps = {
-    suppress_errors: false,
+    get suppress_errors() {
+        return CoreDeps.settings?.suppress_errors ?? false;
+    },
 };
 
 /**
@@ -3216,7 +3777,9 @@ function err(msg, ErrorObj = undefined) {
  * }}
  */
 const IsPrimeDeps = {
-    PRIMES_SET: {},
+    get PRIMES_SET() {
+        return CoreDeps.ext.PRIMES_SET;
+    },
 };
 
 /**
@@ -3254,7 +3817,9 @@ function isPrime(n) {
 const TimeoutDeps = {
     starttime: 0,
     timeout: 0,
-    TIMEOUT: 800,
+    get TIMEOUT() {
+        return CoreDeps.settings?.TIMEOUT ?? 800;
+    },
 };
 
 /** Arms the timeout mechanism with current time and timeout setting */
@@ -3292,8 +3857,12 @@ function checkTimeout() {
  * }}
  */
 const PrimeFactorsDeps = {
-    PRIMES: [],
-    PRIMES_SET: {},
+    get PRIMES() {
+        return CoreDeps.ext.PRIMES;
+    },
+    get PRIMES_SET() {
+        return CoreDeps.ext.PRIMES_SET;
+    },
 };
 
 /**
@@ -3374,7 +3943,9 @@ function generatePrimes(upto) {
  * }}
  */
 const BlockDeps = {
-    Settings: {},
+    get Settings() {
+        return CoreDeps.settings;
+    },
 };
 
 /**
@@ -3415,10 +3986,10 @@ function evaluate(symbol, o = undefined) {
 
 // Expression Class =================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
-// Dependencies are injected via ExpressionDeps which is set by the IIFE after initialization.
+// Dependencies are accessed via CoreDeps for centralized management.
 
 /**
- * Dependency container for Expression class. Populated by the IIFE during initialization.
+ * Dependency accessor for Expression class. Uses CoreDeps as the single source of truth.
  *
  * @type {{
  *     EXPRESSIONS: any[];
@@ -3437,27 +4008,45 @@ function evaluate(symbol, o = undefined) {
  * }}
  */
 const ExpressionDeps = {
-    EXPRESSIONS: [],
-    Settings: { EXPRESSION_DECP: 5 },
-    LaTeX: { latex: () => '' },
-    text: () => '',
-    variables: () => [],
-    isVector: () => false,
-    isSymbol: () => false,
-    isExpression: () => false,
-    isNumericSymbol: () => false,
-    isFraction: () => false,
-    isArray,
-    _: {
-        parse: () => {},
-        add: () => {},
-        subtract: () => {},
-        multiply: () => {},
-        divide: () => {},
-        pow: () => {},
-        expand: () => {},
+    get EXPRESSIONS() {
+        return CoreDeps.state.EXPRESSIONS;
     },
-    Build: /** @type {any} */ (null),
+    get Settings() {
+        return CoreDeps.settings;
+    },
+    get LaTeX() {
+        return CoreDeps.classes.LaTeX;
+    },
+    get text() {
+        return CoreDeps.utils.text;
+    },
+    get variables() {
+        return CoreDeps.utils.variables;
+    },
+    get isVector() {
+        return CoreDeps.utils.isVector;
+    },
+    get isSymbol() {
+        return CoreDeps.utils.isSymbol;
+    },
+    get isExpression() {
+        return CoreDeps.utils.isExpression;
+    },
+    get isNumericSymbol() {
+        return CoreDeps.utils.isNumericSymbol;
+    },
+    get isFraction() {
+        return CoreDeps.utils.isFraction;
+    },
+    get isArray() {
+        return CoreDeps.utils.isArray;
+    },
+    get _() {
+        return CoreDeps.parser;
+    },
+    get Build() {
+        return CoreDeps.classes.Build;
+    },
 };
 
 /**
@@ -3729,6 +4318,9 @@ Expression.prototype = {
 // Aliases
 Expression.prototype.toTeX = Expression.prototype.latex;
 
+// Assign Expression to CoreDeps immediately
+CoreDeps.classes.Expression = Expression;
+
 // Vector Class =====================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
 // Dependencies are injected via VectorDeps which is set by the IIFE after initialization.
@@ -3740,9 +4332,15 @@ Expression.prototype.toTeX = Expression.prototype.latex;
  * @type {{ _: any; Settings: { PRECISION: number }; LaTeX: any }}
  */
 const VectorDeps = {
-    _: /** @type {any} */ (null),
-    Settings: { PRECISION: 1e-14 },
-    LaTeX: /** @type {any} */ (null),
+    get _() {
+        return CoreDeps.parser;
+    },
+    get Settings() {
+        return CoreDeps.settings;
+    },
+    get LaTeX() {
+        return CoreDeps.classes.LaTeX;
+    },
 };
 
 /**
@@ -4109,6 +4707,9 @@ Vector.prototype = {
     },
 };
 
+// Assign Vector to CoreDeps immediately
+CoreDeps.classes.Vector = /** @type {any} */ (Vector);
+
 // Matrix Class =====================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
 // Uses module-scope values directly. MatrixDeps only provides the parser (_) from the IIFE.
@@ -4119,8 +4720,12 @@ Vector.prototype = {
  * @type {{ _: any; LaTeX: any }}
  */
 const MatrixDeps = {
-    _: /** @type {any} */ (null),
-    LaTeX: /** @type {any} */ (null),
+    get _() {
+        return CoreDeps.parser;
+    },
+    get LaTeX() {
+        return CoreDeps.classes.LaTeX;
+    },
 };
 
 /**
@@ -4592,6 +5197,9 @@ Matrix.prototype = {
 // Aliases
 Matrix.prototype.each = Matrix.prototype.eachElement;
 
+// Assign Matrix to CoreDeps immediately
+CoreDeps.classes.Matrix = /** @type {any} */ (Matrix);
+
 // Build Object =================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
 // Dependencies are injected via BuildDeps which is set by the IIFE after initialization.
@@ -4612,14 +5220,30 @@ Matrix.prototype.each = Matrix.prototype.eachElement;
  * }}
  */
 const BuildDeps = {
-    _: null,
-    N: 1,
-    P: 2,
-    S: 3,
-    EX: 4,
-    FN: 5,
-    CB: 7,
-    Math2: /** @type {any} */ ({}),
+    get _() {
+        return CoreDeps.parser;
+    },
+    get N() {
+        return CoreDeps.groups.N;
+    },
+    get P() {
+        return CoreDeps.groups.P;
+    },
+    get S() {
+        return CoreDeps.groups.S;
+    },
+    get EX() {
+        return CoreDeps.groups.EX;
+    },
+    get FN() {
+        return CoreDeps.groups.FN;
+    },
+    get CB() {
+        return CoreDeps.groups.CB;
+    },
+    get Math2() {
+        return CoreDeps.classes.Math2;
+    },
 };
 
 /** Build object for compiling mathematical expressions to JavaScript functions. */
@@ -4628,6 +5252,66 @@ const Build = {
     dependencies: {},
     /** @type {any} */
     reformat: {},
+    /** Initializes Build dependencies and reformat functions. Called once from IIFE after Math2 is available. */
+    initDependencies() {
+        this.dependencies = {
+            _rename: {
+                'Math2.factorial': 'factorial',
+            },
+            factorial: {
+                'Math2.gamma': Math2.gamma,
+            },
+            gamma_incomplete: {
+                'Math2.factorial': Math2.factorial,
+            },
+            Li: {
+                'Math2.Ei': Math2.Ei,
+                'Math2.bigLog': Math2.bigLog,
+                Frac,
+            },
+            Ci: {
+                'Math2.factorial': Math2.factorial,
+            },
+            Ei: {
+                'Math2.factorial': Math2.factorial,
+            },
+            Si: {
+                'Math2.factorial': Math2.factorial,
+            },
+            Shi: {
+                'Math2.factorial': Math2.factorial,
+            },
+            Chi: {
+                isInt,
+                nround,
+                'Math2.num_integrate': Math2.num_integrate,
+            },
+            factor: {
+                'Math2.ifactor': Math2.ifactor,
+                NerdamerSymbol,
+            },
+            num_integrate: {
+                'Math2.simpson': Math2.simpson,
+                nround,
+            },
+            fib: {
+                even,
+            },
+        };
+        this.reformat = {
+            diff(symbol, deps) {
+                const v = symbol.args[1].toString();
+                const f = `let f = ${Build.build(symbol.args[0].toString(), [v])};`;
+                let diffStr = Math2.diff.toString();
+                if (!diffStr.startsWith('function') && !diffStr.startsWith('(') && !diffStr.startsWith('async')) {
+                    diffStr = `function ${diffStr}`;
+                }
+                deps[1] += `let diff = ${diffStr};`;
+                deps[1] += f;
+                return [`diff(f)(${v})`, deps];
+            },
+        };
+    },
     /**
      * @param {string} f
      * @returns {string}
@@ -4849,6 +5533,9 @@ const Build = {
     },
 };
 
+// Assign Build to CoreDeps immediately
+CoreDeps.classes.Build = Build;
+
 // LaTeX Object =================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
 // Dependencies are injected via LaTeXDeps which is set by the IIFE after initialization.
@@ -4876,21 +5563,51 @@ const Build = {
  * }}
  */
 const LaTeXDeps = {
-    _: null,
-    Settings: /** @type {any} */ ({}),
-    SQRT: 'sqrt',
-    ABS: 'abs',
-    PARENTHESIS: 'parens',
-    FACTORIAL: 'factorial',
-    DOUBLEFACTORIAL: 'dfactorial',
-    N: 1,
-    P: 2,
-    S: 3,
-    EX: 4,
-    FN: 5,
-    CB: 7,
-    CP: 8,
-    Parser: null,
+    get _() {
+        return CoreDeps.parser;
+    },
+    get Settings() {
+        return CoreDeps.settings;
+    },
+    get SQRT() {
+        return CoreDeps.fnNames.SQRT;
+    },
+    get ABS() {
+        return CoreDeps.fnNames.ABS;
+    },
+    get PARENTHESIS() {
+        return CoreDeps.fnNames.PARENTHESIS;
+    },
+    get FACTORIAL() {
+        return CoreDeps.fnNames.FACTORIAL;
+    },
+    get DOUBLEFACTORIAL() {
+        return CoreDeps.fnNames.DOUBLEFACTORIAL;
+    },
+    get N() {
+        return CoreDeps.groups.N;
+    },
+    get P() {
+        return CoreDeps.groups.P;
+    },
+    get S() {
+        return CoreDeps.groups.S;
+    },
+    get EX() {
+        return CoreDeps.groups.EX;
+    },
+    get FN() {
+        return CoreDeps.groups.FN;
+    },
+    get CB() {
+        return CoreDeps.groups.CB;
+    },
+    get CP() {
+        return CoreDeps.groups.CP;
+    },
+    get Parser() {
+        return CoreDeps.classes.Parser;
+    },
 };
 
 /** LaTeX generator object for converting symbols to LaTeX notation. */
@@ -5697,7 +6414,49 @@ const LaTeX = {
 
         return inBrackets(retval);
     },
+    /**
+     * Initializes the LaTeX parser with custom operators for LaTeX parsing. Called once from the IIFE after Parser is
+     * available.
+     */
+    initParser() {
+        const { Parser } = LaTeXDeps;
+        const keep = ['classes', 'setOperator', 'getOperators', 'getBrackets', 'tokenize', 'toRPN', 'tree', 'units'];
+        const parser = new Parser();
+        for (const x in parser) {
+            if (keep.indexOf(x) === -1) {
+                delete parser[x];
+            }
+        }
+        parser.setOperator({
+            precedence: 8,
+            operator: '\\',
+            action: 'slash',
+            prefix: true,
+            postfix: false,
+            leftAssoc: true,
+            operation(e) {
+                return e;
+            },
+        });
+        parser.setOperator({
+            precedence: 8,
+            operator: '\\,',
+            action: 'slash_comma',
+            prefix: true,
+            postfix: false,
+            leftAssoc: true,
+            operation(e) {
+                return e;
+            },
+        });
+        const brackets = parser.getBrackets();
+        brackets['{'].maps_to = undefined;
+        this.parser = parser;
+    },
 };
+
+// Assign LaTeX to CoreDeps immediately so VectorDeps/MatrixDeps getters work
+CoreDeps.classes.LaTeX = LaTeX;
 
 // Settings Object ==============================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
@@ -5712,8 +6471,12 @@ const LaTeX = {
  * }}
  */
 const SettingsConstDeps = {
-    LONG_PI: '',
-    LONG_E: '',
+    get LONG_PI() {
+        return CoreDeps.ext.LONG_PI;
+    },
+    get LONG_E() {
+        return CoreDeps.ext.LONG_E;
+    },
 };
 
 /** Configuration settings for nerdamer. */
@@ -5803,6 +6566,18 @@ const Settings = {
     SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT: 7,
     // No simplify() or solveFor() should take more ms than this
     TIMEOUT: 800,
+    /** Initializes Settings.CACHE.roots with precomputed nth roots. Called once from IIFE during initialization. */
+    initCache() {
+        this.CACHE.roots = {};
+        const x = 40;
+        const y = 40;
+        for (let i = 2; i <= x; i++) {
+            for (let j = 2; j <= y; j++) {
+                const nthpow = nerdamerBigInt(i).pow(j);
+                this.CACHE.roots[`${nthpow}-${j}`] = i;
+            }
+        }
+    },
 };
 
 // Math2 Object ==================================================================
@@ -5822,12 +6597,24 @@ const Settings = {
  * }}
  */
 const Math2Deps = {
-    bigInt: null,
-    BIG_LOG_CACHE: {},
-    PRIMES: [],
-    NerdamerSymbol: null,
-    CB: 7,
-    P: 2,
+    get bigInt() {
+        return CoreDeps.ext.bigInt;
+    },
+    get BIG_LOG_CACHE() {
+        return CoreDeps.ext.BIG_LOG_CACHE;
+    },
+    get PRIMES() {
+        return CoreDeps.ext.PRIMES;
+    },
+    get NerdamerSymbol() {
+        return CoreDeps.classes.NerdamerSymbol;
+    },
+    get CB() {
+        return CoreDeps.groups.CB;
+    },
+    get P() {
+        return CoreDeps.groups.P;
+    },
 };
 
 /** Math utility functions for nerdamer. */
@@ -6771,12 +7558,24 @@ function isExpression(obj) {
  * }}
  */
 const VariablesDeps = {
-    EX: 4,
-    CP: 8,
-    CB: 7,
-    S: 3,
-    PL: 6,
-    FN: 5,
+    get EX() {
+        return CoreDeps.groups.EX;
+    },
+    get CP() {
+        return CoreDeps.groups.CP;
+    },
+    get CB() {
+        return CoreDeps.groups.CB;
+    },
+    get S() {
+        return CoreDeps.groups.S;
+    },
+    get PL() {
+        return CoreDeps.groups.PL;
+    },
+    get FN() {
+        return CoreDeps.groups.FN;
+    },
 };
 
 /**
@@ -6890,10 +7689,18 @@ function getCoeffs(symbol, wrt, _info) {
  * }}
  */
 const NrootsDeps = {
-    _: null,
-    FN: 5,
-    P: 2,
-    N: 1,
+    get _() {
+        return CoreDeps.parser;
+    },
+    get FN() {
+        return CoreDeps.groups.FN;
+    },
+    get P() {
+        return CoreDeps.groups.P;
+    },
+    get N() {
+        return CoreDeps.groups.N;
+    },
 };
 
 /**
@@ -7076,11 +7883,21 @@ function isNegative(obj) {
  * }}
  */
 const SeparateDeps = {
-    _: null,
-    S: 3,
-    FN: 5,
-    EX: 4,
-    ABS: 'abs',
+    get _() {
+        return CoreDeps.parser;
+    },
+    get S() {
+        return CoreDeps.groups.S;
+    },
+    get FN() {
+        return CoreDeps.groups.FN;
+    },
+    get EX() {
+        return CoreDeps.groups.EX;
+    },
+    get ABS() {
+        return CoreDeps.fnNames.ABS;
+    },
 };
 
 /**
@@ -7127,8 +7944,12 @@ function separate(symbol, o) {
  * }}
  */
 const DecomposeFnDeps = {
-    _: null,
-    CP: 8,
+    get _() {
+        return CoreDeps.parser;
+    },
+    get CP() {
+        return CoreDeps.groups.CP;
+    },
 };
 
 /**
@@ -7295,9 +8116,15 @@ function getU(symbol) {
  * }}
  */
 const InternalSetFunctionDeps = {
-    _: null,
-    C: null,
-    USER_FUNCTIONS: [],
+    get _() {
+        return CoreDeps.parser;
+    },
+    get C() {
+        return CoreDeps.core;
+    },
+    get USER_FUNCTIONS() {
+        return CoreDeps.state.USER_FUNCTIONS;
+    },
 };
 
 /**
@@ -7389,9 +8216,15 @@ function _setFunction(fnName, fnParams, fnBody) {
  * }}
  */
 const ClearFunctionsDeps = {
-    _: null,
-    C: null,
-    USER_FUNCTIONS: [],
+    get _() {
+        return CoreDeps.parser;
+    },
+    get C() {
+        return CoreDeps.core;
+    },
+    get USER_FUNCTIONS() {
+        return CoreDeps.state.USER_FUNCTIONS;
+    },
 };
 
 /** Clears all user defined functions */
@@ -7441,18 +8274,42 @@ function importFunctions() {
  * }}
  */
 const TextDeps = {
-    bigInt: null,
-    isSymbol: /** @type {any} */ (null),
-    isVector: /** @type {any} */ (null),
-    N: 1,
-    P: 2,
-    S: 3,
-    FN: 5,
-    PL: 6,
-    CB: 7,
-    CP: 8,
-    EX: 4,
-    CUSTOM_OPERATORS: {},
+    get bigInt() {
+        return CoreDeps.ext.bigInt;
+    },
+    get isSymbol() {
+        return CoreDeps.utils.isSymbol;
+    },
+    get isVector() {
+        return CoreDeps.utils.isVector;
+    },
+    get N() {
+        return CoreDeps.groups.N;
+    },
+    get P() {
+        return CoreDeps.groups.P;
+    },
+    get S() {
+        return CoreDeps.groups.S;
+    },
+    get FN() {
+        return CoreDeps.groups.FN;
+    },
+    get PL() {
+        return CoreDeps.groups.PL;
+    },
+    get CB() {
+        return CoreDeps.groups.CB;
+    },
+    get CP() {
+        return CoreDeps.groups.CP;
+    },
+    get EX() {
+        return CoreDeps.groups.EX;
+    },
+    get CUSTOM_OPERATORS() {
+        return CoreDeps.state.CUSTOM_OPERATORS;
+    },
 };
 
 /**
@@ -7875,23 +8732,57 @@ function text(obj, option = undefined, useGroup = undefined, decp = undefined) {
  * }}
  */
 const NerdamerSymbolDeps = {
-    bigDec: null,
-    bigInt: null,
-    _: null,
-    N: 1,
-    P: 2,
-    S: 3,
-    FN: 5,
-    PL: 6,
-    CB: 7,
-    CP: 8,
-    EX: 4,
-    CONST_HASH: '#',
-    isSymbol: null,
-    text: null,
-    variables: null,
-    SQRT: null,
-    PARENTHESIS: null,
+    get bigDec() {
+        return CoreDeps.ext.bigDec;
+    },
+    get bigInt() {
+        return CoreDeps.ext.bigInt;
+    },
+    get _() {
+        return CoreDeps.parser;
+    },
+    get N() {
+        return CoreDeps.groups.N;
+    },
+    get P() {
+        return CoreDeps.groups.P;
+    },
+    get S() {
+        return CoreDeps.groups.S;
+    },
+    get FN() {
+        return CoreDeps.groups.FN;
+    },
+    get PL() {
+        return CoreDeps.groups.PL;
+    },
+    get CB() {
+        return CoreDeps.groups.CB;
+    },
+    get CP() {
+        return CoreDeps.groups.CP;
+    },
+    get EX() {
+        return CoreDeps.groups.EX;
+    },
+    get CONST_HASH() {
+        return CoreDeps.fnNames.CONST_HASH;
+    },
+    get isSymbol() {
+        return CoreDeps.utils.isSymbol;
+    },
+    get text() {
+        return CoreDeps.utils.text;
+    },
+    get variables() {
+        return CoreDeps.utils.variables;
+    },
+    get SQRT() {
+        return CoreDeps.fnNames.SQRT;
+    },
+    get PARENTHESIS() {
+        return CoreDeps.fnNames.PARENTHESIS;
+    },
 };
 
 function NerdamerSymbol(obj) {
@@ -9612,6 +10503,9 @@ NerdamerSymbol.prototype = {
         return this.text();
     },
 };
+
+// Assign NerdamerSymbol to CoreDeps immediately
+CoreDeps.classes.NerdamerSymbol = /** @type {any} */ (NerdamerSymbol);
 
 // Parser Class =====================================================================
 // The Parser is the core mathematical expression parser for nerdamer. It uses a
@@ -14980,7 +15874,9 @@ function Parser() {
                 if (re.isConstant('all') && im.isConstant('all')) {
                     phi = Settings.USE_BIG
                         ? new NerdamerSymbol(
-                              bigDec.atan2(im.multiplier.toDecimal(), re.multiplier.toDecimal()).times(b.toString())
+                              nerdamerBigDecimal
+                                  .atan2(im.multiplier.toDecimal(), re.multiplier.toDecimal())
+                                  .times(b.toString())
                           )
                         : Math.atan2(Number(im.multiplier.toDecimal()), Number(re.multiplier.toDecimal())) *
                           Number(b.multiplier.toDecimal());
@@ -15348,623 +16244,89 @@ function Parser() {
     };
 }
 
-const nerdamer = (function initNerdamerCore(imports) {
-    // Version ======================================================================
-    const _version = '1.1.16';
-
-    // Import bigInt - local copy needed for IIFE use
-    const { bigInt } = imports;
-
-    // Set the precision to js precision
-    imports.bigDec.set({ precision: 250 });
-
-    const Groups = {};
-
-    const CUSTOM_OPERATORS = {};
-
-    // SettingsConstDeps initialization
-    SettingsConstDeps.LONG_PI = imports.constants.LONG_PI;
-    SettingsConstDeps.LONG_E = imports.constants.LONG_E;
-
-    // Initialize Settings.CACHE.roots (requires bigInt from imports)
-    (function initSettingsCache() {
-        Settings.CACHE.roots = {};
-        const x = 40;
-        const y = 40;
-        for (let i = 2; i <= x; i++) {
-            for (let j = 2; j <= y; j++) {
-                const nthpow = bigInt(i).pow(j);
-                Settings.CACHE.roots[`${nthpow}-${j}`] = i;
-            }
-        }
-    })();
-
-    // Timeout functions are now defined outside IIFE
-    // Initialize TimeoutDeps with Settings.TIMEOUT via getter
-    Object.defineProperty(TimeoutDeps, 'TIMEOUT', {
-        get: () => Settings.TIMEOUT,
-        configurable: true,
-    });
-
-    // Forward declarations for IIFE-local variables defined later
-    /** @type {ParserType | null} */
-    let _ = null;
-    let C = null;
-
-    // Symbol Group Constants =======================================================
-    // These constants define how symbols are classified during parsing.
-    // They are also assigned to Groups.X for external access.
-    const N = (Groups.N = 1); // A number
-    const P = (Groups.P = 2); // A number with a rational power e.g. 2^(3/5).
-    const S = (Groups.S = 3); // A single variable e.g. x.
-    const EX = (Groups.EX = 4); // An exponential
-    const FN = (Groups.FN = 5); // A function
-    const PL = (Groups.PL = 6); // A symbol/expression having same name with different powers e.g. 1/x + x^2
-    const CB = (Groups.CB = 7); // A symbol/expression composed of one or more variables through multiplication e.g. x*y
-    const CP = (Groups.CP = 8); // A symbol/expression composed of one variable and any other symbol or number x+1 or x+y
-
-    const CONST_HASH = (Settings.CONST_HASH = '#');
-
-    // Function name constants from Settings - special function identifiers
-    const { PARENTHESIS, SQRT, ABS, FACTORIAL, DOUBLEFACTORIAL } = Settings;
-
-    const EXPRESSIONS = [];
-    /** @type {Record<string, any>} */
-    const VARS_STORE = {};
-    const RESERVED = [];
-    const WARNINGS = [];
-    const USER_FUNCTIONS = [];
-
-    // External imports
-    const { PRIMES, PRIMES_SET } = imports.constants;
-    const { bigDec } = imports;
-
-    // ParserDeps Initialization ====================================================
-    // Populate ParserDeps with all values the Parser needs. This must happen before
-    // Parser instantiation so the Parser can destructure these values.
-    Object.assign(ParserDeps, {
-        N,
-        P,
-        S,
-        EX,
-        FN,
-        PL,
-        CB,
-        CP,
-        SQRT,
-        ABS,
-        FACTORIAL,
-        DOUBLEFACTORIAL,
-        PARENTHESIS,
-        bigDec,
-        PRIMES,
-        VARS: VARS_STORE,
-    });
-
-    // ErrDeps initialization
-    Object.defineProperty(ErrDeps, 'suppress_errors', {
-        get: () => Settings.suppress_errors,
-        configurable: true,
-    });
-
-    // Utils - Dependency Initialization =============================================
-    // Most utility functions are now defined outside IIFE. This section initializes
-    // their dependency containers with values from inside the IIFE.
-
-    // Initialize ReservedDeps with RESERVED array reference (shared by isReserved, reserveNames, clearU, getU, reserved, validVarName)
-    ReservedDeps.RESERVED = RESERVED;
-
-    WarnDeps.WARNINGS = WARNINGS;
-    Object.defineProperty(WarnDeps, 'SHOW_WARNINGS', {
-        get: () => Settings.SHOW_WARNINGS,
-        configurable: true,
-    });
-
-    Object.defineProperty(NumExpressionsDeps, 'EXPRESSIONS', {
-        get: () => EXPRESSIONS,
-        configurable: true,
-    });
-
-    GetSettingDeps.Settings = Settings;
-
-    VersionDeps._version = _version;
-    Object.defineProperty(VersionDeps, 'C', {
-        get: () => C,
-        configurable: true,
-    });
-
-    ValidateNameDeps.ALLOW_CHARS = Settings.ALLOW_CHARS;
-    ValidateNameDeps.VALIDATION_REGEX = Settings.VALIDATION_REGEX;
-
-    IsPrimeDeps.PRIMES_SET = PRIMES_SET;
-    Object.assign(PrimeFactorsDeps, { PRIMES, PRIMES_SET });
-
-    // Initialize Deps with group constants
-    Object.assign(VariablesDeps, { EX, CP, CB, S, PL, FN });
-    Object.assign(SeparateDeps, { S, FN, EX, ABS });
-    Object.assign(GroupConstantsDeps, { N, P, S, EX, FN, PL, CB, CP });
-
-    // Utility functions now defined outside IIFE:
-    // isNegative, stringReplace, range, keys, firstObject, compare, _setFunction,
-    // _clearFunctions, nroots, decomposeFn, getU, clearU, arrayGetVariables,
-    // reserveNames, block, importFunctions, getCoeffs, evaluate, convertToVector,
-    // generatePrimes, allNumbers, allConstants, mix
-
-    // Initialize dependency containers with parser reference (set after Parser creation)
-    // Consolidated into ParserDeps._: getCoeffs, compare, arraySum, mix, convertToVector, importFunctions, evaluate
-    // Remaining: NrootsDeps._, SeparateDeps._, DecomposeFnDeps._, InternalSetFunctionDeps._, ClearFunctionsDeps._
-
-    // Initialize Deps with additional group constants
-    Object.assign(NrootsDeps, { FN, P, N });
-    DecomposeFnDeps.CP = CP;
-
-    // Initialize BlockDeps with Settings reference
-    BlockDeps.Settings = Settings;
-
-    // Exceptions ===================================================================
-    // All error classes are defined outside IIFE for proper TypeScript type inference:
-    // DivisionByZero, ParseError, UndefinedError, OutOfFunctionDomainError,
-    // MaximumIterationsReached, NerdamerTypeError, ParityError, OperatorError,
-    // OutOfRangeError, DimensionError, InvalidVariableNameError, ValueLimitExceededError,
-    // NerdamerValueError, SolveError, InfiniteLoopError, UnexpectedTokenError
-
-    const exceptions = {
-        DivisionByZero,
-        ParseError,
-        OutOfFunctionDomainError,
-        UndefinedError,
-        MaximumIterationsReached,
-        NerdamerTypeError,
-        ParityError,
-        OperatorError,
-        OutOfRangeError,
-        DimensionError,
-        InvalidVariableNameError,
-        ValueLimitExceededError,
-        NerdamerValueError,
-        SolveError,
-        InfiniteLoopError,
-        UnexpectedTokenError,
-    };
-
-    // Math2Deps initialization
-    Object.assign(Math2Deps, {
-        bigInt,
-        BIG_LOG_CACHE: imports.constants.BIG_LOG_CACHE,
-        PRIMES,
-        NerdamerSymbol,
-        CB,
-        P,
-    });
-
-    Settings.FUNCTION_MODULES.push(Math2);
-    reserveNames(/** @type {object} */ (Math2));
-
-    // Polyfills ====================================================================
-    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/
-    Math.sign ||= function sign(x) {
-        x = Number(x); // Convert to a number
-        if (x === 0 || isNaN(x)) {
-            return x;
-        }
-        return x > 0 ? 1 : -1;
-    };
-
-    Math.cosh ||= function cosh(x) {
-        const y = Math.exp(x);
-        return (y + 1 / y) / 2;
-    };
-
-    Math.sech ||= function sech(x) {
-        return 1 / Math.cosh(x);
-    };
-
-    Math.csch ||= function csch(x) {
-        return 1 / Math.sinh(x);
-    };
-
-    Math.coth ||= function coth(x) {
-        return 1 / Math.tanh(x);
-    };
-
-    Math.sinh ||= function sinh(x) {
-        const y = Math.exp(x);
-        return (y - 1 / y) / 2;
-    };
-
-    Math.tanh ||= function tanh(x) {
-        if (x === Infinity) {
-            return 1;
-        }
-        if (x === -Infinity) {
-            return -1;
-        }
-        const y = Math.exp(2 * x);
-        return (y - 1) / (y + 1);
-    };
-
-    Math.asinh ||= function asinh(x) {
-        if (x === -Infinity) {
-            return x;
-        }
-        return Math.log(x + Math.sqrt(x * x + 1));
-    };
-
-    Math.acosh ||= function acosh(x) {
-        return Math.log(x + Math.sqrt(x * x - 1));
-    };
-
-    Math.atanh ||= function atanh(x) {
-        return Math.log((1 + x) / (1 - x)) / 2;
-    };
-
-    Math.trunc ||= function trunc(x) {
-        if (isNaN(x)) {
-            return NaN;
-        }
-        if (x > 0) {
-            return Math.floor(x);
-        }
-        return Math.ceil(x);
-    };
-
-    // ExpressionDeps initialization
-    Object.assign(ExpressionDeps, {
-        EXPRESSIONS,
-        Settings,
-        LaTeX,
-        text,
-        variables,
-        isVector,
-        isSymbol,
-        isExpression,
-        isNumericSymbol,
-        isFraction,
-        isArray,
-    });
-    // Note: ExpressionDeps._ and ExpressionDeps.Build are initialized after Parser is created
-
-    // ScientificDeps initialization
-    Object.assign(ScientificDeps, { Settings, nround });
-
-    // FracDeps initialization
-    Object.assign(FracDeps, {
-        bigInt,
-        bigDec,
-        isInt,
-        scientificToDecimal,
-        DivisionByZero,
-        Settings,
-    });
-    // Note: Fraction is initialized later after it's defined
-
-    // NerdamerSymbolDeps initialization
-    Object.assign(NerdamerSymbolDeps, {
-        bigDec,
-        bigInt,
-        N,
-        P,
-        S,
-        FN,
-        PL,
-        CB,
-        CP,
-        EX,
-        CONST_HASH,
-        isSymbol,
-        text,
-        variables,
-        SQRT,
-        PARENTHESIS,
-    });
-    // Note: NerdamerSymbolDeps._ is initialized after Parser is created
-
-    // TextDeps initialization
-    Object.assign(TextDeps, {
-        bigInt,
-        isSymbol,
-        isVector,
-        N,
-        P,
-        S,
-        FN,
-        PL,
-        CB,
-        CP,
-        EX,
-        CUSTOM_OPERATORS,
-    });
-
-    // Inits ========================================================================
-    // Initialize parser and all dependency containers that require it
-    _ = /** @type {ParserType} */ (/** @type {unknown} */ (new Parser()));
-
-    // Parser-dependent deps (direct assignment)
-    ParserDeps._ = _; // Shared by getCoeffs, compare, arraySum, mix, convertToVector, importFunctions, evaluate
-    NerdamerSymbolDeps._ = _;
-    NrootsDeps._ = _;
-    SeparateDeps._ = _;
-    DecomposeFnDeps._ = _;
-    InternalSetFunctionDeps._ = _;
-    ClearFunctionsDeps._ = _;
-    ExpressionDeps._ = _; // Note: ExpressionDeps.Build initialized after Build is defined
-    ConvertToLaTeXDeps._ = _;
-    ConvertToLaTeXDeps.C = C;
-
-    // Late-bound deps (getters for values defined/modified later)
-    Object.defineProperty(InternalSetFunctionDeps, 'C', { get: () => C, configurable: true });
-    Object.defineProperty(InternalSetFunctionDeps, 'USER_FUNCTIONS', { get: () => USER_FUNCTIONS, configurable: true });
-    Object.defineProperty(ClearFunctionsDeps, 'C', { get: () => C, configurable: true });
-    Object.defineProperty(ClearFunctionsDeps, 'USER_FUNCTIONS', { get: () => USER_FUNCTIONS, configurable: true });
-    Object.defineProperty(SupportedDeps, 'functions', { get: () => _.functions, configurable: true });
-    Object.defineProperty(GetConstantDeps, 'CONSTANTS', { get: () => _.CONSTANTS, configurable: true });
-    Object.defineProperty(GetVarDeps, 'VARS', { get: () => VARS_STORE, configurable: true });
-    Object.defineProperty(ChainDeps, 'VARS', { get: () => VARS_STORE, configurable: true });
-    ChainDeps._clearFunctions = _clearFunctions;
-    ChainDeps._initConstants = () => _.initConstants();
-
-    // LaTeXDeps initialization (IIFE-local and forward-referenced values)
-    LaTeXDeps._ = _;
-    LaTeXDeps.Settings = Settings;
-    LaTeXDeps.SQRT = SQRT;
-    LaTeXDeps.ABS = ABS;
-    LaTeXDeps.PARENTHESIS = PARENTHESIS;
-    LaTeXDeps.FACTORIAL = FACTORIAL;
-    LaTeXDeps.DOUBLEFACTORIAL = DOUBLEFACTORIAL;
-    LaTeXDeps.N = N;
-    LaTeXDeps.P = P;
-    LaTeXDeps.S = S;
-    LaTeXDeps.EX = EX;
-    LaTeXDeps.FN = FN;
-    LaTeXDeps.CB = CB;
-    LaTeXDeps.CP = CP;
-    LaTeXDeps.Parser = Parser;
-
-    // Initialize LaTeX.parser (requires Parser to be defined)
-    LaTeX.parser = (function createLaTeXParser() {
-        const keep = ['classes', 'setOperator', 'getOperators', 'getBrackets', 'tokenize', 'toRPN', 'tree', 'units'];
-        const parser = new Parser();
-        for (const x in parser) {
-            if (keep.indexOf(x) === -1) {
-                delete parser[x];
-            }
-        }
-        parser.setOperator({
-            precedence: 8,
-            operator: '\\',
-            action: 'slash',
-            prefix: true,
-            postfix: false,
-            leftAssoc: true,
-            operation(e) {
-                return e;
-            },
-        });
-        parser.setOperator({
-            precedence: 8,
-            operator: '\\,',
-            action: 'slash_comma',
-            prefix: true,
-            postfix: false,
-            leftAssoc: true,
-            operation(e) {
-                return e;
-            },
-        });
-        const brackets = parser.getBrackets();
-        brackets['{'].maps_to = undefined;
-        return parser;
-    })();
-
-    // ExpressionsDeps initialization
-    Object.defineProperty(ExpressionsDeps, 'EXPRESSIONS', { get: () => EXPRESSIONS, configurable: true });
-    Object.defineProperty(ExpressionsDeps, 'USER_FUNCTIONS', { get: () => USER_FUNCTIONS, configurable: true });
-    ExpressionsDeps.LaTeX = LaTeX;
-    ExpressionsDeps.text = text;
-    ExpressionsDeps.functions = _.functions;
-    ExpressionsDeps._ = _;
-    // Note: ExpressionsDeps.Math2 and ExpressionsDeps.Expression are initialized after C is defined
-
-    // VectorDeps initialization - IIFE-scope and forward-referenced values
-    VectorDeps._ = _;
-    VectorDeps.Settings = Settings;
-    VectorDeps.LaTeX = LaTeX;
-
-    // MatrixDeps initialization - IIFE-scope and forward-referenced values
-    MatrixDeps._ = _;
-    MatrixDeps.LaTeX = LaTeX;
-
-    // SetDeps initialization
-    SetDeps.isVector = isVector;
-    SetDeps.Vector = Vector;
-    SetDeps.remove = remove;
-
-    // CollectionDeps initialization
-    CollectionDeps._ = _;
-    CollectionDeps.block = block;
-
-    // BuildDeps initialization (only IIFE-local values)
-    BuildDeps._ = _;
-    BuildDeps.N = N;
-    BuildDeps.P = P;
-    BuildDeps.S = S;
-    BuildDeps.EX = EX;
-    BuildDeps.FN = FN;
-    BuildDeps.CB = CB;
-    BuildDeps.Math2 = Math2;
-
-    // Build runtime dependencies (references to IIFE-local values)
-    Build.dependencies = {
-        _rename: {
-            'Math2.factorial': 'factorial',
-        },
-        factorial: {
-            'Math2.gamma': Math2.gamma,
-        },
-        gamma_incomplete: {
-            'Math2.factorial': Math2.factorial,
-        },
-        Li: {
-            'Math2.Ei': Math2.Ei,
-            'Math2.bigLog': Math2.bigLog,
-            Frac,
-        },
-        Ci: {
-            'Math2.factorial': Math2.factorial,
-        },
-        Ei: {
-            'Math2.factorial': Math2.factorial,
-        },
-        Si: {
-            'Math2.factorial': Math2.factorial,
-        },
-        Shi: {
-            'Math2.factorial': Math2.factorial,
-        },
-        Chi: {
-            isInt,
-            nround,
-            'Math2.num_integrate': Math2.num_integrate,
-        },
-        factor: {
-            'Math2.ifactor': Math2.ifactor,
-            NerdamerSymbol,
-        },
-        num_integrate: {
-            'Math2.simpson': Math2.simpson,
-            nround,
-        },
-        fib: {
-            even,
-        },
-    };
-
-    // Build reformat functions
-    Build.reformat = {
-        diff(symbol, deps) {
-            const v = symbol.args[1].toString();
-            const f = `let f = ${Build.build(symbol.args[0].toString(), [v])};`;
-            let diffStr = Math2.diff.toString();
-            if (!diffStr.startsWith('function') && !diffStr.startsWith('(') && !diffStr.startsWith('async')) {
-                diffStr = `function ${diffStr}`;
-            }
-            deps[1] += `let diff = ${diffStr};`;
-            deps[1] += f;
-            return [`diff(f)(${v})`, deps];
-        },
-    };
-
-    ExpressionDeps.Build = Build;
-
-    // Finalize =====================================================================
-    (function finalizeParser() {
-        reserveNames(_.CONSTANTS);
-        reserveNames(_.functions);
-        _.initConstants();
-        _.error ||= err;
-        Settings.LOG_FNS = {
-            log: _.functions.log,
-            log10: _.functions.log10,
-        };
-    })();
-
-    // Core =========================================================================
-    const Utils = {
-        allSame,
-        allNumeric,
-        arguments2Array,
-        armTimeout,
-        arrayAddSlices,
-        arrayClone,
-        arrayMax,
-        arrayMin,
-        arrayEqual,
-        arrayUnique,
-        arrayGetVariables,
-        arraySum,
-        block,
-        build: Build.build,
-        checkTimeout,
-        clearU,
-        comboSort,
-        compare,
-        convertToVector,
-        customError,
-        customType,
-        decompose_fn: decomposeFn,
-        disarmTimeout,
-        each,
-        evaluate,
-        even,
-        evenFraction,
-        fillHoles,
-        firstObject,
-        format,
-        generatePrimes,
-        getCoeffs,
-        getU,
-        importFunctions,
-        inBrackets,
-        isArray,
-        isExpression,
-        isFraction,
-        isInt,
-        isMatrix,
-        isNegative,
-        isNumericSymbol,
-        isPrime,
-        isReserved,
-        isSymbol,
-        isVariableSymbol,
-        isVector,
-        isCollection,
-        keys,
-        knownVariable,
-        nroots,
-        remove,
-        reserveNames,
-        range,
-        round: nround,
-        sameSign,
-        scientificToDecimal,
-        separate,
-        stringReplace,
-        text,
-        validateName,
-        variables,
-        warn,
-    };
-
-    // This contains all the parts of nerdamer and enables nerdamer's internal functions
-    // to be used.
-    C = {
-        groups: Groups,
-        NerdamerSymbol,
-        Expression,
-        Collection,
-        Frac,
-        Vector,
-        Matrix,
-        Parser,
-        Scientific,
-        Fraction,
-        Math2,
-        LaTeX,
-        Utils,
-        PARSER: _,
-        PARENTHESIS,
-        Settings,
-        err,
-        bigInt,
-        bigDec,
-        exceptions,
-    };
-
-    // Complete ExpressionsDeps initialization (Math2 and Expression are part of C which is now defined)
-    ExpressionsDeps.Math2 = C.Math2;
-    ExpressionsDeps.Expression = Expression;
-
-    // LibExports ===================================================================
+// Utils ========================================================================
+// Utility functions exported as part of the nerdamer core.
+// All functions are already at module scope; Build.build uses a getter for lazy evaluation.
+const Utils = {
+    allSame,
+    allNumeric,
+    arguments2Array,
+    armTimeout,
+    arrayAddSlices,
+    arrayClone,
+    arrayMax,
+    arrayMin,
+    arrayEqual,
+    arrayUnique,
+    arrayGetVariables,
+    arraySum,
+    block,
+    get build() {
+        return Build.build;
+    },
+    checkTimeout,
+    clearU,
+    comboSort,
+    compare,
+    convertToVector,
+    customError,
+    customType,
+    decompose_fn: decomposeFn,
+    disarmTimeout,
+    each,
+    evaluate,
+    even,
+    evenFraction,
+    fillHoles,
+    firstObject,
+    format,
+    generatePrimes,
+    getCoeffs,
+    getU,
+    importFunctions,
+    inBrackets,
+    isArray,
+    isExpression,
+    isFraction,
+    isInt,
+    isMatrix,
+    isNegative,
+    isNumericSymbol,
+    isPrime,
+    isReserved,
+    isSymbol,
+    isVariableSymbol,
+    isVector,
+    isCollection,
+    keys,
+    knownVariable,
+    nroots,
+    remove,
+    reserveNames,
+    range,
+    round: nround,
+    sameSign,
+    scientificToDecimal,
+    separate,
+    stringReplace,
+    text,
+    validateName,
+    variables,
+    warn,
+};
+
+// LibExports ===================================================================
+// Factory function to create the main nerdamer library function.
+// Extracted from IIFE to module scope for cleaner organization.
+// Uses CoreDeps for all dependencies, which are populated by the IIFE before calling.
+
+/**
+ * Creates the main nerdamer library entry point function. Must be called after CoreDeps.parser and CoreDeps.state are
+ * initialized.
+ *
+ * @returns {any} The libExports function
+ */
+function createLibExports() {
     /**
      * @param {string} expression The expression to be evaluated
      * @param {object} subs The object containing the variable values
@@ -15975,12 +16337,15 @@ const nerdamer = (function initNerdamerCore(imports) {
     const libExports = function (expression, subs, option, location) {
         armTimeout();
         try {
+            const _ = CoreDeps.parser;
+            const { EXPRESSIONS } = CoreDeps.state;
+
             // Initiate the numer flag
             let numer = false;
 
             // Is the user declaring a function? Try to add user function
             if (_setFunction(expression)) {
-                return nerdamer;
+                return CoreDeps.libExports; // Return self-reference via CoreDeps
             }
 
             // Var variable, fn, args;
@@ -16028,47 +16393,73 @@ const nerdamer = (function initNerdamerCore(imports) {
         }
     };
 
-    // Initialize ChainDeps.libExports for chain functions
-    ChainDeps.libExports = libExports;
+    return libExports;
+}
 
-    // Initialize SetConstantDeps for setConstant function
-    SetConstantDeps.libExports = libExports;
-    SetConstantDeps.CONSTANTS = _.CONSTANTS;
+// Core Object ==================================================================
+// Factory function to create the C (core) object that contains all nerdamer internals.
+// Uses CoreDeps for parser reference.
 
-    // Initialize SetVarDeps for setVar function
-    SetVarDeps.libExports = libExports;
-    SetVarDeps.VARS = VARS_STORE;
-    SetVarDeps.CONSTANTS = _.CONSTANTS;
-    SetVarDeps.parse = _.parse.bind(_);
-    SetVarDeps.isSymbol = isSymbol;
+/**
+ * Creates the core object containing all nerdamer internals. Must be called after Parser is instantiated and
+ * CoreDeps.parser is set.
+ *
+ * @returns {object} The core object
+ */
+function createCoreObject() {
+    const _ = CoreDeps.parser;
+    return {
+        groups: Groups,
+        NerdamerSymbol,
+        Expression,
+        Collection,
+        Frac,
+        Vector,
+        Matrix,
+        Parser,
+        Scientific,
+        Fraction,
+        Math2,
+        LaTeX,
+        Utils,
+        PARSER: _,
+        PARENTHESIS: CoreDeps.fnNames.PARENTHESIS,
+        Settings,
+        err,
+        bigInt: nerdamerBigInt,
+        bigDec: nerdamerBigDecimal,
+        exceptions: CoreDeps.exceptions,
+    };
+}
 
-    // Initialize SetFunctionDeps for setFunction function
-    SetFunctionDeps.libExports = libExports;
-    SetFunctionDeps._setFunction = _setFunction;
+// Parser Finalization ==========================================================
+// Finalizes parser setup after instantiation.
 
-    // Initialize ClearDeps for clear function
-    ClearDeps.libExports = libExports;
-    ClearDeps.EXPRESSIONS = EXPRESSIONS;
+/**
+ * Finalizes parser setup - reserves names, initializes constants, sets error handler. Must be called after Parser is
+ * instantiated.
+ */
+function finalizeParser() {
+    const _ = CoreDeps.parser;
+    reserveNames(_.CONSTANTS);
+    reserveNames(_.functions);
+    _.initConstants();
+    _.error ||= err;
+    Settings.LOG_FNS = {
+        log: _.functions.log,
+        log10: _.functions.log10,
+    };
+}
 
-    // Initialize RegisterDeps for register function
-    RegisterDeps.libExports = libExports;
-    RegisterDeps.Settings = Settings;
-    RegisterDeps.functions = _.functions;
+// Library Exports Attachment ===================================================
+// Attaches all public API methods to the libExports function.
 
-    // Initialize SettingsDeps for set function
-    SettingsDeps.bigDec = bigDec;
-    SettingsDeps.Settings = Settings;
-    SettingsDeps.functions = _.functions;
-    SettingsDeps.symfunction = _.symfunction.bind(_);
-    SettingsDeps.NerdamerSymbol = NerdamerSymbol;
-
-    // Initialize UpdateAPIDeps for updateAPI function
-    UpdateAPIDeps.libExports = libExports;
-    UpdateAPIDeps.functions = _.functions;
-    UpdateAPIDeps.parse = _.parse.bind(_);
-    UpdateAPIDeps.callfunction = _.callfunction.bind(_);
-    UpdateAPIDeps.Expression = Expression;
-
+/**
+ * Attaches all public API methods to libExports.
+ *
+ * @param {any} libExports - The main nerdamer function to attach methods to
+ */
+function attachLibExports(libExports) {
     // Library exports (most functions defined outside IIFE with dependency injection)
     libExports.rpn = rpn;
     libExports.convertToLaTeX = convertToLaTeX;
@@ -16084,9 +16475,6 @@ const nerdamer = (function initNerdamerCore(imports) {
     libExports.getExpression = libExports.getEquation = Expression.getExpression;
     libExports.reserved = reserved;
     libExports.clear = clear;
-
-    ChainDeps.clear = clear;
-
     libExports.flush = flush;
     libExports.expressions = expressions;
     libExports.functions = getFunctions;
@@ -16112,16 +16500,121 @@ const nerdamer = (function initNerdamerCore(imports) {
     libExports.addPeeker = addPeeker;
     libExports.removePeeker = removePeeker;
     libExports.parse = parse;
+}
+
+const nerdamer = (function initNerdamerCore() {
+    // Set the precision to js precision
+    nerdamerBigDecimal.set({ precision: 250 });
+
+    // ============================================================================
+    // CoreDeps Initialization - Single Source of Truth
+    // ============================================================================
+    // All dependencies are centralized in CoreDeps. This replaces the scattered
+    // Object.assign and Object.defineProperty calls that were spread throughout
+    // the IIFE initialization.
+
+    // 1. Initialize Settings reference (required early by many components)
+    CoreDeps.settings = /** @type {any} */ (Settings);
+    Settings.CONST_HASH = CoreDeps.fnNames.CONST_HASH;
+
+    // 2. Initialize state containers (use extracted CUSTOM_OPERATORS)
+    CoreDeps.state.EXPRESSIONS = [];
+    CoreDeps.state.VARS = {};
+    CoreDeps.state.RESERVED = [];
+    CoreDeps.state.WARNINGS = [];
+    CoreDeps.state.USER_FUNCTIONS = [];
+    CoreDeps.state.CUSTOM_OPERATORS = CUSTOM_OPERATORS;
+
+    // Initialize Settings.CACHE.roots
+    Settings.initCache();
+
+    // Timeout functions are now defined outside IIFE
+    // Initialize TimeoutDeps with Settings.TIMEOUT via getter
+    Object.defineProperty(TimeoutDeps, 'TIMEOUT', {
+        get: () => Settings.TIMEOUT,
+        configurable: true,
+    });
+
+    // Forward declarations for IIFE-local variables defined later
+    /** @type {ParserType | null} */
+    let _ = null;
+
+    // ============================================================================
+    // Legacy Deps Initialization
+    // ============================================================================
+    // Most deps objects now use CoreDeps getters - minimal initialization needed.
+
+    Settings.FUNCTION_MODULES.push(Math2);
+    reserveNames(/** @type {object} */ (Math2));
+
+    // Inits ========================================================================
+    // Initialize parser and all dependency containers that require it
+    _ = /** @type {ParserType} */ (/** @type {unknown} */ (new Parser()));
+
+    // Set CoreDeps.parser immediately so all getters can access it
+    CoreDeps.parser = _;
+    CoreDeps.classes.Parser = Parser;
+
+    // Initialize LaTeX.parser
+    LaTeX.initParser();
+
+    // Initialize Build dependencies
+    Build.initDependencies();
+
+    // Finalize parser setup
+    finalizeParser();
+
+    // Create the core object
+    const C = createCoreObject();
+
+    // ============================================================================
+    // CoreDeps Finalization - Complete the centralized dependency registry
+    // ============================================================================
+    // Classes are already assigned at module scope. Only set runtime values here.
+    CoreDeps.core = C;
+    CoreDeps.classes.Math2 = C.Math2;
+
+    // Utils that need runtime values (parser methods, etc.)
+    CoreDeps.utils.isSymbol = isSymbol;
+    CoreDeps.utils.isVector = isVector;
+    CoreDeps.utils.isMatrix = isMatrix;
+    CoreDeps.utils.isExpression = isExpression;
+    CoreDeps.utils.isNumericSymbol = isNumericSymbol;
+    CoreDeps.utils.isFraction = isFraction;
+    CoreDeps.utils.isArray = isArray;
+    CoreDeps.utils.isInt = isInt;
+    CoreDeps.utils.text = /** @type {any} */ (text);
+    CoreDeps.utils.variables = /** @type {any} */ (variables);
+    CoreDeps.utils.scientificToDecimal = /** @type {any} */ (scientificToDecimal);
+    CoreDeps.utils.err = /** @type {any} */ (err);
+    CoreDeps.utils.block = block;
+    CoreDeps.utils.evaluate = evaluate;
+    CoreDeps.utils.reserveNames = reserveNames;
+    CoreDeps.utils.nround = /** @type {any} */ (nround);
+    CoreDeps.utils._setFunction = _setFunction;
+    CoreDeps.utils._clearFunctions = _clearFunctions;
+    CoreDeps.utils.symfunction = /** @type {any} */ (_.symfunction.bind(_));
+    CoreDeps.utils.callfunction = /** @type {any} */ (_.callfunction.bind(_));
+
+    // Complete state references that point to IIFE-local arrays/objects
+    // Note: EXPRESSIONS, VARS are the same arrays initialized in CoreDeps.state earlier
+    // CONSTANTS is only available after Parser is created
+    CoreDeps.state.CONSTANTS = _.CONSTANTS;
+
+    // LibExports ===================================================================
+    // Create libExports using the factory function (now that CoreDeps is populated)
+    const libExports = createLibExports();
+
+    // Complete CoreDeps with libExports
+    CoreDeps.libExports = libExports;
+
+    // Attach all public API methods to libExports
+    attachLibExports(libExports);
 
     libExports.updateAPI();
 
     return libExports; // Done
-    // imports ======================================================================
-})({
-    bigInt: nerdamerBigInt,
-    bigDec: nerdamerBigDecimal,
-    constants: nerdamerConstants,
-});
+})();
 
 if (typeof module !== 'undefined') {
     module.exports = nerdamer;
