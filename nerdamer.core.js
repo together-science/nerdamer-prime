@@ -4785,7 +4785,7 @@ const Build = {
     build(symbol, argArray) {
         const {
             Math2,
-            NerdamerSymbol,
+            NerdamerSymbol: NerdamerSymbolClass,
             block: blockFn,
             _,
             variables,
@@ -4805,7 +4805,7 @@ const Build = {
         const ftext = function (sym, xports) {
             // Fix for #545 - Parentheses confuse build.
             if (sym.fname === '') {
-                sym = NerdamerSymbol.unwrapPARENS(sym);
+                sym = NerdamerSymbolClass.unwrapPARENS(sym);
             }
             xports ||= [];
             const c = [];
@@ -6830,6 +6830,1767 @@ const Math2 = {
     },
 };
 
+/**
+ * Dependency container for NerdamerSymbol class. These are initialized later once they're available inside the IIFE.
+ *
+ * @type {{
+ *     bigDec: any;
+ *     bigInt: any;
+ *     _: any;
+ *     N: number;
+ *     P: number;
+ *     S: number;
+ *     FN: number;
+ *     PL: number;
+ *     CB: number;
+ *     CP: number;
+ *     EX: number;
+ *     CONST_HASH: string;
+ *     isSymbol: Function;
+ *     text: Function;
+ *     variables: Function;
+ *     SQRT: string;
+ *     PARENTHESIS: string;
+ * }}
+ */
+const NerdamerSymbolDeps = {
+    bigDec: null,
+    bigInt: null,
+    _: null,
+    N: 1,
+    P: 2,
+    S: 3,
+    FN: 5,
+    PL: 6,
+    CB: 7,
+    CP: 8,
+    EX: 4,
+    CONST_HASH: '#',
+    isSymbol: null,
+    text: null,
+    variables: null,
+    SQRT: null,
+    PARENTHESIS: null,
+};
+
+function NerdamerSymbol(obj) {
+    checkTimeout();
+
+    const isInfinity = obj === 'Infinity';
+    // This enables the class to be instantiated without the new operator
+    if (!(this instanceof NerdamerSymbol)) {
+        return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(obj)));
+    }
+    // Convert big numbers to a string
+    if (typeof obj === 'object' && obj !== null && /** @type {any} */ (obj) instanceof NerdamerSymbolDeps.bigDec) {
+        obj = /** @type {any} */ (obj).toString();
+    }
+    // Define numeric symbols
+    const objStr = String(obj);
+    if (
+        /^(?<sign>-?\+?\d+)\.?\d*e?-?\+?\d*/iu.test(objStr) ||
+        (typeof obj === 'object' && obj !== null && /** @type {any} */ (obj) instanceof NerdamerSymbolDeps.bigDec)
+    ) {
+        this.group = NerdamerSymbolDeps.N;
+        this.value = NerdamerSymbolDeps.CONST_HASH;
+        this.multiplier = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(obj)));
+    }
+    // Define symbolic symbols
+    else {
+        this.group = NerdamerSymbolDeps.S;
+        validateName(obj);
+        this.value = obj;
+        this.multiplier = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(1)));
+        this.imaginary = obj === Settings.IMAGINARY;
+        this.isInfinity = isInfinity;
+    }
+
+    // As of 6.0.0 we switched to infinite precision so all objects have a power
+    // Although this is still redundant in constants, it simplifies the logic in
+    // other parts so we'll keep it
+    this.power = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(1)));
+
+    // Initialize optional properties used by function symbols (FN group)
+    /** @type {NerdamerSymbol[] | undefined} */
+    this.args = undefined;
+    /** @type {string | undefined} */
+    this.fname = undefined;
+    /** @type {boolean | undefined} */
+    this.isImgSymbol = undefined;
+
+    // Added to silence the strict warning.
+    return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
+}
+/**
+ * Returns vanilla imaginary symbol
+ *
+ * @returns {NerdamerSymbolType}
+ */
+NerdamerSymbol.imaginary = function imaginary() {
+    const s = new NerdamerSymbol(Settings.IMAGINARY);
+    s.imaginary = true;
+    return s;
+};
+/**
+ * Return nerdamer's representation of Infinity
+ *
+ * @param {number} negative -1 to return negative infinity
+ * @returns {NerdamerSymbolType}
+ */
+NerdamerSymbol.infinity = function infinity(negative = undefined) {
+    const v = new NerdamerSymbol('Infinity');
+    if (negative === -1) {
+        v.negate();
+    }
+    return v;
+};
+/**
+ * Creates a shell symbol for a given group
+ *
+ * @param {number} group
+ * @param {any} [value]
+ * @returns {NerdamerSymbolType}
+ */
+NerdamerSymbol.shell = function shell(group, value) {
+    const symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(value)));
+    symbol.group = group;
+    symbol.symbols = {};
+    symbol.length = 0;
+    return symbol;
+};
+// Sqrt(x) -> x^(1/2)
+NerdamerSymbol.unwrapSQRT = function unwrapSQRT(symbol, all) {
+    const p = symbol.power;
+    if (symbol.fname === Settings.SQRT && (symbol.isLinear() || all)) {
+        const t = symbol.args[0].clone();
+        t.power = t.power.multiply(new Frac(1 / 2));
+        t.multiplier = t.multiplier.multiply(symbol.multiplier);
+        symbol = t;
+        if (all) {
+            symbol.power = p.multiply(new Frac(1 / 2));
+        }
+    }
+
+    return symbol;
+};
+NerdamerSymbol.hyp = function hyp(a, b) {
+    a ||= new NerdamerSymbol(0);
+    b ||= new NerdamerSymbol(0);
+    const { _ } = NerdamerSymbolDeps;
+    return _.sqrt(_.add(_.pow(a.clone(), new NerdamerSymbol(2)), _.pow(b.clone(), new NerdamerSymbol(2))));
+};
+// Converts to polar form array
+NerdamerSymbol.toPolarFormArray = function toPolarFormArray(symbol) {
+    const re = symbol.realpart();
+    const im = symbol.imagpart();
+    const r = NerdamerSymbol.hyp(re, im);
+    const theta = re.equals(0)
+        ? NerdamerSymbolDeps._.parse('pi/2')
+        : NerdamerSymbolDeps._.trig.atan(NerdamerSymbolDeps._.divide(im, re));
+    return [r, theta];
+};
+// Removes parentheses
+NerdamerSymbol.unwrapPARENS = function unwrapPARENS(symbol) {
+    if (symbol.fname === '') {
+        const r = symbol.args[0];
+        r.power = r.power.multiply(symbol.power);
+        r.multiplier = r.multiplier.multiply(symbol.multiplier);
+        if (symbol.fname === '') {
+            return NerdamerSymbol.unwrapPARENS(r);
+        }
+        return r;
+    }
+    return symbol;
+};
+// Quickly creates a NerdamerSymbol
+NerdamerSymbol.create = function create(value, power) {
+    power = power === undefined ? 1 : power;
+    const { _ } = NerdamerSymbolDeps;
+    return _.parse(`(${value})^(${power})`);
+};
+NerdamerSymbol.prototype = {
+    /** @returns {NerdamerSymbolType} */
+    pushMinus() {
+        const { _ } = NerdamerSymbolDeps;
+        /** @type {NerdamerSymbolType} */
+        let retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
+        if (
+            (this.group === NerdamerSymbolDeps.CB ||
+                this.group === NerdamerSymbolDeps.CP ||
+                this.group === NerdamerSymbolDeps.PL) &&
+            this.multiplier.lessThan(0) &&
+            !even(this.power)
+        ) {
+            // Console.log();
+            // console.log("replacing "+this.text("fractions"))
+            retval = this.clone();
+            const m = retval.multiplier.clone();
+            m.negate();
+            // Console.log("  negated multiplier: "+m)
+            retval.toUnitMultiplier();
+
+            // Console.log("  unit main part: "+this)
+            for (const termkey in retval.symbols) {
+                if (!Object.hasOwn(retval.symbols, termkey)) {
+                    continue;
+                }
+                retval.symbols[termkey] = retval.symbols[termkey].clone().negate();
+                // Console.log("  negated term: "+this.symbols[termkey])
+                if (retval.group === NerdamerSymbolDeps.CB) {
+                    // Console.log("  is CB, breaking");
+                    break;
+                }
+            }
+
+            // Console.log("  combined: "+retval.text("fractions"));
+            if (retval.length > 0) {
+                retval.each(c => c.pushMinus());
+                // Console.log("  result: "+this.text("fractions"));
+            }
+
+            // Console.log("  negated main part: "+retval)
+            retval = _.parse(retval);
+            retval = _.multiply(_.parse(m), retval);
+        }
+        return retval;
+    },
+
+    /**
+     * Gets nth root accounting for rounding errors
+     *
+     * @param {number} n
+     * @returns {NerdamerSymbolType}
+     */
+    getNth(n) {
+        const { _ } = NerdamerSymbolDeps;
+        // First calculate the root
+        const root = evaluate(_.pow(_.parse(this.multiplier), _.parse(String(n)).invert()));
+        // Round of any errors
+        const rounded = _.parse(nround(root));
+        // Reverse the root
+        const e = evaluate(_.pow(rounded, _.parse(String(n))));
+        // If the rounded root equals the original number then we're good
+        if (e.equals(_.parse(this.multiplier))) {
+            return rounded;
+        }
+        // Otherwise return the unrounded version
+        return root;
+    },
+    /**
+     * Checks if symbol is to the nth power
+     *
+     * @returns {boolean}
+     */
+    isToNth(n) {
+        const { _ } = NerdamerSymbolDeps;
+        // Start by check in the multiplier for squareness
+        // First get the root but round it because currently we still depend
+        const root = this.getNth(n);
+        const nthMultiplier = isInt(root);
+        let nthPower;
+
+        if (this.group === NerdamerSymbolDeps.CB) {
+            // Start by assuming that all will be square.
+            nthPower = true;
+            // All it takes is for one of the symbols to not have an even power
+            // e.g. x^n1*y^n2 requires that both n1 and n2 are even
+            this.each(x => {
+                const isNth = x.isToNth(n);
+
+                if (!isNth) {
+                    nthPower = false;
+                }
+            });
+        } else {
+            // Check if the power is divisible by n if it's not a number.
+            nthPower = this.group === NerdamerSymbolDeps.N ? true : isInt(_.divide(_.parse(this.power), _.parse(n)));
+        }
+
+        return nthMultiplier && nthPower;
+    },
+    /**
+     * Checks if a symbol is square
+     *
+     * @returns {boolean}
+     */
+    isSquare() {
+        return this.isToNth(2);
+    },
+    /**
+     * Checks if a symbol is cube
+     *
+     * @returns {boolean}
+     */
+    isCube() {
+        return this.isToNth(3);
+    },
+    /**
+     * Checks if a symbol is a bare variable
+     *
+     * @returns {boolean}
+     */
+    isSimple() {
+        return this.power.equals(1) && this.multiplier.equals(1);
+    },
+    /**
+     * Simplifies the power of the symbol
+     *
+     * @returns {NerdamerSymbolType} A clone of the symbol
+     */
+    powSimp() {
+        const { _ } = NerdamerSymbolDeps;
+        if (this.group === NerdamerSymbolDeps.CB) {
+            const powers = [];
+            const sign = this.multiplier.sign();
+            this.each(x => {
+                const p = x.power;
+                // Why waste time if I can't do anything anyway
+                if (NerdamerSymbolDeps.isSymbol(p) || p.equals(1)) {
+                    return;
+                }
+                powers.push(p);
+            });
+            if (powers.length === 0) {
+                return this.clone();
+            }
+            const min = new Frac(arrayMin(powers));
+
+            // Handle the coefficient
+            // handle the multiplier
+            // sign already declared above
+            const m = this.multiplier.clone().abs();
+            const mfactors = Math2.ifactor(m.valueOf());
+            // If we have a multiplier of 6750 and a min of 2 then the factors are 5^3*5^3*2
+            // we can then reduce it to 2*3*5*(15)^2
+            let out_ = new Frac(1);
+            let in_ = new Frac(1);
+
+            for (const x in mfactors) {
+                if (!Object.hasOwn(mfactors, x)) {
+                    continue;
+                }
+                let n = new Frac(mfactors[x]);
+                if (!n.lessThan(min)) {
+                    n = n.divide(min).subtract(new Frac(1));
+                    in_ = in_.multiply(new Frac(x)); // Move the factor inside the bracket
+                }
+
+                out_ = out_.multiply(_.parse(`${inBrackets(x)}^${inBrackets(n)}`).multiplier);
+            }
+            let t = new NerdamerSymbol(in_);
+            this.each(x => {
+                x = x.clone();
+                x.power = x.power.divide(min);
+                t = _.multiply(t, x);
+            });
+
+            const xt = _.symfunction(NerdamerSymbolDeps.PARENTHESIS, [t]);
+            xt.power = min;
+            xt.multiplier = sign < 0 ? out_.negate() : out_;
+
+            return xt;
+        }
+        return this.clone();
+    },
+    /**
+     * Checks to see if two functions are of equal value
+     *
+     * @param {string | number | NerdamerSymbolType} symbol
+     * @returns {boolean}
+     */
+    equals(symbol) {
+        /** @type {NerdamerSymbolType} */
+        let sym;
+        if (NerdamerSymbolDeps.isSymbol(symbol)) {
+            sym = /** @type {NerdamerSymbolType} */ (symbol);
+        } else {
+            sym = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(symbol)));
+        }
+        return (
+            this.value === sym.value &&
+            this.power.equals(sym.power) &&
+            this.multiplier.equals(sym.multiplier) &&
+            this.group === sym.group
+        );
+    },
+    /** @returns {NerdamerSymbolType} */
+    abs() {
+        const e = this.clone();
+        e.multiplier.abs();
+        return e;
+    },
+    /**
+     * Greater than
+     *
+     * @param {string | number | NerdamerSymbolType} symbol
+     * @returns {boolean}
+     */
+    gt(symbol) {
+        if (!NerdamerSymbolDeps.isSymbol(symbol)) {
+            symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(symbol)));
+        }
+        const sym = /** @type {NerdamerSymbolType} */ (symbol);
+        return this.isConstant() && sym.isConstant() && this.multiplier.greaterThan(sym.multiplier);
+    },
+    /**
+     * Greater than or equal
+     *
+     * @param {string | number | NerdamerSymbolType} symbol
+     * @returns {boolean}
+     */
+    gte(symbol) {
+        if (!NerdamerSymbolDeps.isSymbol(symbol)) {
+            symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(symbol)));
+        }
+        const sym = /** @type {NerdamerSymbolType} */ (symbol);
+        return (
+            this.equals(sym) || (this.isConstant() && sym.isConstant() && this.multiplier.greaterThan(sym.multiplier))
+        );
+    },
+    /**
+     * Less than
+     *
+     * @param {string | number | NerdamerSymbolType} symbol
+     * @returns {boolean}
+     */
+    lt(symbol) {
+        if (!NerdamerSymbolDeps.isSymbol(symbol)) {
+            symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(symbol)));
+        }
+        const sym = /** @type {NerdamerSymbolType} */ (symbol);
+        return this.isConstant() && sym.isConstant() && this.multiplier.lessThan(sym.multiplier);
+    },
+    /**
+     * Less than or equal
+     *
+     * @param {string | number | NerdamerSymbolType} symbol
+     * @returns {boolean}
+     */
+    lte(symbol) {
+        if (!NerdamerSymbolDeps.isSymbol(symbol)) {
+            symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(symbol)));
+        }
+        const sym = /** @type {NerdamerSymbolType} */ (symbol);
+        return this.equals(sym) || (this.isConstant() && sym.isConstant() && this.multiplier.lessThan(sym.multiplier));
+    },
+    /**
+     * Because nerdamer doesn't group symbols by polynomials but rather a custom grouping method, this has to be
+     * reinserted in order to make use of most algorithms. This function checks if the symbol meets the criteria of a
+     * polynomial.
+     *
+     * @param {boolean} [multivariate]
+     * @returns {boolean}
+     */
+    isPoly(multivariate = false) {
+        const g = this.group;
+        const p = this.power;
+        // The power must be a integer so fail if it's not
+        if (!isInt(p) || Number(p) < 0) {
+            return false;
+        }
+        // Constants and first orders
+        if (g === NerdamerSymbolDeps.N || g === NerdamerSymbolDeps.S || this.isConstant(true)) {
+            return true;
+        }
+        const vars = NerdamerSymbolDeps.variables(this);
+        if (g === NerdamerSymbolDeps.CB && vars.length === 1) {
+            // The variable is assumed the only one that was found
+            const v = vars[0];
+            // If no variable then guess what!?!? We're done!!! We have a polynomial.
+            if (!v) {
+                return true;
+            }
+            for (const x in this.symbols) {
+                if (!Object.hasOwn(this.symbols, x)) {
+                    continue;
+                }
+                const sym = this.symbols[x];
+                // Sqrt(x)
+                if (sym.group === NerdamerSymbolDeps.FN && !sym.args[0].isConstant()) {
+                    return false;
+                }
+                if (!sym.contains(v) && !sym.isConstant(true)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        // PL groups. These only fail if a power is not an int
+        // this should handle cases such as x^2*t
+        if (this.isComposite() || (g === NerdamerSymbolDeps.CB && multivariate)) {
+            // Fail if we're not checking for multivariate polynomials
+            if (!multivariate && vars.length > 1) {
+                return false;
+            }
+            // Loop though the symbols and check if they qualify
+            for (const x in this.symbols) {
+                // We've already the symbols if we're not checking for multivariates at this point
+                // so we check the sub-symbols
+                if (!this.symbols[x].isPoly(multivariate)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+
+        /*
+         //all tests must have passed so we must be dealing with a polynomial
+         return true;
+         */
+    },
+    // Removes the requested variable from the symbol and returns the remainder
+    /**
+     * @param {string} x
+     * @param {boolean} [excludeX]
+     * @returns {NerdamerSymbolType}
+     */
+    stripVar(x, excludeX = false) {
+        const { _ } = NerdamerSymbolDeps;
+        /** @type {NerdamerSymbolType} */
+        let retval;
+        if ((this.group === NerdamerSymbolDeps.PL || this.group === NerdamerSymbolDeps.S) && this.value === x) {
+            retval = /** @type {NerdamerSymbolType} */ (
+                /** @type {unknown} */ (new NerdamerSymbol(excludeX ? 0 : this.multiplier))
+            );
+        } else if (this.group === NerdamerSymbolDeps.CB && this.isLinear()) {
+            retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(1)));
+            this.each(s => {
+                if (!s.contains(x, true)) {
+                    retval = _.multiply(retval, s.clone());
+                }
+            });
+            retval.multiplier = retval.multiplier.multiply(this.multiplier);
+        } else if (this.group === NerdamerSymbolDeps.CP && !this.isLinear()) {
+            retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(this.multiplier)));
+        } else if (this.group === NerdamerSymbolDeps.CP && this.isLinear()) {
+            retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
+            this.each(s => {
+                if (!s.contains(x)) {
+                    const t = s.clone();
+                    t.multiplier = t.multiplier.multiply(this.multiplier);
+                    retval = _.add(retval, t);
+                }
+            });
+            // BIG TODO!!! It doesn't make much sense
+            if (retval.equals(0)) {
+                retval = /** @type {NerdamerSymbolType} */ (
+                    /** @type {unknown} */ (new NerdamerSymbol(this.multiplier))
+                );
+            }
+        } else if (
+            this.group === NerdamerSymbolDeps.EX &&
+            /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this.power)).contains(x, true)
+        ) {
+            retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(this.multiplier)));
+        } else if (this.group === NerdamerSymbolDeps.FN && this.contains(x)) {
+            retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(this.multiplier)));
+        } else // Wth? This should technically be the multiplier.
+        // Unfortunately this method wasn't very well thought out :`(.
+        // should be: retval = new NerdamerSymbol(this.multiplier);
+        // use: ((1+x^2)*sqrt(-1+x^2))^(-1) for correction.
+        // this will break a bunch of unit tests so be ready to for the long haul
+        {
+            retval = this.clone();
+        }
+
+        return retval;
+    },
+    // Returns symbol in array form with x as base e.g. a*x^2+b*x+c = [c, b, a].
+    toArray(v, arr) {
+        const { _ } = NerdamerSymbolDeps;
+        arr ||= {
+            arr: [],
+            add(x, idx) {
+                const e = this.arr[idx];
+                this.arr[idx] = e ? _.add(e, x) : x;
+            },
+        };
+        const g = this.group;
+
+        if (g === NerdamerSymbolDeps.S && this.contains(v)) {
+            arr.add(new NerdamerSymbol(this.multiplier), this.power);
+        } else if (g === NerdamerSymbolDeps.CB) {
+            const a = this.stripVar(v);
+            const x = _.divide(this.clone(), a.clone());
+            const p = x.isConstant() ? 0 : x.power;
+            arr.add(a, p);
+        } else if (g === NerdamerSymbolDeps.PL && this.value === v) {
+            this.each((x, p) => {
+                arr.add(x.stripVar(v), p);
+            });
+        } else if (g === NerdamerSymbolDeps.CP) {
+            // The logic: they'll be broken into symbols so e.g. (x^2+x)+1 or (a*x^2+b*x+c)
+            // each case is handled above
+            this.each(x => {
+                x.toArray(v, arr);
+            });
+        } else if (this.contains(v)) {
+            throw new NerdamerTypeError('Cannot convert to array! Exiting');
+        } else {
+            arr.add(this.clone(), 0); // It's just a constant wrt to v
+        }
+        // Fill the holes
+        arr = arr.arr; // Keep only the array since we don't need the object anymore
+        for (let i = 0; i < arr.length; i++) {
+            arr[i] ||= new NerdamerSymbol(0);
+        }
+        return arr;
+    },
+    // Checks to see if a symbol contans a function
+    hasFunc(v) {
+        const fnGroup = this.group === NerdamerSymbolDeps.FN || this.group === NerdamerSymbolDeps.EX;
+        if ((fnGroup && !v) || (fnGroup && this.contains(v))) {
+            return true;
+        }
+        if (this.symbols) {
+            for (const x in this.symbols) {
+                if (this.symbols[x].hasFunc(v)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    },
+    sub(a, b) {
+        const { _ } = NerdamerSymbolDeps;
+        a = NerdamerSymbolDeps.isSymbol(a) ? a.clone() : _.parse(a);
+        b = NerdamerSymbolDeps.isSymbol(b) ? b.clone() : _.parse(b);
+        if (a.group === NerdamerSymbolDeps.N || a.group === NerdamerSymbolDeps.P) {
+            err('Cannot substitute a number. Must be a variable');
+        }
+        let samePow = false;
+        const aIsUnitMultiplier = a.multiplier.equals(1);
+        let m = this.multiplier.clone();
+        let retval;
+        /*
+         * In order to make the substitution the bases have to first match take
+         * (x+1)^x -> (x+1)=y || x^2 -> x=y^6
+         * In both cases the first condition is that the bases match so we begin there
+         * Either both are PL or both are not PL but we cannot have PL and a non-PL group match
+         */
+        if (
+            this.value === a.value &&
+            ((this.group !== NerdamerSymbolDeps.PL && a.group !== NerdamerSymbolDeps.PL) ||
+                (this.group === NerdamerSymbolDeps.PL && a.group === NerdamerSymbolDeps.PL))
+        ) {
+            // We cleared the first hurdle but a subsitution may not be possible just yet
+            if (aIsUnitMultiplier || a.multiplier.equals(this.multiplier)) {
+                if (a.isLinear()) {
+                    retval = b;
+                } else if (a.power.equals(this.power)) {
+                    retval = b;
+                    samePow = true;
+                }
+                if (a.multiplier.equals(this.multiplier)) {
+                    m = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(1)));
+                }
+            }
+        }
+        // The next thing is to handle CB
+        else if (this.group === NerdamerSymbolDeps.CB || this.previousGroup === NerdamerSymbolDeps.CB) {
+            retval = new NerdamerSymbol(1);
+            this.each(x => {
+                const subbed = _.parse(x.sub(a, b)); // Parse it again for safety
+                retval = _.multiply(retval, subbed);
+            });
+        } else if (this.isComposite()) {
+            const symbol = this.clone();
+
+            if (a.isComposite() && symbol.isComposite() && symbol.isLinear() && a.isLinear()) {
+                const find = function (stack, needle) {
+                    for (const x in stack.symbols) {
+                        if (!Object.hasOwn(stack.symbols, x)) {
+                            continue;
+                        }
+                        const sym = stack.symbols[x];
+                        // If the symbol equals the needle or it's within the sub-symbols we're done
+                        if ((sym.isComposite() && find(sym, needle)) || sym.equals(needle)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+                // Go fish
+                for (const x in a.symbols) {
+                    if (!Object.hasOwn(a.symbols, x)) {
+                        continue;
+                    }
+                    if (!find(symbol, a.symbols[x])) {
+                        return symbol.clone();
+                    }
+                }
+                retval = _.add(_.subtract(symbol.clone(), a), b);
+            } else {
+                retval = new NerdamerSymbol(0);
+                symbol.each(x => {
+                    retval = _.add(retval, x.sub(a, b));
+                });
+            }
+        } else if (this.group === NerdamerSymbolDeps.EX) {
+            // The parsed value could be a function so parse and sub
+            retval = _.parse(this.value).sub(a, b);
+        } else if (this.group === NerdamerSymbolDeps.FN) {
+            const nargs = [];
+            for (let i = 0; i < this.args.length; i++) {
+                /** @type {NerdamerSymbolType} */
+                let arg = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this.args[i]));
+                if (!NerdamerSymbolDeps.isSymbol(arg)) {
+                    arg = _.parse(arg);
+                }
+                nargs.push(arg.sub(a, b));
+            }
+            retval = _.symfunction(this.fname, nargs);
+        }
+        // If we did manage a substitution
+        if (retval) {
+            if (!samePow) {
+                // Substitute the power
+                const p =
+                    this.group === NerdamerSymbolDeps.EX
+                        ? /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this.power)).sub(a, b)
+                        : _.parse(this.power);
+                // Now raise the symbol to that power
+                retval = _.pow(retval, p);
+            }
+
+            // Transfer the multiplier
+            retval.multiplier = retval.multiplier.multiply(m);
+
+            // Done
+            return retval;
+        }
+        // If all else fails
+        return this.clone();
+    },
+    isMonomial() {
+        if (this.group === NerdamerSymbolDeps.S) {
+            return true;
+        }
+        if (this.group === NerdamerSymbolDeps.CB) {
+            for (const x in this.symbols) {
+                if (this.symbols[x].group !== NerdamerSymbolDeps.S) {
+                    return false;
+                }
+            }
+        } else {
+            return false;
+        }
+        return true;
+    },
+    isPi() {
+        return this.group === NerdamerSymbolDeps.S && this.value === 'pi';
+    },
+    sign() {
+        return this.multiplier.sign();
+    },
+    isE() {
+        return this.value === 'e';
+    },
+    isSQRT() {
+        return this.fname === NerdamerSymbolDeps.SQRT;
+    },
+    isConstant(checkAll, checkSymbols) {
+        if (checkSymbols && this.group === NerdamerSymbolDeps.CB) {
+            for (const x in this.symbols) {
+                if (this.symbols[x].isConstant(true)) {
+                    return true;
+                }
+            }
+        }
+
+        if (checkAll === 'functions' && this.isComposite()) {
+            let isConstant = true;
+
+            this.each(x => {
+                if (!x.isConstant(checkAll, checkSymbols)) {
+                    isConstant = false;
+                }
+            }, true);
+
+            return isConstant;
+        }
+
+        if (checkAll === 'all' && (this.isPi() || this.isE())) {
+            return true;
+        }
+
+        if (checkAll && this.group === NerdamerSymbolDeps.FN) {
+            for (let i = 0; i < this.args.length; i++) {
+                if (!this.args[i].isConstant(checkAll)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        if (checkAll) {
+            return isNumericSymbol(this);
+        }
+        return this.value === NerdamerSymbolDeps.CONST_HASH;
+    },
+    // The symbols is imaginary if
+    // 1. n*i
+    // 2. a+b*i
+    // 3. a*i
+    isImaginary() {
+        if (this.imaginary) {
+            return true;
+        }
+        if (this.symbols) {
+            for (const x in this.symbols) {
+                if (this.symbols[x].isImaginary()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    },
+    /**
+     * Returns the real part of a symbol
+     *
+     * @returns {NerdamerSymbolType}
+     */
+    realpart() {
+        const { _ } = NerdamerSymbolDeps;
+        if (this.isConstant()) {
+            return this.clone();
+        }
+        if (this.imaginary) {
+            return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
+        }
+        if (this.isComposite()) {
+            /** @type {NerdamerSymbolType} */
+            let retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
+            this.each(x => {
+                retval = _.add(retval, x.realpart());
+            });
+            return retval;
+        }
+        if (this.isImaginary()) {
+            return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
+        }
+        return this.clone();
+    },
+    /*
+     * Return imaginary part of a symbol
+     * @returns {NerdamerSymbolType}
+     */
+    imagpart() {
+        const { _ } = NerdamerSymbolDeps;
+        if (this.group === NerdamerSymbolDeps.S && this.isImaginary()) {
+            /** @type {NerdamerSymbolType} */
+            let x = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
+            if (this.power.isNegative()) {
+                x = this.clone();
+                x.power.negate();
+                x.multiplier.negate();
+            }
+            return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(x.multiplier)));
+        }
+        if (this.isComposite()) {
+            /** @type {NerdamerSymbolType} */
+            let retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
+            this.each(x => {
+                retval = _.add(retval, x.imagpart());
+            });
+            return retval;
+        }
+        if (this.group === NerdamerSymbolDeps.CB) {
+            return this.stripVar(Settings.IMAGINARY);
+        }
+        return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
+    },
+    isInteger() {
+        return this.isConstant() && this.multiplier.isInteger();
+    },
+    isLinear(wrt) {
+        if (wrt) {
+            if (this.isConstant()) {
+                return true;
+            }
+            // If this symbol doesn't contain the variable (including in exponents), it's constant with respect to it
+            if (!this.contains(wrt, true)) {
+                return true;
+            }
+            if (this.group === NerdamerSymbolDeps.S) {
+                if (this.value === wrt) {
+                    return this.power.equals(1);
+                }
+                return true;
+            }
+
+            if (this.isComposite() && this.power.equals(1)) {
+                for (const x in this.symbols) {
+                    if (!this.symbols[x].isLinear(wrt)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            if (this.group === NerdamerSymbolDeps.CB) {
+                // If the variable doesn't exist in this term, it's constant wrt that variable, hence linear
+                if (!this.symbols[wrt]) {
+                    return true;
+                }
+                return this.symbols[wrt].isLinear(wrt);
+            }
+            return false;
+        }
+        return this.power.equals(1);
+    },
+    /**
+     * Checks to see if a symbol has a function by a specified name or within a specified list
+     *
+     * @param {string | string[]} names
+     * @returns {boolean}
+     */
+    containsFunction(names) {
+        if (typeof names === 'string') {
+            names = [names];
+        }
+        if (this.group === NerdamerSymbolDeps.FN && names.indexOf(this.fname) !== -1) {
+            return true;
+        }
+        if (this.symbols) {
+            for (const x in this.symbols) {
+                if (this.symbols[x].containsFunction(names)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    },
+    /**
+     * Multiplies the current power by the given power
+     *
+     * @param {NerdamerSymbolType | FracType} p2
+     * @returns {NerdamerSymbolType}
+     */
+    multiplyPower(p2) {
+        const { _ } = NerdamerSymbolDeps;
+        // Leave out 1
+        if (this.group === NerdamerSymbolDeps.N && this.multiplier.equals(1)) {
+            return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
+        }
+
+        /** @type {FracType | NerdamerSymbolType} */
+        let p1 = this.power;
+
+        if (
+            this.group !== NerdamerSymbolDeps.EX &&
+            NerdamerSymbolDeps.isSymbol(p2) &&
+            /** @type {NerdamerSymbolType} */ (p2).group === NerdamerSymbolDeps.N
+        ) {
+            const p = /** @type {NerdamerSymbolType} */ (p2).multiplier;
+            if (this.group === NerdamerSymbolDeps.N && !p.isInteger()) {
+                this.convert(NerdamerSymbolDeps.P);
+            }
+
+            this.power = /** @type {FracType} */ (p1.equals(1) ? p.clone() : /** @type {FracType} */ (p1).multiply(p));
+
+            if (this.group === NerdamerSymbolDeps.P && isInt(this.power)) {
+                // Bring it back to an N
+                this.value = Number(this.value) ** Number(this.power);
+                this.toLinear();
+                this.convert(NerdamerSymbolDeps.N);
+            }
+        } else {
+            if (this.group !== NerdamerSymbolDeps.EX) {
+                p1 = /** @type {FracType | NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(p1)));
+                this.convert(NerdamerSymbolDeps.EX);
+            }
+            /** @type {FracType | NerdamerSymbolType} */
+            const newPower = /** @type {FracType | NerdamerSymbolType} */ (/** @type {unknown} */ (_.multiply(p1, p2)));
+            /** @type {FracType | NerdamerSymbolType} */
+            this.power = newPower;
+        }
+
+        return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
+    },
+    setPower(p, retainSign = false) {
+        // Leave out 1
+        if (this.group === NerdamerSymbolDeps.N && this.multiplier.equals(1)) {
+            return this;
+        }
+        if (this.group === NerdamerSymbolDeps.EX && !NerdamerSymbolDeps.isSymbol(p)) {
+            this.group = this.previousGroup;
+            delete this.previousGroup;
+            if (this.group === NerdamerSymbolDeps.N) {
+                this.multiplier = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(this.value)));
+                this.value = NerdamerSymbolDeps.CONST_HASH;
+            } else {
+                this.power = p;
+            }
+        } else {
+            let isSymbolic = false;
+            if (NerdamerSymbolDeps.isSymbol(p)) {
+                if (p.group === NerdamerSymbolDeps.N) {
+                    // P should be the multiplier instead
+                    p = p.multiplier;
+                } else {
+                    isSymbolic = true;
+                }
+            }
+            const group = isSymbolic ? NerdamerSymbolDeps.EX : NerdamerSymbolDeps.P;
+            this.power = p;
+            if (this.group === NerdamerSymbolDeps.N && group) {
+                this.convert(group, retainSign);
+            }
+        }
+
+        return this;
+    },
+    /**
+     * Checks to see if symbol is located in the denominator
+     *
+     * @returns {boolean}
+     */
+    isInverse() {
+        if (this.group === NerdamerSymbolDeps.EX) {
+            return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this.power)).multiplier.lessThan(0);
+        }
+        return Number(this.power) < 0;
+    },
+    /**
+     * Make a duplicate of a symbol by copying a predefined list of items. The name 'copy' would probably be a more
+     * appropriate name. to a new symbol
+     *
+     * @param {NerdamerSymbolType} [c]
+     * @returns {NerdamerSymbolType}
+     */
+    clone(c = undefined) {
+        /** @type {NerdamerSymbolType} */
+        const self = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
+        const clone = c || /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
+        // List of properties excluding power as this may be a symbol and would also need to be a clone.
+        const properties = [
+            'value',
+            'group',
+            'length',
+            'previousGroup',
+            'imaginary',
+            'fname',
+            'args',
+            'isInfinity',
+            'scientific',
+        ];
+        const l = properties.length;
+        let i;
+        if (self.symbols) {
+            clone.symbols = {};
+            for (const x in self.symbols) {
+                if (!Object.hasOwn(self.symbols, x)) {
+                    continue;
+                }
+                clone.symbols[x] = self.symbols[x].clone();
+            }
+        }
+
+        for (i = 0; i < l; i++) {
+            if (self[properties[i]] !== undefined) {
+                clone[properties[i]] = self[properties[i]];
+            }
+        }
+
+        clone.power = self.power.clone();
+        clone.multiplier = self.multiplier.clone();
+        // Add back the flag to track if this symbol is a conversion symbol
+        if (self.isConversion) {
+            clone.isConversion = self.isConversion;
+        }
+
+        if (self.isUnit) {
+            clone.isUnit = self.isUnit;
+        }
+
+        return clone;
+    },
+    /**
+     * Converts a symbol multiplier to one.
+     *
+     * @param {boolean} [keepSign] Keep the multiplier as negative if the multiplier is negative and keepSign is true
+     */
+    toUnitMultiplier(keepSign = false) {
+        this.multiplier.num = new NerdamerSymbolDeps.bigInt(this.multiplier.num.isNegative() && keepSign ? -1 : 1);
+        this.multiplier.den = new NerdamerSymbolDeps.bigInt(1);
+        return this;
+    },
+    /** Converts a NerdamerSymbol's power to one. */
+    toLinear() {
+        // Do nothing if it's already linear
+        if (this.power.equals(1)) {
+            return this;
+        }
+        this.setPower(new Frac(1));
+        return this;
+    },
+    /**
+     * Iterates over all the sub-symbols. If no sub-symbols exist then it's called on itself
+     *
+     * @param {Function} fn
+     * @param {boolean} [deep] If true it will itterate over the sub-symbols their symbols as well
+     */
+    each(fn, deep = false) {
+        if (this.symbols) {
+            for (const x in this.symbols) {
+                if (!Object.hasOwn(this.symbols, x)) {
+                    continue;
+                }
+                const sym = this.symbols[x];
+                if (sym.group === NerdamerSymbolDeps.PL && deep) {
+                    for (const y in sym.symbols) {
+                        if (!Object.hasOwn(sym.symbols, y)) {
+                            continue;
+                        }
+                        fn.call(x, sym.symbols[y], y);
+                    }
+                } else {
+                    fn.call(this, sym, x);
+                }
+            }
+        } else {
+            fn.call(this, this, this.value);
+        }
+    },
+    /**
+     * A numeric value to be returned for Javascript. It will try to return a number as far a possible but in case of a
+     * pure symbolic symbol it will just return its text representation
+     *
+     * @returns {string | number}
+     */
+    valueOf() {
+        if (this.group === NerdamerSymbolDeps.N) {
+            return this.multiplier.valueOf();
+        }
+        if (this.power.equals(0)) {
+            return 1;
+        }
+        if (this.multiplier.equals(0)) {
+            return 0;
+        }
+        return NerdamerSymbolDeps.text(this, 'decimals');
+    },
+    /**
+     * Checks to see if a symbols has a particular variable within it. Pass in true as second argument to include the
+     * power of exponentials which aren't check by default.
+     *
+     * @example
+     *     let s = _.parse('x+y+z');
+     *     s.contains('y');
+     *     //returns true
+     *
+     * @param {any} variable
+     * @param {boolean} [all]
+     * @returns {boolean}
+     */
+    contains(variable, all = false) {
+        // Contains expects a string
+        variable = String(variable);
+        const g = this.group;
+        if (this.value === variable) {
+            return true;
+        }
+        if (this.symbols) {
+            for (const x in this.symbols) {
+                if (this.symbols[x].contains(variable, all)) {
+                    return true;
+                }
+            }
+        }
+        if (g === NerdamerSymbolDeps.FN || this.previousGroup === NerdamerSymbolDeps.FN) {
+            for (let i = 0; i < this.args.length; i++) {
+                if (this.args[i].contains(variable, all)) {
+                    return true;
+                }
+            }
+        }
+
+        if (g === NerdamerSymbolDeps.EX) {
+            // Exit only if it does
+            if (
+                all &&
+                /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this.power)).contains(variable, all)
+            ) {
+                return true;
+            }
+            if (this.value === variable) {
+                return true;
+            }
+        }
+
+        return this.value === variable;
+    },
+    /** Negates a symbols */
+    negate() {
+        this.multiplier.negate();
+        if (this.group === NerdamerSymbolDeps.CP || this.group === NerdamerSymbolDeps.PL) {
+            this.distributeMultiplier();
+        }
+        return this;
+    },
+    /**
+     * Inverts a symbol
+     *
+     * @param {boolean} [powerOnly]
+     * @param {boolean} [all]
+     */
+    invert(powerOnly = false, all = false) {
+        // Invert the multiplier
+        if (!powerOnly) {
+            this.multiplier = this.multiplier.invert();
+        }
+        // Invert the rest
+        if (NerdamerSymbolDeps.isSymbol(this.power)) {
+            this.power.negate();
+        } else if (this.group === NerdamerSymbolDeps.CB && all) {
+            this.each(x => x.invert());
+        } else if (this.power && this.group !== NerdamerSymbolDeps.N) {
+            this.power.negate();
+        }
+        return this;
+    },
+    /**
+     * Symbols of group CP or PL may have the multiplier being carried by the top level symbol at any given time e.g.
+     * 2*(x+y+z). This is convenient in many cases, however in some cases the multiplier needs to be carried
+     * individually e.g. 2_x+2_y+2*z. This method distributes the multiplier over the entire symbol
+     *
+     * @param {boolean} [all]
+     */
+    distributeMultiplier(all = false) {
+        const isOne = all ? this.power.absEquals(1) : this.power.equals(1);
+        if (this.symbols && isOne && this.group !== NerdamerSymbolDeps.CB && !this.multiplier.equals(1)) {
+            for (const x in this.symbols) {
+                if (!Object.hasOwn(this.symbols, x)) {
+                    continue;
+                }
+                const s = this.symbols[x];
+                s.multiplier = s.multiplier.multiply(this.multiplier);
+                s.distributeMultiplier();
+            }
+            this.toUnitMultiplier();
+        }
+
+        return this;
+    },
+    /** This method expands the exponent over the entire symbol just like distributeMultiplier */
+    distributeExponent() {
+        const { _ } = NerdamerSymbolDeps;
+        if (!this.power.equals(1)) {
+            const p = this.power;
+            for (const x in this.symbols) {
+                if (!Object.hasOwn(this.symbols, x)) {
+                    continue;
+                }
+                const s = this.symbols[x];
+                if (s.group === NerdamerSymbolDeps.EX) {
+                    s.power = _.multiply(s.power, new NerdamerSymbol(p));
+                } else if (NerdamerSymbolDeps.isSymbol(this.symbols[x].power)) {
+                    this.symbols[x].power = _.multiply(this.symbols[x].power, new NerdamerSymbol(p));
+                } else {
+                    this.symbols[x].power = this.symbols[x].power.multiply(p);
+                }
+            }
+            this.toLinear();
+        }
+        return this;
+    },
+    /**
+     * This method will attempt to up-convert or down-convert one symbol from one group to another. Not all symbols are
+     * convertible from one group to another however. In that case the symbol will remain unchanged.
+     *
+     * @param {number} group
+     * @param {boolean} [imaginary]
+     */
+    convert(group, imaginary = undefined) {
+        if (group > NerdamerSymbolDeps.FN) {
+            // Make a clone of this symbol;
+            const cp = this.clone();
+
+            // Attach a symbols object and upgrade the group
+            this.symbols = {};
+
+            if (group === NerdamerSymbolDeps.CB) {
+                // Symbol of group CB hold symbols bound together through multiplication
+                // because of commutativity this multiplier can technically be anywhere within the group
+                // to keep track of it however it's easier to always have the top level carry it
+                cp.toUnitMultiplier();
+            } else {
+                // Reset the symbol
+                this.toUnitMultiplier();
+            }
+
+            if (this.group === NerdamerSymbolDeps.FN) {
+                cp.args = /** @type {NerdamerSymbolType[] | undefined} */ (/** @type {unknown} */ (this.args));
+                delete this.args;
+                delete this.fname;
+            }
+
+            // The symbol may originate from the symbol i but this property no longer holds true
+            // after copying
+            if (this.isImgSymbol) {
+                delete this.isImgSymbol;
+            }
+
+            this.toLinear();
+            // Attach a clone of this symbol to the symbols object using its proper key
+            this.symbols[cp.keyForGroup(group)] = cp;
+            this.group = group;
+            // Objects by default don't have a length property. However, in order to keep track of the number
+            // of sub-symbols we have to impliment our own.
+            this.length = 1;
+        } else if (group === NerdamerSymbolDeps.EX) {
+            // 1^x is just one so check and make sure
+            if (!(this.group === NerdamerSymbolDeps.N && this.multiplier.equals(1))) {
+                if (this.group !== NerdamerSymbolDeps.EX) {
+                    this.previousGroup = this.group;
+                }
+                if (this.group === NerdamerSymbolDeps.N) {
+                    this.value = this.multiplier.num.toString();
+                    this.toUnitMultiplier();
+                }
+                // Update the hash to reflect the accurate hash
+                else {
+                    this.value = NerdamerSymbolDeps.text(this, 'hash');
+                }
+
+                this.group = NerdamerSymbolDeps.EX;
+            }
+        } else if (group === NerdamerSymbolDeps.N) {
+            const m = this.multiplier.toDecimal();
+            this.symbols &&= undefined;
+            new NerdamerSymbol(
+                this.group === NerdamerSymbolDeps.P ? Number(m) * Number(this.value) ** Number(this.power) : m
+            ).clone(this);
+        } else if (group === NerdamerSymbolDeps.P && this.group === NerdamerSymbolDeps.N) {
+            this.value = imaginary ? this.multiplier.num.toString() : Math.abs(Number(this.multiplier.num.toString()));
+            this.toUnitMultiplier(!imaginary);
+            this.group = NerdamerSymbolDeps.P;
+        }
+        return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
+    },
+    /**
+     * This method is one of the principal methods to make it all possible. It performs cleanup and prep operations
+     * whenever a symbols is inserted. If the symbols results in a 1 in a CB (multiplication) group for instance it will
+     * remove the redundant symbol. Similarly in a symbol of group PL or CP (symbols glued by multiplication) it will
+     * remove any dangling zeroes from the symbol. It will also up-convert or down-convert a symbol if it detects that
+     * it's incorrectly grouped. It should be noted that this method is not called directly but rather by the 'attach'
+     * method for addition groups and the 'combine' method for multiplication groups.
+     *
+     * @param {NerdamerSymbolType} symbol
+     * @param {string} action
+     */
+    insert(symbol, action) {
+        const { _ } = NerdamerSymbolDeps;
+        // This check can be removed but saves a lot of aggravation when trying to hunt down
+        // a bug. If left, you will instantly know that the error can only be between 2 symbols.
+        if (!NerdamerSymbolDeps.isSymbol(symbol)) {
+            err(`Object ${symbol} is not of type NerdamerSymbol!`);
+        }
+        if (this.symbols) {
+            const { group } = this;
+            if (group > NerdamerSymbolDeps.FN) {
+                const key = symbol.keyForGroup(group);
+                const existing = key in this.symbols ? this.symbols[key] : false; // Check if there's already a symbol there
+                if (action === 'add') {
+                    const hash = key;
+                    if (existing) {
+                        // Add them together using the parser
+                        this.symbols[hash] = _.add(existing, symbol);
+                        // If the addition resulted in a zero multiplier remove it
+                        if (this.symbols[hash].multiplier.equals(0)) {
+                            delete this.symbols[hash];
+                            this.length--;
+
+                            if (this.length === 0) {
+                                this.convert(NerdamerSymbolDeps.N);
+                                this.multiplier = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(0)));
+                            }
+                        }
+                    } else {
+                        this.symbols[key] = symbol;
+                        this.length++;
+                    }
+                } else {
+                    // Check if this is of group P and unwrap before inserting
+                    if (symbol.group === NerdamerSymbolDeps.P && isInt(symbol.power)) {
+                        symbol.convert(NerdamerSymbolDeps.N);
+                    }
+
+                    // Transfer the multiplier to the upper symbol but only if the symbol numeric
+                    if (symbol.group === NerdamerSymbolDeps.EX) {
+                        symbol.parens = symbol.multiplier.lessThan(0);
+                        this.multiplier = this.multiplier.multiply(symbol.multiplier.clone().abs());
+                        symbol.toUnitMultiplier(true);
+                    } else {
+                        this.multiplier = this.multiplier.multiply(symbol.multiplier);
+                        symbol.toUnitMultiplier();
+                    }
+
+                    if (existing) {
+                        // Remove because the symbol may have changed
+                        symbol = _.multiply(remove(this.symbols, key), symbol);
+                        if (symbol.isConstant()) {
+                            this.multiplier = this.multiplier.multiply(symbol.multiplier);
+                            symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(1))); // The dirty work gets done down the line when it detects 1
+                        }
+
+                        this.length--;
+                        // Clean up
+                    }
+
+                    // Don't insert the symbol if it's 1
+                    if (!symbol.isOne(true)) {
+                        this.symbols[key] = symbol;
+                        this.length++;
+                    } else if (symbol.multiplier.lessThan(0)) {
+                        this.negate(); // Put back the sign
+                    }
+                }
+
+                // Clean up
+                if (this.length === 0) {
+                    this.convert(NerdamerSymbolDeps.N);
+                }
+                // Update the hash
+                if (this.group === NerdamerSymbolDeps.CP || this.group === NerdamerSymbolDeps.CB) {
+                    this.updateHash();
+                }
+            }
+        }
+
+        return this;
+    },
+    /** The insert method for addition */
+    attach(symbol) {
+        if (isArray(symbol)) {
+            for (let i = 0; i < symbol.length; i++) {
+                this.insert(symbol[i], 'add');
+            }
+            return this;
+        }
+        return this.insert(symbol, 'add');
+    },
+    /** The insert method for multiplication */
+    combine(symbol) {
+        if (isArray(symbol)) {
+            for (let i = 0; i < symbol.length; i++) {
+                this.insert(symbol[i], 'multiply');
+            }
+            return this;
+        }
+        return this.insert(symbol, 'multiply');
+    },
+    /**
+     * This method should be called after any major "surgery" on a symbol. It updates the hash of the symbol for example
+     * if the fname of a function has changed it will update the hash of the symbol.
+     */
+    updateHash() {
+        if (this.group === NerdamerSymbolDeps.N) {
+            return;
+        }
+
+        if (this.group === NerdamerSymbolDeps.FN) {
+            let contents = '';
+            const { args } = this;
+            const isParens = this.fname === NerdamerSymbolDeps.PARENTHESIS;
+            for (let i = 0; i < args.length; i++) {
+                contents += (i === 0 ? '' : ',') + NerdamerSymbolDeps.text(args[i]);
+            }
+            const fnName = isParens ? '' : this.fname;
+            this.value = fnName + (isParens ? contents : inBrackets(contents));
+        } else if (!(this.group === NerdamerSymbolDeps.S || this.group === NerdamerSymbolDeps.PL)) {
+            this.value = NerdamerSymbolDeps.text(this, 'hash');
+        }
+    },
+    /**
+     * This function defines how every group in stored within a group of higher order think of it as the switchboard for
+     * the library. It defines the hashes for symbols.
+     *
+     * @param {number} group
+     */
+    keyForGroup(group) {
+        const g = this.group;
+        let key;
+
+        if (g === NerdamerSymbolDeps.N) {
+            key = this.value;
+        } else if (g === NerdamerSymbolDeps.S || g === NerdamerSymbolDeps.P) {
+            if (group === NerdamerSymbolDeps.PL) {
+                key = this.power.toDecimal();
+            } else {
+                key = this.value;
+            }
+        } else if (g === NerdamerSymbolDeps.FN) {
+            if (group === NerdamerSymbolDeps.PL) {
+                key = this.power.toDecimal();
+            } else {
+                key = NerdamerSymbolDeps.text(this, 'hash');
+            }
+        } else if (g === NerdamerSymbolDeps.PL) {
+            // If the order is reversed then we'll assume multiplication
+            // TODO: possible future dilemma
+            if (group === NerdamerSymbolDeps.CB) {
+                key = NerdamerSymbolDeps.text(this, 'hash');
+            } else if (group === NerdamerSymbolDeps.CP) {
+                if (this.power.equals(1)) {
+                    key = this.value;
+                } else {
+                    key =
+                        inBrackets(NerdamerSymbolDeps.text(this, 'hash')) +
+                        Settings.POWER_OPERATOR +
+                        this.power.toDecimal();
+                }
+            } else if (group === NerdamerSymbolDeps.PL) {
+                key = this.power.toString();
+            } else {
+                key = this.value;
+            }
+            return key;
+        } else if (g === NerdamerSymbolDeps.CP) {
+            if (group === NerdamerSymbolDeps.CP) {
+                key = NerdamerSymbolDeps.text(this, 'hash');
+            }
+            if (group === NerdamerSymbolDeps.PL) {
+                key = this.power.toDecimal();
+            } else {
+                key = this.value;
+            }
+        } else if (g === NerdamerSymbolDeps.CB) {
+            if (group === NerdamerSymbolDeps.PL) {
+                key = this.power.toDecimal();
+            } else {
+                key = NerdamerSymbolDeps.text(this, 'hash');
+            }
+        } else if (g === NerdamerSymbolDeps.EX) {
+            if (group === NerdamerSymbolDeps.PL) {
+                key = NerdamerSymbolDeps.text(this.power);
+            } else {
+                key = NerdamerSymbolDeps.text(this, 'hash');
+            }
+        }
+
+        return key;
+    },
+    /**
+     * Symbols are typically stored in an object which works fine for most cases but presents a problem when the order
+     * of the symbols makes a difference. This function simply collects all the symbols and returns them as an array. If
+     * a function is supplied then that function is called on every symbol contained within the object.
+     *
+     * @param {Function} fn
+     * @param {object} opt
+     * @param {((a: any, b: any) => number) | undefined | null} sortFn
+     * @param {boolean} expandSymbol
+     * @returns {Array}
+     */
+    collectSymbols(fn, opt, sortFn, expandSymbol) {
+        let collected = [];
+        if (this.symbols) {
+            for (const x in this.symbols) {
+                if (!Object.hasOwn(this.symbols, x)) {
+                    continue;
+                }
+                const symbol = this.symbols[x];
+                if (
+                    expandSymbol &&
+                    (symbol.group === NerdamerSymbolDeps.PL || symbol.group === NerdamerSymbolDeps.CP)
+                ) {
+                    collected = collected.concat(symbol.collectSymbols());
+                } else {
+                    collected.push(fn ? fn(symbol, opt) : symbol);
+                }
+            }
+        } else {
+            collected.push(this);
+        }
+        if (sortFn === null) {
+            sortFn = undefined;
+        } // WTF Firefox? Seriously?
+
+        return collected.sort(sortFn); // Sort hopefully gives us some sort of consistency
+    },
+
+    /**
+     * CollectSymbols but only for summands
+     *
+     * @param {Function} fn
+     * @param {object} opt
+     * @param {((a: any, b: any) => number) | undefined | null} sortFn
+     * @param {boolean} expandSymbol
+     * @returns {Array}
+     */
+    collectSummandSymbols(fn, opt, sortFn, expandSymbol) {
+        let collected = [];
+        if (!this.symbols || this.group === NerdamerSymbolDeps.CB) {
+            collected.push(this);
+        } else {
+            for (const x in this.symbols) {
+                if (!Object.hasOwn(this.symbols, x)) {
+                    continue;
+                }
+                const symbol = this.symbols[x];
+                if (
+                    expandSymbol &&
+                    (symbol.group === NerdamerSymbolDeps.PL || symbol.group === NerdamerSymbolDeps.CP)
+                ) {
+                    collected = collected.concat(symbol.collectSymbols());
+                } else {
+                    collected.push(fn ? fn(symbol, opt) : symbol);
+                }
+            }
+        }
+        if (sortFn === null) {
+            sortFn = undefined;
+        } // WTF Firefox? Seriously?
+
+        return collected.sort(sortFn); // Sort hopefully gives us some sort of consistency
+    },
+    /**
+     * Returns the latex representation of the symbol
+     *
+     * @param {string} option
+     * @returns {string}
+     */
+    latex(option) {
+        return LaTeX.latex(this, option);
+    },
+    /**
+     * Returns the text representation of a symbol
+     *
+     * @param {string} [option]
+     * @returns {string}
+     */
+    text(option = undefined) {
+        return NerdamerSymbolDeps.text(this, option);
+    },
+    /**
+     * Checks if the function evaluates to 1. e.g. x^0 or 1 :)
+     *
+     * @param {boolean} [abs] Compares the absolute value
+     */
+    isOne(abs = false) {
+        const f = abs ? 'absEquals' : 'equals';
+        if (this.group === NerdamerSymbolDeps.N) {
+            return this.multiplier[f](1);
+        }
+        return this.power.equals(0);
+    },
+    isComposite() {
+        const g = this.group;
+        const pg = this.previousGroup;
+        return (
+            g === NerdamerSymbolDeps.CP ||
+            g === NerdamerSymbolDeps.PL ||
+            pg === NerdamerSymbolDeps.PL ||
+            pg === NerdamerSymbolDeps.CP
+        );
+    },
+    isCombination() {
+        const g = this.group;
+        const pg = this.previousGroup;
+        return g === NerdamerSymbolDeps.CB || pg === NerdamerSymbolDeps.CB;
+    },
+    lessThan(n) {
+        return this.multiplier.lessThan(n);
+    },
+    greaterThan(n) {
+        if (!NerdamerSymbolDeps.isSymbol(n)) {
+            n = new NerdamerSymbol(n);
+        }
+
+        // We can't tell for sure if a is greater than be if they're not both numbers
+        if (!this.isConstant(true) || !n.isConstant(true)) {
+            return false;
+        }
+
+        return this.multiplier.greaterThan(n.multiplier);
+    },
+    /**
+     * Get's the denominator of the symbol if the symbol is of class CB (multiplication) with other classes the symbol
+     * is either the denominator or not. Take x^-1+x^-2. If the symbol was to be mixed such as x+x^-2 then the symbol
+     * doesn't have have an exclusive denominator and has to be found by looking at the actual symbols themselves.
+     */
+    getDenom() {
+        const { _ } = NerdamerSymbolDeps;
+        let retval;
+        let symbol;
+        symbol = this.clone();
+        // E.g. 1/(x*(x+1))
+        if (this.group === NerdamerSymbolDeps.CB && this.power.lessThan(0)) {
+            symbol = _.expand(symbol);
+        }
+
+        // If the symbol already is the denominator... DONE!!!
+        if (
+            symbol.power.lessThan(0) ||
+            (symbol.group === NerdamerSymbolDeps.EX &&
+                /** @type {NerdamerSymbolType} */ (symbol.power).multiplier.lessThan(0))
+        ) {
+            const d = _.parse(symbol.multiplier.den);
+            retval = symbol.toUnitMultiplier();
+            retval.power.negate();
+            retval = _.multiply(d, retval); // Put back the coeff
+        } else if (symbol.group === NerdamerSymbolDeps.CB) {
+            retval = _.parse(symbol.multiplier.den);
+            for (const x in symbol.symbols) {
+                if (!Object.hasOwn(symbol.symbols, x)) {
+                    continue;
+                }
+                const s = symbol.symbols[x];
+                if (
+                    Number(s.power) < 0 ||
+                    (s.group === NerdamerSymbolDeps.EX &&
+                        /** @type {NerdamerSymbolType} */ (s.power).multiplier.lessThan(0))
+                ) {
+                    retval = _.multiply(retval, symbol.symbols[x].clone().invert());
+                }
+            }
+        } else {
+            retval = _.parse(symbol.multiplier.den);
+        }
+        return retval;
+    },
+    getNum() {
+        const { _ } = NerdamerSymbolDeps;
+        let retval;
+        let symbol;
+        symbol = this.clone();
+        // E.g. 1/(x*(x+1))
+        if (symbol.group === NerdamerSymbolDeps.CB && symbol.power.lessThan(0)) {
+            symbol = _.expand(symbol);
+        }
+        // If the symbol already is the denominator... DONE!!!
+        if (
+            (symbol.power.greaterThan(0) && symbol.group !== NerdamerSymbolDeps.CB) ||
+            (symbol.group === NerdamerSymbolDeps.EX &&
+                /** @type {NerdamerSymbolType} */ (symbol.power).multiplier.greaterThan(0))
+        ) {
+            retval = _.multiply(_.parse(symbol.multiplier.num), symbol.toUnitMultiplier());
+        } else if (symbol.group === NerdamerSymbolDeps.CB) {
+            retval = _.parse(symbol.multiplier.num);
+            symbol.each(x => {
+                if (
+                    Number(x.power) > 0 ||
+                    (x.group === NerdamerSymbolDeps.EX &&
+                        /** @type {NerdamerSymbolType} */ (x.power).multiplier.greaterThan(0))
+                ) {
+                    retval = _.multiply(retval, x.clone());
+                }
+            });
+        }
+        //            Else if(symbol.group === NerdamerSymbolDeps.EX && this.previousGroup === NerdamerSymbolDeps.S) {
+        //                retval = _.multiply(_.parse(symbol.multiplier.num), symbol.toUnitMultiplier());
+        //            }
+        else {
+            retval = _.parse(symbol.multiplier.num);
+        }
+        return retval;
+    },
+    toString() {
+        return this.text();
+    },
+};
 const nerdamer = (function initNerdamerCore(imports) {
     // Version ======================================================================
     const _version = '1.1.16';
@@ -8127,1706 +9888,25 @@ const nerdamer = (function initNerdamerCore(imports) {
     FracDeps.Settings = Settings;
     // Note: Fraction is initialized later after it's defined (see line ~11700)
 
-    // NerdamerSymbol =======================================================================
-    /**
-     * All symbols e.g. x, y, z, etc or functions are wrapped in this class. All symbols have a multiplier and a group.
-     * All symbols except for "numbers (group N)" have a power.
-     *
-     * @class Primary Data type for the Parser.
-     * @param {string | number | NerdamerSymbolType | FracType | import('big-integer').BigInteger | object} [obj]
-     * @returns {NerdamerSymbolType}
-     */
-    function NerdamerSymbol(obj) {
-        checkTimeout();
-
-        const isInfinity = obj === 'Infinity';
-        // This enables the class to be instantiated without the new operator
-        if (!(this instanceof NerdamerSymbol)) {
-            return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(obj)));
-        }
-        // Convert big numbers to a string
-        if (typeof obj === 'object' && obj !== null && /** @type {any} */ (obj) instanceof bigDec) {
-            obj = /** @type {any} */ (obj).toString();
-        }
-        // Define numeric symbols
-        const objStr = String(obj);
-        if (
-            /^(?<sign>-?\+?\d+)\.?\d*e?-?\+?\d*/iu.test(objStr) ||
-            (typeof obj === 'object' && obj !== null && /** @type {any} */ (obj) instanceof bigDec)
-        ) {
-            this.group = N;
-            this.value = CONST_HASH;
-            this.multiplier = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(obj)));
-        }
-        // Define symbolic symbols
-        else {
-            this.group = S;
-            validateName(obj);
-            this.value = obj;
-            this.multiplier = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(1)));
-            this.imaginary = obj === Settings.IMAGINARY;
-            this.isInfinity = isInfinity;
-        }
-
-        // As of 6.0.0 we switched to infinite precision so all objects have a power
-        // Although this is still redundant in constants, it simplifies the logic in
-        // other parts so we'll keep it
-        this.power = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(1)));
-
-        // Initialize optional properties used by function symbols (FN group)
-        /** @type {NerdamerSymbol[] | undefined} */
-        this.args = undefined;
-        /** @type {string | undefined} */
-        this.fname = undefined;
-        /** @type {boolean | undefined} */
-        this.isImgSymbol = undefined;
-
-        // Added to silence the strict warning.
-        return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
-    }
-    /**
-     * Returns vanilla imaginary symbol
-     *
-     * @returns {NerdamerSymbolType}
-     */
-    NerdamerSymbol.imaginary = function imaginary() {
-        const s = new NerdamerSymbol(Settings.IMAGINARY);
-        s.imaginary = true;
-        return s;
-    };
-    /**
-     * Return nerdamer's representation of Infinity
-     *
-     * @param {number} negative -1 to return negative infinity
-     * @returns {NerdamerSymbolType}
-     */
-    NerdamerSymbol.infinity = function infinity(negative = undefined) {
-        const v = new NerdamerSymbol('Infinity');
-        if (negative === -1) {
-            v.negate();
-        }
-        return v;
-    };
-    /**
-     * Creates a shell symbol for a given group
-     *
-     * @param {number} group
-     * @param {any} [value]
-     * @returns {NerdamerSymbolType}
-     */
-    NerdamerSymbol.shell = function shell(group, value) {
-        const symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(value)));
-        symbol.group = group;
-        symbol.symbols = {};
-        symbol.length = 0;
-        return symbol;
-    };
-    // Sqrt(x) -> x^(1/2)
-    NerdamerSymbol.unwrapSQRT = function unwrapSQRT(symbol, all) {
-        const p = symbol.power;
-        if (symbol.fname === SQRT && (symbol.isLinear() || all)) {
-            const t = symbol.args[0].clone();
-            t.power = t.power.multiply(new Frac(1 / 2));
-            t.multiplier = t.multiplier.multiply(symbol.multiplier);
-            symbol = t;
-            if (all) {
-                symbol.power = p.multiply(new Frac(1 / 2));
-            }
-        }
-
-        return symbol;
-    };
-    NerdamerSymbol.hyp = function hyp(a, b) {
-        a ||= new NerdamerSymbol(0);
-        b ||= new NerdamerSymbol(0);
-        return _.sqrt(_.add(_.pow(a.clone(), new NerdamerSymbol(2)), _.pow(b.clone(), new NerdamerSymbol(2))));
-    };
-    // Converts to polar form array
-    NerdamerSymbol.toPolarFormArray = function toPolarFormArray(symbol) {
-        const re = symbol.realpart();
-        const im = symbol.imagpart();
-        const r = NerdamerSymbol.hyp(re, im);
-        const theta = re.equals(0) ? _.parse('pi/2') : _.trig.atan(_.divide(im, re));
-        return [r, theta];
-    };
-    // Removes parentheses
-    NerdamerSymbol.unwrapPARENS = function unwrapPARENS(symbol) {
-        if (symbol.fname === '') {
-            const r = symbol.args[0];
-            r.power = r.power.multiply(symbol.power);
-            r.multiplier = r.multiplier.multiply(symbol.multiplier);
-            if (symbol.fname === '') {
-                return NerdamerSymbol.unwrapPARENS(r);
-            }
-            return r;
-        }
-        return symbol;
-    };
-    // Quickly creates a NerdamerSymbol
-    NerdamerSymbol.create = function create(value, power) {
-        power = power === undefined ? 1 : power;
-        return _.parse(`(${value})^(${power})`);
-    };
-    NerdamerSymbol.prototype = {
-        /** @returns {NerdamerSymbolType} */
-        pushMinus() {
-            /** @type {NerdamerSymbolType} */
-            let retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
-            if (
-                (this.group === CB || this.group === CP || this.group === PL) &&
-                this.multiplier.lessThan(0) &&
-                !even(this.power)
-            ) {
-                // Console.log();
-                // console.log("replacing "+this.text("fractions"))
-                retval = this.clone();
-                const m = retval.multiplier.clone();
-                m.negate();
-                // Console.log("  negated multiplier: "+m)
-                retval.toUnitMultiplier();
-
-                // Console.log("  unit main part: "+this)
-                for (const termkey in retval.symbols) {
-                    if (!Object.hasOwn(retval.symbols, termkey)) {
-                        continue;
-                    }
-                    retval.symbols[termkey] = retval.symbols[termkey].clone().negate();
-                    // Console.log("  negated term: "+this.symbols[termkey])
-                    if (retval.group === CB) {
-                        // Console.log("  is CB, breaking");
-                        break;
-                    }
-                }
-
-                // Console.log("  combined: "+retval.text("fractions"));
-                if (retval.length > 0) {
-                    retval.each(c => c.pushMinus());
-                    // Console.log("  result: "+this.text("fractions"));
-                }
-
-                // Console.log("  negated main part: "+retval)
-                retval = _.parse(retval);
-                retval = _.multiply(_.parse(m), retval);
-            }
-            return retval;
-        },
-
-        /**
-         * Gets nth root accounting for rounding errors
-         *
-         * @param {number} n
-         * @returns {NerdamerSymbolType}
-         */
-        getNth(n) {
-            // First calculate the root
-            const root = evaluate(_.pow(_.parse(this.multiplier), _.parse(String(n)).invert()));
-            // Round of any errors
-            const rounded = _.parse(nround(root));
-            // Reverse the root
-            const e = evaluate(_.pow(rounded, _.parse(String(n))));
-            // If the rounded root equals the original number then we're good
-            if (e.equals(_.parse(this.multiplier))) {
-                return rounded;
-            }
-            // Otherwise return the unrounded version
-            return root;
-        },
-        /**
-         * Checks if symbol is to the nth power
-         *
-         * @returns {boolean}
-         */
-        isToNth(n) {
-            // Start by check in the multiplier for squareness
-            // First get the root but round it because currently we still depend
-            const root = this.getNth(n);
-            const nthMultiplier = isInt(root);
-            let nthPower;
-
-            if (this.group === CB) {
-                // Start by assuming that all will be square.
-                nthPower = true;
-                // All it takes is for one of the symbols to not have an even power
-                // e.g. x^n1*y^n2 requires that both n1 and n2 are even
-                this.each(x => {
-                    const isNth = x.isToNth(n);
-
-                    if (!isNth) {
-                        nthPower = false;
-                    }
-                });
-            } else {
-                // Check if the power is divisible by n if it's not a number.
-                nthPower = this.group === N ? true : isInt(_.divide(_.parse(this.power), _.parse(n)));
-            }
-
-            return nthMultiplier && nthPower;
-        },
-        /**
-         * Checks if a symbol is square
-         *
-         * @returns {boolean}
-         */
-        isSquare() {
-            return this.isToNth(2);
-        },
-        /**
-         * Checks if a symbol is cube
-         *
-         * @returns {boolean}
-         */
-        isCube() {
-            return this.isToNth(3);
-        },
-        /**
-         * Checks if a symbol is a bare variable
-         *
-         * @returns {boolean}
-         */
-        isSimple() {
-            return this.power.equals(1) && this.multiplier.equals(1);
-        },
-        /**
-         * Simplifies the power of the symbol
-         *
-         * @returns {NerdamerSymbolType} A clone of the symbol
-         */
-        powSimp() {
-            if (this.group === CB) {
-                const powers = [];
-                const sign = this.multiplier.sign();
-                this.each(x => {
-                    const p = x.power;
-                    // Why waste time if I can't do anything anyway
-                    if (isSymbol(p) || p.equals(1)) {
-                        return;
-                    }
-                    powers.push(p);
-                });
-                if (powers.length === 0) {
-                    return this.clone();
-                }
-                const min = new Frac(arrayMin(powers));
-
-                // Handle the coefficient
-                // handle the multiplier
-                // sign already declared above
-                const m = this.multiplier.clone().abs();
-                const mfactors = Math2.ifactor(m.valueOf());
-                // If we have a multiplier of 6750 and a min of 2 then the factors are 5^3*5^3*2
-                // we can then reduce it to 2*3*5*(15)^2
-                let out_ = new Frac(1);
-                let in_ = new Frac(1);
-
-                for (const x in mfactors) {
-                    if (!Object.hasOwn(mfactors, x)) {
-                        continue;
-                    }
-                    let n = new Frac(mfactors[x]);
-                    if (!n.lessThan(min)) {
-                        n = n.divide(min).subtract(new Frac(1));
-                        in_ = in_.multiply(new Frac(x)); // Move the factor inside the bracket
-                    }
-
-                    out_ = out_.multiply(_.parse(`${inBrackets(x)}^${inBrackets(n)}`).multiplier);
-                }
-                let t = new NerdamerSymbol(in_);
-                this.each(x => {
-                    x = x.clone();
-                    x.power = x.power.divide(min);
-                    t = _.multiply(t, x);
-                });
-
-                const xt = _.symfunction(PARENTHESIS, [t]);
-                xt.power = min;
-                xt.multiplier = sign < 0 ? out_.negate() : out_;
-
-                return xt;
-            }
-            return this.clone();
-        },
-        /**
-         * Checks to see if two functions are of equal value
-         *
-         * @param {string | number | NerdamerSymbolType} symbol
-         * @returns {boolean}
-         */
-        equals(symbol) {
-            /** @type {NerdamerSymbol} */
-            let sym;
-            if (isSymbol(symbol)) {
-                sym = symbol;
-            } else {
-                sym = new NerdamerSymbol(symbol);
-            }
-            return (
-                this.value === sym.value &&
-                this.power.equals(sym.power) &&
-                this.multiplier.equals(sym.multiplier) &&
-                this.group === sym.group
-            );
-        },
-        /** @returns {NerdamerSymbolType} */
-        abs() {
-            const e = this.clone();
-            e.multiplier.abs();
-            return e;
-        },
-        /**
-         * Greater than
-         *
-         * @param {string | number | NerdamerSymbolType} symbol
-         * @returns {boolean}
-         */
-        gt(symbol) {
-            if (!isSymbol(symbol)) {
-                symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(symbol)));
-            }
-            return this.isConstant() && symbol.isConstant() && this.multiplier.greaterThan(symbol.multiplier);
-        },
-        /**
-         * Greater than or equal
-         *
-         * @param {string | number | NerdamerSymbolType} symbol
-         * @returns {boolean}
-         */
-        gte(symbol) {
-            if (!isSymbol(symbol)) {
-                symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(symbol)));
-            }
-            return (
-                this.equals(symbol) ||
-                (this.isConstant() && symbol.isConstant() && this.multiplier.greaterThan(symbol.multiplier))
-            );
-        },
-        /**
-         * Less than
-         *
-         * @param {string | number | NerdamerSymbolType} symbol
-         * @returns {boolean}
-         */
-        lt(symbol) {
-            if (!isSymbol(symbol)) {
-                symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(symbol)));
-            }
-            return this.isConstant() && symbol.isConstant() && this.multiplier.lessThan(symbol.multiplier);
-        },
-        /**
-         * Less than or equal
-         *
-         * @param {string | number | NerdamerSymbolType} symbol
-         * @returns {boolean}
-         */
-        lte(symbol) {
-            if (!isSymbol(symbol)) {
-                symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(symbol)));
-            }
-            return (
-                this.equals(symbol) ||
-                (this.isConstant() && symbol.isConstant() && this.multiplier.lessThan(symbol.multiplier))
-            );
-        },
-        /**
-         * Because nerdamer doesn't group symbols by polynomials but rather a custom grouping method, this has to be
-         * reinserted in order to make use of most algorithms. This function checks if the symbol meets the criteria of
-         * a polynomial.
-         *
-         * @param {boolean} [multivariate]
-         * @returns {boolean}
-         */
-        isPoly(multivariate = false) {
-            const g = this.group;
-            const p = this.power;
-            // The power must be a integer so fail if it's not
-            if (!isInt(p) || Number(p) < 0) {
-                return false;
-            }
-            // Constants and first orders
-            if (g === N || g === S || this.isConstant(true)) {
-                return true;
-            }
-            const vars = variables(this);
-            if (g === CB && vars.length === 1) {
-                // The variable is assumed the only one that was found
-                const v = vars[0];
-                // If no variable then guess what!?!? We're done!!! We have a polynomial.
-                if (!v) {
-                    return true;
-                }
-                for (const x in this.symbols) {
-                    if (!Object.hasOwn(this.symbols, x)) {
-                        continue;
-                    }
-                    const sym = this.symbols[x];
-                    // Sqrt(x)
-                    if (sym.group === FN && !sym.args[0].isConstant()) {
-                        return false;
-                    }
-                    if (!sym.contains(v) && !sym.isConstant(true)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-            // PL groups. These only fail if a power is not an int
-            // this should handle cases such as x^2*t
-            if (this.isComposite() || (g === CB && multivariate)) {
-                // Fail if we're not checking for multivariate polynomials
-                if (!multivariate && vars.length > 1) {
-                    return false;
-                }
-                // Loop though the symbols and check if they qualify
-                for (const x in this.symbols) {
-                    // We've already the symbols if we're not checking for multivariates at this point
-                    // so we check the sub-symbols
-                    if (!this.symbols[x].isPoly(multivariate)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-            return false;
-
-            /*
-             //all tests must have passed so we must be dealing with a polynomial
-             return true;
-             */
-        },
-        // Removes the requested variable from the symbol and returns the remainder
-        /**
-         * @param {string} x
-         * @param {boolean} [excludeX]
-         * @returns {NerdamerSymbolType}
-         */
-        stripVar(x, excludeX = false) {
-            /** @type {NerdamerSymbolType} */
-            let retval;
-            if ((this.group === PL || this.group === S) && this.value === x) {
-                retval = /** @type {NerdamerSymbolType} */ (
-                    /** @type {unknown} */ (new NerdamerSymbol(excludeX ? 0 : this.multiplier))
-                );
-            } else if (this.group === CB && this.isLinear()) {
-                retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(1)));
-                this.each(s => {
-                    if (!s.contains(x, true)) {
-                        retval = _.multiply(retval, s.clone());
-                    }
-                });
-                retval.multiplier = retval.multiplier.multiply(this.multiplier);
-            } else if (this.group === CP && !this.isLinear()) {
-                retval = /** @type {NerdamerSymbolType} */ (
-                    /** @type {unknown} */ (new NerdamerSymbol(this.multiplier))
-                );
-            } else if (this.group === CP && this.isLinear()) {
-                retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
-                this.each(s => {
-                    if (!s.contains(x)) {
-                        const t = s.clone();
-                        t.multiplier = t.multiplier.multiply(this.multiplier);
-                        retval = _.add(retval, t);
-                    }
-                });
-                // BIG TODO!!! It doesn't make much sense
-                if (retval.equals(0)) {
-                    retval = /** @type {NerdamerSymbolType} */ (
-                        /** @type {unknown} */ (new NerdamerSymbol(this.multiplier))
-                    );
-                }
-            } else if (
-                this.group === EX &&
-                /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this.power)).contains(x, true)
-            ) {
-                retval = /** @type {NerdamerSymbolType} */ (
-                    /** @type {unknown} */ (new NerdamerSymbol(this.multiplier))
-                );
-            } else if (this.group === FN && this.contains(x)) {
-                retval = /** @type {NerdamerSymbolType} */ (
-                    /** @type {unknown} */ (new NerdamerSymbol(this.multiplier))
-                );
-            } else // Wth? This should technically be the multiplier.
-            // Unfortunately this method wasn't very well thought out :`(.
-            // should be: retval = new NerdamerSymbol(this.multiplier);
-            // use: ((1+x^2)*sqrt(-1+x^2))^(-1) for correction.
-            // this will break a bunch of unit tests so be ready to for the long haul
-            {
-                retval = this.clone();
-            }
-
-            return retval;
-        },
-        // Returns symbol in array form with x as base e.g. a*x^2+b*x+c = [c, b, a].
-        toArray(v, arr) {
-            arr ||= {
-                arr: [],
-                add(x, idx) {
-                    const e = this.arr[idx];
-                    this.arr[idx] = e ? _.add(e, x) : x;
-                },
-            };
-            const g = this.group;
-
-            if (g === S && this.contains(v)) {
-                arr.add(new NerdamerSymbol(this.multiplier), this.power);
-            } else if (g === CB) {
-                const a = this.stripVar(v);
-                const x = _.divide(this.clone(), a.clone());
-                const p = x.isConstant() ? 0 : x.power;
-                arr.add(a, p);
-            } else if (g === PL && this.value === v) {
-                this.each((x, p) => {
-                    arr.add(x.stripVar(v), p);
-                });
-            } else if (g === CP) {
-                // The logic: they'll be broken into symbols so e.g. (x^2+x)+1 or (a*x^2+b*x+c)
-                // each case is handled above
-                this.each(x => {
-                    x.toArray(v, arr);
-                });
-            } else if (this.contains(v)) {
-                throw new NerdamerTypeError('Cannot convert to array! Exiting');
-            } else {
-                arr.add(this.clone(), 0); // It's just a constant wrt to v
-            }
-            // Fill the holes
-            arr = arr.arr; // Keep only the array since we don't need the object anymore
-            for (let i = 0; i < arr.length; i++) {
-                arr[i] ||= new NerdamerSymbol(0);
-            }
-            return arr;
-        },
-        // Checks to see if a symbol contans a function
-        hasFunc(v) {
-            const fnGroup = this.group === FN || this.group === EX;
-            if ((fnGroup && !v) || (fnGroup && this.contains(v))) {
-                return true;
-            }
-            if (this.symbols) {
-                for (const x in this.symbols) {
-                    if (this.symbols[x].hasFunc(v)) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        },
-        sub(a, b) {
-            a = isSymbol(a) ? a.clone() : _.parse(a);
-            b = isSymbol(b) ? b.clone() : _.parse(b);
-            if (a.group === N || a.group === P) {
-                err('Cannot substitute a number. Must be a variable');
-            }
-            let samePow = false;
-            const aIsUnitMultiplier = a.multiplier.equals(1);
-            let m = this.multiplier.clone();
-            let retval;
-            /*
-             * In order to make the substitution the bases have to first match take
-             * (x+1)^x -> (x+1)=y || x^2 -> x=y^6
-             * In both cases the first condition is that the bases match so we begin there
-             * Either both are PL or both are not PL but we cannot have PL and a non-PL group match
-             */
-            if (
-                this.value === a.value &&
-                ((this.group !== PL && a.group !== PL) || (this.group === PL && a.group === PL))
-            ) {
-                // We cleared the first hurdle but a subsitution may not be possible just yet
-                if (aIsUnitMultiplier || a.multiplier.equals(this.multiplier)) {
-                    if (a.isLinear()) {
-                        retval = b;
-                    } else if (a.power.equals(this.power)) {
-                        retval = b;
-                        samePow = true;
-                    }
-                    if (a.multiplier.equals(this.multiplier)) {
-                        m = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(1)));
-                    }
-                }
-            }
-            // The next thing is to handle CB
-            else if (this.group === CB || this.previousGroup === CB) {
-                retval = new NerdamerSymbol(1);
-                this.each(x => {
-                    const subbed = _.parse(x.sub(a, b)); // Parse it again for safety
-                    retval = _.multiply(retval, subbed);
-                });
-            } else if (this.isComposite()) {
-                const symbol = this.clone();
-
-                if (a.isComposite() && symbol.isComposite() && symbol.isLinear() && a.isLinear()) {
-                    const find = function (stack, needle) {
-                        for (const x in stack.symbols) {
-                            if (!Object.hasOwn(stack.symbols, x)) {
-                                continue;
-                            }
-                            const sym = stack.symbols[x];
-                            // If the symbol equals the needle or it's within the sub-symbols we're done
-                            if ((sym.isComposite() && find(sym, needle)) || sym.equals(needle)) {
-                                return true;
-                            }
-                        }
-                        return false;
-                    };
-                    // Go fish
-                    for (const x in a.symbols) {
-                        if (!Object.hasOwn(a.symbols, x)) {
-                            continue;
-                        }
-                        if (!find(symbol, a.symbols[x])) {
-                            return symbol.clone();
-                        }
-                    }
-                    retval = _.add(_.subtract(symbol.clone(), a), b);
-                } else {
-                    retval = new NerdamerSymbol(0);
-                    symbol.each(x => {
-                        retval = _.add(retval, x.sub(a, b));
-                    });
-                }
-            } else if (this.group === EX) {
-                // The parsed value could be a function so parse and sub
-                retval = _.parse(this.value).sub(a, b);
-            } else if (this.group === FN) {
-                const nargs = [];
-                for (let i = 0; i < this.args.length; i++) {
-                    /** @type {NerdamerSymbolType} */
-                    let arg = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this.args[i]));
-                    if (!isSymbol(arg)) {
-                        arg = _.parse(arg);
-                    }
-                    nargs.push(arg.sub(a, b));
-                }
-                retval = _.symfunction(this.fname, nargs);
-            }
-            // If we did manage a substitution
-            if (retval) {
-                if (!samePow) {
-                    // Substitute the power
-                    const p =
-                        this.group === EX
-                            ? /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this.power)).sub(a, b)
-                            : _.parse(this.power);
-                    // Now raise the symbol to that power
-                    retval = _.pow(retval, p);
-                }
-
-                // Transfer the multiplier
-                retval.multiplier = retval.multiplier.multiply(m);
-
-                // Done
-                return retval;
-            }
-            // If all else fails
-            return this.clone();
-        },
-        isMonomial() {
-            if (this.group === S) {
-                return true;
-            }
-            if (this.group === CB) {
-                for (const x in this.symbols) {
-                    if (this.symbols[x].group !== S) {
-                        return false;
-                    }
-                }
-            } else {
-                return false;
-            }
-            return true;
-        },
-        isPi() {
-            return this.group === S && this.value === 'pi';
-        },
-        sign() {
-            return this.multiplier.sign();
-        },
-        isE() {
-            return this.value === 'e';
-        },
-        isSQRT() {
-            return this.fname === SQRT;
-        },
-        isConstant(checkAll, checkSymbols) {
-            if (checkSymbols && this.group === CB) {
-                for (const x in this.symbols) {
-                    if (this.symbols[x].isConstant(true)) {
-                        return true;
-                    }
-                }
-            }
-
-            if (checkAll === 'functions' && this.isComposite()) {
-                let isConstant = true;
-
-                this.each(x => {
-                    if (!x.isConstant(checkAll, checkSymbols)) {
-                        isConstant = false;
-                    }
-                }, true);
-
-                return isConstant;
-            }
-
-            if (checkAll === 'all' && (this.isPi() || this.isE())) {
-                return true;
-            }
-
-            if (checkAll && this.group === FN) {
-                for (let i = 0; i < this.args.length; i++) {
-                    if (!this.args[i].isConstant(checkAll)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            if (checkAll) {
-                return isNumericSymbol(this);
-            }
-            return this.value === CONST_HASH;
-        },
-        // The symbols is imaginary if
-        // 1. n*i
-        // 2. a+b*i
-        // 3. a*i
-        isImaginary() {
-            if (this.imaginary) {
-                return true;
-            }
-            if (this.symbols) {
-                for (const x in this.symbols) {
-                    if (this.symbols[x].isImaginary()) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        },
-        /**
-         * Returns the real part of a symbol
-         *
-         * @returns {NerdamerSymbolType}
-         */
-        realpart() {
-            if (this.isConstant()) {
-                return this.clone();
-            }
-            if (this.imaginary) {
-                return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
-            }
-            if (this.isComposite()) {
-                /** @type {NerdamerSymbolType} */
-                let retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
-                this.each(x => {
-                    retval = _.add(retval, x.realpart());
-                });
-                return retval;
-            }
-            if (this.isImaginary()) {
-                return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
-            }
-            return this.clone();
-        },
-        /*
-         * Return imaginary part of a symbol
-         * @returns {NerdamerSymbolType}
-         */
-        imagpart() {
-            if (this.group === S && this.isImaginary()) {
-                /** @type {NerdamerSymbolType} */
-                let x = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
-                if (this.power.isNegative()) {
-                    x = this.clone();
-                    x.power.negate();
-                    x.multiplier.negate();
-                }
-                return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(x.multiplier)));
-            }
-            if (this.isComposite()) {
-                /** @type {NerdamerSymbolType} */
-                let retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
-                this.each(x => {
-                    retval = _.add(retval, x.imagpart());
-                });
-                return retval;
-            }
-            if (this.group === CB) {
-                return this.stripVar(Settings.IMAGINARY);
-            }
-            return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
-        },
-        isInteger() {
-            return this.isConstant() && this.multiplier.isInteger();
-        },
-        isLinear(wrt) {
-            if (wrt) {
-                if (this.isConstant()) {
-                    return true;
-                }
-                // If this symbol doesn't contain the variable (including in exponents), it's constant with respect to it
-                if (!this.contains(wrt, true)) {
-                    return true;
-                }
-                if (this.group === S) {
-                    if (this.value === wrt) {
-                        return this.power.equals(1);
-                    }
-                    return true;
-                }
-
-                if (this.isComposite() && this.power.equals(1)) {
-                    for (const x in this.symbols) {
-                        if (!this.symbols[x].isLinear(wrt)) {
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-
-                if (this.group === CB) {
-                    // If the variable doesn't exist in this term, it's constant wrt that variable, hence linear
-                    if (!this.symbols[wrt]) {
-                        return true;
-                    }
-                    return this.symbols[wrt].isLinear(wrt);
-                }
-                return false;
-            }
-            return this.power.equals(1);
-        },
-        /**
-         * Checks to see if a symbol has a function by a specified name or within a specified list
-         *
-         * @param {string | string[]} names
-         * @returns {boolean}
-         */
-        containsFunction(names) {
-            if (typeof names === 'string') {
-                names = [names];
-            }
-            if (this.group === FN && names.indexOf(this.fname) !== -1) {
-                return true;
-            }
-            if (this.symbols) {
-                for (const x in this.symbols) {
-                    if (this.symbols[x].containsFunction(names)) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        },
-        /**
-         * Multiplies the current power by the given power
-         *
-         * @param {NerdamerSymbolType | FracType} p2
-         * @returns {NerdamerSymbolType}
-         */
-        multiplyPower(p2) {
-            // Leave out 1
-            if (this.group === N && this.multiplier.equals(1)) {
-                return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
-            }
-
-            /** @type {FracType | NerdamerSymbolType} */
-            let p1 = this.power;
-
-            if (this.group !== EX && isSymbol(p2) && p2.group === N) {
-                const p = p2.multiplier;
-                if (this.group === N && !p.isInteger()) {
-                    this.convert(P);
-                }
-
-                this.power = /** @type {FracType} */ (
-                    p1.equals(1) ? p.clone() : /** @type {FracType} */ (p1).multiply(p)
-                );
-
-                if (this.group === P && isInt(this.power)) {
-                    // Bring it back to an N
-                    this.value = Number(this.value) ** Number(this.power);
-                    this.toLinear();
-                    this.convert(N);
-                }
-            } else {
-                if (this.group !== EX) {
-                    p1 = /** @type {FracType | NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(p1)));
-                    this.convert(EX);
-                }
-                /** @type {FracType | NerdamerSymbolType} */
-                const newPower = /** @type {FracType | NerdamerSymbolType} */ (
-                    /** @type {unknown} */ (_.multiply(p1, p2))
-                );
-                /** @type {FracType | NerdamerSymbolType} */
-                this.power = newPower;
-            }
-
-            return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
-        },
-        setPower(p, retainSign = false) {
-            // Leave out 1
-            if (this.group === N && this.multiplier.equals(1)) {
-                return this;
-            }
-            if (this.group === EX && !isSymbol(p)) {
-                this.group = this.previousGroup;
-                delete this.previousGroup;
-                if (this.group === N) {
-                    this.multiplier = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(this.value)));
-                    this.value = CONST_HASH;
-                } else {
-                    this.power = p;
-                }
-            } else {
-                let isSymbolic = false;
-                if (isSymbol(p)) {
-                    if (p.group === N) {
-                        // P should be the multiplier instead
-                        p = p.multiplier;
-                    } else {
-                        isSymbolic = true;
-                    }
-                }
-                const group = isSymbolic ? EX : P;
-                this.power = p;
-                if (this.group === N && group) {
-                    this.convert(group, retainSign);
-                }
-            }
-
-            return this;
-        },
-        /**
-         * Checks to see if symbol is located in the denominator
-         *
-         * @returns {boolean}
-         */
-        isInverse() {
-            if (this.group === EX) {
-                return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this.power)).multiplier.lessThan(0);
-            }
-            return Number(this.power) < 0;
-        },
-        /**
-         * Make a duplicate of a symbol by copying a predefined list of items. The name 'copy' would probably be a more
-         * appropriate name. to a new symbol
-         *
-         * @param {NerdamerSymbolType} [c]
-         * @returns {NerdamerSymbolType}
-         */
-        clone(c = undefined) {
-            /** @type {NerdamerSymbolType} */
-            const self = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
-            const clone = c || /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
-            // List of properties excluding power as this may be a symbol and would also need to be a clone.
-            const properties = [
-                'value',
-                'group',
-                'length',
-                'previousGroup',
-                'imaginary',
-                'fname',
-                'args',
-                'isInfinity',
-                'scientific',
-            ];
-            const l = properties.length;
-            let i;
-            if (self.symbols) {
-                clone.symbols = {};
-                for (const x in self.symbols) {
-                    if (!Object.hasOwn(self.symbols, x)) {
-                        continue;
-                    }
-                    clone.symbols[x] = self.symbols[x].clone();
-                }
-            }
-
-            for (i = 0; i < l; i++) {
-                if (self[properties[i]] !== undefined) {
-                    clone[properties[i]] = self[properties[i]];
-                }
-            }
-
-            clone.power = self.power.clone();
-            clone.multiplier = self.multiplier.clone();
-            // Add back the flag to track if this symbol is a conversion symbol
-            if (self.isConversion) {
-                clone.isConversion = self.isConversion;
-            }
-
-            if (self.isUnit) {
-                clone.isUnit = self.isUnit;
-            }
-
-            return clone;
-        },
-        /**
-         * Converts a symbol multiplier to one.
-         *
-         * @param {boolean} [keepSign] Keep the multiplier as negative if the multiplier is negative and keepSign is
-         *   true
-         */
-        toUnitMultiplier(keepSign = false) {
-            this.multiplier.num = new bigInt(this.multiplier.num.isNegative() && keepSign ? -1 : 1);
-            this.multiplier.den = new bigInt(1);
-            return this;
-        },
-        /** Converts a NerdamerSymbol's power to one. */
-        toLinear() {
-            // Do nothing if it's already linear
-            if (this.power.equals(1)) {
-                return this;
-            }
-            this.setPower(new Frac(1));
-            return this;
-        },
-        /**
-         * Iterates over all the sub-symbols. If no sub-symbols exist then it's called on itself
-         *
-         * @param {Function} fn
-         * @param {boolean} [deep] If true it will itterate over the sub-symbols their symbols as well
-         */
-        each(fn, deep = false) {
-            if (this.symbols) {
-                for (const x in this.symbols) {
-                    if (!Object.hasOwn(this.symbols, x)) {
-                        continue;
-                    }
-                    const sym = this.symbols[x];
-                    if (sym.group === PL && deep) {
-                        for (const y in sym.symbols) {
-                            if (!Object.hasOwn(sym.symbols, y)) {
-                                continue;
-                            }
-                            fn.call(x, sym.symbols[y], y);
-                        }
-                    } else {
-                        fn.call(this, sym, x);
-                    }
-                }
-            } else {
-                fn.call(this, this, this.value);
-            }
-        },
-        /**
-         * A numeric value to be returned for Javascript. It will try to return a number as far a possible but in case
-         * of a pure symbolic symbol it will just return its text representation
-         *
-         * @returns {string | number}
-         */
-        valueOf() {
-            if (this.group === N) {
-                return this.multiplier.valueOf();
-            }
-            if (this.power.equals(0)) {
-                return 1;
-            }
-            if (this.multiplier.equals(0)) {
-                return 0;
-            }
-            return text(this, 'decimals');
-        },
-        /**
-         * Checks to see if a symbols has a particular variable within it. Pass in true as second argument to include
-         * the power of exponentials which aren't check by default.
-         *
-         * @example
-         *     let s = _.parse('x+y+z');
-         *     s.contains('y');
-         *     //returns true
-         *
-         * @param {any} variable
-         * @param {boolean} [all]
-         * @returns {boolean}
-         */
-        contains(variable, all = false) {
-            // Contains expects a string
-            variable = String(variable);
-            const g = this.group;
-            if (this.value === variable) {
-                return true;
-            }
-            if (this.symbols) {
-                for (const x in this.symbols) {
-                    if (this.symbols[x].contains(variable, all)) {
-                        return true;
-                    }
-                }
-            }
-            if (g === FN || this.previousGroup === FN) {
-                for (let i = 0; i < this.args.length; i++) {
-                    if (this.args[i].contains(variable, all)) {
-                        return true;
-                    }
-                }
-            }
-
-            if (g === EX) {
-                // Exit only if it does
-                if (
-                    all &&
-                    /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this.power)).contains(variable, all)
-                ) {
-                    return true;
-                }
-                if (this.value === variable) {
-                    return true;
-                }
-            }
-
-            return this.value === variable;
-        },
-        /** Negates a symbols */
-        negate() {
-            this.multiplier.negate();
-            if (this.group === CP || this.group === PL) {
-                this.distributeMultiplier();
-            }
-            return this;
-        },
-        /**
-         * Inverts a symbol
-         *
-         * @param {boolean} [powerOnly]
-         * @param {boolean} [all]
-         */
-        invert(powerOnly = false, all = false) {
-            // Invert the multiplier
-            if (!powerOnly) {
-                this.multiplier = this.multiplier.invert();
-            }
-            // Invert the rest
-            if (isSymbol(this.power)) {
-                this.power.negate();
-            } else if (this.group === CB && all) {
-                this.each(x => x.invert());
-            } else if (this.power && this.group !== N) {
-                this.power.negate();
-            }
-            return this;
-        },
-        /**
-         * Symbols of group CP or PL may have the multiplier being carried by the top level symbol at any given time
-         * e.g. 2*(x+y+z). This is convenient in many cases, however in some cases the multiplier needs to be carried
-         * individually e.g. 2_x+2_y+2*z. This method distributes the multiplier over the entire symbol
-         *
-         * @param {boolean} [all]
-         */
-        distributeMultiplier(all = false) {
-            const isOne = all ? this.power.absEquals(1) : this.power.equals(1);
-            if (this.symbols && isOne && this.group !== CB && !this.multiplier.equals(1)) {
-                for (const x in this.symbols) {
-                    if (!Object.hasOwn(this.symbols, x)) {
-                        continue;
-                    }
-                    const s = this.symbols[x];
-                    s.multiplier = s.multiplier.multiply(this.multiplier);
-                    s.distributeMultiplier();
-                }
-                this.toUnitMultiplier();
-            }
-
-            return this;
-        },
-        /** This method expands the exponent over the entire symbol just like distributeMultiplier */
-        distributeExponent() {
-            if (!this.power.equals(1)) {
-                const p = this.power;
-                for (const x in this.symbols) {
-                    if (!Object.hasOwn(this.symbols, x)) {
-                        continue;
-                    }
-                    const s = this.symbols[x];
-                    if (s.group === EX) {
-                        s.power = _.multiply(s.power, new NerdamerSymbol(p));
-                    } else if (isSymbol(this.symbols[x].power)) {
-                        this.symbols[x].power = _.multiply(this.symbols[x].power, new NerdamerSymbol(p));
-                    } else {
-                        this.symbols[x].power = this.symbols[x].power.multiply(p);
-                    }
-                }
-                this.toLinear();
-            }
-            return this;
-        },
-        /**
-         * This method will attempt to up-convert or down-convert one symbol from one group to another. Not all symbols
-         * are convertible from one group to another however. In that case the symbol will remain unchanged.
-         *
-         * @param {number} group
-         * @param {boolean} [imaginary]
-         */
-        convert(group, imaginary = undefined) {
-            if (group > FN) {
-                // Make a clone of this symbol;
-                const cp = this.clone();
-
-                // Attach a symbols object and upgrade the group
-                this.symbols = {};
-
-                if (group === CB) {
-                    // Symbol of group CB hold symbols bound together through multiplication
-                    // because of commutativity this multiplier can technically be anywhere within the group
-                    // to keep track of it however it's easier to always have the top level carry it
-                    cp.toUnitMultiplier();
-                } else {
-                    // Reset the symbol
-                    this.toUnitMultiplier();
-                }
-
-                if (this.group === FN) {
-                    cp.args = /** @type {NerdamerSymbolType[] | undefined} */ (/** @type {unknown} */ (this.args));
-                    delete this.args;
-                    delete this.fname;
-                }
-
-                // The symbol may originate from the symbol i but this property no longer holds true
-                // after copying
-                if (this.isImgSymbol) {
-                    delete this.isImgSymbol;
-                }
-
-                this.toLinear();
-                // Attach a clone of this symbol to the symbols object using its proper key
-                this.symbols[cp.keyForGroup(group)] = cp;
-                this.group = group;
-                // Objects by default don't have a length property. However, in order to keep track of the number
-                // of sub-symbols we have to impliment our own.
-                this.length = 1;
-            } else if (group === EX) {
-                // 1^x is just one so check and make sure
-                if (!(this.group === N && this.multiplier.equals(1))) {
-                    if (this.group !== EX) {
-                        this.previousGroup = this.group;
-                    }
-                    if (this.group === N) {
-                        this.value = this.multiplier.num.toString();
-                        this.toUnitMultiplier();
-                    }
-                    // Update the hash to reflect the accurate hash
-                    else {
-                        this.value = text(this, 'hash');
-                    }
-
-                    this.group = EX;
-                }
-            } else if (group === N) {
-                const m = this.multiplier.toDecimal();
-                this.symbols &&= undefined;
-                new NerdamerSymbol(this.group === P ? Number(m) * Number(this.value) ** Number(this.power) : m).clone(
-                    this
-                );
-            } else if (group === P && this.group === N) {
-                this.value = imaginary
-                    ? this.multiplier.num.toString()
-                    : Math.abs(Number(this.multiplier.num.toString()));
-                this.toUnitMultiplier(!imaginary);
-                this.group = P;
-            }
-            return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
-        },
-        /**
-         * This method is one of the principal methods to make it all possible. It performs cleanup and prep operations
-         * whenever a symbols is inserted. If the symbols results in a 1 in a CB (multiplication) group for instance it
-         * will remove the redundant symbol. Similarly in a symbol of group PL or CP (symbols glued by multiplication)
-         * it will remove any dangling zeroes from the symbol. It will also up-convert or down-convert a symbol if it
-         * detects that it's incorrectly grouped. It should be noted that this method is not called directly but rather
-         * by the 'attach' method for addition groups and the 'combine' method for multiplication groups.
-         *
-         * @param {NerdamerSymbolType} symbol
-         * @param {string} action
-         */
-        insert(symbol, action) {
-            // This check can be removed but saves a lot of aggravation when trying to hunt down
-            // a bug. If left, you will instantly know that the error can only be between 2 symbols.
-            if (!isSymbol(symbol)) {
-                err(`Object ${symbol} is not of type NerdamerSymbol!`);
-            }
-            if (this.symbols) {
-                const { group } = this;
-                if (group > FN) {
-                    const key = symbol.keyForGroup(group);
-                    const existing = key in this.symbols ? this.symbols[key] : false; // Check if there's already a symbol there
-                    if (action === 'add') {
-                        const hash = key;
-                        if (existing) {
-                            // Add them together using the parser
-                            this.symbols[hash] = _.add(existing, symbol);
-                            // If the addition resulted in a zero multiplier remove it
-                            if (this.symbols[hash].multiplier.equals(0)) {
-                                delete this.symbols[hash];
-                                this.length--;
-
-                                if (this.length === 0) {
-                                    this.convert(N);
-                                    this.multiplier = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(0)));
-                                }
-                            }
-                        } else {
-                            this.symbols[key] = symbol;
-                            this.length++;
-                        }
-                    } else {
-                        // Check if this is of group P and unwrap before inserting
-                        if (symbol.group === P && isInt(symbol.power)) {
-                            symbol.convert(N);
-                        }
-
-                        // Transfer the multiplier to the upper symbol but only if the symbol numeric
-                        if (symbol.group === EX) {
-                            symbol.parens = symbol.multiplier.lessThan(0);
-                            this.multiplier = this.multiplier.multiply(symbol.multiplier.clone().abs());
-                            symbol.toUnitMultiplier(true);
-                        } else {
-                            this.multiplier = this.multiplier.multiply(symbol.multiplier);
-                            symbol.toUnitMultiplier();
-                        }
-
-                        if (existing) {
-                            // Remove because the symbol may have changed
-                            symbol = _.multiply(remove(this.symbols, key), symbol);
-                            if (symbol.isConstant()) {
-                                this.multiplier = this.multiplier.multiply(symbol.multiplier);
-                                symbol = /** @type {NerdamerSymbolType} */ (
-                                    /** @type {unknown} */ (new NerdamerSymbol(1))
-                                ); // The dirty work gets done down the line when it detects 1
-                            }
-
-                            this.length--;
-                            // Clean up
-                        }
-
-                        // Don't insert the symbol if it's 1
-                        if (!symbol.isOne(true)) {
-                            this.symbols[key] = symbol;
-                            this.length++;
-                        } else if (symbol.multiplier.lessThan(0)) {
-                            this.negate(); // Put back the sign
-                        }
-                    }
-
-                    // Clean up
-                    if (this.length === 0) {
-                        this.convert(N);
-                    }
-                    // Update the hash
-                    if (this.group === CP || this.group === CB) {
-                        this.updateHash();
-                    }
-                }
-            }
-
-            return this;
-        },
-        /** The insert method for addition */
-        attach(symbol) {
-            if (isArray(symbol)) {
-                for (let i = 0; i < symbol.length; i++) {
-                    this.insert(symbol[i], 'add');
-                }
-                return this;
-            }
-            return this.insert(symbol, 'add');
-        },
-        /** The insert method for multiplication */
-        combine(symbol) {
-            if (isArray(symbol)) {
-                for (let i = 0; i < symbol.length; i++) {
-                    this.insert(symbol[i], 'multiply');
-                }
-                return this;
-            }
-            return this.insert(symbol, 'multiply');
-        },
-        /**
-         * This method should be called after any major "surgery" on a symbol. It updates the hash of the symbol for
-         * example if the fname of a function has changed it will update the hash of the symbol.
-         */
-        updateHash() {
-            if (this.group === N) {
-                return;
-            }
-
-            if (this.group === FN) {
-                let contents = '';
-                const { args } = this;
-                const isParens = this.fname === PARENTHESIS;
-                for (let i = 0; i < args.length; i++) {
-                    contents += (i === 0 ? '' : ',') + text(args[i]);
-                }
-                const fnName = isParens ? '' : this.fname;
-                this.value = fnName + (isParens ? contents : inBrackets(contents));
-            } else if (!(this.group === S || this.group === PL)) {
-                this.value = text(this, 'hash');
-            }
-        },
-        /**
-         * This function defines how every group in stored within a group of higher order think of it as the switchboard
-         * for the library. It defines the hashes for symbols.
-         *
-         * @param {number} group
-         */
-        keyForGroup(group) {
-            const g = this.group;
-            let key;
-
-            if (g === N) {
-                key = this.value;
-            } else if (g === S || g === P) {
-                if (group === PL) {
-                    key = this.power.toDecimal();
-                } else {
-                    key = this.value;
-                }
-            } else if (g === FN) {
-                if (group === PL) {
-                    key = this.power.toDecimal();
-                } else {
-                    key = text(this, 'hash');
-                }
-            } else if (g === PL) {
-                // If the order is reversed then we'll assume multiplication
-                // TODO: possible future dilemma
-                if (group === CB) {
-                    key = text(this, 'hash');
-                } else if (group === CP) {
-                    if (this.power.equals(1)) {
-                        key = this.value;
-                    } else {
-                        key = inBrackets(text(this, 'hash')) + Settings.POWER_OPERATOR + this.power.toDecimal();
-                    }
-                } else if (group === PL) {
-                    key = this.power.toString();
-                } else {
-                    key = this.value;
-                }
-                return key;
-            } else if (g === CP) {
-                if (group === CP) {
-                    key = text(this, 'hash');
-                }
-                if (group === PL) {
-                    key = this.power.toDecimal();
-                } else {
-                    key = this.value;
-                }
-            } else if (g === CB) {
-                if (group === PL) {
-                    key = this.power.toDecimal();
-                } else {
-                    key = text(this, 'hash');
-                }
-            } else if (g === EX) {
-                if (group === PL) {
-                    key = text(this.power);
-                } else {
-                    key = text(this, 'hash');
-                }
-            }
-
-            return key;
-        },
-        /**
-         * Symbols are typically stored in an object which works fine for most cases but presents a problem when the
-         * order of the symbols makes a difference. This function simply collects all the symbols and returns them as an
-         * array. If a function is supplied then that function is called on every symbol contained within the object.
-         *
-         * @param {Function} fn
-         * @param {object} opt
-         * @param {((a: any, b: any) => number) | undefined | null} sortFn
-         * @param {boolean} expandSymbol
-         * @returns {Array}
-         */
-        collectSymbols(fn, opt, sortFn, expandSymbol) {
-            let collected = [];
-            if (this.symbols) {
-                for (const x in this.symbols) {
-                    if (!Object.hasOwn(this.symbols, x)) {
-                        continue;
-                    }
-                    const symbol = this.symbols[x];
-                    if (expandSymbol && (symbol.group === PL || symbol.group === CP)) {
-                        collected = collected.concat(symbol.collectSymbols());
-                    } else {
-                        collected.push(fn ? fn(symbol, opt) : symbol);
-                    }
-                }
-            } else {
-                collected.push(this);
-            }
-            if (sortFn === null) {
-                sortFn = undefined;
-            } // WTF Firefox? Seriously?
-
-            return collected.sort(sortFn); // Sort hopefully gives us some sort of consistency
-        },
-
-        /**
-         * CollectSymbols but only for summands
-         *
-         * @param {Function} fn
-         * @param {object} opt
-         * @param {((a: any, b: any) => number) | undefined | null} sortFn
-         * @param {boolean} expandSymbol
-         * @returns {Array}
-         */
-        collectSummandSymbols(fn, opt, sortFn, expandSymbol) {
-            let collected = [];
-            if (!this.symbols || this.group === CB) {
-                collected.push(this);
-            } else {
-                for (const x in this.symbols) {
-                    if (!Object.hasOwn(this.symbols, x)) {
-                        continue;
-                    }
-                    const symbol = this.symbols[x];
-                    if (expandSymbol && (symbol.group === PL || symbol.group === CP)) {
-                        collected = collected.concat(symbol.collectSymbols());
-                    } else {
-                        collected.push(fn ? fn(symbol, opt) : symbol);
-                    }
-                }
-            }
-            if (sortFn === null) {
-                sortFn = undefined;
-            } // WTF Firefox? Seriously?
-
-            return collected.sort(sortFn); // Sort hopefully gives us some sort of consistency
-        },
-        /**
-         * Returns the latex representation of the symbol
-         *
-         * @param {string} option
-         * @returns {string}
-         */
-        latex(option) {
-            return LaTeX.latex(this, option);
-        },
-        /**
-         * Returns the text representation of a symbol
-         *
-         * @param {string} [option]
-         * @returns {string}
-         */
-        text(option = undefined) {
-            return text(this, option);
-        },
-        /**
-         * Checks if the function evaluates to 1. e.g. x^0 or 1 :)
-         *
-         * @param {boolean} [abs] Compares the absolute value
-         */
-        isOne(abs = false) {
-            const f = abs ? 'absEquals' : 'equals';
-            if (this.group === N) {
-                return this.multiplier[f](1);
-            }
-            return this.power.equals(0);
-        },
-        isComposite() {
-            const g = this.group;
-            const pg = this.previousGroup;
-            return g === CP || g === PL || pg === PL || pg === CP;
-        },
-        isCombination() {
-            const g = this.group;
-            const pg = this.previousGroup;
-            return g === CB || pg === CB;
-        },
-        lessThan(n) {
-            return this.multiplier.lessThan(n);
-        },
-        greaterThan(n) {
-            if (!isSymbol(n)) {
-                n = new NerdamerSymbol(n);
-            }
-
-            // We can't tell for sure if a is greater than be if they're not both numbers
-            if (!this.isConstant(true) || !n.isConstant(true)) {
-                return false;
-            }
-
-            return this.multiplier.greaterThan(n.multiplier);
-        },
-        /**
-         * Get's the denominator of the symbol if the symbol is of class CB (multiplication) with other classes the
-         * symbol is either the denominator or not. Take x^-1+x^-2. If the symbol was to be mixed such as x+x^-2 then
-         * the symbol doesn't have have an exclusive denominator and has to be found by looking at the actual symbols
-         * themselves.
-         */
-        getDenom() {
-            let retval;
-            let symbol;
-            symbol = this.clone();
-            // E.g. 1/(x*(x+1))
-            if (this.group === CB && this.power.lessThan(0)) {
-                symbol = _.expand(symbol);
-            }
-
-            // If the symbol already is the denominator... DONE!!!
-            if (
-                symbol.power.lessThan(0) ||
-                (symbol.group === EX && /** @type {NerdamerSymbolType} */ (symbol.power).multiplier.lessThan(0))
-            ) {
-                const d = _.parse(symbol.multiplier.den);
-                retval = symbol.toUnitMultiplier();
-                retval.power.negate();
-                retval = _.multiply(d, retval); // Put back the coeff
-            } else if (symbol.group === CB) {
-                retval = _.parse(symbol.multiplier.den);
-                for (const x in symbol.symbols) {
-                    if (!Object.hasOwn(symbol.symbols, x)) {
-                        continue;
-                    }
-                    const s = symbol.symbols[x];
-                    if (
-                        Number(s.power) < 0 ||
-                        (s.group === EX && /** @type {NerdamerSymbolType} */ (s.power).multiplier.lessThan(0))
-                    ) {
-                        retval = _.multiply(retval, symbol.symbols[x].clone().invert());
-                    }
-                }
-            } else {
-                retval = _.parse(symbol.multiplier.den);
-            }
-            return retval;
-        },
-        getNum() {
-            let retval;
-            let symbol;
-            symbol = this.clone();
-            // E.g. 1/(x*(x+1))
-            if (symbol.group === CB && symbol.power.lessThan(0)) {
-                symbol = _.expand(symbol);
-            }
-            // If the symbol already is the denominator... DONE!!!
-            if (
-                (symbol.power.greaterThan(0) && symbol.group !== CB) ||
-                (symbol.group === EX && /** @type {NerdamerSymbolType} */ (symbol.power).multiplier.greaterThan(0))
-            ) {
-                retval = _.multiply(_.parse(symbol.multiplier.num), symbol.toUnitMultiplier());
-            } else if (symbol.group === CB) {
-                retval = _.parse(symbol.multiplier.num);
-                symbol.each(x => {
-                    if (
-                        Number(x.power) > 0 ||
-                        (x.group === EX && /** @type {NerdamerSymbolType} */ (x.power).multiplier.greaterThan(0))
-                    ) {
-                        retval = _.multiply(retval, x.clone());
-                    }
-                });
-            }
-            //            Else if(symbol.group === EX && this.previousGroup === S) {
-            //                retval = _.multiply(_.parse(symbol.multiplier.num), symbol.toUnitMultiplier());
-            //            }
-            else {
-                retval = _.parse(symbol.multiplier.num);
-            }
-            return retval;
-        },
-        toString() {
-            return this.text();
-        },
-    };
+    // NerdamerSymbol is now defined outside the IIFE (see above).
+    // Initialize its dependencies now that they're available.
+    NerdamerSymbolDeps.bigDec = bigDec;
+    NerdamerSymbolDeps.bigInt = bigInt;
+    NerdamerSymbolDeps.N = N;
+    NerdamerSymbolDeps.P = P;
+    NerdamerSymbolDeps.S = S;
+    NerdamerSymbolDeps.FN = FN;
+    NerdamerSymbolDeps.PL = PL;
+    NerdamerSymbolDeps.CB = CB;
+    NerdamerSymbolDeps.CP = CP;
+    NerdamerSymbolDeps.EX = EX;
+    NerdamerSymbolDeps.CONST_HASH = CONST_HASH;
+    NerdamerSymbolDeps.isSymbol = isSymbol;
+    NerdamerSymbolDeps.text = text;
+    NerdamerSymbolDeps.variables = variables;
+    NerdamerSymbolDeps.SQRT = SQRT;
+    NerdamerSymbolDeps.PARENTHESIS = PARENTHESIS;
+    // Note: NerdamerSymbolDeps._ is initialized after Parser is created
 
     // Parser =======================================================================
     // Uses modified Shunting-yard algorithm. http://en.wikipedia.org/wiki/Shunting-yard_algorithm
@@ -15558,6 +15638,8 @@ const nerdamer = (function initNerdamerCore(imports) {
 
     // Initialize EvaluateDeps with parser reference
     EvaluateDeps._ = _;
+    // Initialize NerdamerSymbolDeps._ now that Parser is created
+    NerdamerSymbolDeps._ = _;
 
     // Initialize ExpressionDeps._ now that Parser is created
     // Note: ExpressionDeps.Build is initialized later after Build is defined
