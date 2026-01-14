@@ -5922,6 +5922,914 @@ const Settings = {
     TIMEOUT: 800,
 };
 
+// Math2 Object ==================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via Math2Deps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for Math2 object. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     bigInt: any;
+ *     BIG_LOG_CACHE: Record<string, string>;
+ *     PRIMES: number[];
+ *     NerdamerSymbol: any;
+ *     CB: number;
+ *     P: number;
+ * }}
+ */
+const Math2Deps = {
+    bigInt: null,
+    BIG_LOG_CACHE: {},
+    PRIMES: [],
+    NerdamerSymbol: null,
+    CB: 7,
+    P: 2,
+};
+
+/** Math utility functions for nerdamer. */
+const Math2 = {
+    csc(x) {
+        return 1 / Math.sin(x);
+    },
+    sec(x) {
+        return 1 / Math.cos(x);
+    },
+    cot(x) {
+        return 1 / Math.tan(x);
+    },
+    acsc(x) {
+        return Math.asin(1 / x);
+    },
+    asec(x) {
+        return Math.acos(1 / x);
+    },
+    acot(x) {
+        return Math.PI / 2 - Math.atan(x);
+    },
+    // https://gist.github.com/jiggzson/df0e9ae8b3b06ff3d8dc2aa062853bd8
+    erf(x) {
+        const t = 1 / (1 + 0.5 * Math.abs(x));
+        const result =
+            1 -
+            t *
+                Math.exp(
+                    -x * x -
+                        1.26551223 +
+                        t *
+                            (1.00002368 +
+                                t *
+                                    (0.37409196 +
+                                        t *
+                                            (0.09678418 +
+                                                t *
+                                                    (-0.18628806 +
+                                                        t *
+                                                            (0.27886807 +
+                                                                t *
+                                                                    (-1.13520398 +
+                                                                        t *
+                                                                            (1.48851587 +
+                                                                                t *
+                                                                                    (-0.82215223 +
+                                                                                        t * 0.17087277))))))))
+                );
+        return x >= 0 ? result : -result;
+    },
+    diff(f) {
+        const h = 0.001;
+
+        const derivative = function (x) {
+            return (f(x + h) - f(x - h)) / (2 * h);
+        };
+
+        return derivative;
+    },
+    median(...values) {
+        values.sort((a, b) => a - b);
+
+        const half = Math.floor(values.length / 2);
+
+        if (values.length % 2) {
+            return values[half];
+        }
+
+        return (values[half - 1] + values[half]) / 2.0;
+    },
+    /*
+     * Reverses continued fraction calculation
+     * @param {obj} contd
+     * @returns {number}
+     */
+    fromContinued(contd) {
+        const arr = contd.fractions.slice();
+        let e = 1 / arr.pop();
+        for (let i = 0, l = arr.length; i < l; i++) {
+            e = 1 / (arr.pop() + e);
+        }
+        return contd.sign * (contd.whole + e);
+    },
+    /*
+     * Calculates continued fractions
+     * @param {number} n
+     * @param {number} x The number of places
+     * @returns {number}
+     */
+    continuedFraction(n, x) {
+        x ||= 20;
+        const sign = Math.sign(n); /* Store the sign*/
+        const absn = Math.abs(n); /* Get the absolute value of the number*/
+        const whole = Math.floor(absn); /* Get the whole*/
+        let ni = absn - whole; /* Subtract the whole*/
+        let c = 0; /* The counter to keep track of iterations*/
+        let done = false;
+        const epsilon = 1e-14;
+        const max = 1e7;
+        let e;
+        let w;
+        const retval = {
+            whole,
+            sign,
+            fractions: [],
+        };
+        /* Start calculating*/
+        while (!done && ni !== 0) {
+            /* Invert and get the whole*/
+            e = 1 / ni;
+            w = Math.floor(e);
+            if (w > max) {
+                /* This signals that we may have already gone too far*/
+                const d = Math2.fromContinued(retval) - n;
+                if (d <= Number.EPSILON) {
+                    break;
+                }
+            }
+            /* Add to result*/
+            retval.fractions.push(w);
+            /* Move the ni to the decimal*/
+            ni = e - w;
+            /* Ni should always be a decimal. If we have a whole number then we're in the rounding errors*/
+            if (ni <= epsilon || c >= x - 1) {
+                done = true;
+            }
+            c++;
+        }
+        /* Cleanup 1/(n+1/1) = 1/(n+1) so just move the last digit one over if it's one*/
+        let idx = retval.fractions.length - 1;
+        if (retval.fractions[idx] === 1) {
+            retval.fractions.pop();
+            /* Increase the last one by one*/
+            retval.fractions[--idx]++;
+        }
+        return retval;
+    },
+    bigpow(n, p) {
+        if (!(n instanceof Frac)) {
+            n = Frac.create(n);
+        }
+        if (!(p instanceof Frac)) {
+            p = Frac.create(p);
+        }
+        const retval = new Frac(0);
+        if (p.isInteger()) {
+            retval.num = n.num.pow(p.toString());
+            retval.den = n.den.pow(p.toString());
+        } else {
+            const num = Frac.create(n.num ** p.num);
+            const den = Frac.create(n.den ** p.num);
+
+            retval.num = Math2.nthroot(num, p.den.toString());
+            retval.den = Math2.nthroot(den, p.den);
+        }
+        return retval;
+    },
+    // http://stackoverflow.com/questions/15454183/how-to-make-a-function-that-computes-the-factorial-for-numbers-with-decimals
+    gamma(z) {
+        const g = 7;
+        const gammaCoeffs = [
+            0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
+            12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
+        ];
+        if (z < 0.5) {
+            return Math.PI / (Math.sin(Math.PI * z) * Math2.gamma(1 - z));
+        }
+        z -= 1;
+
+        let x = gammaCoeffs[0];
+        for (let i = 1; i < g + 2; i++) {
+            x += gammaCoeffs[i] / (z + i);
+        }
+
+        const t = z + g + 0.5;
+        return Math.sqrt(2 * Math.PI) * t ** (z + 0.5) * Math.exp(-t) * x;
+    },
+    // Factorial
+    bigfactorial(x) {
+        let retval = new Math2Deps.bigInt(1);
+        for (let i = 2; i <= x; i++) {
+            retval = retval.times(i);
+        }
+        return new Frac(retval);
+    },
+    // https://en.wikipedia.org/wiki/Logarithm#Calculation
+    bigLog(x) {
+        const CACHE = Math2Deps.BIG_LOG_CACHE;
+        if (CACHE[x]) {
+            return Frac.quick.apply(null, CACHE[x].split('/'));
+        }
+        x = new Frac(x);
+        const n = 80;
+        let retval = new Frac(0);
+        const a = x.subtract(new Frac(1));
+        const b = x.add(new Frac(1));
+        for (let i = 0; i < n; i++) {
+            const t = new Frac(2 * i + 1);
+            const k = Math2.bigpow(a.divide(b), t);
+            const r = t.clone().invert().multiply(k);
+            retval = retval.add(r);
+        }
+        return retval.multiply(new Frac(2));
+    },
+    // The factorial function but using the big library instead
+    factorial(x) {
+        const isInteger = x % 1 === 0;
+
+        /* Factorial for negative integers is complex infinity according to Wolfram Alpha*/
+        if (isInteger && x < 0) {
+            return NaN;
+        }
+
+        if (!isInteger) {
+            return Math2.gamma(x + 1);
+        }
+
+        let retval = 1;
+        for (let i = 2; i <= x; i++) {
+            retval *= i;
+        }
+        return retval;
+    },
+    // Double factorial
+    // http://mathworld.wolfram.com/DoubleFactorial.html
+    dfactorial(x) {
+        /* The return value*/
+        /** @type {FracType | number} */
+        let r = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(1)));
+        if (isInt(x)) {
+            const isEven = x % 2 === 0;
+            /* If x = isEven then n = x/2 else n = (x-1)/2*/
+            const n = isEven ? x / 2 : (x + 1) / 2;
+            /* Start the loop*/
+            if (isEven) {
+                for (let i = 1; i <= n; i++) {
+                    r = /** @type {FracType} */ (r).multiply(new Frac(2).multiply(new Frac(i)));
+                }
+            } else {
+                for (let i = 1; i <= n; i++) {
+                    r = /** @type {FracType} */ (r).multiply(new Frac(2).multiply(new Frac(i)).subtract(new Frac(1)));
+                }
+            }
+        } else {
+            /* Not yet extended to bigNum*/
+            r =
+                2 ** ((1 + 2 * x - Math.cos(Math.PI * x)) / 4) *
+                Math.PI ** ((Math.cos(Math.PI * x) - 1) / 4) *
+                Math2.gamma(1 + x / 2);
+        }
+
+        /* Done*/
+        return r;
+    },
+    GCD(...rest) {
+        const args = arrayUnique(rest.map(x => Math.abs(x))).sort();
+        let a = Math.abs(args.shift());
+        let n = args.length;
+
+        while (n-- > 0) {
+            let b = Math.abs(args.shift());
+            while (true) {
+                a %= b;
+                if (a === 0) {
+                    a = b;
+                    break;
+                }
+                b %= a;
+                if (b === 0) {
+                    break;
+                }
+            }
+        }
+        return a;
+    },
+    QGCD(...args) {
+        let a = args[0];
+        for (let i = 1; i < args.length; i++) {
+            const b = args[i];
+            const sign = a.isNegative() && b.isNegative() ? -1 : 1;
+            a = b.gcd(a);
+            if (sign < 0) {
+                a.negate();
+            }
+        }
+        return a;
+    },
+    LCM(a, b) {
+        return (a * b) / Math2.GCD(a, b);
+    },
+    // Pow but with the handling of negative numbers
+    // http://stackoverflow.com/questions/12810765/calculating-cubic-root-for-negative-number
+    pow(b, e) {
+        if (b < 0) {
+            if (Math.abs(e) < 1) {
+                /* Nth root of a negative number is imaginary when n is even*/
+                if ((1 / e) % 2 === 0) {
+                    return NaN;
+                }
+                return -(Math.abs(b) ** e);
+            }
+        }
+        return b ** e;
+    },
+    factor(n) {
+        n = Number(n);
+        const sign = Math.sign(n); /* Store the sign*/
+        /* move the number to absolute value*/
+        n = Math.abs(n);
+        const ifactors = Math2.ifactor(n);
+        let factors = new Math2Deps.NerdamerSymbol();
+        factors.symbols = {};
+        factors.group = Math2Deps.CB;
+        for (const x in ifactors) {
+            if (!Object.hasOwn(ifactors, x)) {
+                continue;
+            }
+            const factor = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new Math2Deps.NerdamerSymbol(1)));
+            factor.group = Math2Deps.P; /* Cheat a little*/
+            factor.value = x;
+            /** @type {NerdamerSymbolType} */
+            const powerSym = /** @type {NerdamerSymbolType} */ (
+                /** @type {unknown} */ (new Math2Deps.NerdamerSymbol(ifactors[x]))
+            );
+            factor.power = powerSym;
+            factors.symbols[x] = factor;
+        }
+        factors.updateHash();
+
+        if (n === 1) {
+            factors = new Math2Deps.NerdamerSymbol(n);
+        }
+
+        /* Put back the sign*/
+        if (sign < 0) {
+            factors.negate();
+        }
+
+        return factors;
+    },
+    /**
+     * Uses trial division
+     *
+     * @param {number} n - The number being factored
+     * @param {object} factors - The factors object
+     * @returns {object}
+     */
+    sfactor(n, factors) {
+        factors ||= {};
+        const r = Math.floor(Math.sqrt(n));
+        const { PRIMES } = Math2Deps;
+        const lcprime = PRIMES[PRIMES.length - 1];
+        /* A one-time cost... Hopefully ... And don't bother for more than a million*/
+        /* takes too long*/
+        if (r > lcprime && n < 1e6) {
+            generatePrimes(r);
+        }
+        const l = PRIMES.length;
+        for (let i = 0; i < l; i++) {
+            const prime = PRIMES[i];
+            /* Trial division*/
+            while (n % prime === 0) {
+                n /= prime;
+                factors[prime] = (factors[prime] || 0) + 1;
+            }
+        }
+        if (n > 1) {
+            factors[n] = 1;
+        }
+        return factors;
+    },
+    /**
+     * Pollard's rho
+     *
+     * @param {number} num
+     * @returns {object}
+     */
+    ifactor(num) {
+        const { bigInt } = Math2Deps;
+        const input = new bigInt(num);
+
+        let n = new bigInt(String(num)); /* Convert to bigInt for safety*/
+
+        if (n.equals(0)) {
+            return { 0: 1 };
+        }
+        const sign = n.isNegative() ? -1 : 1;
+        n = n.abs();
+        let factors = {}; /* Factor object being returned.*/
+        if (n.lt('65536')) {
+            /* Less than 2^16 just use trial division*/
+            factors = Math2.sfactor(n, factors);
+        } else {
+            const add = function (e) {
+                if (e.isPrime()) {
+                    factors[e] = (factors[e] || 0) + 1;
+                } else {
+                    factors = Math2.sfactor(e, factors);
+                }
+            };
+
+            try {
+                // NerdamerSet a safety
+                const max = 1e3;
+                const safetyCounter = { value: 0 };
+
+                const rho = function (c, currentN, safetyObj) {
+                    let xf = new bigInt(c);
+                    let cz = 2;
+                    let x = new bigInt(c);
+                    let factor = new bigInt(1);
+
+                    while (factor.equals(1)) {
+                        for (let i = 0; i <= cz && factor.equals(1); i++) {
+                            // Trigger the safety
+                            if (safetyObj.value++ > max) {
+                                throw new Error('stopping');
+                            }
+
+                            x = x.pow(2).add(1).mod(currentN);
+                            factor = bigInt.gcd(x.minus(xf).abs(), currentN);
+                        }
+
+                        cz *= 2;
+                        xf = x;
+                    }
+                    if (factor.equals(currentN)) {
+                        return rho(c + 1, currentN, safetyObj);
+                    }
+                    return factor;
+                };
+
+                while (!n.abs().equals(1)) {
+                    if (n.isPrime()) {
+                        add(n);
+                        break;
+                    } else {
+                        const factor = rho(2, n, safetyCounter);
+                        add(factor);
+                        /* Divide out the factor*/
+                        n = n.divide(factor);
+                    }
+                }
+            } catch (e) {
+                if (e.message === 'timeout') {
+                    throw e;
+                }
+                // Reset factors
+                factors = {};
+                add(input);
+            }
+        }
+
+        /* Put the sign back*/
+        if (sign === -1) {
+            const sm = arrayMin(keys(factors)); /*/ get the smallest number*/
+            factors[`-${sm}`] = factors[sm];
+            delete factors[sm];
+        }
+
+        return factors;
+    },
+    // Factors a number into rectangular box. If sides are primes that this will be
+    // their prime factors. e.g. 21 -> (7)(3), 133 -> (7)(19)
+    boxfactor(n, max) {
+        max ||= 200; // Stop after this number of iterations
+        let c;
+        let r;
+        let d = Math.floor((5 / 12) * n); // The divisor
+        let i = 0; // Number of iterations
+        let safety = false;
+        while (true) {
+            c = Math.floor(n / d);
+            r = n % d;
+            if (r === 0) {
+                break;
+            } // We're done
+            if (safety) {
+                return [n, 1];
+            }
+            d = Math.max(r, d - r);
+            i++;
+            safety = i > max;
+        }
+        return [c, d, i];
+    },
+    fib(n) {
+        let sign = Math.sign(n);
+        n = Math.abs(n);
+        sign = even(n) ? sign : Math.abs(sign);
+        let a = 0;
+        let b = 1;
+        let f = 1;
+        for (let i = 2; i <= n; i++) {
+            f = a + b;
+            a = b;
+            b = f;
+        }
+        return f * sign;
+    },
+    mod(x, y) {
+        return x % y;
+    },
+    // http://mathworld.wolfram.com/IntegerPart.html
+    integer_part(x) {
+        const sign = Math.sign(x);
+        return sign * Math.floor(Math.abs(x));
+    },
+    simpson(f, a, b, step) {
+        const getValue = function (fn, x, side) {
+            let v = fn(x);
+            const d = 0.000000000001;
+            if (isNaN(v)) {
+                v = fn(side === 1 ? x + d : x - d);
+            }
+            return v;
+        };
+
+        step ||= 0.0001;
+        // Calculate the number of intervals
+        let n = Math.abs(Math.floor((b - a) / step));
+        // Simpson's rule requires an even number of intervals. If it's not then add 1
+        if (n % 2 !== 0) {
+            n++;
+        }
+        // Get the interval size
+        const dx = (b - a) / n;
+        // Get x0
+        let retval = getValue(f, a, 1);
+
+        // Get the middle part 4x1+2x2+4x3 ...
+        // but first set a flag to see if it's even or odd.
+        // The first one is odd so we start there
+        let isEvenIteration = false;
+        // Get x1
+        let xi = a + dx;
+        // The coefficient
+        let c;
+        let k;
+        // https://en.wikipedia.org/wiki/Simpson%27s_rule
+        for (let i = 1; i < n; i++) {
+            c = isEvenIteration ? 2 : 4;
+            k = c * getValue(f, xi, 1);
+            retval += k;
+            // Flip the even flag
+            isEvenIteration = !isEvenIteration;
+            // Increment xi
+            xi += dx;
+        }
+
+        // Add xn
+        return (retval + getValue(f, xi, 2)) * (dx / 3);
+    },
+    /**
+     * https://github.com/scijs/integrate-adaptive-simpson
+     *
+     * @param {Function} f - The function being integrated
+     * @param {number} a - Lower bound
+     * @param {number} b - Upper bound
+     * @param {number} tol - Step width
+     * @param {number} [maxdepth]
+     * @returns {number | string}
+     */
+    num_integrate(f, a, b, tol, maxdepth) {
+        if (maxdepth < 0) {
+            throw new Error('max depth cannot be negative');
+        }
+
+        /* This algorithm adapted from pseudocode in:*/
+        /* http://www.math.utk.edu/~ccollins/refs/Handouts/rich.pdf*/
+        function adsimp(fn, lo, hi, fa, fm, fb, V0, tolerance, maxDepth, depth, state) {
+            if (state.nanEncountered) {
+                return NaN;
+            }
+            const h = hi - lo;
+            const f1 = fn(lo + h * 0.25);
+            const f2 = fn(hi - h * 0.25);
+            /* Simple check for NaN:*/
+            if (isNaN(f1)) {
+                state.nanEncountered = true;
+                return undefined;
+            }
+            /* Simple check for NaN:*/
+            if (isNaN(f2)) {
+                state.nanEncountered = true;
+                return undefined;
+            }
+
+            const sl = (h * (fa + 4 * f1 + fm)) / 12;
+            const sr = (h * (fm + 4 * f2 + fb)) / 12;
+            const s2 = sl + sr;
+            const error = (s2 - V0) / 15;
+
+            if (state.maxDepthCount > 1000 * maxDepth) {
+                return undefined;
+            }
+
+            if (depth > maxDepth) {
+                state.maxDepthCount++;
+                return s2 + error;
+            }
+            if (Math.abs(error) < tolerance) {
+                return s2 + error;
+            }
+            const m = lo + h * 0.5;
+            const V1 = adsimp(fn, lo, m, fa, f1, fm, sl, tolerance * 0.5, maxDepth, depth + 1, state);
+            if (isNaN(V1)) {
+                state.nanEncountered = true;
+                return NaN;
+            }
+            const V2 = adsimp(fn, m, hi, fm, f2, fb, sr, tolerance * 0.5, maxDepth, depth + 1, state);
+
+            if (isNaN(V2)) {
+                state.nanEncountered = true;
+                return NaN;
+            }
+
+            return V1 + V2;
+        }
+
+        function integrate(fn, lo, hi, tolerance, maxDepth) {
+            const state = {
+                maxDepthCount: 0,
+                nanEncountered: false,
+            };
+
+            if (tolerance === undefined) {
+                tolerance = 1e-9;
+            }
+            if (maxDepth === undefined) {
+                /* Issue #458 - This was lowered because of performance issues. */
+                /* This was suspected from before but is now confirmed with this issue*/
+                maxDepth = 45;
+            }
+
+            const fa = fn(lo);
+            const fm = fn(0.5 * (lo + hi));
+            const fb = fn(hi);
+
+            const V0 = ((fa + 4 * fm + fb) * (hi - lo)) / 6;
+
+            const result = adsimp(fn, lo, hi, fa, fm, fb, V0, tolerance, maxDepth, 1, state);
+
+            if (state.maxDepthCount > 0) {
+                warn(
+                    `integrate-adaptive-simpson: Warning: maximum recursion depth (${maxDepth}) reached ${
+                        state.maxDepthCount
+                    } times`
+                );
+            }
+
+            if (state.nanEncountered) {
+                throw new Error('Function does not converge over interval!');
+            }
+
+            return result;
+        }
+        /** @type {number} */
+        let retval;
+
+        try {
+            retval = integrate(f, a, b, tol, maxdepth);
+        } catch (e) {
+            if (e.message === 'timeout') {
+                throw e;
+            }
+            /* Fallback to non-adaptive*/
+            return Math2.simpson(f, a, b);
+        }
+        return nround(retval, 12);
+    },
+    // https://en.wikipedia.org/wiki/Trigonometric_integral
+    // CosineIntegral
+    Ci(x) {
+        const n = 20;
+        /* Roughly Euler–Mascheroni*/
+        const g = 0.5772156649015329;
+        let sum = 0;
+        for (let i = 1; i < n; i++) {
+            /* Cache 2n*/
+            const n2 = 2 * i;
+            sum += ((-1) ** i * x ** n2) / (n2 * Math2.factorial(n2));
+        }
+        return Math.log(x) + g + sum;
+    },
+    /* SineIntegral*/
+    Si(x) {
+        const n = 20;
+        let sum = 0;
+        for (let i = 0; i < n; i++) {
+            const n2 = 2 * i;
+            sum += ((-1) ** i * x ** (n2 + 1)) / ((n2 + 1) * Math2.factorial(n2 + 1));
+        }
+        return sum;
+    },
+    /* ExponentialIntegral*/
+    Ei(x) {
+        if (Number(x) === 0) {
+            return -Infinity;
+        }
+        const n = 30;
+        const g = 0.5772156649015329; /* Roughly Euler–Mascheroni*/
+        let sum = 0;
+        for (let i = 1; i < n; i++) {
+            sum += x ** i / (i * Math2.factorial(i));
+        }
+        return g + Math.abs(Math.log(x)) + sum;
+    },
+    /* Hyperbolic Sine Integral*/
+    /* http://mathworld.wolfram.com/Shi.html*/
+    Shi(x) {
+        const n = 30;
+        let sum = 0;
+        let k;
+        let t;
+        for (let i = 0; i < n; i++) {
+            k = 2 * i;
+            t = k + 1;
+            sum += x ** t / (t * t * Math2.factorial(k));
+        }
+        return sum;
+    },
+    /* The cosine integral function*/
+    Chi(x) {
+        const dx = 0.001;
+        const g = 0.5772156649015329;
+        const f = function (t) {
+            return (Math.cosh(t) - 1) / t;
+        };
+        return (
+            Math.log(/** @type {number} */ (x)) +
+            g +
+            /** @type {number} */ (Math2.num_integrate(f, 0.002, /** @type {number} */ (x), dx))
+        );
+    },
+    /* The log integral*/
+    Li(x) {
+        return Math2.Ei(Math2.bigLog(x));
+    },
+    /* The gamma incomplete function*/
+    gamma_incomplete(n, xVal) {
+        const t = n - 1;
+        let sum = 0;
+        const x = xVal || 0;
+        for (let i = 0; i < t; i++) {
+            sum += x ** i / Math2.factorial(i);
+        }
+        return Math2.factorial(t) * Math.exp(-x) * sum;
+    },
+    /*
+     * Heaviside step function - Moved from Special.js (originally contributed by Brosnan Yuen)
+     * Specification : http://mathworld.wolfram.com/HeavisideStepFunction.html
+     * if x > 0 then 1
+     * if x == 0 then 1/2
+     * if x < 0 then 0
+     */
+    step(x) {
+        if (x > 0) {
+            return 1;
+        }
+        if (x < 0) {
+            return 0;
+        }
+        return 0.5;
+    },
+    /*
+     * Rectangle function - Moved from Special.js (originally contributed by Brosnan Yuen)
+     * Specification : http://mathworld.wolfram.com/RectangleFunction.html
+     * if |x| > 1/2 then 0
+     * if |x| == 1/2 then 1/2
+     * if |x| < 1/2 then 1
+     */
+    rect(x) {
+        const absX = Math.abs(x);
+        if (absX === 0.5) {
+            return absX;
+        }
+        if (absX > 0.5) {
+            return 0;
+        }
+        return 1;
+    },
+    /*
+     * Sinc function - Moved from Special.js (originally contributed by Brosnan Yuen)
+     * Specification : http://mathworld.wolfram.com/SincFunction.html
+     * if x == 0 then 1
+     * otherwise sin(x)/x
+     */
+    sinc(x) {
+        if (x.equals(0)) {
+            return 1;
+        }
+        return Math.sin(x) / x;
+    },
+    /*
+     * Triangle function - Moved from Special.js (originally contributed by Brosnan Yuen)
+     * Specification : http://mathworld.wolfram.com/TriangleFunction.html
+     * if |x| >= 1 then 0
+     * if |x| < then 1-|x|
+     */
+    tri(x) {
+        x = Math.abs(x);
+        if (x >= 1) {
+            return 0;
+        }
+        return 1 - x;
+    },
+    // https://en.wikipedia.org/wiki/Nth_root_algorithm
+    nthroot(A, n) {
+        /* Make sure the input is of type Frac*/
+        if (!(A instanceof Frac)) {
+            A = new Frac(A.toString());
+        }
+        if (!(n instanceof Frac)) {
+            n = new Frac(n.toString());
+        }
+        if (n.equals(1)) {
+            return A;
+        }
+        /* Begin algorithm*/
+        let xk = A.divide(new Frac(2)); /* X0*/
+        const e = new Frac(1e-15);
+        let dk;
+        let dk0;
+        let d0;
+        const a = n.clone().invert();
+        const b = n.subtract(new Frac(1));
+        do {
+            const powb = Math2.bigpow(xk, b);
+            let dkDec = a.multiply(A.divide(powb).subtract(xk)).toDecimal(25);
+            dk = Frac.create(dkDec);
+            if (d0) {
+                break;
+            }
+
+            xk = xk.add(dk);
+            /* Check to see if there's no change from the last xk*/
+            dkDec = dk.toDecimal();
+            d0 = dk0 ? dk0 === dkDec : false;
+            dk0 = dkDec;
+        } while (dk.abs().gte(e));
+
+        return xk;
+    },
+    /* https://gist.github.com/jiggzson/0c5b33cbcd7b52b36132b1e96573285f*/
+    /* Just the square root function but big :)*/
+    sqrt(n) {
+        if (!(n instanceof Frac)) {
+            n = new Frac(n);
+        }
+        let xn;
+        let d;
+        let ld;
+        let sameDelta;
+        let c = 0; /* Counter*/
+        let done = false;
+        const delta = new Frac(1e-20);
+        xn = n.divide(new Frac(2));
+        const safety = 1000;
+        do {
+            /* Break if we're not converging*/
+            if (c > safety) {
+                throw new Error(`Unable to calculate square root for ${n}`);
+            }
+            xn = xn.add(n.divide(xn)).divide(new Frac(2));
+            xn = new Frac(xn.decimal(30));
+            /* Get the difference from the true square*/
+            d = n.subtract(xn.multiply(xn));
+            /* If the square of the calculated number is close enough to the number*/
+            /* we're getting the square root or the last delta was the same as the new delta*/
+            /* then we're done*/
+            sameDelta = ld ? ld.equals(d) : false;
+            if (d.clone().abs().lessThan(delta) || sameDelta) {
+                done = true;
+            }
+            /* Store the calculated delta*/
+            ld = d;
+            c++; /* Increase the counter*/
+        } while (!done);
+
+        return xn;
+    },
+};
+
 const nerdamer = (function initNerdamerCore(imports) {
     // Version ======================================================================
     const _version = '1.1.16';
@@ -6727,892 +7635,16 @@ const nerdamer = (function initNerdamerCore(imports) {
         InfiniteLoopError,
         UnexpectedTokenError,
     };
-    // Math2 ========================================================================
-    // This object holds additional functions for nerdamer. Think of it as an extension of the Math object.
-    // I really don't like touching objects which aren't mine hence the reason for Math2. The names of the
-    // functions within are pretty self-explanatory.
-    // NOTE: DO NOT USE INLINE COMMENTS WITH THE MATH2 OBJECT! THIS BREAK DURING COMPILATION OF BUILDFUNCTION.
-    const Math2 = {
-        csc(x) {
-            return 1 / Math.sin(x);
-        },
-        sec(x) {
-            return 1 / Math.cos(x);
-        },
-        cot(x) {
-            return 1 / Math.tan(x);
-        },
-        acsc(x) {
-            return Math.asin(1 / x);
-        },
-        asec(x) {
-            return Math.acos(1 / x);
-        },
-        acot(x) {
-            return Math.PI / 2 - Math.atan(x);
-        },
-        // https://gist.github.com/jiggzson/df0e9ae8b3b06ff3d8dc2aa062853bd8
-        erf(x) {
-            const t = 1 / (1 + 0.5 * Math.abs(x));
-            const result =
-                1 -
-                t *
-                    Math.exp(
-                        -x * x -
-                            1.26551223 +
-                            t *
-                                (1.00002368 +
-                                    t *
-                                        (0.37409196 +
-                                            t *
-                                                (0.09678418 +
-                                                    t *
-                                                        (-0.18628806 +
-                                                            t *
-                                                                (0.27886807 +
-                                                                    t *
-                                                                        (-1.13520398 +
-                                                                            t *
-                                                                                (1.48851587 +
-                                                                                    t *
-                                                                                        (-0.82215223 +
-                                                                                            t * 0.17087277))))))))
-                    );
-            return x >= 0 ? result : -result;
-        },
-        diff(f) {
-            const h = 0.001;
 
-            const derivative = function (x) {
-                return (f(x + h) - f(x - h)) / (2 * h);
-            };
+    // Math2 is now defined outside IIFE
+    // Initialize Math2Deps with references from inside IIFE
+    Math2Deps.bigInt = bigInt;
+    Math2Deps.BIG_LOG_CACHE = imports.constants.BIG_LOG_CACHE;
+    Math2Deps.PRIMES = PRIMES;
+    Math2Deps.NerdamerSymbol = NerdamerSymbol;
+    Math2Deps.CB = CB;
+    Math2Deps.P = P;
 
-            return derivative;
-        },
-        median(...values) {
-            values.sort((a, b) => a - b);
-
-            const half = Math.floor(values.length / 2);
-
-            if (values.length % 2) {
-                return values[half];
-            }
-
-            return (values[half - 1] + values[half]) / 2.0;
-        },
-        /*
-         * Reverses continued fraction calculation
-         * @param {obj} contd
-         * @returns {number}
-         */
-        fromContinued(contd) {
-            const arr = contd.fractions.slice();
-            let e = 1 / arr.pop();
-            for (let i = 0, l = arr.length; i < l; i++) {
-                e = 1 / (arr.pop() + e);
-            }
-            return contd.sign * (contd.whole + e);
-        },
-        /*
-         * Calculates continued fractions
-         * @param {number} n
-         * @param {number} x The number of places
-         * @returns {number}
-         */
-        continuedFraction(n, x) {
-            x ||= 20;
-            const sign = Math.sign(n); /* Store the sign*/
-            const absn = Math.abs(n); /* Get the absolute value of the number*/
-            const whole = Math.floor(absn); /* Get the whole*/
-            let ni = absn - whole; /* Subtract the whole*/
-            let c = 0; /* The counter to keep track of iterations*/
-            let done = false;
-            const epsilon = 1e-14;
-            const max = 1e7;
-            let e;
-            let w;
-            const retval = {
-                whole,
-                sign,
-                fractions: [],
-            };
-            /* Start calculating*/
-            while (!done && ni !== 0) {
-                /* Invert and get the whole*/
-                e = 1 / ni;
-                w = Math.floor(e);
-                if (w > max) {
-                    /* This signals that we may have already gone too far*/
-                    const d = Math2.fromContinued(retval) - n;
-                    if (d <= Number.EPSILON) {
-                        break;
-                    }
-                }
-                /* Add to result*/
-                retval.fractions.push(w);
-                /* Move the ni to the decimal*/
-                ni = e - w;
-                /* Ni should always be a decimal. If we have a whole number then we're in the rounding errors*/
-                if (ni <= epsilon || c >= x - 1) {
-                    done = true;
-                }
-                c++;
-            }
-            /* Cleanup 1/(n+1/1) = 1/(n+1) so just move the last digit one over if it's one*/
-            let idx = retval.fractions.length - 1;
-            if (retval.fractions[idx] === 1) {
-                retval.fractions.pop();
-                /* Increase the last one by one*/
-                retval.fractions[--idx]++;
-            }
-            return retval;
-        },
-        bigpow(n, p) {
-            if (!(n instanceof Frac)) {
-                n = Frac.create(n);
-            }
-            if (!(p instanceof Frac)) {
-                p = Frac.create(p);
-            }
-            const retval = new Frac(0);
-            if (p.isInteger()) {
-                retval.num = n.num.pow(p.toString());
-                retval.den = n.den.pow(p.toString());
-            } else {
-                const num = Frac.create(n.num ** p.num);
-                const den = Frac.create(n.den ** p.num);
-
-                retval.num = Math2.nthroot(num, p.den.toString());
-                retval.den = Math2.nthroot(den, p.den);
-            }
-            return retval;
-        },
-        // http://stackoverflow.com/questions/15454183/how-to-make-a-function-that-computes-the-factorial-for-numbers-with-decimals
-        gamma(z) {
-            const g = 7;
-            const gammaCoeffs = [
-                0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059,
-                12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7,
-            ];
-            if (z < 0.5) {
-                return Math.PI / (Math.sin(Math.PI * z) * Math2.gamma(1 - z));
-            }
-            z -= 1;
-
-            let x = gammaCoeffs[0];
-            for (let i = 1; i < g + 2; i++) {
-                x += gammaCoeffs[i] / (z + i);
-            }
-
-            const t = z + g + 0.5;
-            return Math.sqrt(2 * Math.PI) * t ** (z + 0.5) * Math.exp(-t) * x;
-        },
-        // Factorial
-        bigfactorial(x) {
-            let retval = new bigInt(1);
-            for (let i = 2; i <= x; i++) {
-                retval = retval.times(i);
-            }
-            return new Frac(retval);
-        },
-        // https://en.wikipedia.org/wiki/Logarithm#Calculation
-        bigLog(x) {
-            const CACHE = imports.constants.BIG_LOG_CACHE;
-            if (CACHE[x]) {
-                return Frac.quick.apply(null, CACHE[x].split('/'));
-            }
-            x = new Frac(x);
-            const n = 80;
-            let retval = new Frac(0);
-            const a = x.subtract(new Frac(1));
-            const b = x.add(new Frac(1));
-            for (let i = 0; i < n; i++) {
-                const t = new Frac(2 * i + 1);
-                const k = Math2.bigpow(a.divide(b), t);
-                const r = t.clone().invert().multiply(k);
-                retval = retval.add(r);
-            }
-            return retval.multiply(new Frac(2));
-        },
-        // The factorial function but using the big library instead
-        factorial(x) {
-            const isInteger = x % 1 === 0;
-
-            /* Factorial for negative integers is complex infinity according to Wolfram Alpha*/
-            if (isInteger && x < 0) {
-                return NaN;
-            }
-
-            if (!isInteger) {
-                return Math2.gamma(x + 1);
-            }
-
-            let retval = 1;
-            for (let i = 2; i <= x; i++) {
-                retval *= i;
-            }
-            return retval;
-        },
-        // Double factorial
-        // http://mathworld.wolfram.com/DoubleFactorial.html
-        dfactorial(x) {
-            /* The return value*/
-            /** @type {FracType | number} */
-            let r = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(1)));
-            if (isInt(x)) {
-                const isEven = x % 2 === 0;
-                /* If x = isEven then n = x/2 else n = (x-1)/2*/
-                const n = isEven ? x / 2 : (x + 1) / 2;
-                /* Start the loop*/
-                if (isEven) {
-                    for (let i = 1; i <= n; i++) {
-                        r = /** @type {FracType} */ (r).multiply(new Frac(2).multiply(new Frac(i)));
-                    }
-                } else {
-                    for (let i = 1; i <= n; i++) {
-                        r = /** @type {FracType} */ (r).multiply(
-                            new Frac(2).multiply(new Frac(i)).subtract(new Frac(1))
-                        );
-                    }
-                }
-            } else {
-                /* Not yet extended to bigNum*/
-                r =
-                    2 ** ((1 + 2 * x - Math.cos(Math.PI * x)) / 4) *
-                    Math.PI ** ((Math.cos(Math.PI * x) - 1) / 4) *
-                    Math2.gamma(1 + x / 2);
-            }
-
-            /* Done*/
-            return r;
-        },
-        GCD(...rest) {
-            const args = arrayUnique(rest.map(x => Math.abs(x))).sort();
-            let a = Math.abs(args.shift());
-            let n = args.length;
-
-            while (n-- > 0) {
-                let b = Math.abs(args.shift());
-                while (true) {
-                    a %= b;
-                    if (a === 0) {
-                        a = b;
-                        break;
-                    }
-                    b %= a;
-                    if (b === 0) {
-                        break;
-                    }
-                }
-            }
-            return a;
-        },
-        QGCD(...args) {
-            let a = args[0];
-            for (let i = 1; i < args.length; i++) {
-                const b = args[i];
-                const sign = a.isNegative() && b.isNegative() ? -1 : 1;
-                a = b.gcd(a);
-                if (sign < 0) {
-                    a.negate();
-                }
-            }
-            return a;
-        },
-        LCM(a, b) {
-            return (a * b) / Math2.GCD(a, b);
-        },
-        // Pow but with the handling of negative numbers
-        // http://stackoverflow.com/questions/12810765/calculating-cubic-root-for-negative-number
-        pow(b, e) {
-            if (b < 0) {
-                if (Math.abs(e) < 1) {
-                    /* Nth root of a negative number is imaginary when n is even*/
-                    if ((1 / e) % 2 === 0) {
-                        return NaN;
-                    }
-                    return -(Math.abs(b) ** e);
-                }
-            }
-            return b ** e;
-        },
-        factor(n) {
-            n = Number(n);
-            const sign = Math.sign(n); /* Store the sign*/
-            /* move the number to absolute value*/
-            n = Math.abs(n);
-            const ifactors = Math2.ifactor(n);
-            let factors = new NerdamerSymbol();
-            factors.symbols = {};
-            factors.group = CB;
-            for (const x in ifactors) {
-                if (!Object.hasOwn(ifactors, x)) {
-                    continue;
-                }
-                const factor = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(1)));
-                factor.group = P; /* Cheat a little*/
-                factor.value = x;
-                /** @type {NerdamerSymbolType} */
-                const powerSym = /** @type {NerdamerSymbolType} */ (
-                    /** @type {unknown} */ (new NerdamerSymbol(ifactors[x]))
-                );
-                factor.power = powerSym;
-                factors.symbols[x] = factor;
-            }
-            factors.updateHash();
-
-            if (n === 1) {
-                factors = new NerdamerSymbol(n);
-            }
-
-            /* Put back the sign*/
-            if (sign < 0) {
-                factors.negate();
-            }
-
-            return factors;
-        },
-        /**
-         * Uses trial division
-         *
-         * @param {number} n - The number being factored
-         * @param {object} factors - The factors object
-         * @returns {object}
-         */
-        sfactor(n, factors) {
-            factors ||= {};
-            const r = Math.floor(Math.sqrt(n));
-            const lcprime = PRIMES[PRIMES.length - 1];
-            /* A one-time cost... Hopefully ... And don't bother for more than a million*/
-            /* takes too long*/
-            if (r > lcprime && n < 1e6) {
-                generatePrimes(r);
-            }
-            const l = PRIMES.length;
-            for (let i = 0; i < l; i++) {
-                const prime = PRIMES[i];
-                /* Trial division*/
-                while (n % prime === 0) {
-                    n /= prime;
-                    factors[prime] = (factors[prime] || 0) + 1;
-                }
-            }
-            if (n > 1) {
-                factors[n] = 1;
-            }
-            return factors;
-        },
-        /**
-         * Pollard's rho
-         *
-         * @param {number} num
-         * @returns {object}
-         */
-        ifactor(num) {
-            const input = new bigInt(num);
-
-            let n = new bigInt(String(num)); /* Convert to bigInt for safety*/
-
-            if (n.equals(0)) {
-                return { 0: 1 };
-            }
-            const sign = n.isNegative() ? -1 : 1;
-            n = n.abs();
-            let factors = {}; /* Factor object being returned.*/
-            if (n.lt('65536')) {
-                /* Less than 2^16 just use trial division*/
-                factors = Math2.sfactor(n, factors);
-            } else {
-                const add = function (e) {
-                    if (e.isPrime()) {
-                        factors[e] = (factors[e] || 0) + 1;
-                    } else {
-                        factors = Math2.sfactor(e, factors);
-                    }
-                };
-
-                try {
-                    // NerdamerSet a safety
-                    const max = 1e3;
-                    const safetyCounter = { value: 0 };
-
-                    const rho = function (c, currentN, safetyObj) {
-                        let xf = new bigInt(c);
-                        let cz = 2;
-                        let x = new bigInt(c);
-                        let factor = new bigInt(1);
-
-                        while (factor.equals(1)) {
-                            for (let i = 0; i <= cz && factor.equals(1); i++) {
-                                // Trigger the safety
-                                if (safetyObj.value++ > max) {
-                                    throw new Error('stopping');
-                                }
-
-                                x = x.pow(2).add(1).mod(currentN);
-                                factor = bigInt.gcd(x.minus(xf).abs(), currentN);
-                            }
-
-                            cz *= 2;
-                            xf = x;
-                        }
-                        if (factor.equals(currentN)) {
-                            return rho(c + 1, currentN, safetyObj);
-                        }
-                        return factor;
-                    };
-
-                    while (!n.abs().equals(1)) {
-                        if (n.isPrime()) {
-                            add(n);
-                            break;
-                        } else {
-                            const factor = rho(2, n, safetyCounter);
-                            add(factor);
-                            /* Divide out the factor*/
-                            n = n.divide(factor);
-                        }
-                    }
-                } catch (e) {
-                    if (e.message === 'timeout') {
-                        throw e;
-                    }
-                    // Reset factors
-                    factors = {};
-                    add(input);
-                }
-            }
-
-            /* Put the sign back*/
-            if (sign === -1) {
-                const sm = arrayMin(keys(factors)); /*/ get the smallest number*/
-                factors[`-${sm}`] = factors[sm];
-                delete factors[sm];
-            }
-
-            return factors;
-        },
-        // Factors a number into rectangular box. If sides are primes that this will be
-        // their prime factors. e.g. 21 -> (7)(3), 133 -> (7)(19)
-        boxfactor(n, max) {
-            max ||= 200; // Stop after this number of iterations
-            let c;
-            let r;
-            let d = Math.floor((5 / 12) * n); // The divisor
-            let i = 0; // Number of iterations
-            let safety = false;
-            while (true) {
-                c = Math.floor(n / d);
-                r = n % d;
-                if (r === 0) {
-                    break;
-                } // We're done
-                if (safety) {
-                    return [n, 1];
-                }
-                d = Math.max(r, d - r);
-                i++;
-                safety = i > max;
-            }
-            return [c, d, i];
-        },
-        fib(n) {
-            let sign = Math.sign(n);
-            n = Math.abs(n);
-            sign = even(n) ? sign : Math.abs(sign);
-            let a = 0;
-            let b = 1;
-            let f = 1;
-            for (let i = 2; i <= n; i++) {
-                f = a + b;
-                a = b;
-                b = f;
-            }
-            return f * sign;
-        },
-        mod(x, y) {
-            return x % y;
-        },
-        // http://mathworld.wolfram.com/IntegerPart.html
-        integer_part(x) {
-            const sign = Math.sign(x);
-            return sign * Math.floor(Math.abs(x));
-        },
-        simpson(f, a, b, step) {
-            const getValue = function (fn, x, side) {
-                let v = fn(x);
-                const d = 0.000000000001;
-                if (isNaN(v)) {
-                    v = fn(side === 1 ? x + d : x - d);
-                }
-                return v;
-            };
-
-            step ||= 0.0001;
-            // Calculate the number of intervals
-            let n = Math.abs(Math.floor((b - a) / step));
-            // Simpson's rule requires an even number of intervals. If it's not then add 1
-            if (n % 2 !== 0) {
-                n++;
-            }
-            // Get the interval size
-            const dx = (b - a) / n;
-            // Get x0
-            let retval = getValue(f, a, 1);
-
-            // Get the middle part 4x1+2x2+4x3 ...
-            // but first set a flag to see if it's even or odd.
-            // The first one is odd so we start there
-            let isEvenIteration = false;
-            // Get x1
-            let xi = a + dx;
-            // The coefficient
-            let c;
-            let k;
-            // https://en.wikipedia.org/wiki/Simpson%27s_rule
-            for (let i = 1; i < n; i++) {
-                c = isEvenIteration ? 2 : 4;
-                k = c * getValue(f, xi, 1);
-                retval += k;
-                // Flip the even flag
-                isEvenIteration = !isEvenIteration;
-                // Increment xi
-                xi += dx;
-            }
-
-            // Add xn
-            return (retval + getValue(f, xi, 2)) * (dx / 3);
-        },
-        /**
-         * https://github.com/scijs/integrate-adaptive-simpson
-         *
-         * @param {Function} f - The function being integrated
-         * @param {number} a - Lower bound
-         * @param {number} b - Upper bound
-         * @param {number} tol - Step width
-         * @param {number} [maxdepth]
-         * @returns {number | string}
-         */
-        num_integrate(f, a, b, tol, maxdepth) {
-            if (maxdepth < 0) {
-                throw new Error('max depth cannot be negative');
-            }
-
-            /* This algorithm adapted from pseudocode in:*/
-            /* http://www.math.utk.edu/~ccollins/refs/Handouts/rich.pdf*/
-            function adsimp(fn, lo, hi, fa, fm, fb, V0, tolerance, maxDepth, depth, state) {
-                if (state.nanEncountered) {
-                    return NaN;
-                }
-                const h = hi - lo;
-                const f1 = fn(lo + h * 0.25);
-                const f2 = fn(hi - h * 0.25);
-                /* Simple check for NaN:*/
-                if (isNaN(f1)) {
-                    state.nanEncountered = true;
-                    return undefined;
-                }
-                /* Simple check for NaN:*/
-                if (isNaN(f2)) {
-                    state.nanEncountered = true;
-                    return undefined;
-                }
-
-                const sl = (h * (fa + 4 * f1 + fm)) / 12;
-                const sr = (h * (fm + 4 * f2 + fb)) / 12;
-                const s2 = sl + sr;
-                const error = (s2 - V0) / 15;
-
-                if (state.maxDepthCount > 1000 * maxDepth) {
-                    return undefined;
-                }
-
-                if (depth > maxDepth) {
-                    state.maxDepthCount++;
-                    return s2 + error;
-                }
-                if (Math.abs(error) < tolerance) {
-                    return s2 + error;
-                }
-                const m = lo + h * 0.5;
-                const V1 = adsimp(fn, lo, m, fa, f1, fm, sl, tolerance * 0.5, maxDepth, depth + 1, state);
-                if (isNaN(V1)) {
-                    state.nanEncountered = true;
-                    return NaN;
-                }
-                const V2 = adsimp(fn, m, hi, fm, f2, fb, sr, tolerance * 0.5, maxDepth, depth + 1, state);
-
-                if (isNaN(V2)) {
-                    state.nanEncountered = true;
-                    return NaN;
-                }
-
-                return V1 + V2;
-            }
-
-            function integrate(fn, lo, hi, tolerance, maxDepth) {
-                const state = {
-                    maxDepthCount: 0,
-                    nanEncountered: false,
-                };
-
-                if (tolerance === undefined) {
-                    tolerance = 1e-9;
-                }
-                if (maxDepth === undefined) {
-                    /* Issue #458 - This was lowered because of performance issues. */
-                    /* This was suspected from before but is now confirmed with this issue*/
-                    maxDepth = 45;
-                }
-
-                const fa = fn(lo);
-                const fm = fn(0.5 * (lo + hi));
-                const fb = fn(hi);
-
-                const V0 = ((fa + 4 * fm + fb) * (hi - lo)) / 6;
-
-                const result = adsimp(fn, lo, hi, fa, fm, fb, V0, tolerance, maxDepth, 1, state);
-
-                if (state.maxDepthCount > 0) {
-                    warn(
-                        `integrate-adaptive-simpson: Warning: maximum recursion depth (${maxDepth}) reached ${
-                            state.maxDepthCount
-                        } times`
-                    );
-                }
-
-                if (state.nanEncountered) {
-                    throw new Error('Function does not converge over interval!');
-                }
-
-                return result;
-            }
-            /** @type {number} */
-            let retval;
-
-            try {
-                retval = integrate(f, a, b, tol, maxdepth);
-            } catch (e) {
-                if (e.message === 'timeout') {
-                    throw e;
-                }
-                /* Fallback to non-adaptive*/
-                return Math2.simpson(f, a, b);
-            }
-            return nround(retval, 12);
-        },
-        // https://en.wikipedia.org/wiki/Trigonometric_integral
-        // CosineIntegral
-        Ci(x) {
-            const n = 20;
-            /* Roughly Euler–Mascheroni*/
-            const g = 0.5772156649015329;
-            let sum = 0;
-            for (let i = 1; i < n; i++) {
-                /* Cache 2n*/
-                const n2 = 2 * i;
-                sum += ((-1) ** i * x ** n2) / (n2 * Math2.factorial(n2));
-            }
-            return Math.log(x) + g + sum;
-        },
-        /* SineIntegral*/
-        Si(x) {
-            const n = 20;
-            let sum = 0;
-            for (let i = 0; i < n; i++) {
-                const n2 = 2 * i;
-                sum += ((-1) ** i * x ** (n2 + 1)) / ((n2 + 1) * Math2.factorial(n2 + 1));
-            }
-            return sum;
-        },
-        /* ExponentialIntegral*/
-        Ei(x) {
-            if (Number(x) === 0) {
-                return -Infinity;
-            }
-            const n = 30;
-            const g = 0.5772156649015329; /* Roughly Euler–Mascheroni*/
-            let sum = 0;
-            for (let i = 1; i < n; i++) {
-                sum += x ** i / (i * Math2.factorial(i));
-            }
-            return g + Math.abs(Math.log(x)) + sum;
-        },
-        /* Hyperbolic Sine Integral*/
-        /* http://mathworld.wolfram.com/Shi.html*/
-        Shi(x) {
-            const n = 30;
-            let sum = 0;
-            let k;
-            let t;
-            for (let i = 0; i < n; i++) {
-                k = 2 * i;
-                t = k + 1;
-                sum += x ** t / (t * t * Math2.factorial(k));
-            }
-            return sum;
-        },
-        /* The cosine integral function*/
-        Chi(x) {
-            const dx = 0.001;
-            const g = 0.5772156649015329;
-            const f = function (t) {
-                return (Math.cosh(t) - 1) / t;
-            };
-            return (
-                Math.log(/** @type {number} */ (x)) +
-                g +
-                /** @type {number} */ (Math2.num_integrate(f, 0.002, /** @type {number} */ (x), dx))
-            );
-        },
-        /* The log integral*/
-        Li(x) {
-            return Math2.Ei(Math2.bigLog(x));
-        },
-        /* The gamma incomplete function*/
-        gamma_incomplete(n, xVal) {
-            const t = n - 1;
-            let sum = 0;
-            const x = xVal || 0;
-            for (let i = 0; i < t; i++) {
-                sum += x ** i / Math2.factorial(i);
-            }
-            return Math2.factorial(t) * Math.exp(-x) * sum;
-        },
-        /*
-         * Heaviside step function - Moved from Special.js (originally contributed by Brosnan Yuen)
-         * Specification : http://mathworld.wolfram.com/HeavisideStepFunction.html
-         * if x > 0 then 1
-         * if x == 0 then 1/2
-         * if x < 0 then 0
-         */
-        step(x) {
-            if (x > 0) {
-                return 1;
-            }
-            if (x < 0) {
-                return 0;
-            }
-            return 0.5;
-        },
-        /*
-         * Rectangle function - Moved from Special.js (originally contributed by Brosnan Yuen)
-         * Specification : http://mathworld.wolfram.com/RectangleFunction.html
-         * if |x| > 1/2 then 0
-         * if |x| == 1/2 then 1/2
-         * if |x| < 1/2 then 1
-         */
-        rect(x) {
-            const absX = Math.abs(x);
-            if (absX === 0.5) {
-                return absX;
-            }
-            if (absX > 0.5) {
-                return 0;
-            }
-            return 1;
-        },
-        /*
-         * Sinc function - Moved from Special.js (originally contributed by Brosnan Yuen)
-         * Specification : http://mathworld.wolfram.com/SincFunction.html
-         * if x == 0 then 1
-         * otherwise sin(x)/x
-         */
-        sinc(x) {
-            if (x.equals(0)) {
-                return 1;
-            }
-            return Math.sin(x) / x;
-        },
-        /*
-         * Triangle function - Moved from Special.js (originally contributed by Brosnan Yuen)
-         * Specification : http://mathworld.wolfram.com/TriangleFunction.html
-         * if |x| >= 1 then 0
-         * if |x| < then 1-|x|
-         */
-        tri(x) {
-            x = Math.abs(x);
-            if (x >= 1) {
-                return 0;
-            }
-            return 1 - x;
-        },
-        // https://en.wikipedia.org/wiki/Nth_root_algorithm
-        nthroot(A, n) {
-            /* Make sure the input is of type Frac*/
-            if (!(A instanceof Frac)) {
-                A = new Frac(A.toString());
-            }
-            if (!(n instanceof Frac)) {
-                n = new Frac(n.toString());
-            }
-            if (n.equals(1)) {
-                return A;
-            }
-            /* Begin algorithm*/
-            let xk = A.divide(new Frac(2)); /* X0*/
-            const e = new Frac(1e-15);
-            let dk;
-            let dk0;
-            let d0;
-            const a = n.clone().invert();
-            const b = n.subtract(new Frac(1));
-            do {
-                const powb = Math2.bigpow(xk, b);
-                let dkDec = a.multiply(A.divide(powb).subtract(xk)).toDecimal(25);
-                dk = Frac.create(dkDec);
-                if (d0) {
-                    break;
-                }
-
-                xk = xk.add(dk);
-                /* Check to see if there's no change from the last xk*/
-                dkDec = dk.toDecimal();
-                d0 = dk0 ? dk0 === dkDec : false;
-                dk0 = dkDec;
-            } while (dk.abs().gte(e));
-
-            return xk;
-        },
-        /* https://gist.github.com/jiggzson/0c5b33cbcd7b52b36132b1e96573285f*/
-        /* Just the square root function but big :)*/
-        sqrt(n) {
-            if (!(n instanceof Frac)) {
-                n = new Frac(n);
-            }
-            let xn;
-            let d;
-            let ld;
-            let sameDelta;
-            let c = 0; /* Counter*/
-            let done = false;
-            const delta = new Frac(1e-20);
-            xn = n.divide(new Frac(2));
-            const safety = 1000;
-            do {
-                /* Break if we're not converging*/
-                if (c > safety) {
-                    throw new Error(`Unable to calculate square root for ${n}`);
-                }
-                xn = xn.add(n.divide(xn)).divide(new Frac(2));
-                xn = new Frac(xn.decimal(30));
-                /* Get the difference from the true square*/
-                d = n.subtract(xn.multiply(xn));
-                /* If the square of the calculated number is close enough to the number*/
-                /* we're getting the square root or the last delta was the same as the new delta*/
-                /* then we're done*/
-                sameDelta = ld ? ld.equals(d) : false;
-                if (d.clone().abs().lessThan(delta) || sameDelta) {
-                    done = true;
-                }
-                /* Store the calculated delta*/
-                ld = d;
-                c++; /* Increase the counter*/
-            } while (!done);
-
-            return xn;
-        },
-    };
     // Link the Math2 object to Settings.FUNCTION_MODULES
     Settings.FUNCTION_MODULES.push(Math2);
     reserveNames(/** @type {object} */ (Math2)); // Reserve the names in Math2
