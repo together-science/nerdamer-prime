@@ -7114,6 +7114,493 @@ function compare(sym1, sym2, vars) {
     return comparison;
 }
 
+// IsFraction Function =============================================================
+/**
+ * Checks to see if a number or NerdamerSymbol is a fraction
+ *
+ * @param {number | string | NerdamerSymbolType} num
+ * @returns {boolean}
+ */
+function isFraction(num) {
+    if (isSymbol(num)) {
+        return isFraction(/** @type {NerdamerSymbolType} */ (num).multiplier.toDecimal());
+    }
+    return Number(num) % 1 !== 0;
+}
+
+// ArraySum Function ===============================================================
+/**
+ * Dependency container for arraySum function.
+ *
+ * @type {{
+ *     _: any;
+ * }}
+ */
+const ArraySumDeps = {
+    _: null,
+};
+
+/**
+ * Returns the sum of an array
+ *
+ * @param {Array} arr
+ * @param {boolean} toNumber
+ * @returns {NerdamerSymbol | number}
+ */
+function arraySum(arr, toNumber) {
+    let sum = new NerdamerSymbol(0);
+    for (let i = 0; i < arr.length; i++) {
+        const x = arr[i];
+        // Convert to symbol if not
+        sum = ArraySumDeps._.add(sum, isSymbol(x) ? x : ArraySumDeps._.parse(x));
+    }
+
+    return toNumber ? Number(sum) : sum;
+}
+
+// AllConstants Function ===========================================================
+/**
+ * Checks if all arguments aren't just all numbers but if they are constants as well e.g. pi, e.
+ *
+ * @param {object} args
+ * @returns {boolean}
+ */
+function allConstants(args) {
+    for (let i = 0; i < args.length; i++) {
+        if (args[i].isPi() || args[i].isE()) {
+            continue;
+        }
+        if (!args[i].isConstant(true)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// FillHoles Function ==============================================================
+/**
+ * Fills holes in an array with zero symbol or generates one with n zeroes
+ *
+ * @param {Array} arr
+ * @param {number} n
+ */
+function fillHoles(arr, n) {
+    n ||= arr.length;
+    for (let i = 0; i < n; i++) {
+        const sym = arr[i];
+        if (!sym) {
+            arr[i] = new NerdamerSymbol(0);
+        }
+    }
+    return arr;
+}
+
+// IsNegative Function =============================================================
+/**
+ * @param {number | NerdamerSymbol} obj
+ * @returns {boolean}
+ */
+function isNegative(obj) {
+    if (isSymbol(obj)) {
+        return obj.multiplier.lessThan(0);
+    }
+    return obj < 0;
+}
+
+// Separate Function ===============================================================
+/**
+ * Dependency container for separate function.
+ *
+ * @type {{
+ *     _: any;
+ *     S: number;
+ *     FN: number;
+ *     EX: number;
+ *     ABS: string;
+ * }}
+ */
+const SeparateDeps = {
+    _: null,
+    S: 3,
+    FN: 5,
+    EX: 4,
+    ABS: 'abs',
+};
+
+/**
+ * Separates out the variables into terms of variables. e.g. x+y+x_y+sqrt(2)+pi returns {x: x, y: y, x y: x_y,
+ * constants: sqrt(2)+pi
+ *
+ * @param {any} symbol
+ * @param {any} o
+ * @returns {undefined}
+ * @throws {Error} For exponentials
+ */
+function separate(symbol, o) {
+    symbol = SeparateDeps._.expand(symbol);
+    o ||= {};
+    const insert = function (key, sym) {
+        o[key] ||= new NerdamerSymbol(0);
+        o[key] = SeparateDeps._.add(o[key], sym.clone());
+    };
+    symbol.each(x => {
+        if (x.isConstant('all')) {
+            insert('constants', x);
+        } else if (x.group === SeparateDeps.S) {
+            insert(x.value, x);
+        } else if (x.group === SeparateDeps.FN && (x.fname === SeparateDeps.ABS || x.fname === '')) {
+            separate(x.args[0]);
+        } else if (x.group === SeparateDeps.EX || x.group === SeparateDeps.FN) {
+            // Todo: gm: this occurs with sqrt(a+1)
+            // Do nothing - skip EX and FN groups
+        } else {
+            insert(variables(x).join(' '), x);
+        }
+    });
+
+    return o;
+}
+
+// DecomposeFn Function ============================================================
+/**
+ * Dependency container for decomposeFn function.
+ *
+ * @type {{
+ *     _: any;
+ *     CP: number;
+ * }}
+ */
+const DecomposeFnDeps = {
+    _: null,
+    CP: 8,
+};
+
+/**
+ * Breaks a function down into its parts wrt to a variable, mainly coefficients. Example: a*x^2+b wrt x
+ *
+ * @param {NerdamerSymbolType} fn
+ * @param {string} wrt
+ * @param {boolean} asObj
+ */
+function decomposeFn(fn, wrt, asObj) {
+    wrt = String(wrt); // Convert to string
+    let ax;
+    let b;
+    if (fn.group === DecomposeFnDeps.CP) {
+        const t = DecomposeFnDeps._.expand(fn.clone()).stripVar(wrt);
+        ax = DecomposeFnDeps._.subtract(fn.clone(), t.clone());
+        b = t;
+    } else {
+        ax = fn.clone();
+    }
+    const a = ax.stripVar(wrt);
+    const x = DecomposeFnDeps._.divide(ax.clone(), a.clone());
+    b ||= new NerdamerSymbol(0);
+    if (asObj) {
+        return {
+            a,
+            x,
+            ax,
+            b,
+        };
+    }
+    return [a, x, ax, b];
+}
+
+// Mix Function ====================================================================
+/**
+ * Dependency container for mix function.
+ *
+ * @type {{
+ *     _: any;
+ * }}
+ */
+const MixDeps = {
+    _: null,
+};
+
+/**
+ * Used to multiply two expressions in expanded form
+ *
+ * @param {NerdamerSymbolType} a
+ * @param {NerdamerSymbolType} b
+ */
+function mix(a, b, opt) {
+    // Flip them if b is a CP or PL and a is not
+    if ((b.isComposite() && !a.isComposite()) || (b.isLinear() && !a.isLinear())) {
+        [a, b] = [b, a];
+    }
+    // A temporary variable to hold the expanded terms
+    let t = new NerdamerSymbol(0);
+    if (a.isLinear()) {
+        a.each(x => {
+            // If b is not a PL or a CP then simply multiply it
+            if (!b.isComposite()) {
+                const term = MixDeps._.multiply(MixDeps._.parse(x), MixDeps._.parse(b));
+                t = MixDeps._.add(t, MixDeps._.expand(term, opt));
+            }
+            // Otherwise multiply out each term.
+            else if (b.isLinear()) {
+                b.each(y => {
+                    const term = MixDeps._.multiply(MixDeps._.parse(x), MixDeps._.parse(y));
+                    const expanded = MixDeps._.expand(MixDeps._.parse(term), opt);
+                    t = MixDeps._.add(t, expanded);
+                }, true);
+            } else {
+                t = MixDeps._.add(t, MixDeps._.multiply(x, MixDeps._.parse(b)));
+            }
+        }, true);
+    } else {
+        // Just multiply them together
+        t = MixDeps._.multiply(a, b);
+    }
+
+    // The expanded function is now t
+    return t;
+}
+
+// ConvertToVector Function ========================================================
+/**
+ * Dependency container for convertToVector function.
+ *
+ * @type {{
+ *     _: any;
+ * }}
+ */
+const ConvertToVectorDeps = {
+    _: null,
+};
+
+/**
+ * Converts an array to a vector. Consider moving this to Vector.fromArray
+ *
+ * @param {string[] | string | NerdamerSymbol | number | number[]} x
+ */
+function convertToVector(x) {
+    if (isArray(x)) {
+        const vector = new Vector([]);
+        for (let i = 0; i < x.length; i++) {
+            vector.elements.push(convertToVector(x[i]));
+        }
+        return vector;
+    }
+    // Ensure that a nerdamer ready object is returned
+    if (!isSymbol(x)) {
+        return ConvertToVectorDeps._.parse(x);
+    }
+    return x;
+}
+
+// ArrayGetVariables Function ======================================================
+/**
+ * Gets all the variables in an array of Symbols
+ *
+ * @param {NerdamerSymbol[]} arr
+ */
+function arrayGetVariables(arr) {
+    let vars = variables(arr[0], null, null);
+
+    // Get all variables
+    for (let i = 1, l = arr.length; i < l; i++) {
+        vars = vars.concat(variables(arr[i]));
+    }
+    // Remove duplicates
+    vars = arrayUnique(vars).sort();
+
+    // Done
+    return vars;
+}
+
+// GetU Function ===================================================================
+/**
+ * Dependency container for getU function.
+ *
+ * @type {{
+ *     RESERVED: string[];
+ * }}
+ */
+const GetUDeps = {
+    RESERVED: [],
+};
+
+/**
+ * Is used for u-substitution. Gets a suitable u for substitution. If for instance a is used in the symbol then it keeps
+ * going down the line until one is found that's not in use. If all letters are taken then it starts appending numbers.
+ * IMPORTANT! It assumes that the substitution will be undone before the user gets to interact with the object again.
+ *
+ * @param {NerdamerSymbolType} symbol
+ */
+function getU(symbol) {
+    // Start with u
+    const u = 'u'; // Start with u
+    let v = u; // Init with u
+    let c = 0; // Postfix number
+    const vars = variables(symbol);
+    // Make sure this variable isn't reserved and isn't in the variable list
+    while (!(GetUDeps.RESERVED.indexOf(v) === -1 && vars.indexOf(v) === -1)) {
+        v = u + c++;
+    }
+    // Get an empty slot. It seems easier to just push but the
+    // problem is that we may have some which are created by clearU
+    for (
+        let i = 0, l = GetUDeps.RESERVED.length;
+        i <= l;
+        i++ // Reserved cannot equals false or 0 so we can safely check for a falsy type
+    ) {
+        if (!GetUDeps.RESERVED[i]) {
+            GetUDeps.RESERVED[i] = v; // Reserve the variable
+            break;
+        }
+    }
+    return v;
+}
+
+// _setFunction Function ===========================================================
+/**
+ * Dependency container for _setFunction function.
+ *
+ * @type {{
+ *     _: any;
+ *     C: any;
+ *     USER_FUNCTIONS: string[];
+ * }}
+ */
+const InternalSetFunctionDeps = {
+    _: null,
+    C: null,
+    USER_FUNCTIONS: [],
+};
+
+/**
+ * Is used to set a user defined function using the function assign operator and also is used to set a user defined
+ * JavaScript function using the function assign operator
+ *
+ * @param {string | Function} fnName
+ * @param {string[]} [fnParams]
+ * @param {string} [fnBody]
+ * @returns {boolean}
+ */
+function _setFunction(fnName, fnParams, fnBody) {
+    if (!fnParams) {
+        const fnNameType = typeof fnName;
+
+        // Option setFunction('f(x)=x^2+2'), setFunction('f(x):=x^2+2')
+        if (fnNameType === 'string') {
+            const fnNameStr = /** @type {string} */ (fnName);
+            if (!/:?=/u.test(fnNameStr)) {
+                return false;
+            }
+
+            const match = Settings.FUNCTION_REGEX.exec(fnNameStr);
+            if (!match) {
+                return false;
+            }
+            const [, fName, fParams, fBody] = match;
+            fnName = fName;
+            fnParams = fParams.split(',').map(arg => arg.trim());
+            fnBody = fBody;
+        }
+
+        // Option setFunction(function fox(x) { return x^2; })
+        else if (fnNameType === 'function') {
+            const jsFunction = /** @type {Function} */ (fnName);
+            const jsName = jsFunction.name;
+            validateName(jsName);
+            if (!isReserved(jsName)) {
+                InternalSetFunctionDeps.C.Math2[jsName] = jsFunction;
+                InternalSetFunctionDeps._.functions[jsName] = [undefined, jsFunction.length];
+
+                if (!InternalSetFunctionDeps.USER_FUNCTIONS.includes(jsName)) {
+                    InternalSetFunctionDeps.USER_FUNCTIONS.push(jsName);
+                }
+                return true;
+            }
+            return false;
+        } else {
+            return false;
+        }
+    }
+
+    fnName = /** @type {string} */ (fnName).trim();
+    validateName(fnName);
+
+    // Option setFunction('f(x)', ['x'], 'x^2+2') or setFunction('f(x)=x^2+2'), setFunction('f(x):=x^2+2')
+    if (!isReserved(fnName)) {
+        fnParams ||= variables(InternalSetFunctionDeps._.parse(fnBody));
+        fnParams = fnParams.map(p => p.trim());
+        // The function gets set to PARSER.mapped function which is just
+        // a generic function call.
+        InternalSetFunctionDeps._.functions[/** @type {string} */ (fnName)] = [
+            InternalSetFunctionDeps._.mappedFunction,
+            fnParams.length,
+            {
+                name: fnName,
+                params: fnParams,
+                body: fnBody,
+            },
+        ];
+
+        if (!InternalSetFunctionDeps.USER_FUNCTIONS.includes(fnName)) {
+            InternalSetFunctionDeps.USER_FUNCTIONS.push(fnName);
+        }
+
+        return true;
+    }
+    return false;
+}
+
+// _clearFunctions Function ========================================================
+/**
+ * Dependency container for _clearFunctions function.
+ *
+ * @type {{
+ *     _: any;
+ *     C: any;
+ *     USER_FUNCTIONS: string[];
+ * }}
+ */
+const ClearFunctionsDeps = {
+    _: null,
+    C: null,
+    USER_FUNCTIONS: [],
+};
+
+/** Clears all user defined functions */
+function _clearFunctions() {
+    for (const name of ClearFunctionsDeps.USER_FUNCTIONS) {
+        delete ClearFunctionsDeps.C.Math2[name];
+        delete ClearFunctionsDeps._.functions[name];
+    }
+}
+
+// ImportFunctions Function ========================================================
+/**
+ * Dependency container for importFunctions function.
+ *
+ * @type {{
+ *     _: any;
+ * }}
+ */
+const ImportFunctionsDeps = {
+    _: null,
+};
+
+/**
+ * Provide a mechanism for accessing functions directly. Not yet complete!!! Some functions will return undefined. This
+ * can maybe just remove the function object at some point when all functions are eventually housed in the global
+ * function object. Returns ALL parser available functions. Parser.functions may not contain all functions
+ */
+function importFunctions() {
+    const o = {};
+    for (const x in ImportFunctionsDeps._.functions) {
+        if (!Object.hasOwn(ImportFunctionsDeps._.functions, x)) {
+            continue;
+        }
+        o[x] = ImportFunctionsDeps._.functions[x][0];
+    }
+    return o;
+}
+
 // Text Function ==================================================================
 /**
  * Dependency container for text function. These are initialized later once they're available inside the IIFE.
@@ -9452,18 +9939,7 @@ const nerdamer = (function initNerdamerCore(imports) {
 
     // GeneratePrimes is now defined outside IIFE (uses PrimeFactorsDeps)
 
-    /**
-     * Checks to see if a number or NerdamerSymbol is a fraction
-     *
-     * @param {number | string | NerdamerSymbolType} num
-     * @returns {boolean}
-     */
-    const isFraction = function (num) {
-        if (isSymbol(num)) {
-            return isFraction(/** @type {NerdamerSymbolType} */ (num).multiplier.toDecimal());
-        }
-        return Number(num) % 1 !== 0;
-    };
+    // isFraction is now defined outside IIFE
 
     // IsSymbol is now defined outside the IIFE (see above)
 
@@ -9478,74 +9954,17 @@ const nerdamer = (function initNerdamerCore(imports) {
     VariablesDeps.PL = PL;
     VariablesDeps.FN = FN;
 
-    /**
-     * Returns the sum of an array
-     *
-     * @param {Array} arr
-     * @param {boolean} toNumber
-     * @returns {NerdamerSymbol | number}
-     */
-    const arraySum = function (arr, toNumber) {
-        let sum = new NerdamerSymbol(0);
-        for (let i = 0; i < arr.length; i++) {
-            const x = arr[i];
-            // Convert to symbol if not
-            sum = _.add(sum, isSymbol(x) ? x : _.parse(x));
-        }
+    // ArraySum is now defined outside IIFE
+    // ArraySumDeps._ is set after parser initialization
 
-        return toNumber ? Number(sum) : sum;
-    };
+    // separate is now defined outside IIFE
+    // Initialize SeparateDeps with group constants
+    SeparateDeps.S = S;
+    SeparateDeps.FN = FN;
+    SeparateDeps.EX = EX;
+    SeparateDeps.ABS = ABS;
 
-    /**
-     * Separates out the variables into terms of variabls. e.g. x+y+x_y+sqrt(2)+pi returns {x: x, y: y, x y: x_y,
-     * constants: sqrt(2)+pi
-     *
-     * @param {any} symbol
-     * @param {any} o
-     * @returns {undefined}
-     * @throws {Error} For exponentials
-     */
-    const separate = function (symbol, o) {
-        symbol = _.expand(symbol);
-        o ||= {};
-        const insert = function (key, sym) {
-            o[key] ||= new NerdamerSymbol(0);
-            o[key] = _.add(o[key], sym.clone());
-        };
-        symbol.each(x => {
-            if (x.isConstant('all')) {
-                insert('constants', x);
-            } else if (x.group === S) {
-                insert(x.value, x);
-            } else if (x.group === FN && (x.fname === ABS || x.fname === '')) {
-                separate(x.args[0]);
-            } else if (x.group === EX || x.group === FN) {
-                // Todo: gm: this occurs with sqrt(a+1)
-                // Do nothing - skip EX and FN groups
-            } else {
-                insert(variables(x).join(' '), x);
-            }
-        });
-
-        return o;
-    };
-
-    /**
-     * Fills holes in an array with zero symbol or generates one with n zeroes
-     *
-     * @param {Array} arr
-     * @param {number} n
-     */
-    const fillHoles = function (arr, n) {
-        n ||= arr.length;
-        for (let i = 0; i < n; i++) {
-            const sym = arr[i];
-            if (!sym) {
-                arr[i] = new NerdamerSymbol(0);
-            }
-        }
-        return arr;
-    };
+    // FillHoles is now defined outside IIFE
 
     // IsVector is now defined outside IIFE
 
@@ -9564,16 +9983,8 @@ const nerdamer = (function initNerdamerCore(imports) {
     // Initialize IsVariableSymbolDeps with Groups constants
     IsVariableSymbolDeps.S = S;
 
-    /**
-     * @param {number | NerdamerSymbol} obj
-     * @returns {boolean}
-     */
-    const isNegative = function (obj) {
-        if (isSymbol(obj)) {
-            return obj.multiplier.lessThan(0);
-        }
-        return obj < 0;
-    };
+    // IsNegative is now defined outside IIFE
+
     /**
      * A helper function to replace parts of string
      *
@@ -9603,182 +10014,28 @@ const nerdamer = (function initNerdamerCore(imports) {
     // compare is now defined outside IIFE
     // CompareDeps._ is set after parser initialization
 
-    /**
-     * Is used to set a user defined function using the function assign operator and also is used to set a user defined
-     * JavaScript function using the function assign operator
-     *
-     * @param {string | Function} fnName
-     * @param {string[]} [fnParams]
-     * @param {string} [fnBody]
-     * @returns {boolean}
-     */
-    const _setFunction = function (fnName, fnParams, fnBody) {
-        if (!fnParams) {
-            const fnNameType = typeof fnName;
+    // _setFunction is now defined outside IIFE
+    // SetFunctionDeps._, SetFunctionDeps.C, SetFunctionDeps.USER_FUNCTIONS are set after parser initialization
 
-            // Option setFunction('f(x)=x^2+2'), setFunction('f(x):=x^2+2')
-            if (fnNameType === 'string') {
-                const fnNameStr = /** @type {string} */ (fnName);
-                if (!/:?=/u.test(fnNameStr)) {
-                    return false;
-                }
-
-                const match = Settings.FUNCTION_REGEX.exec(fnNameStr);
-                if (!match) {
-                    return false;
-                }
-                const [, fName, fParams, fBody] = match;
-                fnName = fName;
-                fnParams = fParams.split(',').map(arg => arg.trim());
-                fnBody = fBody;
-            }
-
-            // Option setFunction(function fox(x) { return x^2; })
-            else if (fnNameType === 'function') {
-                const jsFunction = /** @type {Function} */ (fnName);
-                const jsName = jsFunction.name;
-                validateName(jsName);
-                if (!isReserved(jsName)) {
-                    C.Math2[jsName] = jsFunction;
-                    _.functions[jsName] = [undefined, jsFunction.length];
-
-                    if (!USER_FUNCTIONS.includes(jsName)) {
-                        USER_FUNCTIONS.push(jsName);
-                    }
-                    return true;
-                }
-                return false;
-            } else {
-                return false;
-            }
-        }
-
-        fnName = /** @type {string} */ (fnName).trim();
-        validateName(fnName);
-
-        // Option setFunction('f(x)', ['x'], 'x^2+2') or setFunction('f(x)=x^2+2'), setFunction('f(x):=x^2+2')
-        if (!isReserved(fnName)) {
-            fnParams ||= variables(_.parse(fnBody));
-            fnParams = fnParams.map(p => p.trim());
-            // The function gets set to PARSER.mapped function which is just
-            // a generic function call.
-            _.functions[/** @type {string} */ (fnName)] = [
-                _.mappedFunction,
-                fnParams.length,
-                {
-                    name: fnName,
-                    params: fnParams,
-                    body: fnBody,
-                },
-            ];
-
-            if (!USER_FUNCTIONS.includes(fnName)) {
-                USER_FUNCTIONS.push(fnName);
-            }
-
-            return true;
-        }
-        return false;
-    };
-
-    /** Clears all user defined functions */
-    const _clearFunctions = function () {
-        for (const name of USER_FUNCTIONS) {
-            delete C.Math2[name];
-            delete _.functions[name];
-        }
-    };
+    // _clearFunctions is now defined outside IIFE
+    // ClearFunctionsDeps._, ClearFunctionsDeps.C, ClearFunctionsDeps.USER_FUNCTIONS are set after parser initialization
 
     // Nroots is now defined outside IIFE
     // NrootsDeps._ and NrootsDeps.format are set after parser initialization
 
-    /**
-     * TODO: Pick a more descriptive name and better description Breaks a function down into it's parts wrt to a
-     * variable, mainly coefficients Example a*x^2+b wrt x
-     *
-     * @param {NerdamerSymbolType} fn
-     * @param {string} wrt
-     * @param {boolean} asObj
-     */
-    const decomposeFn = function (fn, wrt, asObj) {
-        wrt = String(wrt); // Convert to string
-        let ax;
-        let b;
-        if (fn.group === CP) {
-            const t = _.expand(fn.clone()).stripVar(wrt);
-            ax = _.subtract(fn.clone(), t.clone());
-            b = t;
-        } else {
-            ax = fn.clone();
-        }
-        const a = ax.stripVar(wrt);
-        const x = _.divide(ax.clone(), a.clone());
-        b ||= new NerdamerSymbol(0);
-        if (asObj) {
-            return {
-                a,
-                x,
-                ax,
-                b,
-            };
-        }
-        return [a, x, ax, b];
-    };
-    /**
-     * Is used for u-substitution. Gets a suitable u for substitution. If for instance a is used in the symbol then it
-     * keeps going down the line until one is found that's not in use. If all letters are taken then it starts appending
-     * numbers. IMPORTANT! It assumes that the substitution will be undone beore the user gets to interact with the
-     * object again.
-     *
-     * @param {NerdamerSymbolType} symbol
-     */
-    const getU = function (symbol) {
-        // Start with u
-        const u = 'u'; // Start with u
-        let v = u; // Init with u
-        let c = 0; // Postfix number
-        const vars = variables(symbol);
-        // Make sure this variable isn't reserved and isn't in the variable list
-        while (!(RESERVED.indexOf(v) === -1 && vars.indexOf(v) === -1)) {
-            v = u + c++;
-        }
-        // Get an empty slot. It seems easier to just push but the
-        // problem is that we may have some which are created by clearU
-        for (
-            let i = 0, l = RESERVED.length;
-            i <= l;
-            i++ // Reserved cannot equals false or 0 so we can safely check for a falsy type
-        ) {
-            if (!RESERVED[i]) {
-                RESERVED[i] = v; // Reserve the variable
-                break;
-            }
-        }
-        return v;
-    };
+    // decomposeFn is now defined outside IIFE
+    // DecomposeFnDeps._ and DecomposeFnDeps.CP are set after parser initialization
+    DecomposeFnDeps.CP = CP;
+
+    // GetU is now defined outside IIFE
+    // Initialize GetUDeps with RESERVED array reference
+    GetUDeps.RESERVED = RESERVED;
 
     // ClearU is now defined outside IIFE
     // Initialize ClearUDeps with RESERVED array reference
     ClearUDeps.RESERVED = RESERVED;
 
-    /**
-     * Gets all the variables in an array of Symbols
-     *
-     * @param {NerdamerSymbol[]} arr
-     */
-    const arrayGetVariables = function (arr) {
-        let vars = variables(arr[0], null, null);
-
-        // Get all variables
-        for (let i = 1, l = arr.length; i < l; i++) {
-            vars = vars.concat(variables(arr[i]));
-        }
-        // Remove duplicates
-        vars = arrayUnique(vars).sort();
-
-        // Done
-        return vars;
-    };
+    // ArrayGetVariables is now defined outside IIFE
 
     // ReserveNames is now defined outside IIFE
     // Initialize ReserveNamesDeps with RESERVED array reference
@@ -9788,21 +10045,8 @@ const nerdamer = (function initNerdamerCore(imports) {
     // Initialize BlockDeps with Settings reference
     BlockDeps.Settings = Settings;
 
-    /**
-     * Provide a mechanism for accessing functions directly. Not yet complete!!! Some functions will return undefined.
-     * This can maybe just remove the function object at some point when all functions are eventually housed in the
-     * global function object. Returns ALL parser available functions. Parser.functions may not contain all functions
-     */
-    const importFunctions = function () {
-        const o = {};
-        for (const x in _.functions) {
-            if (!Object.hasOwn(_.functions, x)) {
-                continue;
-            }
-            o[x] = _.functions[x][0];
-        }
-        return o;
-    };
+    // ImportFunctions is now defined outside IIFE
+    // ImportFunctionsDeps._ is set after parser initialization
 
     // GetCoeffs is now defined outside IIFE
     // GetCoeffsDeps._ is set after parser initialization (see below where _ is assigned)
@@ -9810,25 +10054,8 @@ const nerdamer = (function initNerdamerCore(imports) {
     // Evaluate is now defined outside IIFE
     // EvaluateDeps._ is set after parser initialization (see below where _ is assigned)
 
-    /**
-     * Converts an array to a vector. Consider moving this to Vector.fromArray
-     *
-     * @param {string[] | string | NerdamerSymbol | number | number[]} x
-     */
-    const convertToVector = function (x) {
-        if (isArray(x)) {
-            const vector = new Vector([]);
-            for (let i = 0; i < x.length; i++) {
-                vector.elements.push(convertToVector(x[i]));
-            }
-            return vector;
-        }
-        // Ensure that a nerdamer ready object is returned
-        if (!isSymbol(x)) {
-            return _.parse(x);
-        }
-        return x;
-    };
+    // convertToVector is now defined outside IIFE
+    // ConvertToVectorDeps._ is set after parser initialization
 
     // GeneratePrimes is now defined outside IIFE
 
@@ -9836,62 +10063,10 @@ const nerdamer = (function initNerdamerCore(imports) {
     // Initialize AllNumbersDeps with Groups constants
     AllNumbersDeps.N = N;
 
-    /*
-     * Checks if all arguments aren't just all number but if they
-     * are constants as well e.g. pi, e.
-     * @param {object} args
-     */
-    const allConstants = function (args) {
-        for (let i = 0; i < args.length; i++) {
-            if (args[i].isPi() || args[i].isE()) {
-                continue;
-            }
-            if (!args[i].isConstant(true)) {
-                return false;
-            }
-        }
-        return true;
-    };
+    // AllConstants is now defined outside IIFE
 
-    /**
-     * Used to multiply two expression in expanded form
-     *
-     * @param {NerdamerSymbolType} a
-     * @param {NerdamerSymbolType} b
-     */
-    const mix = function (a, b, opt) {
-        // Flip them if b is a CP or PL and a is not
-        if ((b.isComposite() && !a.isComposite()) || (b.isLinear() && !a.isLinear())) {
-            [a, b] = [b, a];
-        }
-        // A temporary variable to hold the expanded terms
-        let t = new NerdamerSymbol(0);
-        if (a.isLinear()) {
-            a.each(x => {
-                // If b is not a PL or a CP then simply multiply it
-                if (!b.isComposite()) {
-                    const term = _.multiply(_.parse(x), _.parse(b));
-                    t = _.add(t, _.expand(term, opt));
-                }
-                // Otherwise multiply out each term.
-                else if (b.isLinear()) {
-                    b.each(y => {
-                        const term = _.multiply(_.parse(x), _.parse(y));
-                        const expanded = _.expand(_.parse(term), opt);
-                        t = _.add(t, expanded);
-                    }, true);
-                } else {
-                    t = _.add(t, _.multiply(x, _.parse(b)));
-                }
-            }, true);
-        } else {
-            // Just multiply them together
-            t = _.multiply(a, b);
-        }
-
-        // The expanded function is now t
-        return t;
-    };
+    // mix is now defined outside IIFE
+    // MixDeps._ is set after parser initialization
 
     // Exceptions ===================================================================
     // All error classes are defined outside IIFE for proper TypeScript type inference:
@@ -15813,6 +15988,42 @@ const nerdamer = (function initNerdamerCore(imports) {
     NrootsDeps._ = _;
     // Initialize CompareDeps._ now that Parser is created
     CompareDeps._ = _;
+    // Initialize ArraySumDeps._ now that Parser is created
+    ArraySumDeps._ = _;
+    // Initialize SeparateDeps._ now that Parser is created
+    SeparateDeps._ = _;
+    // Initialize DecomposeFnDeps._ now that Parser is created
+    DecomposeFnDeps._ = _;
+    // Initialize MixDeps._ now that Parser is created
+    MixDeps._ = _;
+    // Initialize ConvertToVectorDeps._ now that Parser is created
+    ConvertToVectorDeps._ = _;
+    // Initialize ImportFunctionsDeps._ now that Parser is created
+    ImportFunctionsDeps._ = _;
+    // Initialize InternalSetFunctionDeps now that Parser is created
+    InternalSetFunctionDeps._ = _;
+    // Use getter for C since it's defined later
+    Object.defineProperty(InternalSetFunctionDeps, 'C', {
+        get: () => C,
+        configurable: true,
+    });
+    // Use getter for USER_FUNCTIONS since it's an array that gets modified
+    Object.defineProperty(InternalSetFunctionDeps, 'USER_FUNCTIONS', {
+        get: () => USER_FUNCTIONS,
+        configurable: true,
+    });
+    // Initialize ClearFunctionsDeps now that Parser is created
+    ClearFunctionsDeps._ = _;
+    // Use getter for C since it's defined later
+    Object.defineProperty(ClearFunctionsDeps, 'C', {
+        get: () => C,
+        configurable: true,
+    });
+    // Use getter for USER_FUNCTIONS since it's an array that gets modified
+    Object.defineProperty(ClearFunctionsDeps, 'USER_FUNCTIONS', {
+        get: () => USER_FUNCTIONS,
+        configurable: true,
+    });
 
     // Initialize ExpressionDeps._ now that Parser is created
     // Note: ExpressionDeps.Build is initialized later after Build is defined
