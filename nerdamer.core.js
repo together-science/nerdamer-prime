@@ -4000,6 +4000,510 @@ Vector.prototype = {
     },
 };
 
+// Matrix Class =====================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via MatrixDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for Matrix class. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     Frac: typeof Frac;
+ *     NerdamerSymbol: any;
+ *     Vector: typeof Vector;
+ *     isMatrix: (x: any) => boolean;
+ *     isVector: (x: any) => boolean;
+ *     isArray: (x: any) => boolean;
+ *     isSymbol: (x: any) => boolean;
+ *     block: Function;
+ *     _: any;
+ *     err: Function;
+ *     LaTeX: any;
+ * }}
+ */
+const MatrixDeps = {
+    Frac,
+    NerdamerSymbol: /** @type {any} */ (null),
+    Vector,
+    isMatrix: () => false,
+    isVector: () => false,
+    isArray,
+    isSymbol: () => false,
+    block,
+    _: /** @type {any} */ (null),
+    err: () => {},
+    LaTeX: /** @type {any} */ (null),
+};
+
+/**
+ * @class
+ * @param {...any} args
+ */
+function Matrix(...args) {
+    this.multiplier = new MatrixDeps.Frac(1);
+    const m = args;
+    const l = m.length;
+    let i;
+    const el = [];
+    if (MatrixDeps.isMatrix(m)) {
+        // If it's a matrix then make a clone
+        for (i = 0; i < l; i++) {
+            el.push(m[i].slice(0));
+        }
+    } else {
+        let row;
+        let lw;
+        let rl;
+        for (i = 0; i < l; i++) {
+            row = m[i];
+            if (MatrixDeps.isVector(row)) {
+                row = row.elements;
+            }
+            if (!MatrixDeps.isArray(row)) {
+                row = [row];
+            }
+            rl = row.length;
+            if (lw && lw !== rl) {
+                MatrixDeps.err('Unable to create Matrix. Row dimensions do not match!');
+            }
+            el.push(row);
+            lw = rl;
+        }
+    }
+    this.elements = el;
+}
+Matrix.identity = function identity(n) {
+    const m = new Matrix();
+    for (let i = 0; i < n; i++) {
+        m.elements.push([]);
+        for (let j = 0; j < n; j++) {
+            m.set(i, j, i === j ? new MatrixDeps.NerdamerSymbol(1) : new MatrixDeps.NerdamerSymbol(0));
+        }
+    }
+    return m;
+};
+Matrix.fromArray = function fromArray(arr) {
+    /** @class */
+    function F(args) {
+        return Matrix.apply(this, args);
+    }
+    F.prototype = Matrix.prototype;
+
+    return new F(arr);
+};
+Matrix.zeroMatrix = function zeroMatrix(rows, cols) {
+    const m = new Matrix();
+    for (let i = 0; i < rows; i++) {
+        m.elements.push(MatrixDeps.Vector.arrayPrefill(cols, new MatrixDeps.NerdamerSymbol(0)));
+    }
+    return m;
+};
+Matrix.prototype = {
+    // Needs be true to let the parser know not to try to cast it to a symbol
+    custom: true,
+    get(row, column) {
+        if (!this.elements[row]) {
+            return undefined;
+        }
+        return this.elements[row][column];
+    },
+    map(f, rawValues) {
+        const M = new Matrix();
+        this.each((e, i, j) => {
+            M.set(i, j, f.call(M, e), rawValues);
+        });
+        return M;
+    },
+    set(row, column, value, raw) {
+        this.elements[row] ||= [];
+        if (raw || MatrixDeps.isSymbol(value)) {
+            this.elements[row][column] = value;
+        } else {
+            this.elements[row][column] = new MatrixDeps.NerdamerSymbol(value);
+        }
+    },
+    cols() {
+        return this.elements[0].length;
+    },
+    rows() {
+        return this.elements.length;
+    },
+    row(n) {
+        if (!n || n > this.cols()) {
+            return [];
+        }
+        return this.elements[n - 1];
+    },
+    col(n) {
+        const nr = this.rows();
+        const col = [];
+        if (n > this.cols() || !n) {
+            return col;
+        }
+        for (let i = 0; i < nr; i++) {
+            col.push(this.elements[i][n - 1]);
+        }
+        return col;
+    },
+    eachElement(fn) {
+        const nr = this.rows();
+        const nc = this.cols();
+        let i;
+        let j;
+        for (i = 0; i < nr; i++) {
+            for (j = 0; j < nc; j++) {
+                fn.call(this, this.elements[i][j], i, j);
+            }
+        }
+    },
+    // Ported from Sylvester.js
+    determinant() {
+        if (!this.isSquare()) {
+            return null;
+        }
+        const M = this.toRightTriangular();
+        let det = M.elements[0][0];
+        let n = M.elements.length - 1;
+        const k = n;
+        let i;
+        do {
+            i = k - n + 1;
+            det = MatrixDeps._.multiply(det, M.elements[i][i]);
+        } while (--n);
+        return det;
+    },
+    isSquare() {
+        return this.elements.length === this.elements[0].length;
+    },
+    isSingular() {
+        return this.isSquare() && this.determinant() === 0;
+    },
+    augment(m) {
+        const r = this.rows();
+        const rr = m.rows();
+        if (r !== rr) {
+            MatrixDeps.err("Cannot augment matrix. Rows don't match.");
+        }
+        for (let i = 0; i < r; i++) {
+            this.elements[i] = this.elements[i].concat(m.elements[i]);
+        }
+
+        return this;
+    },
+    clone() {
+        const r = this.rows();
+        const c = this.cols();
+        const m = new Matrix();
+        for (let i = 0; i < r; i++) {
+            m.elements[i] = [];
+            for (let j = 0; j < c; j++) {
+                const symbol = this.elements[i][j];
+                m.elements[i][j] = MatrixDeps.isSymbol(symbol) ? symbol.clone() : symbol;
+            }
+        }
+        return m;
+    },
+    toUnitMultiplier() {
+        return this;
+    },
+    expand(options) {
+        this.eachElement(e => MatrixDeps._.expand(e, options));
+        return this;
+    },
+    evaluate(options) {
+        this.eachElement(e => MatrixDeps._.evaluate(e, options));
+        return this;
+    },
+
+    // Ported from Sylvester.js
+    invert() {
+        if (!this.isSquare()) {
+            MatrixDeps.err('Matrix is not square!');
+        }
+        return MatrixDeps.block(
+            'SAFE',
+            () => {
+                let ni = this.elements.length;
+                const ki = ni;
+                let i;
+                let j;
+                const imatrix = Matrix.identity(ni);
+                const M = this.augment(imatrix).toRightTriangular();
+                let np;
+                const kp = M.elements[0].length;
+                let p;
+                let els;
+                let divisor;
+                const inverseElements = [];
+                let newElement;
+                // Matrix is non-singular so there will be no zeros on the diagonal
+                // Cycle through rows from last to first
+                do {
+                    i = ni - 1;
+                    // First, normalise diagonal elements to 1
+                    els = [];
+                    np = kp;
+                    inverseElements[i] = [];
+                    divisor = M.elements[i][i];
+                    do {
+                        p = kp - np;
+                        newElement = MatrixDeps._.divide(M.elements[i][p], divisor.clone());
+                        els.push(newElement);
+                        // Shuffle of the current row of the right hand side into the results
+                        // array as it will not be modified by later runs through this loop
+                        if (p >= ki) {
+                            inverseElements[i].push(newElement);
+                        }
+                    } while (--np);
+                    M.elements[i] = els;
+                    // Then, subtract this row from those above it to
+                    // give the identity matrix on the left hand side
+                    for (j = 0; j < i; j++) {
+                        els = [];
+                        np = kp;
+                        do {
+                            p = kp - np;
+                            els.push(
+                                MatrixDeps._.subtract(
+                                    M.elements[j][p].clone(),
+                                    MatrixDeps._.multiply(M.elements[i][p].clone(), M.elements[j][i].clone())
+                                )
+                            );
+                        } while (--np);
+                        M.elements[j] = els;
+                    }
+                } while (--ni);
+                return Matrix.fromArray(inverseElements);
+            },
+            undefined,
+            this
+        );
+    },
+    // Ported from Sylvester.js
+    toRightTriangular() {
+        return MatrixDeps.block(
+            'SAFE',
+            () => {
+                const M = this.clone();
+                let els;
+                let fel;
+                let nel;
+                let n = this.elements.length;
+                const k = n;
+                let i;
+                let np;
+                const kp = this.elements[0].length;
+                let p;
+                do {
+                    i = k - n;
+                    fel = M.elements[i][i];
+                    if (fel.valueOf() === 0) {
+                        for (let j = i + 1; j < k; j++) {
+                            nel = M.elements[j][i];
+                            if (nel && nel.valueOf() !== 0) {
+                                els = [];
+                                np = kp;
+                                do {
+                                    p = kp - np;
+                                    els.push(MatrixDeps._.add(M.elements[i][p].clone(), M.elements[j][p].clone()));
+                                } while (--np);
+                                M.elements[i] = els;
+                                break;
+                            }
+                        }
+                    }
+                    fel = M.elements[i][i];
+                    if (fel.valueOf() !== 0) {
+                        for (let j = i + 1; j < k; j++) {
+                            const multiplier = MatrixDeps._.divide(M.elements[j][i].clone(), M.elements[i][i].clone());
+                            els = [];
+                            np = kp;
+                            do {
+                                p = kp - np;
+                                // Elements with column numbers up to an including the number
+                                // of the row that we're subtracting can safely be set straight to
+                                // zero, since that's the point of this routine and it avoids having
+                                // to loop over and correct rounding errors later
+                                els.push(
+                                    p <= i
+                                        ? new MatrixDeps.NerdamerSymbol(0)
+                                        : MatrixDeps._.subtract(
+                                              M.elements[j][p].clone(),
+                                              MatrixDeps._.multiply(M.elements[i][p].clone(), multiplier.clone())
+                                          )
+                                );
+                            } while (--np);
+                            M.elements[j] = els;
+                        }
+                    }
+                } while (--n);
+
+                return M;
+            },
+            undefined,
+            this
+        );
+    },
+    transpose() {
+        const rows = this.elements.length;
+        const cols = this.elements[0].length;
+        const M = new Matrix();
+        let ni = cols;
+        let i;
+        let nj;
+        let j;
+
+        do {
+            i = cols - ni;
+            M.elements[i] = [];
+            nj = rows;
+            do {
+                j = rows - nj;
+                M.elements[i][j] = this.elements[j][i].clone();
+            } while (--nj);
+        } while (--ni);
+        return M;
+    },
+    // Returns true if the matrix can multiply the argument from the left
+    canMultiplyFromLeft(matrix) {
+        const l = MatrixDeps.isMatrix(matrix) ? matrix.elements.length : matrix.length;
+        // This.columns should equal matrix.rows
+        return this.elements[0].length === l;
+    },
+    sameSize(matrix) {
+        return this.rows() === matrix.rows() && this.cols() === matrix.cols();
+    },
+    multiply(matrix) {
+        return MatrixDeps.block(
+            'SAFE',
+            () => {
+                const M = matrix.elements || matrix;
+                if (!this.canMultiplyFromLeft(M)) {
+                    if (this.sameSize(matrix)) {
+                        const MM = new Matrix();
+                        const rows = this.rows();
+                        for (let i = 0; i < rows; i++) {
+                            const e = MatrixDeps._.multiply(
+                                new MatrixDeps.Vector(this.elements[i]),
+                                new MatrixDeps.Vector(matrix.elements[i])
+                            );
+                            MM.elements[i] = e.elements;
+                        }
+                        return MM;
+                    }
+                    return null;
+                }
+                let ni = this.elements.length;
+                const ki = ni;
+                let i;
+                let nj;
+                const kj = M[0].length;
+                let j;
+                const cols = this.elements[0].length;
+                const elements = [];
+                let sum;
+                let nc;
+                let c;
+                do {
+                    i = ki - ni;
+                    elements[i] = [];
+                    nj = kj;
+                    do {
+                        j = kj - nj;
+                        sum = new MatrixDeps.NerdamerSymbol(0);
+                        nc = cols;
+                        do {
+                            c = cols - nc;
+                            sum = MatrixDeps._.add(sum, MatrixDeps._.multiply(this.elements[i][c], M[c][j]));
+                        } while (--nc);
+                        elements[i][j] = sum;
+                    } while (--nj);
+                } while (--ni);
+                return Matrix.fromArray(elements);
+            },
+            undefined,
+            this
+        );
+    },
+    add(matrix, callback) {
+        const M = new Matrix();
+        if (this.sameSize(matrix)) {
+            this.eachElement((e, i, j) => {
+                let result = MatrixDeps._.add(e.clone(), matrix.elements[i][j].clone());
+                if (callback) {
+                    result = callback.call(M, result, e, matrix.elements[i][j]);
+                }
+                M.set(i, j, result);
+            });
+        }
+        return M;
+    },
+    subtract(matrix, callback) {
+        const M = new Matrix();
+        if (this.sameSize(matrix)) {
+            this.eachElement((e, i, j) => {
+                let result = MatrixDeps._.subtract(e.clone(), matrix.elements[i][j].clone());
+                if (callback) {
+                    result = callback.call(M, result, e, matrix.elements[i][j]);
+                }
+                M.set(i, j, result);
+            });
+        }
+        return M;
+    },
+    negate() {
+        this.each(e => e.negate());
+        return this;
+    },
+    toVector() {
+        if (this.rows() === 1 || this.cols() === 1) {
+            const v = new MatrixDeps.Vector();
+            v.elements = this.elements;
+            return v;
+        }
+        return this;
+    },
+    toString(newline, toDecimal) {
+        const l = this.rows();
+        const s = [];
+        newline = newline === undefined ? '\n' : newline;
+        for (let i = 0; i < l; i++) {
+            s.push(
+                `[${this.elements[i]
+                    .map(x => {
+                        const v = toDecimal ? x.multiplier.toDecimal() : x.toString();
+                        return x === undefined ? '' : v;
+                    })
+                    .join(',')}]`
+            );
+        }
+        return `matrix${inBrackets(s.join(','))}`;
+    },
+    text() {
+        return `matrix(${this.elements.map(row => `[${row.toString('')}]`)})`;
+    },
+    latex(option) {
+        const cols = this.cols();
+        const { elements } = this;
+        return format('\\begin{vmatrix}{0}\\end{vmatrix}', () => {
+            const tex = [];
+            for (const row in elements) {
+                if (!Object.hasOwn(elements, row)) {
+                    continue;
+                }
+                const rowTex = [];
+                for (let i = 0; i < cols; i++) {
+                    rowTex.push(MatrixDeps.LaTeX.latex(elements[row][i], option));
+                }
+                tex.push(rowTex.join(' & '));
+            }
+            return tex.join(' \\cr ');
+        });
+    },
+};
+// Aliases
+Matrix.prototype.each = Matrix.prototype.eachElement;
+
 const nerdamer = (function initNerdamerCore(imports) {
     // Version ======================================================================
     const _version = '1.1.16';
@@ -14690,472 +15194,19 @@ const nerdamer = (function initNerdamerCore(imports) {
     VectorDeps.text = text;
     VectorDeps.LaTeX = LaTeX;
 
-    // Matrix =======================================================================
-    /**
-     * @class
-     * @param {...any} args
-     */
-    function Matrix(...args) {
-        this.multiplier = new Frac(1);
-        const m = args;
-        const l = m.length;
-        let i;
-        const el = [];
-        if (isMatrix(m)) {
-            // If it's a matrix then make a clone
-            for (i = 0; i < l; i++) {
-                el.push(m[i].slice(0));
-            }
-        } else {
-            let row;
-            let lw;
-            let rl;
-            for (i = 0; i < l; i++) {
-                row = m[i];
-                if (isVector(row)) {
-                    row = row.elements;
-                }
-                if (!isArray(row)) {
-                    row = [row];
-                }
-                rl = row.length;
-                if (lw && lw !== rl) {
-                    err('Unable to create Matrix. Row dimensions do not match!');
-                }
-                el.push(row);
-                lw = rl;
-            }
-        }
-        this.elements = el;
-    }
-    Matrix.identity = function identity(n) {
-        const m = new Matrix();
-        for (let i = 0; i < n; i++) {
-            m.elements.push([]);
-            for (let j = 0; j < n; j++) {
-                m.set(i, j, i === j ? new NerdamerSymbol(1) : new NerdamerSymbol(0));
-            }
-        }
-        return m;
-    };
-    Matrix.fromArray = function fromArray(arr) {
-        /** @class */
-        function F(args) {
-            return Matrix.apply(this, args);
-        }
-        F.prototype = Matrix.prototype;
-
-        return new F(arr);
-    };
-    Matrix.zeroMatrix = function zeroMatrix(rows, cols) {
-        const m = new Matrix();
-        for (let i = 0; i < rows; i++) {
-            m.elements.push(Vector.arrayPrefill(cols, new NerdamerSymbol(0)));
-        }
-        return m;
-    };
-    Matrix.prototype = {
-        // Needs be true to let the parser know not to try to cast it to a symbol
-        custom: true,
-        get(row, column) {
-            if (!this.elements[row]) {
-                return undefined;
-            }
-            return this.elements[row][column];
-        },
-        map(f, rawValues) {
-            const M = new Matrix();
-            this.each((e, i, j) => {
-                M.set(i, j, f.call(M, e), rawValues);
-            });
-            return M;
-        },
-        set(row, column, value, raw) {
-            this.elements[row] ||= [];
-            if (raw || isSymbol(value)) {
-                this.elements[row][column] = value;
-            } else {
-                this.elements[row][column] = new NerdamerSymbol(value);
-            }
-        },
-        cols() {
-            return this.elements[0].length;
-        },
-        rows() {
-            return this.elements.length;
-        },
-        row(n) {
-            if (!n || n > this.cols()) {
-                return [];
-            }
-            return this.elements[n - 1];
-        },
-        col(n) {
-            const nr = this.rows();
-            const col = [];
-            if (n > this.cols() || !n) {
-                return col;
-            }
-            for (let i = 0; i < nr; i++) {
-                col.push(this.elements[i][n - 1]);
-            }
-            return col;
-        },
-        eachElement(fn) {
-            const nr = this.rows();
-            const nc = this.cols();
-            let i;
-            let j;
-            for (i = 0; i < nr; i++) {
-                for (j = 0; j < nc; j++) {
-                    fn.call(this, this.elements[i][j], i, j);
-                }
-            }
-        },
-        // Ported from Sylvester.js
-        determinant() {
-            if (!this.isSquare()) {
-                return null;
-            }
-            const M = this.toRightTriangular();
-            let det = M.elements[0][0];
-            let n = M.elements.length - 1;
-            const k = n;
-            let i;
-            do {
-                i = k - n + 1;
-                det = _.multiply(det, M.elements[i][i]);
-            } while (--n);
-            return det;
-        },
-        isSquare() {
-            return this.elements.length === this.elements[0].length;
-        },
-        isSingular() {
-            return this.isSquare() && this.determinant() === 0;
-        },
-        augment(m) {
-            const r = this.rows();
-            const rr = m.rows();
-            if (r !== rr) {
-                err("Cannot augment matrix. Rows don't match.");
-            }
-            for (let i = 0; i < r; i++) {
-                this.elements[i] = this.elements[i].concat(m.elements[i]);
-            }
-
-            return this;
-        },
-        clone() {
-            const r = this.rows();
-            const c = this.cols();
-            const m = new Matrix();
-            for (let i = 0; i < r; i++) {
-                m.elements[i] = [];
-                for (let j = 0; j < c; j++) {
-                    const symbol = this.elements[i][j];
-                    m.elements[i][j] = isSymbol(symbol) ? symbol.clone() : symbol;
-                }
-            }
-            return m;
-        },
-        toUnitMultiplier() {
-            return this;
-        },
-        expand(options) {
-            this.eachElement(e => _.expand(e, options));
-            return this;
-        },
-        evaluate(options) {
-            this.eachElement(e => _.evaluate(e, options));
-            return this;
-        },
-
-        // Ported from Sylvester.js
-        invert() {
-            if (!this.isSquare()) {
-                err('Matrix is not square!');
-            }
-            return block(
-                'SAFE',
-                () => {
-                    let ni = this.elements.length;
-                    const ki = ni;
-                    let i;
-                    let j;
-                    const imatrix = Matrix.identity(ni);
-                    const M = this.augment(imatrix).toRightTriangular();
-                    let np;
-                    const kp = M.elements[0].length;
-                    let p;
-                    let els;
-                    let divisor;
-                    const inverseElements = [];
-                    let newElement;
-                    // Matrix is non-singular so there will be no zeros on the diagonal
-                    // Cycle through rows from last to first
-                    do {
-                        i = ni - 1;
-                        // First, normalise diagonal elements to 1
-                        els = [];
-                        np = kp;
-                        inverseElements[i] = [];
-                        divisor = M.elements[i][i];
-                        do {
-                            p = kp - np;
-                            newElement = _.divide(M.elements[i][p], divisor.clone());
-                            els.push(newElement);
-                            // Shuffle of the current row of the right hand side into the results
-                            // array as it will not be modified by later runs through this loop
-                            if (p >= ki) {
-                                inverseElements[i].push(newElement);
-                            }
-                        } while (--np);
-                        M.elements[i] = els;
-                        // Then, subtract this row from those above it to
-                        // give the identity matrix on the left hand side
-                        for (j = 0; j < i; j++) {
-                            els = [];
-                            np = kp;
-                            do {
-                                p = kp - np;
-                                els.push(
-                                    _.subtract(
-                                        M.elements[j][p].clone(),
-                                        _.multiply(M.elements[i][p].clone(), M.elements[j][i].clone())
-                                    )
-                                );
-                            } while (--np);
-                            M.elements[j] = els;
-                        }
-                    } while (--ni);
-                    return Matrix.fromArray(inverseElements);
-                },
-                undefined,
-                this
-            );
-        },
-        // Ported from Sylvester.js
-        toRightTriangular() {
-            return block(
-                'SAFE',
-                () => {
-                    const M = this.clone();
-                    let els;
-                    let fel;
-                    let nel;
-                    let n = this.elements.length;
-                    const k = n;
-                    let i;
-                    let np;
-                    const kp = this.elements[0].length;
-                    let p;
-                    do {
-                        i = k - n;
-                        fel = M.elements[i][i];
-                        if (fel.valueOf() === 0) {
-                            for (let j = i + 1; j < k; j++) {
-                                nel = M.elements[j][i];
-                                if (nel && nel.valueOf() !== 0) {
-                                    els = [];
-                                    np = kp;
-                                    do {
-                                        p = kp - np;
-                                        els.push(_.add(M.elements[i][p].clone(), M.elements[j][p].clone()));
-                                    } while (--np);
-                                    M.elements[i] = els;
-                                    break;
-                                }
-                            }
-                        }
-                        fel = M.elements[i][i];
-                        if (fel.valueOf() !== 0) {
-                            for (let j = i + 1; j < k; j++) {
-                                const multiplier = _.divide(M.elements[j][i].clone(), M.elements[i][i].clone());
-                                els = [];
-                                np = kp;
-                                do {
-                                    p = kp - np;
-                                    // Elements with column numbers up to an including the number
-                                    // of the row that we're subtracting can safely be set straight to
-                                    // zero, since that's the point of this routine and it avoids having
-                                    // to loop over and correct rounding errors later
-                                    els.push(
-                                        p <= i
-                                            ? new NerdamerSymbol(0)
-                                            : _.subtract(
-                                                  M.elements[j][p].clone(),
-                                                  _.multiply(M.elements[i][p].clone(), multiplier.clone())
-                                              )
-                                    );
-                                } while (--np);
-                                M.elements[j] = els;
-                            }
-                        }
-                    } while (--n);
-
-                    return M;
-                },
-                undefined,
-                this
-            );
-        },
-        transpose() {
-            const rows = this.elements.length;
-            const cols = this.elements[0].length;
-            const M = new Matrix();
-            let ni = cols;
-            let i;
-            let nj;
-            let j;
-
-            do {
-                i = cols - ni;
-                M.elements[i] = [];
-                nj = rows;
-                do {
-                    j = rows - nj;
-                    M.elements[i][j] = this.elements[j][i].clone();
-                } while (--nj);
-            } while (--ni);
-            return M;
-        },
-        // Returns true if the matrix can multiply the argument from the left
-        canMultiplyFromLeft(matrix) {
-            const l = isMatrix(matrix) ? matrix.elements.length : matrix.length;
-            // This.columns should equal matrix.rows
-            return this.elements[0].length === l;
-        },
-        sameSize(matrix) {
-            return this.rows() === matrix.rows() && this.cols() === matrix.cols();
-        },
-        multiply(matrix) {
-            return block(
-                'SAFE',
-                () => {
-                    const M = matrix.elements || matrix;
-                    if (!this.canMultiplyFromLeft(M)) {
-                        if (this.sameSize(matrix)) {
-                            const MM = new Matrix();
-                            const rows = this.rows();
-                            for (let i = 0; i < rows; i++) {
-                                const e = _.multiply(new Vector(this.elements[i]), new Vector(matrix.elements[i]));
-                                MM.elements[i] = e.elements;
-                            }
-                            return MM;
-                        }
-                        return null;
-                    }
-                    let ni = this.elements.length;
-                    const ki = ni;
-                    let i;
-                    let nj;
-                    const kj = M[0].length;
-                    let j;
-                    const cols = this.elements[0].length;
-                    const elements = [];
-                    let sum;
-                    let nc;
-                    let c;
-                    do {
-                        i = ki - ni;
-                        elements[i] = [];
-                        nj = kj;
-                        do {
-                            j = kj - nj;
-                            sum = new NerdamerSymbol(0);
-                            nc = cols;
-                            do {
-                                c = cols - nc;
-                                sum = _.add(sum, _.multiply(this.elements[i][c], M[c][j]));
-                            } while (--nc);
-                            elements[i][j] = sum;
-                        } while (--nj);
-                    } while (--ni);
-                    return Matrix.fromArray(elements);
-                },
-                undefined,
-                this
-            );
-        },
-        add(matrix, callback) {
-            const M = new Matrix();
-            if (this.sameSize(matrix)) {
-                this.eachElement((e, i, j) => {
-                    let result = _.add(e.clone(), matrix.elements[i][j].clone());
-                    if (callback) {
-                        result = callback.call(M, result, e, matrix.elements[i][j]);
-                    }
-                    M.set(i, j, result);
-                });
-            }
-            return M;
-        },
-        subtract(matrix, callback) {
-            const M = new Matrix();
-            if (this.sameSize(matrix)) {
-                this.eachElement((e, i, j) => {
-                    let result = _.subtract(e.clone(), matrix.elements[i][j].clone());
-                    if (callback) {
-                        result = callback.call(M, result, e, matrix.elements[i][j]);
-                    }
-                    M.set(i, j, result);
-                });
-            }
-            return M;
-        },
-        negate() {
-            this.each(e => e.negate());
-            return this;
-        },
-        toVector() {
-            if (this.rows() === 1 || this.cols() === 1) {
-                const v = new Vector();
-                v.elements = this.elements;
-                return v;
-            }
-            return this;
-        },
-        toString(newline, toDecimal) {
-            const l = this.rows();
-            const s = [];
-            newline = newline === undefined ? '\n' : newline;
-            for (let i = 0; i < l; i++) {
-                s.push(
-                    `[${this.elements[i]
-                        .map(x => {
-                            const v = toDecimal ? x.multiplier.toDecimal() : x.toString();
-                            return x === undefined ? '' : v;
-                        })
-                        .join(',')}]`
-                );
-            }
-            return `matrix${inBrackets(s.join(','))}`;
-        },
-        text() {
-            return `matrix(${this.elements.map(row => `[${row.toString('')}]`)})`;
-        },
-        latex(option) {
-            const cols = this.cols();
-            const { elements } = this;
-            return format('\\begin{vmatrix}{0}\\end{vmatrix}', () => {
-                const tex = [];
-                for (const row in elements) {
-                    if (!Object.hasOwn(elements, row)) {
-                        continue;
-                    }
-                    const rowTex = [];
-                    for (let i = 0; i < cols; i++) {
-                        rowTex.push(LaTeX.latex(elements[row][i], option));
-                    }
-                    tex.push(rowTex.join(' & '));
-                }
-                return tex.join(' \\cr ');
-            });
-        },
-    };
-    // Aliases
-    Matrix.prototype.each = Matrix.prototype.eachElement;
+    // Matrix class is now defined outside the IIFE (see above).
+    // Initialize its dependencies now that they're available.
+    MatrixDeps.Frac = Frac;
+    MatrixDeps.NerdamerSymbol = NerdamerSymbol;
+    MatrixDeps.Vector = Vector;
+    MatrixDeps.isMatrix = isMatrix;
+    MatrixDeps.isVector = isVector;
+    MatrixDeps.isArray = isArray;
+    MatrixDeps.isSymbol = isSymbol;
+    MatrixDeps.block = block;
+    MatrixDeps._ = _;
+    MatrixDeps.err = err;
+    MatrixDeps.LaTeX = LaTeX;
 
     // NerdamerSet class is now defined outside the IIFE (see above).
     // Initialize its dependencies now that they're available.
