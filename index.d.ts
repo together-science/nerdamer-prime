@@ -1872,8 +1872,23 @@ declare namespace nerdamerPrime {
             NEGATE: Frac;
         }
 
+        /**
+         * Common interface for values that can be used as a power/exponent. Both Frac and NerdamerSymbol implement
+         * these methods when used as powers. Methods like isNegative, toDecimal, absEquals are only called when the
+         * symbol is not in EX group (exponential), where power is guaranteed to be Frac.
+         */
+        interface PowerValue {
+            /** Compares for equality - parameter types vary by implementation */
+            equals(n: any): boolean;
+            negate(): this;
+            clone(): PowerValue;
+            toString(): string;
+            /** Multiplies power values - signature varies by implementation */
+            multiply(m: any): PowerValue;
+        }
+
         /** Represents a high-precision fraction. */
-        interface Frac {
+        interface Frac extends PowerValue {
             /** Numerator - BigInteger from big-integer library */
             num: BigInteger;
             /** Denominator - BigInteger from big-integer library */
@@ -1898,7 +1913,8 @@ declare namespace nerdamerPrime {
             invert(): this;
             /** Makes this fraction positive in place, returns this */
             abs(): this;
-            equals(n: number | Frac): boolean;
+            /** Compares for equality - accepts Frac, number, or any PowerValue */
+            equals(n: number | Frac | PowerValue): boolean;
             gt(n: number | Frac): boolean;
             lt(n: number | Frac): boolean;
             gte(n: number | Frac): boolean;
@@ -1944,7 +1960,7 @@ declare namespace nerdamerPrime {
          * The core symbolic object in Nerdamer. Everything from a variable to a complex expression is ultimately
          * represented as a NerdamerSymbol.
          */
-        interface NerdamerSymbol {
+        interface NerdamerSymbol extends PowerValue {
             // Output methods
             toString: () => string;
             text: (option?: OutputType) => string;
@@ -1953,7 +1969,8 @@ declare namespace nerdamerPrime {
 
             // Properties
             group: number;
-            value: string | number;
+            /** The value/name of the symbol - always a string internally */
+            value: string;
             multiplier: Frac;
             /** The power/exponent - usually Frac, but can be NerdamerSymbol for EX group symbols */
             power: Frac | NerdamerSymbol;
@@ -2034,7 +2051,7 @@ declare namespace nerdamerPrime {
             // Content & Comparison
             contains(variable: string | NerdamerSymbol, all?: boolean): boolean;
             containsFunction(names: string | string[]): boolean;
-            equals(symbol: ExpressionParam): boolean;
+            equals(symbol: ExpressionParam | number | Frac | PowerValue): boolean;
             gt(symbol: ExpressionParam): boolean;
             lt(symbol: ExpressionParam): boolean;
             gte(symbol: ExpressionParam): boolean;

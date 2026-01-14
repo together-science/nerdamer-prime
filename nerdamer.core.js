@@ -101,6 +101,37 @@ nerdamerBigDecimal.set({ precision: 250 });
 const nerdamerConstants =
     typeof globalThis.nerdamerConstants === 'undefined' ? require('./constants.js') : globalThis.nerdamerConstants;
 
+// ============================================================================
+// Runtime state variables - declared before CoreDeps to avoid forward references
+// ============================================================================
+// Custom operators registry - populated by IIFE
+const CUSTOM_OPERATORS = {};
+
+// Runtime state arrays - used by CoreDeps.state getters
+/** @type {any[]} */
+const EXPRESSIONS = [];
+/** @type {Record<string, any>} */
+const VARS_STORE = {};
+/** @type {string[]} */
+const RESERVED = [];
+/** @type {string[]} */
+const WARNINGS = [];
+/** @type {string[]} */
+const USER_FUNCTIONS = [];
+
+// Late-binding references container - populated after classes are defined
+// Used by CoreDeps getters to avoid forward reference issues
+/**
+ * @type {{
+ *     Settings: any;
+ *     Math2: any;
+ * }}
+ */
+const LateRefs = {
+    Settings: /** @type {any} */ (null),
+    Math2: /** @type {any} */ (null),
+};
+
 // CoreDeps - Centralized Dependency Registry ==================================
 // This single registry replaces 45+ scattered *Deps objects with a unified,
 // hierarchical structure. Benefits:
@@ -257,32 +288,31 @@ const CoreDeps = {
         CONST_HASH: '#',
     },
 
-    // Settings reference - getter since Settings is at module scope
+    // Settings reference - getter using LateRefs for forward reference safety
     get settings() {
-        return /** @type {any} */ (Settings); // eslint-disable-line no-use-before-define -- Lazy getter
+        return LateRefs.Settings;
     },
 
-    // Runtime state - use getters for module-scope arrays
-    // CONSTANTS is set by IIFE after Parser creation
+    // Runtime state - arrays now defined before CoreDeps
     state: {
         get EXPRESSIONS() {
-            return EXPRESSIONS; // eslint-disable-line no-use-before-define -- Lazy getter
+            return EXPRESSIONS;
         },
         get VARS() {
-            return VARS_STORE; // eslint-disable-line no-use-before-define -- Lazy getter
+            return VARS_STORE;
         },
         CONSTANTS: /** @type {Record<string, any>} */ ({}),
         get RESERVED() {
-            return RESERVED; // eslint-disable-line no-use-before-define -- Lazy getter
+            return RESERVED;
         },
         get WARNINGS() {
-            return WARNINGS; // eslint-disable-line no-use-before-define -- Lazy getter
+            return WARNINGS;
         },
         get USER_FUNCTIONS() {
-            return USER_FUNCTIONS; // eslint-disable-line no-use-before-define -- Lazy getter
+            return USER_FUNCTIONS;
         },
         get CUSTOM_OPERATORS() {
-            return CUSTOM_OPERATORS; // eslint-disable-line no-use-before-define -- Lazy getter
+            return CUSTOM_OPERATORS;
         },
     },
 
@@ -368,59 +398,8 @@ const CoreDeps = {
         callfunction: /** @type {any} */ (null),
     },
 
-    // Exception classes - use getters since they're defined later in the file
-    /* eslint-disable no-use-before-define -- All exception getters reference classes defined later */
-    exceptions: {
-        get DivisionByZero() {
-            return DivisionByZero;
-        },
-        get ParseError() {
-            return ParseError;
-        },
-        get OutOfFunctionDomainError() {
-            return OutOfFunctionDomainError;
-        },
-        get UndefinedError() {
-            return UndefinedError;
-        },
-        get MaximumIterationsReached() {
-            return MaximumIterationsReached;
-        },
-        get NerdamerTypeError() {
-            return NerdamerTypeError;
-        },
-        get ParityError() {
-            return ParityError;
-        },
-        get OperatorError() {
-            return OperatorError;
-        },
-        get OutOfRangeError() {
-            return OutOfRangeError;
-        },
-        get DimensionError() {
-            return DimensionError;
-        },
-        get InvalidVariableNameError() {
-            return InvalidVariableNameError;
-        },
-        get ValueLimitExceededError() {
-            return ValueLimitExceededError;
-        },
-        get NerdamerValueError() {
-            return NerdamerValueError;
-        },
-        get SolveError() {
-            return SolveError;
-        },
-        get InfiniteLoopError() {
-            return InfiniteLoopError;
-        },
-        get UnexpectedTokenError() {
-            return UnexpectedTokenError;
-        },
-    },
-    /* eslint-enable no-use-before-define */
+    // Exception classes - assigned after exception definitions (see below Frac class)
+    exceptions: /** @type {any} */ (null),
 
     // Parser instance - set by IIFE after Parser creation
     parser: /** @type {any} */ (null),
@@ -446,21 +425,6 @@ const Groups = {
     CB: CoreDeps.groups.CB,
     CP: CoreDeps.groups.CP,
 };
-
-// Custom operators registry - populated by IIFE
-const CUSTOM_OPERATORS = {};
-
-// Runtime state arrays - used by CoreDeps.state getters
-/** @type {any[]} */
-const EXPRESSIONS = [];
-/** @type {Record<string, any>} */
-const VARS_STORE = {};
-/** @type {string[]} */
-const RESERVED = [];
-/** @type {string[]} */
-const WARNINGS = [];
-/** @type {string[]} */
-const USER_FUNCTIONS = [];
 
 // ============================================================================
 // Math Polyfills
@@ -532,6 +496,21 @@ Math.trunc ||= function trunc(x) {
     return Math.ceil(x);
 };
 
+// ============================================================================
+// Scientific notation helper
+// ============================================================================
+// Extracted as standalone function to avoid forward-reference to Scientific class
+
+/**
+ * Checks if a string is in scientific notation (e.g., "1.5e10", "2E-5")
+ *
+ * @param {string} num
+ * @returns {boolean}
+ */
+function isScientificNotation(num) {
+    return /\d+\.?\d*e[+-]*\d+/iu.test(num);
+}
+
 // Fraction Object ==============================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
 // This static utility object converts decimals to fractions.
@@ -598,7 +577,7 @@ const Fraction = {
 
         function convert(val) {
             // Explicitely convert to a decimal
-            if (Scientific.isScientific(val)) {
+            if (isScientificNotation(val)) {
                 val = scientificToDecimal(val);
             }
 
@@ -689,6 +668,176 @@ const Fraction = {
 // Assign Fraction to CoreDeps immediately
 CoreDeps.classes.Fraction = /** @type {any} */ (Fraction);
 
+// CustomError Function =============================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// This function creates custom error classes.
+
+/**
+ * Creates a custom error class with the given name.
+ *
+ * @param {string} name - The name of the custom error class
+ * @returns {new (message?: string) => Error} A custom error constructor
+ */
+function customError(name) {
+    const E = function (message) {
+        this.name = name;
+        this.message = message === undefined ? '' : message;
+        const error = new Error(this.message);
+        error.name = this.name;
+        this.stack = error.stack;
+    }; // Create an empty error
+    E.prototype = Object.create(Error.prototype);
+    return E;
+}
+
+// DivisionByZero Error ================================================================
+/**
+ * Error thrown for division by zero.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const DivisionByZero = customError('DivisionByZero');
+
+// ParseError Error ====================================================================
+/**
+ * Error thrown if an error occurred during parsing.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const ParseError = customError('ParseError');
+
+// UndefinedError Error ================================================================
+/**
+ * Error thrown if the expression results in undefined.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const UndefinedError = customError('UndefinedError');
+
+// OutOfFunctionDomainError Error ======================================================
+/**
+ * Error thrown if input is out of the function domain.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const OutOfFunctionDomainError = customError('OutOfFunctionDomainError');
+
+// MaximumIterationsReached Error ======================================================
+/**
+ * Error thrown if a function exceeds maximum iterations.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const MaximumIterationsReached = customError('MaximumIterationsReached');
+
+// NerdamerTypeError Error =============================================================
+/**
+ * Error thrown if the parser receives an incorrect type.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const NerdamerTypeError = customError('NerdamerTypeError');
+
+// ParityError Error ===================================================================
+/**
+ * Error thrown if bracket parity is not correct.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const ParityError = customError('ParityError');
+
+// OperatorError Error =================================================================
+/**
+ * Error thrown if an unexpected or incorrect operator is encountered.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const OperatorError = customError('OperatorError');
+
+// OutOfRangeError Error ===============================================================
+/**
+ * Error thrown if an index is out of range.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const OutOfRangeError = customError('OutOfRangeError');
+
+// DimensionError Error ================================================================
+/**
+ * Error thrown if dimensions are incorrect (mostly for matrices).
+ *
+ * @type {new (message?: string) => Error}
+ */
+const DimensionError = customError('DimensionError');
+
+// InvalidVariableNameError Error ======================================================
+/**
+ * Error thrown if variable name violates naming rule.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const InvalidVariableNameError = customError('InvalidVariableNameError');
+
+// ValueLimitExceededError Error =======================================================
+/**
+ * Error thrown if the limits of the library are exceeded for a function.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const ValueLimitExceededError = customError('ValueLimitExceededError');
+
+// NerdamerValueError Error ============================================================
+/**
+ * Error thrown if the value is an incorrect LH or RH value.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const NerdamerValueError = customError('NerdamerValueError');
+
+// SolveError Error ====================================================================
+/**
+ * Error thrown for solve-related errors.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const SolveError = customError('SolveError');
+
+// InfiniteLoopError Error =============================================================
+/**
+ * Error thrown for an infinite loop.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const InfiniteLoopError = customError('InfiniteLoopError');
+
+// UnexpectedTokenError Error ==========================================================
+/**
+ * Error thrown if an operator is found when there shouldn't be one.
+ *
+ * @type {new (message?: string) => Error}
+ */
+const UnexpectedTokenError = customError('UnexpectedTokenError');
+
+// Assign CoreDeps.exceptions now that all exception classes are defined
+CoreDeps.exceptions = {
+    DivisionByZero,
+    ParseError,
+    OutOfFunctionDomainError,
+    UndefinedError,
+    MaximumIterationsReached,
+    NerdamerTypeError,
+    ParityError,
+    OperatorError,
+    OutOfRangeError,
+    DimensionError,
+    InvalidVariableNameError,
+    ValueLimitExceededError,
+    NerdamerValueError,
+    SolveError,
+    InfiniteLoopError,
+    UnexpectedTokenError,
+};
+
 // Frac Class ===================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
 // Dependencies are accessed via CoreDeps for centralized management.
@@ -720,7 +869,7 @@ const FracDeps = {
         return CoreDeps.utils.scientificToDecimal;
     },
     get DivisionByZero() {
-        return DivisionByZero; // eslint-disable-line no-use-before-define -- Lazy getter
+        return DivisionByZero;
     },
     get Settings() {
         return CoreDeps.settings;
@@ -736,13 +885,13 @@ const FracDeps = {
  * @implements {FracType}
  */
 class Frac {
+    /** @type {import('big-integer').BigInteger} */
+    num;
+    /** @type {import('big-integer').BigInteger} */
+    den;
+
     /** @param {number | string | Frac} [n] */
     constructor(n) {
-        /** @type {import('big-integer').BigInteger} */
-        this.num; // eslint-disable-line no-unused-expressions -- Property declaration
-        /** @type {import('big-integer').BigInteger} */
-        this.den; // eslint-disable-line no-unused-expressions -- Property declaration
-
         if (n instanceof Frac) {
             // eslint-disable-next-line no-constructor-return -- Frac is designed to return existing instances
             return n;
@@ -1198,58 +1347,53 @@ const SetDeps = {
     }, // Remove is defined later in file
 };
 
-/**
- * NerdamerSet class for mathematical set operations.
- *
- * @class
- * @param {any} [setArg]
- * @param {...any} rest
- */
-function NerdamerSet(setArg, ...rest) {
+/** NerdamerSet class for mathematical set operations. */
+class NerdamerSet {
     /** @type {any[]} */
-    this.elements = [];
-    // If the first object isn't an array, convert it to one.
-    if (typeof setArg === 'undefined') {
-        // No arguments passed
-        return;
-    }
-    let setVal = setArg;
-    if (!SetDeps.isVector(setVal)) {
-        setVal = SetDeps.Vector.fromArray([setVal, ...rest]);
-    }
+    elements = [];
 
-    if (setVal) {
-        const { elements } = setVal;
-        for (let i = 0, l = elements.length; i < l; i++) {
-            this.add(elements[i]);
+    /**
+     * @param {any} [setArg]
+     * @param {...any} rest
+     */
+    constructor(setArg, ...rest) {
+        // If the first object isn't an array, convert it to one.
+        if (typeof setArg === 'undefined') {
+            // No arguments passed
+            return;
+        }
+        let setVal = setArg;
+        if (!SetDeps.isVector(setVal)) {
+            setVal = SetDeps.Vector.fromArray([setVal, ...rest]);
+        }
+
+        if (setVal) {
+            const { elements } = setVal;
+            for (let i = 0, l = elements.length; i < l; i++) {
+                this.add(elements[i]);
+            }
         }
     }
-}
 
-/**
- * @param {any[]} arr
- * @returns {NerdamerSet}
- */
-NerdamerSet.fromArray = function fromArray(arr) {
-    /** @class */
-    function F(args) {
-        return NerdamerSet.apply(this, args);
+    /**
+     * @param {any[]} arr
+     * @returns {NerdamerSet}
+     */
+    static fromArray(arr) {
+        const newSet = new NerdamerSet();
+        for (const item of arr) {
+            newSet.add(item);
+        }
+        return newSet;
     }
-    F.prototype = NerdamerSet.prototype;
 
-    return /** @type {NerdamerSet} */ (new F(arr));
-};
-
-/** @type {any} */
-NerdamerSet.prototype = {
-    /** @type {any[]} */
-    elements: [],
     /** @param {any} x */
     add(x) {
         if (!this.contains(x)) {
             this.elements.push(x.clone());
         }
-    },
+    }
+
     /**
      * @param {any} x
      * @returns {boolean}
@@ -1262,7 +1406,8 @@ NerdamerSet.prototype = {
             }
         }
         return false;
-    },
+    }
+
     /**
      * @param {(e: any, inputSet: NerdamerSet, i: number) => void} f
      * @returns {NerdamerSet}
@@ -1275,7 +1420,8 @@ NerdamerSet.prototype = {
             f.call(this, e, newSet, i);
         }
         return newSet;
-    },
+    }
+
     /** @returns {NerdamerSet} */
     clone() {
         const newSet = new NerdamerSet();
@@ -1283,7 +1429,8 @@ NerdamerSet.prototype = {
             newSet.add(e.clone());
         });
         return newSet;
-    },
+    }
+
     /**
      * @param {NerdamerSet} inputSet
      * @returns {NerdamerSet}
@@ -1295,7 +1442,8 @@ NerdamerSet.prototype = {
         });
 
         return _union;
-    },
+    }
+
     /**
      * @param {NerdamerSet} inputSet
      * @returns {NerdamerSet}
@@ -1306,7 +1454,8 @@ NerdamerSet.prototype = {
             diff.remove(e);
         });
         return diff;
-    },
+    }
+
     /**
      * @param {any} element
      * @returns {boolean}
@@ -1320,7 +1469,8 @@ NerdamerSet.prototype = {
             }
         }
         return false;
-    },
+    }
+
     /**
      * @param {NerdamerSet} inputSet
      * @returns {NerdamerSet}
@@ -1335,14 +1485,16 @@ NerdamerSet.prototype = {
         });
 
         return _intersection;
-    },
+    }
+
     /**
      * @param {NerdamerSet} inputSet
      * @returns {boolean}
      */
     intersects(inputSet) {
         return this.intersection(inputSet).elements.length > 0;
-    },
+    }
+
     /**
      * @param {NerdamerSet} inputSet
      * @returns {boolean}
@@ -1355,12 +1507,13 @@ NerdamerSet.prototype = {
             }
         }
         return true;
-    },
+    }
+
     /** @returns {string} */
     toString() {
         return `{${this.elements.join(',')}}`;
-    },
-};
+    }
+}
 
 // Assign NerdamerSet to CoreDeps immediately
 CoreDeps.classes.NerdamerSet = NerdamerSet;
@@ -1386,91 +1539,131 @@ const CollectionDeps = {
     },
 };
 
-/**
- * Class used to collect arguments for functions
- *
- * @class
- */
-function Collection() {
+/** Class used to collect arguments for functions */
+class Collection {
     /** @type {any[]} */
-    this.elements = [];
-}
-Collection.prototype.append = function append(e) {
-    this.elements.push(e);
-};
-Collection.prototype.getItems = function getItems() {
-    return this.elements;
-};
-Collection.prototype.toString = function toString() {
-    return CollectionDeps._.prettyPrint(this.elements);
-};
-Collection.prototype.dimensions = function dimensions() {
-    return this.elements.length;
-};
-// eslint-disable-next-line func-names -- naming this 'text' would shadow the outer text function
-Collection.prototype.text = function (options) {
-    return `(${this.elements.map(e => e.text(options)).join(',')})`;
-};
-Collection.create = function create(e) {
-    const collection = new Collection();
-    if (e) {
-        collection.append(e);
+    elements = [];
+
+    /** @param {any} [e] */
+    constructor(e) {
+        if (e) {
+            this.elements.push(e);
+        }
     }
-    return collection;
-};
-Collection.prototype.clone = function clone(_elements) {
-    const c = Collection.create();
-    c.elements = this.elements.map(e => e.clone());
-    return c;
-};
-Collection.prototype.expand = function expand(options) {
-    this.elements = this.elements.map(e => CollectionDeps._.expand(e, options));
-    return this;
-};
 
-// eslint-disable-next-line func-names -- naming this 'evaluate' would shadow the outer evaluate variable
-Collection.prototype.evaluate = function (options) {
-    this.elements = this.elements.map(e => CollectionDeps._.evaluate(e, options));
-    return this;
-};
+    /**
+     * @param {any} [e]
+     * @returns {Collection}
+     */
+    static create(e) {
+        return new Collection(e);
+    }
 
-Collection.prototype.map = function map(lambda) {
-    const c2 = this.clone();
-    c2.elements = c2.elements.map((x, i) => lambda(x, i + 1));
-    return c2;
-};
+    /** @param {any} e */
+    append(e) {
+        this.elements.push(e);
+    }
 
-// Returns the result of adding the argument to the vector
-Collection.prototype.add = function add(c2) {
-    return CollectionDeps.block(
-        'SAFE',
-        () => {
-            const V = c2.elements || c2;
-            if (this.elements.length !== V.length) {
-                return null;
-            }
-            return this.map((x, i) => CollectionDeps._.add(x, V[i - 1]));
-        },
-        undefined,
-        this
-    );
-};
+    /** @returns {any[]} */
+    getItems() {
+        return this.elements;
+    }
 
-// Returns the result of subtracting the argument from the vector
-Collection.prototype.subtract = function subtract(vector) {
-    return CollectionDeps.block(
-        'SAFE',
-        () => {
-            const V = vector.elements || vector;
-            if (this.elements.length !== V.length) {
-                return null;
-            }
-            return this.map((x, i) => CollectionDeps._.subtract(x, V[i - 1]));
-        },
-        undefined,
-        this
-    );
-};
+    /** @returns {string} */
+    toString() {
+        return CollectionDeps._.prettyPrint(this.elements);
+    }
+
+    /** @returns {number} */
+    dimensions() {
+        return this.elements.length;
+    }
+
+    /**
+     * @param {any} options
+     * @returns {string}
+     */
+    text(options) {
+        return `(${this.elements.map(e => e.text(options)).join(',')})`;
+    }
+
+    /** @returns {Collection} */
+    clone() {
+        const c = Collection.create();
+        c.elements = this.elements.map(e => e.clone());
+        return c;
+    }
+
+    /**
+     * @param {any} options
+     * @returns {this}
+     */
+    expand(options) {
+        this.elements = this.elements.map(e => CollectionDeps._.expand(e, options));
+        return this;
+    }
+
+    /**
+     * @param {any} options
+     * @returns {this}
+     */
+    evaluate(options) {
+        this.elements = this.elements.map(e => CollectionDeps._.evaluate(e, options));
+        return this;
+    }
+
+    /**
+     * @param {Function} lambda
+     * @returns {Collection}
+     */
+    map(lambda) {
+        const c2 = this.clone();
+        c2.elements = c2.elements.map((x, i) => lambda(x, i + 1));
+        return c2;
+    }
+
+    /**
+     * Returns the result of adding the argument to the vector
+     *
+     * @param {any} c2
+     * @returns {Collection | null}
+     */
+    add(c2) {
+        return CollectionDeps.block(
+            'SAFE',
+            () => {
+                const V = c2.elements || c2;
+                if (this.elements.length !== V.length) {
+                    return null;
+                }
+                return this.map((x, i) => CollectionDeps._.add(x, V[i - 1]));
+            },
+            undefined,
+            this
+        );
+    }
+
+    /**
+     * Returns the result of subtracting the argument from the vector
+     *
+     * @param {any} vector
+     * @returns {Collection | null}
+     */
+    subtract(vector) {
+        return CollectionDeps.block(
+            'SAFE',
+            () => {
+                const V = vector.elements || vector;
+                if (this.elements.length !== V.length) {
+                    return null;
+                }
+                return this.map((x, i) => CollectionDeps._.subtract(x, V[i - 1]));
+            },
+            undefined,
+            this
+        );
+    }
+}
 
 // Assign Collection to CoreDeps immediately
 CoreDeps.classes.Collection = Collection;
@@ -1500,34 +1693,90 @@ const ScientificDeps = {
  * Javascript has the toExponential method but this allows you to work with string and therefore any number of digits of your choosing
  * For example Scientific('464589498449496467924197545625247695464569568959124568489548454');
  */
+class Scientific {
+    /** @type {number} */
+    sign;
 
-/** @param {string | number} [num] */
-function Scientific(num) {
-    if (!(this instanceof Scientific)) {
-        return new Scientific(num);
+    /** @type {string} */
+    coeff;
+
+    /** @type {number} */
+    exponent;
+
+    /** @type {string} */
+    wholes;
+
+    /** @type {string} */
+    dec;
+
+    /** @type {number} */
+    decp;
+
+    /** @param {string | number} [num] */
+    constructor(num) {
+        num = String(typeof num === 'undefined' ? 0 : num); // Convert to a string
+
+        // remove the sign
+        if (num.startsWith('-')) {
+            this.sign = -1;
+            // Remove the sign
+            num = num.substr(1, num.length);
+        } else {
+            this.sign = 1;
+        }
+
+        if (Scientific.isScientific(num)) {
+            this.fromScientific(num);
+        } else {
+            this.convert(num);
+        }
     }
 
-    num = String(typeof num === 'undefined' ? 0 : num); // Convert to a string
-
-    // remove the sign
-    if (num.startsWith('-')) {
-        this.sign = -1;
-        // Remove the sign
-        num = num.substr(1, num.length);
-    } else {
-        this.sign = 1;
-    }
-
-    if (Scientific.isScientific(num)) {
-        this.fromScientific(num);
-    } else {
-        this.convert(num);
-    }
-    return this;
-}
-
-Scientific.prototype = {
     /** @param {string} num */
+    static isScientific(num) {
+        return isScientificNotation(num);
+    }
+
+    /** @param {string} num */
+    static leadingZeroes(num) {
+        const match = num.match(/^(?<zeros>0*).*$/u);
+        return match ? match[1] : '';
+    }
+
+    /** @param {string} num */
+    static removeLeadingZeroes(num) {
+        const match = num.match(/^0*(?<rest>.*)$/u);
+        return match ? match[1] : '';
+    }
+
+    /** @param {string} num */
+    static removeTrailingZeroes(num) {
+        const match = num.match(/0*$/u);
+        return match ? num.substring(0, num.length - match[0].length) : '';
+    }
+
+    /**
+     * @param {string} c
+     * @param {number} n
+     */
+    static round(c, n) {
+        let coeff = String(ScientificDeps.nround(c, n));
+        const m = coeff.includes('.') ? coeff.split('.').pop() : '';
+        const d = n - m.length;
+        // If we're asking for more significant figures
+        if (d > 0) {
+            if (!coeff.includes('.')) {
+                coeff += '.';
+            }
+            coeff += new Array(d + 1).join('0');
+        }
+        return coeff;
+    }
+
+    /**
+     * @param {string} num
+     * @returns {this}
+     */
     fromScientific(num) {
         const parts = String(num).toLowerCase().split('e');
         this.coeff = parts[0];
@@ -1540,8 +1789,12 @@ Scientific.prototype = {
         this.decp = dec === '0' ? 0 : dec.length;
 
         return this;
-    },
-    /** @param {string} num */
+    }
+
+    /**
+     * @param {string} num
+     * @returns {this}
+     */
     convert(num) {
         // Get wholes and decimals
         const parts = num.split('.');
@@ -1573,8 +1826,12 @@ Scientific.prototype = {
         this.wholes = w;
 
         return this;
-    },
-    /** @param {number} num */
+    }
+
+    /**
+     * @param {number} num
+     * @returns {Scientific}
+     */
     round(num) {
         const n = this.copy();
 
@@ -1599,15 +1856,21 @@ Scientific.prototype = {
         }
 
         return n;
-    },
+    }
+
+    /** @returns {Scientific} */
     copy() {
         const n = new Scientific(0);
         n.coeff = this.coeff;
         n.exponent = this.exponent;
         n.sign = this.sign;
         return n;
-    },
-    /** @param {number} [n] */
+    }
+
+    /**
+     * @param {number} [n]
+     * @returns {string}
+     */
     toString(n) {
         let retval;
 
@@ -1633,72 +1896,11 @@ Scientific.prototype = {
         }
 
         return (this.sign === -1 ? '-' : '') + retval;
-    },
-};
-
-/** @param {string} num */
-Scientific.isScientific = function isScientific(num) {
-    return /\d+\.?\d*e[+-]*\d+/iu.test(num);
-};
-/** @param {string} num */
-Scientific.leadingZeroes = function leadingZeroes(num) {
-    const match = num.match(/^(?<zeros>0*).*$/u);
-    return match ? match[1] : '';
-};
-/** @param {string} num */
-Scientific.removeLeadingZeroes = function removeLeadingZeroes(num) {
-    const match = num.match(/^0*(?<rest>.*)$/u);
-    return match ? match[1] : '';
-};
-
-/** @param {string} num */
-Scientific.removeTrailingZeroes = function removeTrailingZeroes(num) {
-    const match = num.match(/0*$/u);
-    return match ? num.substring(0, num.length - match[0].length) : '';
-};
-
-/**
- * @param {string} c
- * @param {number} n
- */
-Scientific.round = function round(c, n) {
-    let coeff = String(ScientificDeps.nround(c, n));
-    const m = coeff.includes('.') ? coeff.split('.').pop() : '';
-    const d = n - m.length;
-    // If we're asking for more significant figures
-    if (d > 0) {
-        if (!coeff.includes('.')) {
-            coeff += '.';
-        }
-        coeff += new Array(d + 1).join('0');
     }
-    return coeff;
-};
+}
 
 // Assign Scientific to CoreDeps immediately
 CoreDeps.classes.Scientific = Scientific;
-
-// CustomError Function =============================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-// This function creates custom error classes.
-
-/**
- * Creates a custom error class with the given name.
- *
- * @param {string} name - The name of the custom error class
- * @returns {new (message?: string) => Error} A custom error constructor
- */
-function customError(name) {
-    const E = function (message) {
-        this.name = name;
-        this.message = message === undefined ? '' : message;
-        const error = new Error(this.message);
-        error.name = this.name;
-        this.stack = error.stack;
-    }; // Create an empty error
-    E.prototype = Object.create(Error.prototype);
-    return E;
-}
 
 // IsArray Function =================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
@@ -2261,166 +2463,6 @@ function comboSort(a, b) {
 
     return [na, nb];
 }
-
-// DivisionByZero Error ================================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown for division by zero.
- *
- * @type {new (message?: string) => Error}
- */
-const DivisionByZero = customError('DivisionByZero');
-
-// ParseError Error ====================================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if an error occurred during parsing.
- *
- * @type {new (message?: string) => Error}
- */
-const ParseError = customError('ParseError');
-
-// UndefinedError Error ================================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if the expression results in undefined.
- *
- * @type {new (message?: string) => Error}
- */
-const UndefinedError = customError('UndefinedError');
-
-// OutOfFunctionDomainError Error ======================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if input is out of the function domain.
- *
- * @type {new (message?: string) => Error}
- */
-const OutOfFunctionDomainError = customError('OutOfFunctionDomainError');
-
-// MaximumIterationsReached Error ======================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if a function exceeds maximum iterations.
- *
- * @type {new (message?: string) => Error}
- */
-const MaximumIterationsReached = customError('MaximumIterationsReached');
-
-// NerdamerTypeError Error =============================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if the parser receives an incorrect type.
- *
- * @type {new (message?: string) => Error}
- */
-const NerdamerTypeError = customError('NerdamerTypeError');
-
-// ParityError Error ===================================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if bracket parity is not correct.
- *
- * @type {new (message?: string) => Error}
- */
-const ParityError = customError('ParityError');
-
-// OperatorError Error =================================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if an unexpected or incorrect operator is encountered.
- *
- * @type {new (message?: string) => Error}
- */
-const OperatorError = customError('OperatorError');
-
-// OutOfRangeError Error ===============================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if an index is out of range.
- *
- * @type {new (message?: string) => Error}
- */
-const OutOfRangeError = customError('OutOfRangeError');
-
-// DimensionError Error ================================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if dimensions are incorrect (mostly for matrices).
- *
- * @type {new (message?: string) => Error}
- */
-const DimensionError = customError('DimensionError');
-
-// InvalidVariableNameError Error ======================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if variable name violates naming rule.
- *
- * @type {new (message?: string) => Error}
- */
-const InvalidVariableNameError = customError('InvalidVariableNameError');
-
-// ValueLimitExceededError Error =======================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if the limits of the library are exceeded for a function.
- *
- * @type {new (message?: string) => Error}
- */
-const ValueLimitExceededError = customError('ValueLimitExceededError');
-
-// NerdamerValueError Error ============================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if the value is an incorrect LH or RH value.
- *
- * @type {new (message?: string) => Error}
- */
-const NerdamerValueError = customError('NerdamerValueError');
-
-// SolveError Error ====================================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown for solve-related errors.
- *
- * @type {new (message?: string) => Error}
- */
-const SolveError = customError('SolveError');
-
-// InfiniteLoopError Error =============================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown for an infinite loop.
- *
- * @type {new (message?: string) => Error}
- */
-const InfiniteLoopError = customError('InfiniteLoopError');
-
-// UnexpectedTokenError Error ==========================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-
-/**
- * Error thrown if an operator is found when there shouldn't be one.
- *
- * @type {new (message?: string) => Error}
- */
-const UnexpectedTokenError = customError('UnexpectedTokenError');
 
 // IsCollection Function ===============================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
@@ -4136,34 +4178,36 @@ const ExpressionDeps = {
     },
 };
 
-/**
- * Wraps a symbol in an Expression for user-facing API.
- *
- * @param {any} symbol
- */
-function Expression(symbol) {
-    // We don't want arrays wrapped
-    this.symbol = symbol;
-}
-/**
- * Returns stored expression at index. For first index use 1 not 0.
- *
- * @param {number | string} expressionNumber
- * @param {boolean} [_asType]
- */
-Expression.getExpression = function getExpression(expressionNumber, _asType = undefined) {
-    if (expressionNumber === 'last' || !expressionNumber) {
-        expressionNumber = ExpressionDeps.EXPRESSIONS.length;
+/** Wraps a symbol in an Expression for user-facing API. */
+class Expression {
+    /** @type {any} */
+    symbol;
+
+    /** @param {any} symbol */
+    constructor(symbol) {
+        // We don't want arrays wrapped
+        this.symbol = symbol;
     }
-    if (expressionNumber === 'first') {
-        expressionNumber = 1;
+
+    /**
+     * Returns stored expression at index. For first index use 1 not 0.
+     *
+     * @param {number | string} expressionNumber
+     * @param {boolean} [_asType]
+     */
+    static getExpression(expressionNumber, _asType = undefined) {
+        if (expressionNumber === 'last' || !expressionNumber) {
+            expressionNumber = ExpressionDeps.EXPRESSIONS.length;
+        }
+        if (expressionNumber === 'first') {
+            expressionNumber = 1;
+        }
+        const index = Number(expressionNumber) - 1;
+        const expression = ExpressionDeps.EXPRESSIONS[index];
+        const retval = expression ? new Expression(expression) : expression;
+        return retval;
     }
-    const index = Number(expressionNumber) - 1;
-    const expression = ExpressionDeps.EXPRESSIONS[index];
-    const retval = expression ? new Expression(expression) : expression;
-    return retval;
-};
-Expression.prototype = {
+
     /**
      * Returns the text representation of the expression
      *
@@ -4179,7 +4223,8 @@ Expression.prototype = {
         }
 
         return ExpressionDeps.text(this.symbol, opt, undefined, n);
-    },
+    }
+
     /**
      * Returns the latex representation of the expression
      *
@@ -4191,10 +4236,12 @@ Expression.prototype = {
             return this.symbol.latex(option);
         }
         return ExpressionDeps.LaTeX.latex(this.symbol, option);
-    },
+    }
+
+    /** @returns {any} */
     valueOf() {
         return this.symbol.valueOf();
-    },
+    }
 
     /**
      * Evaluates the expression and tries to reduce it to a number if possible. If an argument is given in the form of
@@ -4228,16 +4275,18 @@ Expression.prototype = {
         const retval = new Expression(block('PARSE2NUMBER', () => ExpressionDeps._.parse(expression, subs), true));
 
         return retval;
-    },
+    }
+
     /**
      * Converts a symbol to a JS function. Pass in an array of variables to use that order instead of the default
      * alphabetical order
      *
-     * @param vars {Array}
+     * @param {any[]} vars
      */
     buildFunction(vars) {
         return ExpressionDeps.Build.build(this.symbol, vars);
-    },
+    }
+
     /**
      * Checks to see if the expression is just a plain old number
      *
@@ -4245,7 +4294,8 @@ Expression.prototype = {
      */
     isNumber() {
         return ExpressionDeps.isNumericSymbol(this.symbol);
-    },
+    }
+
     /**
      * Checks to see if the expression is infinity
      *
@@ -4253,7 +4303,8 @@ Expression.prototype = {
      */
     isInfinity() {
         return Math.abs(this.symbol.multiplier.valueOf()) === Infinity;
-    },
+    }
+
     /**
      * Checks to see if the expression contains imaginary numbers
      *
@@ -4261,7 +4312,8 @@ Expression.prototype = {
      */
     isImaginary() {
         return evaluate(ExpressionDeps._.parse(this.symbol)).isImaginary();
-    },
+    }
+
     /**
      * Returns all the variables in the expression
      *
@@ -4269,8 +4321,9 @@ Expression.prototype = {
      */
     variables() {
         return ExpressionDeps.variables(this.symbol);
-    },
+    }
 
+    /** @returns {string} */
     toString() {
         try {
             if (ExpressionDeps.isArray(this.symbol)) {
@@ -4283,26 +4336,55 @@ Expression.prototype = {
             }
             return '';
         }
-    },
-    // Forces the symbol to be returned as a decimal
+    }
+
+    /**
+     * Forces the symbol to be returned as a decimal
+     *
+     * @param {number} [prec]
+     * @returns {string}
+     */
     toDecimal(prec) {
         ExpressionDeps.Settings.precision = prec;
         const dec = ExpressionDeps.text(this.symbol, 'decimals');
         ExpressionDeps.Settings.precision = undefined;
         return dec;
-    },
-    // Checks to see if the expression is a fraction
+    }
+
+    /**
+     * Checks to see if the expression is a fraction
+     *
+     * @returns {boolean}
+     */
     isFraction() {
         return ExpressionDeps.isFraction(this.symbol);
-    },
-    // Checks to see if the symbol is a multivariate polynomial
+    }
+
+    /**
+     * Checks to see if the symbol is a multivariate polynomial
+     *
+     * @returns {boolean}
+     */
     isPolynomial() {
         return this.symbol.isPoly();
-    },
-    // Performs a substitution
+    }
+
+    /**
+     * Performs a substitution
+     *
+     * @param {any} symbol
+     * @param {any} forSymbol
+     * @returns {Expression}
+     */
     sub(symbol, forSymbol) {
         return new Expression(this.symbol.sub(ExpressionDeps._.parse(symbol), ExpressionDeps._.parse(forSymbol)));
-    },
+    }
+
+    /**
+     * @param {string} otype
+     * @param {any} symbol
+     * @returns {Expression}
+     */
     operation(otype, symbol) {
         if (ExpressionDeps.isExpression(symbol)) {
             symbol = symbol.symbol;
@@ -4310,25 +4392,57 @@ Expression.prototype = {
             symbol = ExpressionDeps._.parse(symbol);
         }
         return new Expression(ExpressionDeps._[otype](this.symbol.clone(), symbol.clone()));
-    },
+    }
+
+    /**
+     * @param {any} symbol
+     * @returns {Expression}
+     */
     add(symbol) {
         return this.operation('add', symbol);
-    },
+    }
+
+    /**
+     * @param {any} symbol
+     * @returns {Expression}
+     */
     subtract(symbol) {
         return this.operation('subtract', symbol);
-    },
+    }
+
+    /**
+     * @param {any} symbol
+     * @returns {Expression}
+     */
     multiply(symbol) {
         return this.operation('multiply', symbol);
-    },
+    }
+
+    /**
+     * @param {any} symbol
+     * @returns {Expression}
+     */
     divide(symbol) {
         return this.operation('divide', symbol);
-    },
+    }
+
+    /**
+     * @param {any} symbol
+     * @returns {Expression}
+     */
     pow(symbol) {
         return this.operation('pow', symbol);
-    },
+    }
+
+    /** @returns {Expression} */
     expand() {
         return new Expression(ExpressionDeps._.expand(this.symbol));
-    },
+    }
+
+    /**
+     * @param {Function} callback
+     * @param {number} [i]
+     */
     each(callback, i) {
         if (this.symbol.each) {
             this.symbol.each(callback, i);
@@ -4339,7 +4453,12 @@ Expression.prototype = {
         } else {
             callback.call(this.symbol);
         }
-    },
+    }
+
+    /**
+     * @param {any} value
+     * @returns {boolean}
+     */
     eq(value) {
         if (!ExpressionDeps.isSymbol(value)) {
             value = ExpressionDeps._.parse(value);
@@ -4353,7 +4472,12 @@ Expression.prototype = {
             }
             return false;
         }
-    },
+    }
+
+    /**
+     * @param {any} value
+     * @returns {boolean}
+     */
     lt(value) {
         if (!ExpressionDeps.isSymbol(value)) {
             value = ExpressionDeps._.parse(value);
@@ -4367,7 +4491,12 @@ Expression.prototype = {
             }
             return false;
         }
-    },
+    }
+
+    /**
+     * @param {any} value
+     * @returns {boolean}
+     */
     gt(value) {
         if (!ExpressionDeps.isSymbol(value)) {
             value = ExpressionDeps._.parse(value);
@@ -4381,29 +4510,60 @@ Expression.prototype = {
             }
             return false;
         }
-    },
+    }
+
+    /**
+     * @param {any} value
+     * @returns {boolean}
+     */
     gte(value) {
         return this.gt(value) || this.eq(value);
-    },
+    }
+
+    /**
+     * @param {any} value
+     * @returns {boolean}
+     */
     lte(value) {
         return this.lt(value) || this.eq(value);
-    },
+    }
 
+    /** @returns {Expression} */
     numerator() {
         return new Expression(this.symbol.getNum());
-    },
+    }
+
+    /** @returns {Expression} */
     denominator() {
         return new Expression(this.symbol.getDenom());
-    },
+    }
+
+    /**
+     * @param {string | string[]} f
+     * @returns {boolean}
+     */
     hasFunction(f) {
         return this.symbol.containsFunction(f);
-    },
+    }
+
+    /**
+     * @param {string} variable
+     * @returns {boolean}
+     */
     contains(variable) {
         return this.symbol.contains(variable);
-    },
-};
-// Aliases
-Expression.prototype.toTeX = Expression.prototype.latex;
+    }
+
+    /**
+     * Alias for latex
+     *
+     * @param {OutputType} option
+     * @returns {string}
+     */
+    toTeX(option) {
+        return this.latex(option);
+    }
+}
 
 // Assign Expression to CoreDeps immediately
 CoreDeps.classes.Expression = Expression;
@@ -4416,7 +4576,7 @@ CoreDeps.classes.Expression = Expression;
  * Dependency container for Vector class. Populated by the IIFE during initialization. Only IIFE-scope values and
  * forward-referenced values need injection.
  *
- * @type {{ _: any; Settings: { PRECISION: number }; LaTeX: any }}
+ * @type {{ _: any; Settings: { PRECISION: number }; LaTeX: any; NerdamerSymbol: SymbolConstructor }}
  */
 const VectorDeps = {
     get _() {
@@ -4428,95 +4588,138 @@ const VectorDeps = {
     get LaTeX() {
         return CoreDeps.classes.LaTeX;
     },
+    get NerdamerSymbol() {
+        return CoreDeps.classes.NerdamerSymbol;
+    },
 };
 
-/**
- * @class
- * @param {any} [v]
- * @param {...any} rest
- */
-function Vector(v, ...rest) {
-    this.multiplier = new Frac(1);
-    if (isVector(v)) {
-        this.elements = /** @type {any[]} */ (v.elements)?.slice(0) ?? [];
-    } else if (isArray(v)) {
-        this.elements = v.slice(0);
-    } else if (isMatrix(v)) {
-        if (v.elements.length === 1) {
-            this.elements = [...v.elements[0]];
-            this.rowVector = true;
-        } else if (v.elements.length > 1 && Array.isArray(v.elements[0]) && v.elements[0].length === 1) {
-            this.elements = v.elements.map(row => row[0]);
-            this.rowVector = false;
+/** Vector class - Ported from Sylvester.js */
+class Vector {
+    /** @type {Frac} */
+    multiplier;
+
+    /** @type {any[]} */
+    elements;
+
+    /** @type {boolean | undefined} */
+    rowVector;
+
+    /** Custom marker for parser */
+    custom = true;
+
+    /**
+     * @param {any} [v]
+     * @param {...any} rest
+     */
+    constructor(v, ...rest) {
+        this.multiplier = new Frac(1);
+        if (isVector(v)) {
+            this.elements = /** @type {any[]} */ (v.elements)?.slice(0) ?? [];
+        } else if (isArray(v)) {
+            this.elements = v.slice(0);
+        } else if (isMatrix(v)) {
+            if (v.elements.length === 1) {
+                this.elements = [...v.elements[0]];
+                this.rowVector = true;
+            } else if (v.elements.length > 1 && Array.isArray(v.elements[0]) && v.elements[0].length === 1) {
+                this.elements = v.elements.map(row => row[0]);
+                this.rowVector = false;
+            }
+        } else if (typeof v === 'undefined') {
+            this.elements = [];
+        } else {
+            this.elements = [v, ...rest];
         }
-    } else if (typeof v === 'undefined') {
-        this.elements = [];
-    } else {
-        this.elements = [v, ...rest];
     }
-}
-/*
- * Generates a pre-filled array
- * @param {*} n
- * @param {*} val
- * @returns {*}
- */
-Vector.arrayPrefill = function arrayPrefill(n, val) {
-    const a = [];
-    val ||= 0;
-    for (let i = 0; i < n; i++) {
-        a[i] = val;
+
+    /**
+     * Generates a pre-filled array
+     *
+     * @param {number} n
+     * @param {any} [val]
+     * @returns {any[]}
+     */
+    static arrayPrefill(n, val) {
+        const a = [];
+        val ||= 0;
+        for (let i = 0; i < n; i++) {
+            a[i] = val;
+        }
+        return a;
     }
-    return a;
-};
-/**
- * Generate a vector from and array
- *
- * @param {any} a
- * @returns {any}
- */
-Vector.fromArray = function fromArray(a) {
-    const v = new Vector();
-    v.elements = a;
-    return v;
-};
 
-/**
- * Convert a NerdamerSet to a Vector
- *
- * @param {SetType} nerdamerSet
- * @returns {Vector}
- */
-Vector.fromSet = function fromSet(nerdamerSet) {
-    return Vector.fromArray(nerdamerSet.elements);
-};
+    /**
+     * Generate a vector from an array
+     *
+     * @param {any} a
+     * @returns {Vector}
+     */
+    static fromArray(a) {
+        const v = new Vector();
+        v.elements = a;
+        return v;
+    }
 
-// Ported from Sylvester.js
-Vector.prototype = {
-    custom: true,
-    // Returns element i of the vector
+    /**
+     * Convert a NerdamerSet to a Vector
+     *
+     * @param {SetType} nerdamerSet
+     * @returns {Vector}
+     */
+    static fromSet(nerdamerSet) {
+        return Vector.fromArray(nerdamerSet.elements);
+    }
+
+    /**
+     * Returns element i of the vector
+     *
+     * @param {number} i
+     * @returns {any}
+     */
     e(i) {
         return i < 1 || i > this.elements.length ? null : this.elements[i - 1];
-    },
+    }
 
+    /**
+     * @param {number} i
+     * @param {any} val
+     */
     set(i, val) {
         if (!isSymbol(val)) {
-            val = new NerdamerSymbol(val);
+            val = new VectorDeps.NerdamerSymbol(val);
         }
         this.elements[i] = val;
-    },
+    }
 
-    // Returns the number of elements the vector has
+    /**
+     * Returns the number of elements the vector has
+     *
+     * @returns {number}
+     */
     dimensions() {
         return this.elements.length;
-    },
+    }
 
-    // Returns the modulus ('length') of the vector
+    /**
+     * Returns the modulus ('length') of the vector
+     *
+     * @returns {any}
+     */
     modulus() {
-        return block('SAFE', () => VectorDeps._.pow(this.dot(this.clone()), new NerdamerSymbol(0.5)), undefined, this);
-    },
+        return block(
+            'SAFE',
+            () => VectorDeps._.pow(this.dot(this.clone()), new VectorDeps.NerdamerSymbol(0.5)),
+            undefined,
+            this
+        );
+    }
 
-    // Returns true iff the vector is equal to the argument
+    /**
+     * Returns true iff the vector is equal to the argument
+     *
+     * @param {any} vector
+     * @returns {boolean}
+     */
     eql(vector) {
         let n = this.elements.length;
         const V = vector.elements || vector;
@@ -4532,9 +4735,13 @@ Vector.prototype = {
             }
         } while (--n);
         return true;
-    },
+    }
 
-    // Returns a clone of the vector
+    /**
+     * Returns a clone of the vector
+     *
+     * @returns {Vector}
+     */
     clone() {
         const V = new Vector();
         const l = this.elements.length;
@@ -4544,14 +4751,23 @@ Vector.prototype = {
         }
         V.rowVector = this.rowVector;
         return V;
-    },
+    }
 
+    /**
+     * @param {any} options
+     * @returns {this}
+     */
     expand(options) {
         this.elements = this.elements.map(e => VectorDeps._.expand(e, options));
         return this;
-    },
+    }
 
-    // Maps the vector to another vector according to the given function
+    /**
+     * Maps the vector to another vector according to the given function
+     *
+     * @param {Function} fn
+     * @returns {Vector}
+     */
     map(fn) {
         const elements = [];
         this.each((x, i) => {
@@ -4559,9 +4775,13 @@ Vector.prototype = {
         });
 
         return new Vector(elements);
-    },
+    }
 
-    // Calls the iterator for each element of the vector in turn
+    /**
+     * Calls the iterator for each element of the vector in turn
+     *
+     * @param {Function} fn
+     */
     each(fn) {
         let n = this.elements.length;
         const k = n;
@@ -4570,9 +4790,13 @@ Vector.prototype = {
             i = k - n;
             fn(this.elements[i], i + 1);
         } while (--n);
-    },
+    }
 
-    // Returns a new vector created by normalizing the receiver
+    /**
+     * Returns a new vector created by normalizing the receiver
+     *
+     * @returns {Vector}
+     */
     toUnitVector() {
         return block(
             'SAFE',
@@ -4586,9 +4810,14 @@ Vector.prototype = {
             undefined,
             this
         );
-    },
+    }
 
-    // Returns the angle between the vector and the argument (also a vector)
+    /**
+     * Returns the angle between the vector and the argument (also a vector)
+     *
+     * @param {any} vector
+     * @returns {any}
+     */
     angleFrom(vector) {
         return block(
             'SAFE',
@@ -4598,17 +4827,17 @@ Vector.prototype = {
                 if (n !== V.length) {
                     return null;
                 }
-                let dot = new NerdamerSymbol(0);
-                let mod1 = new NerdamerSymbol(0);
-                let mod2 = new NerdamerSymbol(0);
+                let dot = new VectorDeps.NerdamerSymbol(0);
+                let mod1 = new VectorDeps.NerdamerSymbol(0);
+                let mod2 = new VectorDeps.NerdamerSymbol(0);
                 // Work things out in parallel to save time
                 this.each((x, i) => {
                     dot = VectorDeps._.add(dot, VectorDeps._.multiply(x, V[i - 1]));
                     mod1 = VectorDeps._.add(mod1, VectorDeps._.multiply(x, x)); // Will not conflict in safe block
                     mod2 = VectorDeps._.add(mod2, VectorDeps._.multiply(V[i - 1], V[i - 1])); // Will not conflict in safe block
                 });
-                mod1 = VectorDeps._.pow(mod1, new NerdamerSymbol(0.5));
-                mod2 = VectorDeps._.pow(mod2, new NerdamerSymbol(0.5));
+                mod1 = VectorDeps._.pow(mod1, new VectorDeps.NerdamerSymbol(0.5));
+                mod2 = VectorDeps._.pow(mod2, new VectorDeps.NerdamerSymbol(0.5));
                 const product = VectorDeps._.multiply(mod1, mod2);
                 if (product.valueOf() === 0) {
                     return null;
@@ -4622,32 +4851,52 @@ Vector.prototype = {
                 if (thetaVal > 1) {
                     theta = 1;
                 }
-                return new NerdamerSymbol(Math.acos(/** @type {number} */ (theta)));
+                return new VectorDeps.NerdamerSymbol(Math.acos(/** @type {number} */ (theta)));
             },
             undefined,
             this
         );
-    },
+    }
 
-    // Returns true iff the vector is parallel to the argument
+    /**
+     * Returns true iff the vector is parallel to the argument
+     *
+     * @param {any} vector
+     * @returns {boolean | null}
+     */
     isParallelTo(vector) {
         const angle = this.angleFrom(vector).valueOf();
         return angle === null ? null : angle <= VectorDeps.Settings.PRECISION;
-    },
+    }
 
-    // Returns true iff the vector is antiparallel to the argument
+    /**
+     * Returns true iff the vector is antiparallel to the argument
+     *
+     * @param {any} vector
+     * @returns {boolean | null}
+     */
     isAntiparallelTo(vector) {
         const angle = this.angleFrom(vector).valueOf();
         return angle === null ? null : Math.abs(angle - Math.PI) <= VectorDeps.Settings.PRECISION;
-    },
+    }
 
-    // Returns true iff the vector is perpendicular to the argument
+    /**
+     * Returns true iff the vector is perpendicular to the argument
+     *
+     * @param {any} vector
+     * @returns {boolean | null}
+     */
     isPerpendicularTo(vector) {
         const dot = this.dot(vector);
         return dot === null ? null : Math.abs(dot) <= VectorDeps.Settings.PRECISION;
-    },
+    }
 
-    // Returns the result of adding the argument to the vector
+    /**
+     * Returns the result of adding the argument to the vector
+     *
+     * @param {any} vector
+     * @returns {Vector | null}
+     */
     add(vector) {
         return block(
             'SAFE',
@@ -4661,9 +4910,14 @@ Vector.prototype = {
             undefined,
             this
         );
-    },
+    }
 
-    // Returns the result of subtracting the argument from the vector
+    /**
+     * Returns the result of subtracting the argument from the vector
+     *
+     * @param {any} vector
+     * @returns {Vector | null}
+     */
     subtract(vector) {
         return block(
             'SAFE',
@@ -4677,25 +4931,40 @@ Vector.prototype = {
             undefined,
             this
         );
-    },
+    }
 
-    // Returns the result of multiplying the elements of the vector by the argument
+    /**
+     * Returns the result of multiplying the elements of the vector by the argument
+     *
+     * @param {any} k
+     * @returns {Vector}
+     */
     multiply(k) {
         return this.map(x => x.clone() * k.clone());
-    },
+    }
 
+    /**
+     * Alias for multiply
+     *
+     * @param {any} k
+     * @returns {Vector}
+     */
     x(k) {
         return this.multiply(k);
-    },
+    }
 
-    // Returns the scalar product of the vector with the argument
-    // Both vectors must have equal dimensionality
+    /**
+     * Returns the scalar product of the vector with the argument Both vectors must have equal dimensionality
+     *
+     * @param {any} vector
+     * @returns {any}
+     */
     dot(vector) {
         return block(
             'SAFE',
             () => {
                 const V = vector.elements || vector;
-                let product = new NerdamerSymbol(0);
+                let product = new VectorDeps.NerdamerSymbol(0);
                 let n = this.elements.length;
                 if (n !== V.length) {
                     return null;
@@ -4708,10 +4977,14 @@ Vector.prototype = {
             undefined,
             this
         );
-    },
+    }
 
-    // Returns the vector product of the vector with the argument
-    // Both vectors must have dimensionality 3
+    /**
+     * Returns the vector product of the vector with the argument Both vectors must have dimensionality 3
+     *
+     * @param {any} vector
+     * @returns {Vector | null}
+     */
     cross(vector) {
         const B = vector.elements || vector;
         if (this.elements.length !== 3 || B.length !== 3) {
@@ -4733,13 +5006,18 @@ Vector.prototype = {
             undefined,
             this
         );
-    },
+    }
 
+    /** @returns {this} */
     toUnitMultiplier() {
         return this;
-    },
+    }
 
-    // Returns the (absolute) largest element of the vector
+    /**
+     * Returns the (absolute) largest element of the vector
+     *
+     * @returns {any}
+     */
     max() {
         let m = 0;
         let n = this.elements.length;
@@ -4752,15 +5030,23 @@ Vector.prototype = {
             }
         } while (--n);
         return m;
-    },
+    }
+
+    /** @returns {any} */
     magnitude() {
-        let magnitude = new NerdamerSymbol(0);
+        let magnitude = new VectorDeps.NerdamerSymbol(0);
         this.each(e => {
-            magnitude = VectorDeps._.add(magnitude, VectorDeps._.pow(e, new NerdamerSymbol(2)));
+            magnitude = VectorDeps._.add(magnitude, VectorDeps._.pow(e, new VectorDeps.NerdamerSymbol(2)));
         });
         return VectorDeps._.sqrt(magnitude);
-    },
-    // Returns the index of the first match found
+    }
+
+    /**
+     * Returns the index of the first match found
+     *
+     * @param {any} x
+     * @returns {number | null}
+     */
     indexOf(x) {
         let index = null;
         let n = this.elements.length;
@@ -4773,26 +5059,45 @@ Vector.prototype = {
             }
         } while (--n);
         return index;
-    },
+    }
+
+    /**
+     * @param {any} x
+     * @param {any} options
+     * @returns {string}
+     */
     text_(x, options) {
         const result = text(this, options);
         return (this.rowVector ? '[' : '') + result + (this.rowVector ? ']' : '');
-    },
+    }
+
+    /**
+     * @param {any} x
+     * @param {any} options
+     * @returns {string}
+     */
     text(x, options) {
         const result = text(this, options);
         return (this.rowVector ? '[' : '') + result + (this.rowVector ? ']' : '');
-    },
+    }
+
+    /** @returns {string} */
     toString() {
         return this.text();
-    },
+    }
+
+    /**
+     * @param {any} option
+     * @returns {string}
+     */
     latex(option) {
         const tex = [];
         for (let i = 0; i < this.elements.length; i++) {
             tex.push(VectorDeps.LaTeX.latex(this.elements[i], option));
         }
         return `[${tex.join(', ')}]`;
-    },
-};
+    }
+}
 
 // Assign Vector to CoreDeps immediately
 CoreDeps.classes.Vector = /** @type {any} */ (Vector);
@@ -4804,7 +5109,7 @@ CoreDeps.classes.Vector = /** @type {any} */ (Vector);
 /**
  * Dependency container for Matrix class. Populated by the IIFE during initialization.
  *
- * @type {{ _: any; LaTeX: any }}
+ * @type {{ _: any; LaTeX: any; NerdamerSymbol: SymbolConstructor }}
  */
 const MatrixDeps = {
     get _() {
@@ -4813,107 +5118,158 @@ const MatrixDeps = {
     get LaTeX() {
         return CoreDeps.classes.LaTeX;
     },
+    get NerdamerSymbol() {
+        return CoreDeps.classes.NerdamerSymbol;
+    },
 };
 
-/**
- * @class
- * @param {...any} args
- */
-function Matrix(...args) {
-    this.multiplier = new Frac(1);
-    const m = args;
-    const l = m.length;
-    let i;
-    const el = [];
-    if (isMatrix(m)) {
-        // If it's a matrix then make a clone
-        for (i = 0; i < l; i++) {
-            el.push(m[i].slice(0));
-        }
-    } else {
-        let row;
-        let lw;
-        let rl;
-        for (i = 0; i < l; i++) {
-            row = m[i];
-            if (isVector(row)) {
-                row = row.elements;
-            }
-            if (!isArray(row)) {
-                row = [row];
-            }
-            rl = row.length;
-            if (lw && lw !== rl) {
-                err('Unable to create Matrix. Row dimensions do not match!');
-            }
-            el.push(row);
-            lw = rl;
-        }
-    }
-    this.elements = el;
-}
-Matrix.identity = function identity(n) {
-    const m = new Matrix();
-    for (let i = 0; i < n; i++) {
-        m.elements.push([]);
-        for (let j = 0; j < n; j++) {
-            m.set(i, j, i === j ? new NerdamerSymbol(1) : new NerdamerSymbol(0));
-        }
-    }
-    return m;
-};
-Matrix.fromArray = function fromArray(arr) {
-    /** @class */
-    function F(args) {
-        return Matrix.apply(this, args);
-    }
-    F.prototype = Matrix.prototype;
+/** Matrix class - Ported from Sylvester.js */
+class Matrix {
+    /** @type {Frac} */
+    multiplier;
 
-    return new F(arr);
-};
-Matrix.zeroMatrix = function zeroMatrix(rows, cols) {
-    const m = new Matrix();
-    for (let i = 0; i < rows; i++) {
-        m.elements.push(Vector.arrayPrefill(cols, new NerdamerSymbol(0)));
+    /** @type {any[][]} */
+    elements;
+
+    /** Custom marker for parser */
+    custom = true;
+
+    /** @param {...any} args */
+    constructor(...args) {
+        this.multiplier = new Frac(1);
+        const m = args;
+        const l = m.length;
+        let i;
+        const el = [];
+        if (isMatrix(m)) {
+            // If it's a matrix then make a clone
+            for (i = 0; i < l; i++) {
+                el.push(m[i].slice(0));
+            }
+        } else {
+            let row;
+            let lw;
+            let rl;
+            for (i = 0; i < l; i++) {
+                row = m[i];
+                if (isVector(row)) {
+                    row = row.elements;
+                }
+                if (!isArray(row)) {
+                    row = [row];
+                }
+                rl = row.length;
+                if (lw && lw !== rl) {
+                    err('Unable to create Matrix. Row dimensions do not match!');
+                }
+                el.push(row);
+                lw = rl;
+            }
+        }
+        this.elements = el;
     }
-    return m;
-};
-Matrix.prototype = {
-    // Needs be true to let the parser know not to try to cast it to a symbol
-    custom: true,
+
+    /**
+     * @param {number} n
+     * @returns {Matrix}
+     */
+    static identity(n) {
+        const m = new Matrix();
+        for (let i = 0; i < n; i++) {
+            m.elements.push([]);
+            for (let j = 0; j < n; j++) {
+                m.set(i, j, i === j ? new MatrixDeps.NerdamerSymbol(1) : new MatrixDeps.NerdamerSymbol(0));
+            }
+        }
+        return m;
+    }
+
+    /**
+     * @param {any[]} arr
+     * @returns {Matrix}
+     */
+    static fromArray(arr) {
+        return new Matrix(...arr);
+    }
+
+    /**
+     * @param {number} rows
+     * @param {number} cols
+     * @returns {Matrix}
+     */
+    static zeroMatrix(rows, cols) {
+        const m = new Matrix();
+        for (let i = 0; i < rows; i++) {
+            m.elements.push(Vector.arrayPrefill(cols, new MatrixDeps.NerdamerSymbol(0)));
+        }
+        return m;
+    }
+
+    /**
+     * @param {number} row
+     * @param {number} column
+     * @returns {any}
+     */
     get(row, column) {
         if (!this.elements[row]) {
             return undefined;
         }
         return this.elements[row][column];
-    },
+    }
+
+    /**
+     * @param {Function} f
+     * @param {boolean} [rawValues]
+     * @returns {Matrix}
+     */
     map(f, rawValues) {
         const M = new Matrix();
         this.each((e, i, j) => {
             M.set(i, j, f.call(M, e), rawValues);
         });
         return M;
-    },
+    }
+
+    /**
+     * @param {number} row
+     * @param {number} column
+     * @param {any} value
+     * @param {boolean} [raw]
+     */
     set(row, column, value, raw) {
         this.elements[row] ||= [];
         if (raw || isSymbol(value)) {
             this.elements[row][column] = value;
         } else {
-            this.elements[row][column] = new NerdamerSymbol(value);
+            this.elements[row][column] = new MatrixDeps.NerdamerSymbol(value);
         }
-    },
+    }
+
+    /** @returns {number} */
     cols() {
         return this.elements[0].length;
-    },
+    }
+
+    /** @returns {number} */
     rows() {
         return this.elements.length;
-    },
+    }
+
+    /**
+     * @param {number} n
+     * @returns {any[]}
+     */
     row(n) {
         if (!n || n > this.cols()) {
             return [];
         }
         return this.elements[n - 1];
-    },
+    }
+
+    /**
+     * @param {number} n
+     * @returns {any[]}
+     */
     col(n) {
         const nr = this.rows();
         const col = [];
@@ -4924,7 +5280,9 @@ Matrix.prototype = {
             col.push(this.elements[i][n - 1]);
         }
         return col;
-    },
+    }
+
+    /** @param {Function} fn */
     eachElement(fn) {
         const nr = this.rows();
         const nc = this.cols();
@@ -4935,8 +5293,22 @@ Matrix.prototype = {
                 fn.call(this, this.elements[i][j], i, j);
             }
         }
-    },
-    // Ported from Sylvester.js
+    }
+
+    /**
+     * Alias for eachElement
+     *
+     * @param {Function} fn
+     */
+    each(fn) {
+        this.eachElement(fn);
+    }
+
+    /**
+     * Ported from Sylvester.js
+     *
+     * @returns {any}
+     */
     determinant() {
         if (!this.isSquare()) {
             return null;
@@ -4951,13 +5323,22 @@ Matrix.prototype = {
             det = MatrixDeps._.multiply(det, M.elements[i][i]);
         } while (--n);
         return det;
-    },
+    }
+
+    /** @returns {boolean} */
     isSquare() {
         return this.elements.length === this.elements[0].length;
-    },
+    }
+
+    /** @returns {boolean} */
     isSingular() {
         return this.isSquare() && this.determinant() === 0;
-    },
+    }
+
+    /**
+     * @param {Matrix} m
+     * @returns {this}
+     */
     augment(m) {
         const r = this.rows();
         const rr = m.rows();
@@ -4969,7 +5350,9 @@ Matrix.prototype = {
         }
 
         return this;
-    },
+    }
+
+    /** @returns {Matrix} */
     clone() {
         const r = this.rows();
         const c = this.cols();
@@ -4982,20 +5365,36 @@ Matrix.prototype = {
             }
         }
         return m;
-    },
+    }
+
+    /** @returns {this} */
     toUnitMultiplier() {
         return this;
-    },
+    }
+
+    /**
+     * @param {any} options
+     * @returns {this}
+     */
     expand(options) {
         this.eachElement(e => MatrixDeps._.expand(e, options));
         return this;
-    },
+    }
+
+    /**
+     * @param {any} options
+     * @returns {this}
+     */
     evaluate(options) {
         this.eachElement(e => MatrixDeps._.evaluate(e, options));
         return this;
-    },
+    }
 
-    // Ported from Sylvester.js
+    /**
+     * Ported from Sylvester.js
+     *
+     * @returns {Matrix}
+     */
     invert() {
         if (!this.isSquare()) {
             err('Matrix is not square!');
@@ -5058,8 +5457,13 @@ Matrix.prototype = {
             undefined,
             this
         );
-    },
-    // Ported from Sylvester.js
+    }
+
+    /**
+     * Ported from Sylvester.js
+     *
+     * @returns {Matrix}
+     */
     toRightTriangular() {
         return block(
             'SAFE',
@@ -5106,7 +5510,7 @@ Matrix.prototype = {
                                 // to loop over and correct rounding errors later
                                 els.push(
                                     p <= i
-                                        ? new NerdamerSymbol(0)
+                                        ? new MatrixDeps.NerdamerSymbol(0)
                                         : MatrixDeps._.subtract(
                                               M.elements[j][p].clone(),
                                               MatrixDeps._.multiply(M.elements[i][p].clone(), multiplier.clone())
@@ -5123,7 +5527,9 @@ Matrix.prototype = {
             undefined,
             this
         );
-    },
+    }
+
+    /** @returns {Matrix} */
     transpose() {
         const rows = this.elements.length;
         const cols = this.elements[0].length;
@@ -5143,16 +5549,32 @@ Matrix.prototype = {
             } while (--nj);
         } while (--ni);
         return M;
-    },
-    // Returns true if the matrix can multiply the argument from the left
+    }
+
+    /**
+     * Returns true if the matrix can multiply the argument from the left
+     *
+     * @param {any} matrix
+     * @returns {boolean}
+     */
     canMultiplyFromLeft(matrix) {
         const l = isMatrix(matrix) ? matrix.elements.length : matrix.length;
         // This.columns should equal matrix.rows
         return this.elements[0].length === l;
-    },
+    }
+
+    /**
+     * @param {Matrix} matrix
+     * @returns {boolean}
+     */
     sameSize(matrix) {
         return this.rows() === matrix.rows() && this.cols() === matrix.cols();
-    },
+    }
+
+    /**
+     * @param {any} matrix
+     * @returns {Matrix | null}
+     */
     multiply(matrix) {
         return block(
             'SAFE',
@@ -5190,7 +5612,7 @@ Matrix.prototype = {
                     nj = kj;
                     do {
                         j = kj - nj;
-                        sum = new NerdamerSymbol(0);
+                        sum = new MatrixDeps.NerdamerSymbol(0);
                         nc = cols;
                         do {
                             c = cols - nc;
@@ -5204,7 +5626,13 @@ Matrix.prototype = {
             undefined,
             this
         );
-    },
+    }
+
+    /**
+     * @param {Matrix} matrix
+     * @param {Function} [callback]
+     * @returns {Matrix}
+     */
     add(matrix, callback) {
         const M = new Matrix();
         if (this.sameSize(matrix)) {
@@ -5217,7 +5645,13 @@ Matrix.prototype = {
             });
         }
         return M;
-    },
+    }
+
+    /**
+     * @param {Matrix} matrix
+     * @param {Function} [callback]
+     * @returns {Matrix}
+     */
     subtract(matrix, callback) {
         const M = new Matrix();
         if (this.sameSize(matrix)) {
@@ -5230,11 +5664,15 @@ Matrix.prototype = {
             });
         }
         return M;
-    },
+    }
+
+    /** @returns {this} */
     negate() {
         this.each(e => e.negate());
         return this;
-    },
+    }
+
+    /** @returns {Vector | Matrix} */
     toVector() {
         if (this.rows() === 1 || this.cols() === 1) {
             const v = new Vector();
@@ -5242,7 +5680,13 @@ Matrix.prototype = {
             return v;
         }
         return this;
-    },
+    }
+
+    /**
+     * @param {string} [newline]
+     * @param {boolean} [toDecimal]
+     * @returns {string}
+     */
     toString(newline, toDecimal) {
         const l = this.rows();
         const s = [];
@@ -5258,10 +5702,17 @@ Matrix.prototype = {
             );
         }
         return `matrix${inBrackets(s.join(','))}`;
-    },
+    }
+
+    /** @returns {string} */
     text() {
-        return `matrix(${this.elements.map(row => `[${row.toString('')}]`)})`;
-    },
+        return `matrix(${this.elements.map(row => `[${row.join(',')}]`)})`;
+    }
+
+    /**
+     * @param {any} option
+     * @returns {string}
+     */
     latex(option) {
         const cols = this.cols();
         const { elements } = this;
@@ -5279,10 +5730,8 @@ Matrix.prototype = {
             }
             return tex.join(' \\cr ');
         });
-    },
-};
-// Aliases
-Matrix.prototype.each = Matrix.prototype.eachElement;
+    }
+}
 
 // Assign Matrix to CoreDeps immediately
 CoreDeps.classes.Matrix = /** @type {any} */ (Matrix);
@@ -5304,6 +5753,7 @@ CoreDeps.classes.Matrix = /** @type {any} */ (Matrix);
  *     FN: number;
  *     CB: number;
  *     Math2: any;
+ *     NerdamerSymbol: any;
  * }}
  */
 const BuildDeps = {
@@ -5329,7 +5779,10 @@ const BuildDeps = {
         return CoreDeps.groups.CB;
     },
     get Math2() {
-        return CoreDeps.classes.Math2;
+        return LateRefs.Math2;
+    },
+    get NerdamerSymbol() {
+        return CoreDeps.classes.NerdamerSymbol;
     },
 };
 
@@ -5341,7 +5794,7 @@ const Build = {
     reformat: {},
     /** Initializes Build dependencies and reformat functions. Called once from IIFE after Math2 is available. */
     initDependencies() {
-        /* eslint-disable no-use-before-define -- Called from IIFE after Math2 is defined */
+        const { Math2 } = BuildDeps;
         this.dependencies = {
             _rename: {
                 'Math2.factorial': 'factorial',
@@ -5376,7 +5829,7 @@ const Build = {
             },
             factor: {
                 'Math2.ifactor': Math2.ifactor,
-                NerdamerSymbol,
+                NerdamerSymbol: BuildDeps.NerdamerSymbol,
             },
             num_integrate: {
                 'Math2.simpson': Math2.simpson,
@@ -5399,7 +5852,6 @@ const Build = {
                 return [`diff(f)(${v})`, deps];
             },
         };
-        /* eslint-enable no-use-before-define */
     },
     /**
      * @param {string} f
@@ -5475,9 +5927,9 @@ const Build = {
      * @returns {Function}
      */
     build(symbol, argArray) {
-        // Module-scope values used directly: Math2, NerdamerSymbol, block, variables, inBrackets
+        // Module-scope values used directly: Math2, block, variables, inBrackets
         // IIFE-local values from BuildDeps:
-        const { _, FN, N, S, P, EX, CB } = BuildDeps;
+        const { _, FN, N, S, P, EX, CB, NerdamerSymbol } = BuildDeps;
 
         symbol = block('PARSE2NUMBER', () => _.parse(symbol), true);
         let args = variables(symbol);
@@ -6675,6 +7127,9 @@ Settings.CONST_HASH = CoreDeps.fnNames.CONST_HASH;
 // Initialize Settings.CACHE.roots at module scope
 Settings.initCache();
 
+// Populate LateRefs.Settings now that Settings is defined
+LateRefs.Settings = Settings;
+
 // Math2 Object ==================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
 // Dependencies are injected via Math2Deps which is set by the IIFE after initialization.
@@ -7599,6 +8054,9 @@ const Math2 = {
 Settings.FUNCTION_MODULES.push(Math2);
 reserveNames(/** @type {object} */ (Math2));
 
+// Populate LateRefs.Math2 now that Math2 is defined
+LateRefs.Math2 = Math2;
+
 // IsSymbol Function ==============================================================
 /**
  * Checks to see if the object provided is a NerdamerSymbol
@@ -7607,7 +8065,7 @@ reserveNames(/** @type {object} */ (Math2));
  * @returns {obj is NerdamerSymbol}
  */
 function isSymbol(obj) {
-    return obj instanceof NerdamerSymbol;
+    return obj instanceof CoreDeps.classes.NerdamerSymbol;
 }
 
 // IsVector Function ==============================================================
@@ -7770,7 +8228,7 @@ function getCoeffs(symbol, wrt, _info) {
     }, true);
 
     for (let i = 0; i < coeffs.length; i++) {
-        coeffs[i] ||= new NerdamerSymbol(0);
+        coeffs[i] ||= new CoreDeps.classes.NerdamerSymbol(0);
     }
     // Fill the holes
     return coeffs;
@@ -7785,6 +8243,7 @@ function getCoeffs(symbol, wrt, _info) {
  *     FN: number;
  *     P: number;
  *     N: number;
+ *     NerdamerSymbol: any;
  * }}
  */
 const NrootsDeps = {
@@ -7800,6 +8259,9 @@ const NrootsDeps = {
     get N() {
         return CoreDeps.groups.N;
     },
+    get NerdamerSymbol() {
+        return CoreDeps.classes.NerdamerSymbol;
+    },
 };
 
 /**
@@ -7814,7 +8276,7 @@ function nroots(symbol) {
     let _roots;
 
     if (symbol.group === NrootsDeps.FN && symbol.fname === '') {
-        a = NerdamerSymbol.unwrapPARENS(NrootsDeps._.parse(symbol).toLinear());
+        a = NrootsDeps.NerdamerSymbol.unwrapPARENS(NrootsDeps._.parse(symbol).toLinear());
         b = NrootsDeps._.parse(symbol.power);
     } else if (symbol.group === NrootsDeps.P) {
         a = NrootsDeps._.parse(symbol.value);
@@ -7824,7 +8286,7 @@ function nroots(symbol) {
     if (a && b && a.group === NrootsDeps.N && b.group === NrootsDeps.N && a.multiplier.isNegative()) {
         _roots = [];
 
-        const parts = NerdamerSymbol.toPolarFormArray(evaluate(symbol));
+        const parts = NrootsDeps.NerdamerSymbol.toPolarFormArray(evaluate(symbol));
         const r = parts[0];
 
         // Var r = _.parse(a).abs().toString();
@@ -7850,7 +8312,7 @@ function nroots(symbol) {
         _roots = [root.clone(), root.negate()];
 
         if (sign < 0) {
-            _roots = _roots.map(r => NrootsDeps._.multiply(r, NerdamerSymbol.imaginary()));
+            _roots = _roots.map(r => NrootsDeps._.multiply(r, NrootsDeps.NerdamerSymbol.imaginary()));
         }
     } else {
         _roots = [NrootsDeps._.parse(symbol)];
@@ -7877,7 +8339,9 @@ function compare(sym1, sym2, vars) {
     const scope = {}; // Scope object with random numbers generated using vars
     let comparison;
     for (let i = 0; i < vars.length; i++) {
-        scope[vars[i]] = new NerdamerSymbol(Math.floor(Math.random() * n) + 1);
+        scope[vars[i]] = /** @type {NerdamerSymbol} */ (
+            new CoreDeps.classes.NerdamerSymbol(Math.floor(Math.random() * n) + 1)
+        );
     }
     block('PARSE2NUMBER', () => {
         comparison = ParserDeps._.parse(sym1, scope).equals(ParserDeps._.parse(sym2, scope));
@@ -7907,10 +8371,11 @@ function isFraction(num) {
  *
  * @param {Array} arr
  * @param {boolean} toNumber
- * @returns {NerdamerSymbol | number}
+ * @returns {NerdamerSymbolType | number}
  */
 function arraySum(arr, toNumber) {
-    let sum = new NerdamerSymbol(0);
+    /** @type {NerdamerSymbolType} */
+    let sum = /** @type {NerdamerSymbolType} */ (new CoreDeps.classes.NerdamerSymbol(0));
     for (let i = 0; i < arr.length; i++) {
         const x = arr[i];
         // Convert to symbol if not
@@ -7951,7 +8416,7 @@ function fillHoles(arr, n) {
     for (let i = 0; i < n; i++) {
         const sym = arr[i];
         if (!sym) {
-            arr[i] = new NerdamerSymbol(0);
+            arr[i] = new CoreDeps.classes.NerdamerSymbol(0);
         }
     }
     return arr;
@@ -8012,7 +8477,7 @@ function separate(symbol, o) {
     symbol = SeparateDeps._.expand(symbol);
     o ||= {};
     const insert = function (key, sym) {
-        o[key] ||= new NerdamerSymbol(0);
+        o[key] ||= new CoreDeps.classes.NerdamerSymbol(0);
         o[key] = SeparateDeps._.add(o[key], sym.clone());
     };
     symbol.each(x => {
@@ -8071,7 +8536,7 @@ function decomposeFn(fn, wrt, asObj) {
     }
     const a = ax.stripVar(wrt);
     const x = DecomposeFnDeps._.divide(ax.clone(), a.clone());
-    b ||= new NerdamerSymbol(0);
+    b ||= new CoreDeps.classes.NerdamerSymbol(0);
     if (asObj) {
         return {
             a,
@@ -8098,7 +8563,7 @@ function mix(a, b, opt) {
         [a, b] = [b, a];
     }
     // A temporary variable to hold the expanded terms
-    let t = new NerdamerSymbol(0);
+    let t = new CoreDeps.classes.NerdamerSymbol(0);
     if (a.isLinear()) {
         a.each(x => {
             // If b is not a PL or a CP then simply multiply it
@@ -8884,142 +9349,193 @@ const NerdamerSymbolDeps = {
     },
 };
 
-function NerdamerSymbol(obj) {
-    checkTimeout();
+/** NerdamerSymbol class - The core symbol class for mathematical expressions */
+class NerdamerSymbol {
+    /** @type {number} */
+    group;
 
-    const isInfinity = obj === 'Infinity';
-    // This enables the class to be instantiated without the new operator
-    if (!(this instanceof NerdamerSymbol)) {
-        return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(obj)));
-    }
-    // Convert big numbers to a string
-    if (typeof obj === 'object' && obj !== null && /** @type {any} */ (obj) instanceof NerdamerSymbolDeps.bigDec) {
-        obj = /** @type {any} */ (obj).toString();
-    }
-    // Define numeric symbols
-    const objStr = String(obj);
-    if (
-        /^(?<sign>-?\+?\d+)\.?\d*e?-?\+?\d*/iu.test(objStr) ||
-        (typeof obj === 'object' && obj !== null && /** @type {any} */ (obj) instanceof NerdamerSymbolDeps.bigDec)
-    ) {
-        this.group = NerdamerSymbolDeps.N;
-        this.value = NerdamerSymbolDeps.CONST_HASH;
-        this.multiplier = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(obj)));
-    }
-    // Define symbolic symbols
-    else {
-        this.group = NerdamerSymbolDeps.S;
-        validateName(obj);
-        this.value = obj;
-        this.multiplier = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(1)));
-        this.imaginary = obj === Settings.IMAGINARY;
-        this.isInfinity = isInfinity;
-    }
+    /** @type {string} */
+    value;
 
-    // As of 6.0.0 we switched to infinite precision so all objects have a power
-    // Although this is still redundant in constants, it simplifies the logic in
-    // other parts so we'll keep it
-    this.power = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(1)));
+    /** @type {FracType} */
+    multiplier;
 
-    // Initialize optional properties used by function symbols (FN group)
+    /** @type {FracType | NerdamerSymbolType} */
+    power;
+
     /** @type {NerdamerSymbol[] | undefined} */
-    this.args = undefined;
+    args = undefined;
+
     /** @type {string | undefined} */
-    this.fname = undefined;
+    fname = undefined;
+
     /** @type {boolean | undefined} */
-    this.isImgSymbol = undefined;
+    isImgSymbol = undefined;
 
-    // Added to silence the strict warning.
-    return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
-}
-/**
- * Returns vanilla imaginary symbol
- *
- * @returns {NerdamerSymbolType}
- */
-NerdamerSymbol.imaginary = function imaginary() {
-    const s = new NerdamerSymbol(Settings.IMAGINARY);
-    s.imaginary = true;
-    return s;
-};
-/**
- * Return nerdamer's representation of Infinity
- *
- * @param {number} negative -1 to return negative infinity
- * @returns {NerdamerSymbolType}
- */
-NerdamerSymbol.infinity = function infinity(negative = undefined) {
-    const v = new NerdamerSymbol('Infinity');
-    if (negative === -1) {
-        v.negate();
-    }
-    return v;
-};
-/**
- * Creates a shell symbol for a given group
- *
- * @param {number} group
- * @param {any} [value]
- * @returns {NerdamerSymbolType}
- */
-NerdamerSymbol.shell = function shell(group, value) {
-    const symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(value)));
-    symbol.group = group;
-    symbol.symbols = {};
-    symbol.length = 0;
-    return symbol;
-};
-// Sqrt(x) -> x^(1/2)
-NerdamerSymbol.unwrapSQRT = function unwrapSQRT(symbol, all) {
-    const p = symbol.power;
-    if (symbol.fname === Settings.SQRT && (symbol.isLinear() || all)) {
-        const t = symbol.args[0].clone();
-        t.power = t.power.multiply(new Frac(1 / 2));
-        t.multiplier = t.multiplier.multiply(symbol.multiplier);
-        symbol = t;
-        if (all) {
-            symbol.power = p.multiply(new Frac(1 / 2));
+    /** @type {boolean | undefined} */
+    imaginary = undefined;
+
+    /** @type {boolean | undefined} */
+    isInfinity = undefined;
+
+    /** @param {any} obj */
+    constructor(obj) {
+        checkTimeout();
+
+        const isInfinity = obj === 'Infinity';
+        // Convert big numbers to a string
+        if (typeof obj === 'object' && obj !== null && /** @type {any} */ (obj) instanceof NerdamerSymbolDeps.bigDec) {
+            obj = /** @type {any} */ (obj).toString();
         }
+        // Define numeric symbols
+        const objStr = String(obj);
+        if (
+            /^(?<sign>-?\+?\d+)\.?\d*e?-?\+?\d*/iu.test(objStr) ||
+            (typeof obj === 'object' && obj !== null && /** @type {any} */ (obj) instanceof NerdamerSymbolDeps.bigDec)
+        ) {
+            this.group = NerdamerSymbolDeps.N;
+            this.value = NerdamerSymbolDeps.CONST_HASH;
+            this.multiplier = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(obj)));
+        }
+        // Define symbolic symbols
+        else {
+            this.group = NerdamerSymbolDeps.S;
+            validateName(obj);
+            this.value = obj;
+            this.multiplier = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(1)));
+            this.imaginary = obj === Settings.IMAGINARY;
+            this.isInfinity = isInfinity;
+        }
+
+        // As of 6.0.0 we switched to infinite precision so all objects have a power
+        // Although this is still redundant in constants, it simplifies the logic in
+        // other parts so we'll keep it
+        this.power = /** @type {FracType} */ (/** @type {unknown} */ (new Frac(1)));
     }
 
-    return symbol;
-};
-NerdamerSymbol.hyp = function hyp(a, b) {
-    a ||= new NerdamerSymbol(0);
-    b ||= new NerdamerSymbol(0);
-    const { _ } = NerdamerSymbolDeps;
-    return _.sqrt(_.add(_.pow(a.clone(), new NerdamerSymbol(2)), _.pow(b.clone(), new NerdamerSymbol(2))));
-};
-// Converts to polar form array
-NerdamerSymbol.toPolarFormArray = function toPolarFormArray(symbol) {
-    const re = symbol.realpart();
-    const im = symbol.imagpart();
-    const r = NerdamerSymbol.hyp(re, im);
-    const theta = re.equals(0)
-        ? NerdamerSymbolDeps._.parse('pi/2')
-        : NerdamerSymbolDeps._.trig.atan(NerdamerSymbolDeps._.divide(im, re));
-    return [r, theta];
-};
-// Removes parentheses
-NerdamerSymbol.unwrapPARENS = function unwrapPARENS(symbol) {
-    if (symbol.fname === '') {
-        const r = symbol.args[0];
-        r.power = r.power.multiply(symbol.power);
-        r.multiplier = r.multiplier.multiply(symbol.multiplier);
+    /**
+     * Returns vanilla imaginary symbol
+     *
+     * @returns {NerdamerSymbolType}
+     */
+    static imaginary() {
+        const s = new NerdamerSymbol(Settings.IMAGINARY);
+        s.imaginary = true;
+        return s;
+    }
+
+    /**
+     * Return nerdamer's representation of Infinity
+     *
+     * @param {number} negative -1 to return negative infinity
+     * @returns {NerdamerSymbolType}
+     */
+    static infinity(negative = undefined) {
+        const v = new NerdamerSymbol('Infinity');
+        if (negative === -1) {
+            v.negate();
+        }
+        return v;
+    }
+
+    /**
+     * Creates a shell symbol for a given group
+     *
+     * @param {number} group
+     * @param {any} [value]
+     * @returns {NerdamerSymbolType}
+     */
+    static shell(group, value) {
+        const symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(value)));
+        symbol.group = group;
+        symbol.symbols = {};
+        symbol.length = 0;
+        return symbol;
+    }
+
+    /**
+     * Sqrt(x) -> x^(1/2)
+     *
+     * @param {NerdamerSymbolType} symbol
+     * @param {boolean} [all]
+     * @returns {NerdamerSymbolType}
+     */
+    static unwrapSQRT(symbol, all) {
+        const p = symbol.power;
+        if (symbol.fname === Settings.SQRT && (symbol.isLinear() || all)) {
+            const t = symbol.args[0].clone();
+            // Power is Frac here since we're in a function context (not EX group)
+            t.power = /** @type {FracType} */ (t.power).multiply(new Frac(1 / 2));
+            t.multiplier = t.multiplier.multiply(symbol.multiplier);
+            symbol = t;
+            if (all) {
+                symbol.power = /** @type {FracType} */ (p).multiply(new Frac(1 / 2));
+            }
+        }
+
+        return symbol;
+    }
+
+    /**
+     * @param {NerdamerSymbolType} [a]
+     * @param {NerdamerSymbolType} [b]
+     * @returns {NerdamerSymbolType}
+     */
+    static hyp(a, b) {
+        a ||= new NerdamerSymbol(0);
+        b ||= new NerdamerSymbol(0);
+        const { _ } = NerdamerSymbolDeps;
+        return _.sqrt(_.add(_.pow(a.clone(), new NerdamerSymbol(2)), _.pow(b.clone(), new NerdamerSymbol(2))));
+    }
+
+    /**
+     * Converts to polar form array
+     *
+     * @param {NerdamerSymbolType} symbol
+     * @returns {[NerdamerSymbolType, NerdamerSymbolType]}
+     */
+    static toPolarFormArray(symbol) {
+        const re = symbol.realpart();
+        const im = symbol.imagpart();
+        const r = NerdamerSymbol.hyp(re, im);
+        const theta = re.equals(0)
+            ? NerdamerSymbolDeps._.parse('pi/2')
+            : NerdamerSymbolDeps._.trig.atan(NerdamerSymbolDeps._.divide(im, re));
+        return [r, theta];
+    }
+
+    /**
+     * Removes parentheses
+     *
+     * @param {NerdamerSymbolType} symbol
+     * @returns {NerdamerSymbolType}
+     */
+    static unwrapPARENS(symbol) {
         if (symbol.fname === '') {
-            return NerdamerSymbol.unwrapPARENS(r);
+            const r = symbol.args[0];
+            // Power.multiply: both powers should be Frac in parentheses context
+            r.power = /** @type {FracType} */ (r.power).multiply(/** @type {FracType} */ (symbol.power));
+            r.multiplier = r.multiplier.multiply(symbol.multiplier);
+            if (symbol.fname === '') {
+                return NerdamerSymbol.unwrapPARENS(r);
+            }
+            return r;
         }
-        return r;
+        return symbol;
     }
-    return symbol;
-};
-// Quickly creates a NerdamerSymbol
-NerdamerSymbol.create = function create(value, power) {
-    power = power === undefined ? 1 : power;
-    const { _ } = NerdamerSymbolDeps;
-    return _.parse(`(${value})^(${power})`);
-};
-NerdamerSymbol.prototype = {
+
+    /**
+     * Quickly creates a NerdamerSymbol
+     *
+     * @param {any} value
+     * @param {number} [power]
+     * @returns {NerdamerSymbolType}
+     */
+    static create(value, power) {
+        power = power === undefined ? 1 : power;
+        const { _ } = NerdamerSymbolDeps;
+        return _.parse(`(${value})^(${power})`);
+    }
     /** @returns {NerdamerSymbolType} */
     pushMinus() {
         const { _ } = NerdamerSymbolDeps;
@@ -9064,7 +9580,7 @@ NerdamerSymbol.prototype = {
             retval = _.multiply(_.parse(m), retval);
         }
         return retval;
-    },
+    }
 
     /**
      * Gets nth root accounting for rounding errors
@@ -9086,7 +9602,8 @@ NerdamerSymbol.prototype = {
         }
         // Otherwise return the unrounded version
         return root;
-    },
+    }
+
     /**
      * Checks if symbol is to the nth power
      *
@@ -9118,7 +9635,8 @@ NerdamerSymbol.prototype = {
         }
 
         return nthMultiplier && nthPower;
-    },
+    }
+
     /**
      * Checks if a symbol is square
      *
@@ -9126,7 +9644,8 @@ NerdamerSymbol.prototype = {
      */
     isSquare() {
         return this.isToNth(2);
-    },
+    }
+
     /**
      * Checks if a symbol is cube
      *
@@ -9134,7 +9653,8 @@ NerdamerSymbol.prototype = {
      */
     isCube() {
         return this.isToNth(3);
-    },
+    }
+
     /**
      * Checks if a symbol is a bare variable
      *
@@ -9142,7 +9662,8 @@ NerdamerSymbol.prototype = {
      */
     isSimple() {
         return this.power.equals(1) && this.multiplier.equals(1);
-    },
+    }
+
     /**
      * Simplifies the power of the symbol
      *
@@ -9202,7 +9723,8 @@ NerdamerSymbol.prototype = {
             return xt;
         }
         return this.clone();
-    },
+    }
+
     /**
      * Checks to see if two functions are of equal value
      *
@@ -9219,17 +9741,19 @@ NerdamerSymbol.prototype = {
         }
         return (
             this.value === sym.value &&
-            this.power.equals(sym.power) &&
+            /** @type {FracType} */ (this.power).equals(/** @type {FracType} */ (sym.power)) &&
             this.multiplier.equals(sym.multiplier) &&
             this.group === sym.group
         );
-    },
+    }
+
     /** @returns {NerdamerSymbolType} */
     abs() {
         const e = this.clone();
         e.multiplier.abs();
         return e;
-    },
+    }
+
     /**
      * Greater than
      *
@@ -9242,7 +9766,8 @@ NerdamerSymbol.prototype = {
         }
         const sym = /** @type {NerdamerSymbolType} */ (symbol);
         return this.isConstant() && sym.isConstant() && this.multiplier.greaterThan(sym.multiplier);
-    },
+    }
+
     /**
      * Greater than or equal
      *
@@ -9257,7 +9782,8 @@ NerdamerSymbol.prototype = {
         return (
             this.equals(sym) || (this.isConstant() && sym.isConstant() && this.multiplier.greaterThan(sym.multiplier))
         );
-    },
+    }
+
     /**
      * Less than
      *
@@ -9270,7 +9796,8 @@ NerdamerSymbol.prototype = {
         }
         const sym = /** @type {NerdamerSymbolType} */ (symbol);
         return this.isConstant() && sym.isConstant() && this.multiplier.lessThan(sym.multiplier);
-    },
+    }
+
     /**
      * Less than or equal
      *
@@ -9283,7 +9810,8 @@ NerdamerSymbol.prototype = {
         }
         const sym = /** @type {NerdamerSymbolType} */ (symbol);
         return this.equals(sym) || (this.isConstant() && sym.isConstant() && this.multiplier.lessThan(sym.multiplier));
-    },
+    }
+
     /**
      * Because nerdamer doesn't group symbols by polynomials but rather a custom grouping method, this has to be
      * reinserted in order to make use of most algorithms. This function checks if the symbol meets the criteria of a
@@ -9349,7 +9877,7 @@ NerdamerSymbol.prototype = {
          //all tests must have passed so we must be dealing with a polynomial
          return true;
          */
-    },
+    }
     // Removes the requested variable from the symbol and returns the remainder
     /**
      * @param {string} x
@@ -9406,7 +9934,7 @@ NerdamerSymbol.prototype = {
         }
 
         return retval;
-    },
+    }
     // Returns symbol in array form with x as base e.g. a*x^2+b*x+c = [c, b, a].
     toArray(v, arr) {
         const { _ } = NerdamerSymbolDeps;
@@ -9447,7 +9975,7 @@ NerdamerSymbol.prototype = {
             arr[i] ||= new NerdamerSymbol(0);
         }
         return arr;
-    },
+    }
     // Checks to see if a symbol contans a function
     hasFunc(v) {
         const fnGroup = this.group === NerdamerSymbolDeps.FN || this.group === NerdamerSymbolDeps.EX;
@@ -9462,7 +9990,7 @@ NerdamerSymbol.prototype = {
             }
         }
         return false;
-    },
+    }
     sub(a, b) {
         const { _ } = NerdamerSymbolDeps;
         a = NerdamerSymbolDeps.isSymbol(a) ? a.clone() : _.parse(a);
@@ -9573,7 +10101,7 @@ NerdamerSymbol.prototype = {
         }
         // If all else fails
         return this.clone();
-    },
+    }
     isMonomial() {
         if (this.group === NerdamerSymbolDeps.S) {
             return true;
@@ -9588,19 +10116,19 @@ NerdamerSymbol.prototype = {
             return false;
         }
         return true;
-    },
+    }
     isPi() {
         return this.group === NerdamerSymbolDeps.S && this.value === 'pi';
-    },
+    }
     sign() {
         return this.multiplier.sign();
-    },
+    }
     isE() {
         return this.value === 'e';
-    },
+    }
     isSQRT() {
         return this.fname === NerdamerSymbolDeps.SQRT;
-    },
+    }
     isConstant(checkAll, checkSymbols) {
         if (checkSymbols && this.group === NerdamerSymbolDeps.CB) {
             for (const x in this.symbols) {
@@ -9639,7 +10167,7 @@ NerdamerSymbol.prototype = {
             return isNumericSymbol(this);
         }
         return this.value === NerdamerSymbolDeps.CONST_HASH;
-    },
+    }
     // The symbols is imaginary if
     // 1. n*i
     // 2. a+b*i
@@ -9656,7 +10184,7 @@ NerdamerSymbol.prototype = {
             }
         }
         return false;
-    },
+    }
     /**
      * Returns the real part of a symbol
      *
@@ -9682,7 +10210,7 @@ NerdamerSymbol.prototype = {
             return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
         }
         return this.clone();
-    },
+    }
     /*
      * Return imaginary part of a symbol
      * @returns {NerdamerSymbolType}
@@ -9692,7 +10220,8 @@ NerdamerSymbol.prototype = {
         if (this.group === NerdamerSymbolDeps.S && this.isImaginary()) {
             /** @type {NerdamerSymbolType} */
             let x = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
-            if (this.power.isNegative()) {
+            // In S group, power is always Frac
+            if (/** @type {FracType} */ (this.power).isNegative()) {
                 x = this.clone();
                 x.power.negate();
                 x.multiplier.negate();
@@ -9711,10 +10240,10 @@ NerdamerSymbol.prototype = {
             return this.stripVar(Settings.IMAGINARY);
         }
         return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
-    },
+    }
     isInteger() {
         return this.isConstant() && this.multiplier.isInteger();
-    },
+    }
     isLinear(wrt) {
         if (wrt) {
             if (this.isConstant()) {
@@ -9750,7 +10279,7 @@ NerdamerSymbol.prototype = {
             return false;
         }
         return this.power.equals(1);
-    },
+    }
     /**
      * Checks to see if a symbol has a function by a specified name or within a specified list
      *
@@ -9772,7 +10301,7 @@ NerdamerSymbol.prototype = {
             }
         }
         return false;
-    },
+    }
     /**
      * Multiplies the current power by the given power
      *
@@ -9803,7 +10332,7 @@ NerdamerSymbol.prototype = {
 
             if (this.group === NerdamerSymbolDeps.P && isInt(this.power)) {
                 // Bring it back to an N
-                this.value = Number(this.value) ** Number(this.power);
+                this.value = String(Number(this.value) ** Number(this.power));
                 this.toLinear();
                 this.convert(NerdamerSymbolDeps.N);
             }
@@ -9819,7 +10348,7 @@ NerdamerSymbol.prototype = {
         }
 
         return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
-    },
+    }
     setPower(p, retainSign = false) {
         // Leave out 1
         if (this.group === NerdamerSymbolDeps.N && this.multiplier.equals(1)) {
@@ -9852,7 +10381,7 @@ NerdamerSymbol.prototype = {
         }
 
         return this;
-    },
+    }
     /**
      * Checks to see if symbol is located in the denominator
      *
@@ -9863,7 +10392,7 @@ NerdamerSymbol.prototype = {
             return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this.power)).multiplier.lessThan(0);
         }
         return Number(this.power) < 0;
-    },
+    }
     /**
      * Make a duplicate of a symbol by copying a predefined list of items. The name 'copy' would probably be a more
      * appropriate name. to a new symbol
@@ -9917,7 +10446,7 @@ NerdamerSymbol.prototype = {
         }
 
         return clone;
-    },
+    }
     /**
      * Converts a symbol multiplier to one.
      *
@@ -9927,7 +10456,7 @@ NerdamerSymbol.prototype = {
         this.multiplier.num = new NerdamerSymbolDeps.bigInt(this.multiplier.num.isNegative() && keepSign ? -1 : 1);
         this.multiplier.den = new NerdamerSymbolDeps.bigInt(1);
         return this;
-    },
+    }
     /** Converts a NerdamerSymbol's power to one. */
     toLinear() {
         // Do nothing if it's already linear
@@ -9936,7 +10465,7 @@ NerdamerSymbol.prototype = {
         }
         this.setPower(new Frac(1));
         return this;
-    },
+    }
     /**
      * Iterates over all the sub-symbols. If no sub-symbols exist then it's called on itself
      *
@@ -9964,7 +10493,7 @@ NerdamerSymbol.prototype = {
         } else {
             fn.call(this, this, this.value);
         }
-    },
+    }
     /**
      * A numeric value to be returned for Javascript. It will try to return a number as far a possible but in case of a
      * pure symbolic symbol it will just return its text representation
@@ -9982,7 +10511,7 @@ NerdamerSymbol.prototype = {
             return 0;
         }
         return NerdamerSymbolDeps.text(this, 'decimals');
-    },
+    }
     /**
      * Checks to see if a symbols has a particular variable within it. Pass in true as second argument to include the
      * power of exponentials which aren't check by default.
@@ -10032,7 +10561,7 @@ NerdamerSymbol.prototype = {
         }
 
         return this.value === variable;
-    },
+    }
     /** Negates a symbols */
     negate() {
         this.multiplier.negate();
@@ -10040,7 +10569,7 @@ NerdamerSymbol.prototype = {
             this.distributeMultiplier();
         }
         return this;
-    },
+    }
     /**
      * Inverts a symbol
      *
@@ -10061,7 +10590,7 @@ NerdamerSymbol.prototype = {
             this.power.negate();
         }
         return this;
-    },
+    }
     /**
      * Symbols of group CP or PL may have the multiplier being carried by the top level symbol at any given time e.g.
      * 2*(x+y+z). This is convenient in many cases, however in some cases the multiplier needs to be carried
@@ -10070,7 +10599,8 @@ NerdamerSymbol.prototype = {
      * @param {boolean} [all]
      */
     distributeMultiplier(all = false) {
-        const isOne = all ? this.power.absEquals(1) : this.power.equals(1);
+        // In CP/PL groups (not EX), power is Frac
+        const isOne = all ? /** @type {FracType} */ (this.power).absEquals(1) : this.power.equals(1);
         if (this.symbols && isOne && this.group !== NerdamerSymbolDeps.CB && !this.multiplier.equals(1)) {
             for (const x in this.symbols) {
                 if (!Object.hasOwn(this.symbols, x)) {
@@ -10084,7 +10614,7 @@ NerdamerSymbol.prototype = {
         }
 
         return this;
-    },
+    }
     /** This method expands the exponent over the entire symbol just like distributeMultiplier */
     distributeExponent() {
         const { _ } = NerdamerSymbolDeps;
@@ -10106,7 +10636,7 @@ NerdamerSymbol.prototype = {
             this.toLinear();
         }
         return this;
-    },
+    }
     /**
      * This method will attempt to up-convert or down-convert one symbol from one group to another. Not all symbols are
      * convertible from one group to another however. In that case the symbol will remain unchanged.
@@ -10175,12 +10705,14 @@ NerdamerSymbol.prototype = {
                 this.group === NerdamerSymbolDeps.P ? Number(m) * Number(this.value) ** Number(this.power) : m
             ).clone(this);
         } else if (group === NerdamerSymbolDeps.P && this.group === NerdamerSymbolDeps.N) {
-            this.value = imaginary ? this.multiplier.num.toString() : Math.abs(Number(this.multiplier.num.toString()));
+            this.value = imaginary
+                ? this.multiplier.num.toString()
+                : String(Math.abs(Number(this.multiplier.num.toString())));
             this.toUnitMultiplier(!imaginary);
             this.group = NerdamerSymbolDeps.P;
         }
         return /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this));
-    },
+    }
     /**
      * This method is one of the principal methods to make it all possible. It performs cleanup and prep operations
      * whenever a symbols is inserted. If the symbols results in a 1 in a CB (multiplication) group for instance it will
@@ -10272,7 +10804,7 @@ NerdamerSymbol.prototype = {
         }
 
         return this;
-    },
+    }
     /** The insert method for addition */
     attach(symbol) {
         if (isArray(symbol)) {
@@ -10282,7 +10814,7 @@ NerdamerSymbol.prototype = {
             return this;
         }
         return this.insert(symbol, 'add');
-    },
+    }
     /** The insert method for multiplication */
     combine(symbol) {
         if (isArray(symbol)) {
@@ -10292,7 +10824,7 @@ NerdamerSymbol.prototype = {
             return this;
         }
         return this.insert(symbol, 'multiply');
-    },
+    }
     /**
      * This method should be called after any major "surgery" on a symbol. It updates the hash of the symbol for example
      * if the fname of a function has changed it will update the hash of the symbol.
@@ -10314,7 +10846,7 @@ NerdamerSymbol.prototype = {
         } else if (!(this.group === NerdamerSymbolDeps.S || this.group === NerdamerSymbolDeps.PL)) {
             this.value = NerdamerSymbolDeps.text(this, 'hash');
         }
-    },
+    }
     /**
      * This function defines how every group in stored within a group of higher order think of it as the switchboard for
      * the library. It defines the hashes for symbols.
@@ -10329,13 +10861,15 @@ NerdamerSymbol.prototype = {
             key = this.value;
         } else if (g === NerdamerSymbolDeps.S || g === NerdamerSymbolDeps.P) {
             if (group === NerdamerSymbolDeps.PL) {
-                key = this.power.toDecimal();
+                // In S/P groups, power is Frac
+                key = /** @type {FracType} */ (this.power).toDecimal();
             } else {
                 key = this.value;
             }
         } else if (g === NerdamerSymbolDeps.FN) {
             if (group === NerdamerSymbolDeps.PL) {
-                key = this.power.toDecimal();
+                // In FN group, power is Frac
+                key = /** @type {FracType} */ (this.power).toDecimal();
             } else {
                 key = NerdamerSymbolDeps.text(this, 'hash');
             }
@@ -10351,7 +10885,8 @@ NerdamerSymbol.prototype = {
                     key =
                         inBrackets(NerdamerSymbolDeps.text(this, 'hash')) +
                         Settings.POWER_OPERATOR +
-                        this.power.toDecimal();
+                        // In PL group, power is Frac
+                        /** @type {FracType} */ (this.power).toDecimal();
                 }
             } else if (group === NerdamerSymbolDeps.PL) {
                 key = this.power.toString();
@@ -10364,18 +10899,21 @@ NerdamerSymbol.prototype = {
                 key = NerdamerSymbolDeps.text(this, 'hash');
             }
             if (group === NerdamerSymbolDeps.PL) {
-                key = this.power.toDecimal();
+                // In CP group, power is Frac
+                key = /** @type {FracType} */ (this.power).toDecimal();
             } else {
                 key = this.value;
             }
         } else if (g === NerdamerSymbolDeps.CB) {
             if (group === NerdamerSymbolDeps.PL) {
-                key = this.power.toDecimal();
+                // In CB group, power is Frac
+                key = /** @type {FracType} */ (this.power).toDecimal();
             } else {
                 key = NerdamerSymbolDeps.text(this, 'hash');
             }
         } else if (g === NerdamerSymbolDeps.EX) {
             if (group === NerdamerSymbolDeps.PL) {
+                // In EX group, power is NerdamerSymbol, use text()
                 key = NerdamerSymbolDeps.text(this.power);
             } else {
                 key = NerdamerSymbolDeps.text(this, 'hash');
@@ -10383,7 +10921,7 @@ NerdamerSymbol.prototype = {
         }
 
         return key;
-    },
+    }
     /**
      * Symbols are typically stored in an object which works fine for most cases but presents a problem when the order
      * of the symbols makes a difference. This function simply collects all the symbols and returns them as an array. If
@@ -10420,7 +10958,7 @@ NerdamerSymbol.prototype = {
         } // WTF Firefox? Seriously?
 
         return collected.sort(sortFn); // Sort hopefully gives us some sort of consistency
-    },
+    }
 
     /**
      * CollectSymbols but only for summands
@@ -10456,7 +10994,7 @@ NerdamerSymbol.prototype = {
         } // WTF Firefox? Seriously?
 
         return collected.sort(sortFn); // Sort hopefully gives us some sort of consistency
-    },
+    }
     /**
      * Returns the latex representation of the symbol
      *
@@ -10465,7 +11003,7 @@ NerdamerSymbol.prototype = {
      */
     latex(option) {
         return LaTeX.latex(this, option);
-    },
+    }
     /**
      * Returns the text representation of a symbol
      *
@@ -10474,7 +11012,7 @@ NerdamerSymbol.prototype = {
      */
     text(option = undefined) {
         return NerdamerSymbolDeps.text(this, option);
-    },
+    }
     /**
      * Checks if the function evaluates to 1. e.g. x^0 or 1 :)
      *
@@ -10486,7 +11024,7 @@ NerdamerSymbol.prototype = {
             return this.multiplier[f](1);
         }
         return this.power.equals(0);
-    },
+    }
     isComposite() {
         const g = this.group;
         const pg = this.previousGroup;
@@ -10496,15 +11034,15 @@ NerdamerSymbol.prototype = {
             pg === NerdamerSymbolDeps.PL ||
             pg === NerdamerSymbolDeps.CP
         );
-    },
+    }
     isCombination() {
         const g = this.group;
         const pg = this.previousGroup;
         return g === NerdamerSymbolDeps.CB || pg === NerdamerSymbolDeps.CB;
-    },
+    }
     lessThan(n) {
         return this.multiplier.lessThan(n);
-    },
+    }
     greaterThan(n) {
         if (!NerdamerSymbolDeps.isSymbol(n)) {
             n = new NerdamerSymbol(n);
@@ -10516,7 +11054,7 @@ NerdamerSymbol.prototype = {
         }
 
         return this.multiplier.greaterThan(n.multiplier);
-    },
+    }
     /**
      * Get's the denominator of the symbol if the symbol is of class CB (multiplication) with other classes the symbol
      * is either the denominator or not. Take x^-1+x^-2. If the symbol was to be mixed such as x+x^-2 then the symbol
@@ -10561,7 +11099,7 @@ NerdamerSymbol.prototype = {
             retval = _.parse(symbol.multiplier.den);
         }
         return retval;
-    },
+    }
     getNum() {
         const { _ } = NerdamerSymbolDeps;
         let retval;
@@ -10597,11 +11135,11 @@ NerdamerSymbol.prototype = {
             retval = _.parse(symbol.multiplier.num);
         }
         return retval;
-    },
+    }
     toString() {
         return this.text();
-    },
-};
+    }
+}
 
 // Assign NerdamerSymbol to CoreDeps immediately
 CoreDeps.classes.NerdamerSymbol = /** @type {any} */ (NerdamerSymbol);
@@ -12056,7 +12594,8 @@ function Parser() {
             .join('\\')}`;
         // Create a regex which captures all spaces between characters except those
         // have an operator on one end
-        // eslint-disable-next-line require-unicode-regexp
+        // Note: Cannot use 'u' flag because operator escapes like \! are invalid in Unicode mode
+        // eslint-disable-next-line require-unicode-regexp -- Dynamic regex with operator chars that have invalid Unicode escapes
         return new RegExp(`([${ostr}])\\s+([${ostr}])`);
     })();
 
@@ -12273,8 +12812,7 @@ function Parser() {
             if (!Object.hasOwn(brackets, x)) {
                 continue;
             }
-            // eslint-disable-next-line require-unicode-regexp
-            const regex = new RegExp(brackets[x].is_close ? `\\s+\\${x}` : `\\${x}\\s+`, 'g');
+            const regex = new RegExp(brackets[x].is_close ? `\\s+\\${x}` : `\\${x}\\s+`, 'gu');
             e = e.replace(regex, x);
         }
 
@@ -13432,7 +13970,7 @@ function Parser() {
      *
      * @param {NerdamerSymbolType} symbol
      * @param {NerdamerSymbolType} n
-     * @returns {NerdamerSymbolType}
+     * @returns {NerdamerSymbolType | Vector}
      */
     function continuedFraction(symbol, n) {
         const _symbol = evaluate(symbol);

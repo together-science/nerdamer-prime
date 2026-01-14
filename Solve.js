@@ -824,12 +824,12 @@ if (typeof module !== 'undefined') {
          */
         quad(c, b, a) {
             let discriminant = _.subtract(
-                _.pow(b.clone(), NerdamerSymbol(2)),
-                _.multiply(_.multiply(a.clone(), c.clone()), NerdamerSymbol(4))
+                _.pow(b.clone(), new NerdamerSymbol(2)),
+                _.multiply(_.multiply(a.clone(), c.clone()), new NerdamerSymbol(4))
             ); /* B^2 - 4ac*/
             // Fix for #608
             discriminant = _.expand(discriminant);
-            const det = _.pow(discriminant, NerdamerSymbol(0.5));
+            const det = _.pow(discriminant, new NerdamerSymbol(0.5));
             const den = _.parse(_.multiply(new NerdamerSymbol(2), a.clone()));
             const retval = [
                 _.parse(format('(-({0})+({1}))/({2})', b, det, den)),

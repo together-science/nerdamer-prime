@@ -2756,12 +2756,12 @@ if (typeof module !== 'undefined') {
                                 // Apply difference of cubes rule
                                 factors.add(_.parse(format('(({0})-({1}))', x, y)));
                                 factors.add(_.parse(format('(({0})^2+({0})*({1})+({1})^2)', x, y)));
-                                symbol = NerdamerSymbol(1);
+                                symbol = new NerdamerSymbol(1);
                             } else if (signA === 1 && signB === 1) {
                                 // Apply sum of cubes rule
                                 factors.add(_.parse(format('(({0})+({1}))', x, y)));
                                 factors.add(_.parse(format('(({0})^2-({0})*({1})+({1})^2)', x, y)));
-                                symbol = NerdamerSymbol(1);
+                                symbol = new NerdamerSymbol(1);
                             }
                         }
                     }
