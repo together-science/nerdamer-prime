@@ -3596,6 +3596,410 @@ Expression.prototype = {
 // Aliases
 Expression.prototype.toTeX = Expression.prototype.latex;
 
+// Vector Class =====================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via VectorDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for Vector class. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     Frac: typeof Frac;
+ *     NerdamerSymbol: any;
+ *     isVector: (x: any) => boolean;
+ *     isArray: (x: any) => boolean;
+ *     isMatrix: (x: any) => boolean;
+ *     isSymbol: (x: any) => boolean;
+ *     block: Function;
+ *     _: any;
+ *     Settings: { PRECISION: number };
+ *     text: Function;
+ *     LaTeX: any;
+ * }}
+ */
+const VectorDeps = {
+    Frac,
+    NerdamerSymbol: /** @type {any} */ (null),
+    isVector: () => false,
+    isArray,
+    isMatrix: () => false,
+    isSymbol: () => false,
+    block,
+    _: /** @type {any} */ (null),
+    Settings: { PRECISION: 1e-14 },
+    text: () => '',
+    LaTeX: /** @type {any} */ (null),
+};
+
+/**
+ * @class
+ * @param {any} [v]
+ * @param {...any} rest
+ */
+function Vector(v, ...rest) {
+    this.multiplier = new VectorDeps.Frac(1);
+    if (VectorDeps.isVector(v)) {
+        this.elements = /** @type {any[]} */ (v.elements)?.slice(0) ?? [];
+    } else if (VectorDeps.isArray(v)) {
+        this.elements = v.slice(0);
+    } else if (VectorDeps.isMatrix(v)) {
+        if (v.elements.length === 1) {
+            this.elements = [...v.elements[0]];
+            this.rowVector = true;
+        } else if (v.elements.length > 1 && Array.isArray(v.elements[0]) && v.elements[0].length === 1) {
+            this.elements = v.elements.map(row => row[0]);
+            this.rowVector = false;
+        }
+    } else if (typeof v === 'undefined') {
+        this.elements = [];
+    } else {
+        this.elements = [v, ...rest];
+    }
+}
+/*
+ * Generates a pre-filled array
+ * @param {*} n
+ * @param {*} val
+ * @returns {*}
+ */
+Vector.arrayPrefill = function arrayPrefill(n, val) {
+    const a = [];
+    val ||= 0;
+    for (let i = 0; i < n; i++) {
+        a[i] = val;
+    }
+    return a;
+};
+/**
+ * Generate a vector from and array
+ *
+ * @param {any} a
+ * @returns {any}
+ */
+Vector.fromArray = function fromArray(a) {
+    const v = new Vector();
+    v.elements = a;
+    return v;
+};
+
+/**
+ * Convert a NerdamerSet to a Vector
+ *
+ * @param {SetType} nerdamerSet
+ * @returns {Vector}
+ */
+Vector.fromSet = function fromSet(nerdamerSet) {
+    return Vector.fromArray(nerdamerSet.elements);
+};
+
+// Ported from Sylvester.js
+Vector.prototype = {
+    custom: true,
+    // Returns element i of the vector
+    e(i) {
+        return i < 1 || i > this.elements.length ? null : this.elements[i - 1];
+    },
+
+    set(i, val) {
+        if (!VectorDeps.isSymbol(val)) {
+            val = new VectorDeps.NerdamerSymbol(val);
+        }
+        this.elements[i] = val;
+    },
+
+    // Returns the number of elements the vector has
+    dimensions() {
+        return this.elements.length;
+    },
+
+    // Returns the modulus ('length') of the vector
+    modulus() {
+        return VectorDeps.block(
+            'SAFE',
+            () => VectorDeps._.pow(this.dot(this.clone()), new VectorDeps.NerdamerSymbol(0.5)),
+            undefined,
+            this
+        );
+    },
+
+    // Returns true iff the vector is equal to the argument
+    eql(vector) {
+        let n = this.elements.length;
+        const V = vector.elements || vector;
+        if (n !== V.length) {
+            return false;
+        }
+        do {
+            if (
+                Math.abs(VectorDeps._.subtract(this.elements[n - 1], V[n - 1]).valueOf()) >
+                VectorDeps.Settings.PRECISION
+            ) {
+                return false;
+            }
+        } while (--n);
+        return true;
+    },
+
+    // Returns a clone of the vector
+    clone() {
+        const V = new Vector();
+        const l = this.elements.length;
+        for (let i = 0; i < l; i++) {
+            // Rule: all items within the vector must have a clone method.
+            V.elements.push(this.elements[i].clone());
+        }
+        V.rowVector = this.rowVector;
+        return V;
+    },
+
+    expand(options) {
+        this.elements = this.elements.map(e => VectorDeps._.expand(e, options));
+        return this;
+    },
+
+    // Maps the vector to another vector according to the given function
+    map(fn) {
+        const elements = [];
+        this.each((x, i) => {
+            elements.push(fn(x, i));
+        });
+
+        return new Vector(elements);
+    },
+
+    // Calls the iterator for each element of the vector in turn
+    each(fn) {
+        let n = this.elements.length;
+        const k = n;
+        let i;
+        do {
+            i = k - n;
+            fn(this.elements[i], i + 1);
+        } while (--n);
+    },
+
+    // Returns a new vector created by normalizing the receiver
+    toUnitVector() {
+        return VectorDeps.block(
+            'SAFE',
+            () => {
+                const r = this.modulus();
+                if (r.valueOf() === 0) {
+                    return this.clone();
+                }
+                return this.map(x => VectorDeps._.divide(x, r));
+            },
+            undefined,
+            this
+        );
+    },
+
+    // Returns the angle between the vector and the argument (also a vector)
+    angleFrom(vector) {
+        return VectorDeps.block(
+            'SAFE',
+            () => {
+                const V = vector.elements || vector;
+                const n = this.elements.length;
+                if (n !== V.length) {
+                    return null;
+                }
+                let dot = new VectorDeps.NerdamerSymbol(0);
+                let mod1 = new VectorDeps.NerdamerSymbol(0);
+                let mod2 = new VectorDeps.NerdamerSymbol(0);
+                // Work things out in parallel to save time
+                this.each((x, i) => {
+                    dot = VectorDeps._.add(dot, VectorDeps._.multiply(x, V[i - 1]));
+                    mod1 = VectorDeps._.add(mod1, VectorDeps._.multiply(x, x)); // Will not conflict in safe block
+                    mod2 = VectorDeps._.add(mod2, VectorDeps._.multiply(V[i - 1], V[i - 1])); // Will not conflict in safe block
+                });
+                mod1 = VectorDeps._.pow(mod1, new VectorDeps.NerdamerSymbol(0.5));
+                mod2 = VectorDeps._.pow(mod2, new VectorDeps.NerdamerSymbol(0.5));
+                const product = VectorDeps._.multiply(mod1, mod2);
+                if (product.valueOf() === 0) {
+                    return null;
+                }
+                /** @type {NerdamerSymbolType | number} */
+                let theta = VectorDeps._.divide(dot, product);
+                const thetaVal = /** @type {number} */ (theta.valueOf());
+                if (thetaVal < -1) {
+                    theta = -1;
+                }
+                if (thetaVal > 1) {
+                    theta = 1;
+                }
+                return new VectorDeps.NerdamerSymbol(Math.acos(/** @type {number} */ (theta)));
+            },
+            undefined,
+            this
+        );
+    },
+
+    // Returns true iff the vector is parallel to the argument
+    isParallelTo(vector) {
+        const angle = this.angleFrom(vector).valueOf();
+        return angle === null ? null : angle <= VectorDeps.Settings.PRECISION;
+    },
+
+    // Returns true iff the vector is antiparallel to the argument
+    isAntiparallelTo(vector) {
+        const angle = this.angleFrom(vector).valueOf();
+        return angle === null ? null : Math.abs(angle - Math.PI) <= VectorDeps.Settings.PRECISION;
+    },
+
+    // Returns true iff the vector is perpendicular to the argument
+    isPerpendicularTo(vector) {
+        const dot = this.dot(vector);
+        return dot === null ? null : Math.abs(dot) <= VectorDeps.Settings.PRECISION;
+    },
+
+    // Returns the result of adding the argument to the vector
+    add(vector) {
+        return VectorDeps.block(
+            'SAFE',
+            () => {
+                const V = vector.elements || vector;
+                if (this.elements.length !== V.length) {
+                    return null;
+                }
+                return this.map((x, i) => VectorDeps._.add(x, V[i - 1]));
+            },
+            undefined,
+            this
+        );
+    },
+
+    // Returns the result of subtracting the argument from the vector
+    subtract(vector) {
+        return VectorDeps.block(
+            'SAFE',
+            () => {
+                const V = vector.elements || vector;
+                if (this.elements.length !== V.length) {
+                    return null;
+                }
+                return this.map((x, i) => VectorDeps._.subtract(x, V[i - 1]));
+            },
+            undefined,
+            this
+        );
+    },
+
+    // Returns the result of multiplying the elements of the vector by the argument
+    multiply(k) {
+        return this.map(x => x.clone() * k.clone());
+    },
+
+    x(k) {
+        return this.multiply(k);
+    },
+
+    // Returns the scalar product of the vector with the argument
+    // Both vectors must have equal dimensionality
+    dot(vector) {
+        return VectorDeps.block(
+            'SAFE',
+            () => {
+                const V = vector.elements || vector;
+                let product = new VectorDeps.NerdamerSymbol(0);
+                let n = this.elements.length;
+                if (n !== V.length) {
+                    return null;
+                }
+                do {
+                    product = VectorDeps._.add(product, VectorDeps._.multiply(this.elements[n - 1], V[n - 1]));
+                } while (--n);
+                return product;
+            },
+            undefined,
+            this
+        );
+    },
+
+    // Returns the vector product of the vector with the argument
+    // Both vectors must have dimensionality 3
+    cross(vector) {
+        const B = vector.elements || vector;
+        if (this.elements.length !== 3 || B.length !== 3) {
+            return null;
+        }
+        const rowVector = this.rowVector && vector.rowVector;
+        const A = this.elements;
+        return VectorDeps.block(
+            'SAFE',
+            () => {
+                const result = new Vector([
+                    VectorDeps._.subtract(VectorDeps._.multiply(A[1], B[2]), VectorDeps._.multiply(A[2], B[1])),
+                    VectorDeps._.subtract(VectorDeps._.multiply(A[2], B[0]), VectorDeps._.multiply(A[0], B[2])),
+                    VectorDeps._.subtract(VectorDeps._.multiply(A[0], B[1]), VectorDeps._.multiply(A[1], B[0])),
+                ]);
+                result.rowVector = rowVector;
+                return result;
+            },
+            undefined,
+            this
+        );
+    },
+
+    toUnitMultiplier() {
+        return this;
+    },
+
+    // Returns the (absolute) largest element of the vector
+    max() {
+        let m = 0;
+        let n = this.elements.length;
+        const k = n;
+        let i;
+        do {
+            i = k - n;
+            if (Math.abs(this.elements[i].valueOf()) > Math.abs(m.valueOf())) {
+                m = this.elements[i];
+            }
+        } while (--n);
+        return m;
+    },
+    magnitude() {
+        let magnitude = new VectorDeps.NerdamerSymbol(0);
+        this.each(e => {
+            magnitude = VectorDeps._.add(magnitude, VectorDeps._.pow(e, new VectorDeps.NerdamerSymbol(2)));
+        });
+        return VectorDeps._.sqrt(magnitude);
+    },
+    // Returns the index of the first match found
+    indexOf(x) {
+        let index = null;
+        let n = this.elements.length;
+        const k = n;
+        let i;
+        do {
+            i = k - n;
+            if (index === null && this.elements[i].valueOf() === x.valueOf()) {
+                index = i + 1;
+            }
+        } while (--n);
+        return index;
+    },
+    text_(x, options) {
+        const result = VectorDeps.text(this, options);
+        return (this.rowVector ? '[' : '') + result + (this.rowVector ? ']' : '');
+    },
+    text(x, options) {
+        const result = VectorDeps.text(this, options);
+        return (this.rowVector ? '[' : '') + result + (this.rowVector ? ']' : '');
+    },
+    toString() {
+        return this.text();
+    },
+    latex(option) {
+        const tex = [];
+        for (let i = 0; i < this.elements.length; i++) {
+            tex.push(VectorDeps.LaTeX.latex(this.elements[i], option));
+        }
+        return `[${tex.join(', ')}]`;
+    },
+};
+
 const nerdamer = (function initNerdamerCore(imports) {
     // Version ======================================================================
     const _version = '1.1.16';
@@ -14272,367 +14676,19 @@ const nerdamer = (function initNerdamerCore(imports) {
     ExpressionsDeps._ = _;
     // Note: ExpressionsDeps.Math2 and ExpressionsDeps.Expression are initialized later after C is defined
 
-    // Vector =======================================================================
-    /**
-     * @class
-     * @param {any} [v]
-     * @param {...any} rest
-     */
-    function Vector(v, ...rest) {
-        this.multiplier = new Frac(1);
-        if (isVector(v)) {
-            this.elements = /** @type {any[]} */ (v.elements)?.slice(0) ?? [];
-        } else if (isArray(v)) {
-            this.elements = v.slice(0);
-        } else if (isMatrix(v)) {
-            if (v.elements.length === 1) {
-                this.elements = [...v.elements[0]];
-                this.rowVector = true;
-            } else if (v.elements.length > 1 && Array.isArray(v.elements[0]) && v.elements[0].length === 1) {
-                this.elements = v.elements.map(row => row[0]);
-                this.rowVector = false;
-            }
-        } else if (typeof v === 'undefined') {
-            this.elements = [];
-        } else {
-            this.elements = [v, ...rest];
-        }
-    }
-    /*
-     * Generates a pre-filled array
-     * @param {*} n
-     * @param {*} val
-     * @returns {*}
-     */
-    Vector.arrayPrefill = function arrayPrefill(n, val) {
-        const a = [];
-        val ||= 0;
-        for (let i = 0; i < n; i++) {
-            a[i] = val;
-        }
-        return a;
-    };
-    /**
-     * Generate a vector from and array
-     *
-     * @param {any} a
-     * @returns {any}
-     */
-    Vector.fromArray = function fromArray(a) {
-        const v = new Vector();
-        v.elements = a;
-        return v;
-    };
-
-    /**
-     * Convert a NerdamerSet to a Vector
-     *
-     * @param {SetType} nerdamerSet
-     * @returns {Vector}
-     */
-    Vector.fromSet = function fromSet(nerdamerSet) {
-        return Vector.fromArray(nerdamerSet.elements);
-    };
-
-    // Ported from Sylvester.js
-    Vector.prototype = {
-        custom: true,
-        // Returns element i of the vector
-        e(i) {
-            return i < 1 || i > this.elements.length ? null : this.elements[i - 1];
-        },
-
-        set(i, val) {
-            if (!isSymbol(val)) {
-                val = new NerdamerSymbol(val);
-            }
-            this.elements[i] = val;
-        },
-
-        // Returns the number of elements the vector has
-        dimensions() {
-            return this.elements.length;
-        },
-
-        // Returns the modulus ('length') of the vector
-        modulus() {
-            return block('SAFE', () => _.pow(this.dot(this.clone()), new NerdamerSymbol(0.5)), undefined, this);
-        },
-
-        // Returns true iff the vector is equal to the argument
-        eql(vector) {
-            let n = this.elements.length;
-            const V = vector.elements || vector;
-            if (n !== V.length) {
-                return false;
-            }
-            do {
-                if (Math.abs(_.subtract(this.elements[n - 1], V[n - 1]).valueOf()) > Settings.PRECISION) {
-                    return false;
-                }
-            } while (--n);
-            return true;
-        },
-
-        // Returns a clone of the vector
-        clone() {
-            const V = new Vector();
-            const l = this.elements.length;
-            for (let i = 0; i < l; i++) {
-                // Rule: all items within the vector must have a clone method.
-                V.elements.push(this.elements[i].clone());
-            }
-            V.rowVector = this.rowVector;
-            return V;
-        },
-
-        expand(options) {
-            this.elements = this.elements.map(e => _.expand(e, options));
-            return this;
-        },
-
-        // Maps the vector to another vector according to the given function
-        map(fn) {
-            const elements = [];
-            this.each((x, i) => {
-                elements.push(fn(x, i));
-            });
-
-            return new Vector(elements);
-        },
-
-        // Calls the iterator for each element of the vector in turn
-        each(fn) {
-            let n = this.elements.length;
-            const k = n;
-            let i;
-            do {
-                i = k - n;
-                fn(this.elements[i], i + 1);
-            } while (--n);
-        },
-
-        // Returns a new vector created by normalizing the receiver
-        toUnitVector() {
-            return block(
-                'SAFE',
-                () => {
-                    const r = this.modulus();
-                    if (r.valueOf() === 0) {
-                        return this.clone();
-                    }
-                    return this.map(x => _.divide(x, r));
-                },
-                undefined,
-                this
-            );
-        },
-
-        // Returns the angle between the vector and the argument (also a vector)
-        angleFrom(vector) {
-            return block(
-                'SAFE',
-                () => {
-                    const V = vector.elements || vector;
-                    const n = this.elements.length;
-                    if (n !== V.length) {
-                        return null;
-                    }
-                    let dot = new NerdamerSymbol(0);
-                    let mod1 = new NerdamerSymbol(0);
-                    let mod2 = new NerdamerSymbol(0);
-                    // Work things out in parallel to save time
-                    this.each((x, i) => {
-                        dot = _.add(dot, _.multiply(x, V[i - 1]));
-                        mod1 = _.add(mod1, _.multiply(x, x)); // Will not conflict in safe block
-                        mod2 = _.add(mod2, _.multiply(V[i - 1], V[i - 1])); // Will not conflict in safe block
-                    });
-                    mod1 = _.pow(mod1, new NerdamerSymbol(0.5));
-                    mod2 = _.pow(mod2, new NerdamerSymbol(0.5));
-                    const product = _.multiply(mod1, mod2);
-                    if (product.valueOf() === 0) {
-                        return null;
-                    }
-                    /** @type {NerdamerSymbol | number} */
-                    let theta = _.divide(dot, product);
-                    const thetaVal = /** @type {number} */ (theta.valueOf());
-                    if (thetaVal < -1) {
-                        theta = -1;
-                    }
-                    if (thetaVal > 1) {
-                        theta = 1;
-                    }
-                    return new NerdamerSymbol(Math.acos(/** @type {number} */ (theta)));
-                },
-                undefined,
-                this
-            );
-        },
-
-        // Returns true iff the vector is parallel to the argument
-        isParallelTo(vector) {
-            const angle = this.angleFrom(vector).valueOf();
-            return angle === null ? null : angle <= Settings.PRECISION;
-        },
-
-        // Returns true iff the vector is antiparallel to the argument
-        isAntiparallelTo(vector) {
-            const angle = this.angleFrom(vector).valueOf();
-            return angle === null ? null : Math.abs(angle - Math.PI) <= Settings.PRECISION;
-        },
-
-        // Returns true iff the vector is perpendicular to the argument
-        isPerpendicularTo(vector) {
-            const dot = this.dot(vector);
-            return dot === null ? null : Math.abs(dot) <= Settings.PRECISION;
-        },
-
-        // Returns the result of adding the argument to the vector
-        add(vector) {
-            return block(
-                'SAFE',
-                () => {
-                    const V = vector.elements || vector;
-                    if (this.elements.length !== V.length) {
-                        return null;
-                    }
-                    return this.map((x, i) => _.add(x, V[i - 1]));
-                },
-                undefined,
-                this
-            );
-        },
-
-        // Returns the result of subtracting the argument from the vector
-        subtract(vector) {
-            return block(
-                'SAFE',
-                () => {
-                    const V = vector.elements || vector;
-                    if (this.elements.length !== V.length) {
-                        return null;
-                    }
-                    return this.map((x, i) => _.subtract(x, V[i - 1]));
-                },
-                undefined,
-                this
-            );
-        },
-
-        // Returns the result of multiplying the elements of the vector by the argument
-        multiply(k) {
-            return this.map(x => x.clone() * k.clone());
-        },
-
-        x(k) {
-            return this.multiply(k);
-        },
-
-        // Returns the scalar product of the vector with the argument
-        // Both vectors must have equal dimensionality
-        dot(vector) {
-            return block(
-                'SAFE',
-                () => {
-                    const V = vector.elements || vector;
-                    let product = new NerdamerSymbol(0);
-                    let n = this.elements.length;
-                    if (n !== V.length) {
-                        return null;
-                    }
-                    do {
-                        product = _.add(product, _.multiply(this.elements[n - 1], V[n - 1]));
-                    } while (--n);
-                    return product;
-                },
-                undefined,
-                this
-            );
-        },
-
-        // Returns the vector product of the vector with the argument
-        // Both vectors must have dimensionality 3
-        cross(vector) {
-            const B = vector.elements || vector;
-            if (this.elements.length !== 3 || B.length !== 3) {
-                return null;
-            }
-            const rowVector = this.rowVector && vector.rowVector;
-            const A = this.elements;
-            return block(
-                'SAFE',
-                () => {
-                    const result = new Vector([
-                        _.subtract(_.multiply(A[1], B[2]), _.multiply(A[2], B[1])),
-                        _.subtract(_.multiply(A[2], B[0]), _.multiply(A[0], B[2])),
-                        _.subtract(_.multiply(A[0], B[1]), _.multiply(A[1], B[0])),
-                    ]);
-                    result.rowVector = rowVector;
-                    return result;
-                },
-                undefined,
-                this
-            );
-        },
-
-        toUnitMultiplier() {
-            return this;
-        },
-
-        // Returns the (absolute) largest element of the vector
-        max() {
-            let m = 0;
-            let n = this.elements.length;
-            const k = n;
-            let i;
-            do {
-                i = k - n;
-                if (Math.abs(this.elements[i].valueOf()) > Math.abs(m.valueOf())) {
-                    m = this.elements[i];
-                }
-            } while (--n);
-            return m;
-        },
-        magnitude() {
-            let magnitude = new NerdamerSymbol(0);
-            this.each(e => {
-                magnitude = _.add(magnitude, _.pow(e, new NerdamerSymbol(2)));
-            });
-            return _.sqrt(magnitude);
-        },
-        // Returns the index of the first match found
-        indexOf(x) {
-            let index = null;
-            let n = this.elements.length;
-            const k = n;
-            let i;
-            do {
-                i = k - n;
-                if (index === null && this.elements[i].valueOf() === x.valueOf()) {
-                    index = i + 1;
-                }
-            } while (--n);
-            return index;
-        },
-        text_(x, options) {
-            const result = text(this, options);
-            return (this.rowVector ? '[' : '') + result + (this.rowVector ? ']' : '');
-        },
-        text(x, options) {
-            const result = text(this, options);
-            return (this.rowVector ? '[' : '') + result + (this.rowVector ? ']' : '');
-        },
-        toString() {
-            return this.text();
-        },
-        latex(option) {
-            const tex = [];
-            for (let i = 0; i < this.elements.length; i++) {
-                tex.push(LaTeX.latex(this.elements[i], option));
-            }
-            return `[${tex.join(', ')}]`;
-        },
-    };
+    // Vector class is now defined outside the IIFE (see above).
+    // Initialize its dependencies now that they're available.
+    VectorDeps.Frac = Frac;
+    VectorDeps.NerdamerSymbol = NerdamerSymbol;
+    VectorDeps.isVector = isVector;
+    VectorDeps.isArray = isArray;
+    VectorDeps.isMatrix = isMatrix;
+    VectorDeps.isSymbol = isSymbol;
+    VectorDeps.block = block;
+    VectorDeps._ = _;
+    VectorDeps.Settings = Settings;
+    VectorDeps.text = text;
+    VectorDeps.LaTeX = LaTeX;
 
     // Matrix =======================================================================
     /**
