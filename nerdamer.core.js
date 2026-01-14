@@ -4788,7 +4788,7 @@ const Build = {
             NerdamerSymbol: NerdamerSymbolClass,
             block: blockFn,
             _,
-            variables,
+            variables: variablesFn,
             inBrackets: wrapInBrackets,
             FN,
             N,
@@ -4799,7 +4799,7 @@ const Build = {
         } = BuildDeps;
 
         symbol = blockFn('PARSE2NUMBER', () => _.parse(symbol), true);
-        let args = variables(symbol);
+        let args = variablesFn(symbol);
         const supplements = [];
         let dependencies = [];
         const ftext = function (sym, xports) {
@@ -6829,6 +6829,290 @@ const Math2 = {
         return xn;
     },
 };
+
+// IsSymbol Function ==============================================================
+/**
+ * Checks to see if the object provided is a NerdamerSymbol
+ *
+ * @param {any} obj
+ * @returns {obj is NerdamerSymbol}
+ */
+function isSymbol(obj) {
+    return obj instanceof NerdamerSymbol;
+}
+
+// IsVector Function ==============================================================
+/**
+ * Checks to see if the object provided is a Vector
+ *
+ * @param {object} obj
+ * @returns {obj is Vector}
+ */
+function isVector(obj) {
+    return obj instanceof Vector;
+}
+
+// IsMatrix Function ==============================================================
+/**
+ * Checks to see if the object provided is a Matrix
+ *
+ * @param {object} obj
+ * @returns {obj is Matrix}
+ */
+function isMatrix(obj) {
+    return obj instanceof Matrix;
+}
+
+// IsExpression Function ===========================================================
+/**
+ * Checks to see if the object provided is an Expression
+ *
+ * @param {object} obj
+ * @returns {obj is Expression}
+ */
+function isExpression(obj) {
+    return obj instanceof Expression;
+}
+
+// Variables Function ==============================================================
+/**
+ * Dependency container for variables function. Initialized inside the IIFE.
+ *
+ * @type {{
+ *     EX: number;
+ *     CP: number;
+ *     CB: number;
+ *     S: number;
+ *     PL: number;
+ *     FN: number;
+ * }}
+ */
+const VariablesDeps = {
+    EX: 4,
+    CP: 8,
+    CB: 7,
+    S: 3,
+    PL: 6,
+    FN: 5,
+};
+
+/**
+ * This method traverses the symbol structure and grabs all the variables in a symbol. The variable names are then
+ * returned in alphabetical order.
+ *
+ * @param {NerdamerSymbolType | FracType} obj
+ * @param {boolean} poly
+ * @param {object} vars - An object containing the variables. Do not pass this in as it generated automatically. In the
+ *   future this will be a Collector object.
+ * @returns {string[]} - An array containing variable names
+ */
+function variables(obj, poly = null, vars = null) {
+    vars ||= {
+        c: [],
+        add(value) {
+            if (this.c.indexOf(value) === -1 && isNaN(value)) {
+                this.c.push(value);
+            }
+        },
+    };
+
+    if (isSymbol(obj)) {
+        const { group } = obj;
+        const prevgroup = obj.previousGroup;
+        if (group === VariablesDeps.EX) {
+            variables(obj.power, poly, vars);
+        }
+
+        if (
+            group === VariablesDeps.CP ||
+            group === VariablesDeps.CB ||
+            prevgroup === VariablesDeps.CP ||
+            prevgroup === VariablesDeps.CB
+        ) {
+            for (const x in obj.symbols) {
+                if (!Object.hasOwn(obj.symbols, x)) {
+                    continue;
+                }
+                variables(obj.symbols[x], poly, vars);
+            }
+        } else if (group === VariablesDeps.S || prevgroup === VariablesDeps.S) {
+            // Very crude needs fixing. TODO
+            if (!(obj.value === 'e' || obj.value === 'pi' || obj.value === Settings.IMAGINARY)) {
+                vars.add(obj.value);
+            }
+        } else if (group === VariablesDeps.PL || prevgroup === VariablesDeps.PL) {
+            variables(firstObject(obj.symbols), poly, vars);
+        } else if (group === VariablesDeps.EX) {
+            if (!isNaN(Number(obj.value))) {
+                vars.add(obj.value);
+            }
+            variables(obj.power, poly, vars);
+        } else if (group === VariablesDeps.FN && !poly && obj.args) {
+            for (let i = 0; i < obj.args.length; i++) {
+                variables(obj.args[i], poly, vars);
+            }
+        }
+    }
+
+    return vars.c.sort();
+}
+
+// GetCoeffs Function ==============================================================
+/**
+ * Dependency container for getCoeffs function.
+ *
+ * @type {{
+ *     _: any;
+ * }}
+ */
+const GetCoeffsDeps = {
+    _: null,
+};
+
+/**
+ * Returns the coefficients of a symbol given a variable. Given ax^2+b^x+c, it divides each nth term by x^n.
+ *
+ * @param {NerdamerSymbolType} symbol
+ * @param {NerdamerSymbolType} wrt
+ */
+function getCoeffs(symbol, wrt, _info) {
+    const coeffs = [];
+    // We loop through the symbols and stick them in their respective
+    // containers e.g. y*x^2 goes to index 2
+    symbol.each(term => {
+        let coeff;
+        let p;
+        if (term.contains(wrt)) {
+            // We want only the coefficient which in this case will be everything but the variable
+            // e.g. a*b*x -> a*b if the variable to solve for is x
+            coeff = term.stripVar(wrt);
+            const x = GetCoeffsDeps._.divide(term.clone(), coeff.clone());
+            p = x.power.toDecimal();
+        } else {
+            coeff = term;
+            p = 0;
+        }
+        const e = coeffs[p];
+        // If it exists just add it to it
+        coeffs[p] = e ? GetCoeffsDeps._.add(e, coeff) : coeff;
+    }, true);
+
+    for (let i = 0; i < coeffs.length; i++) {
+        coeffs[i] ||= new NerdamerSymbol(0);
+    }
+    // Fill the holes
+    return coeffs;
+}
+
+// Nroots Function =================================================================
+/**
+ * Dependency container for nroots function.
+ *
+ * @type {{
+ *     _: any;
+ *     FN: number;
+ *     P: number;
+ *     N: number;
+ * }}
+ */
+const NrootsDeps = {
+    _: null,
+    FN: 5,
+    P: 2,
+    N: 1,
+};
+
+/**
+ * Gets nth roots of a number
+ *
+ * @param {NerdamerSymbolType} symbol
+ * @returns {Vector}
+ */
+function nroots(symbol) {
+    let a;
+    let b;
+    let _roots;
+
+    if (symbol.group === NrootsDeps.FN && symbol.fname === '') {
+        a = NerdamerSymbol.unwrapPARENS(NrootsDeps._.parse(symbol).toLinear());
+        b = NrootsDeps._.parse(symbol.power);
+    } else if (symbol.group === NrootsDeps.P) {
+        a = NrootsDeps._.parse(symbol.value);
+        b = NrootsDeps._.parse(symbol.power);
+    }
+
+    if (a && b && a.group === NrootsDeps.N && b.group === NrootsDeps.N && a.multiplier.isNegative()) {
+        _roots = [];
+
+        const parts = NerdamerSymbol.toPolarFormArray(evaluate(symbol));
+        const r = parts[0];
+
+        // Var r = _.parse(a).abs().toString();
+
+        // https://en.wikipedia.org/wiki/De_Moivre%27s_formula
+        const x = NrootsDeps._.arg(a);
+        const n = b.multiplier.den.toString();
+        const p = b.multiplier.num.toString();
+
+        const formula = '(({0})^({1})*(cos({3})+({2})*sin({3})))^({4})';
+
+        for (let i = 0; i < Number(n); i++) {
+            const t = evaluate(NrootsDeps._.parse(format('(({0})+2*pi*({1}))/({2})', x, i, n))).multiplier.toDecimal();
+            _roots.push(evaluate(NrootsDeps._.parse(format(formula, r, n, Settings.IMAGINARY, t, p))));
+        }
+        return Vector.fromArray(_roots);
+    }
+    if (symbol.isConstant(true, true)) {
+        const sign = symbol.sign();
+        const x = evaluate(symbol.abs());
+        const root = NrootsDeps._.sqrt(x);
+
+        _roots = [root.clone(), root.negate()];
+
+        if (sign < 0) {
+            _roots = _roots.map(r => NrootsDeps._.multiply(r, NerdamerSymbol.imaginary()));
+        }
+    } else {
+        _roots = [NrootsDeps._.parse(symbol)];
+    }
+
+    return Vector.fromArray(_roots);
+}
+
+// Compare Function ================================================================
+/**
+ * Dependency container for compare function.
+ *
+ * @type {{
+ *     _: any;
+ * }}
+ */
+const CompareDeps = {
+    _: null,
+};
+
+/**
+ * Compares two symbols by evaluating them with random values for variables. This is useful for checking if two
+ * different representations are mathematically equivalent.
+ *
+ * @param {NerdamerSymbolType} sym1
+ * @param {NerdamerSymbolType} sym2
+ * @param {string[]} vars - An optional array of variables to use
+ * @returns {boolean}
+ */
+function compare(sym1, sym2, vars) {
+    const n = 5; // A random number between 1 and 5 is good enough
+    /** @type {Record<string, NerdamerSymbol>} */
+    const scope = {}; // Scope object with random numbers generated using vars
+    let comparison;
+    for (let i = 0; i < vars.length; i++) {
+        scope[vars[i]] = new NerdamerSymbol(Math.floor(Math.random() * n) + 1);
+    }
+    block('PARSE2NUMBER', () => {
+        comparison = CompareDeps._.parse(sym1, scope).equals(CompareDeps._.parse(sym2, scope));
+    });
+    return comparison;
+}
 
 // Text Function ==================================================================
 /**
@@ -9068,7 +9352,7 @@ const nerdamer = (function initNerdamerCore(imports) {
     let C = null; // Math2 object, Defined at line ~1745
     // Fraction is now defined outside IIFE
     // Build is now defined outside IIFE
-    let isSymbol = null; // IsSymbol function, Defined at line ~478
+    // isSymbol is now defined outside IIFE
     // firstObject is now defined outside IIFE
     // InvalidVariableNameError is now defined outside IIFE
 
@@ -9181,80 +9465,18 @@ const nerdamer = (function initNerdamerCore(imports) {
         return Number(num) % 1 !== 0;
     };
 
-    /**
-     * Checks to see if the object provided is a NerdamerSymbol
-     *
-     * @param {any} obj
-     * @returns {obj is NerdamerSymbol}
-     */
-    isSymbol = function (obj) {
-        return obj instanceof NerdamerSymbol;
-    };
+    // IsSymbol is now defined outside the IIFE (see above)
 
-    /**
-     * Checks to see if the object provided is an Expression
-     *
-     * @param {object} obj
-     */
-    const isExpression = function (obj) {
-        return obj instanceof Expression;
-    };
+    // isExpression is now defined outside the IIFE (see above)
 
-    /**
-     * This method traverses the symbol structure and grabs all the variables in a symbol. The variable names are then
-     * returned in alphabetical order.
-     *
-     * @param {NerdamerSymbolType | FracType} obj
-     * @param {boolean} poly
-     * @param {object} vars - An object containing the variables. Do not pass this in as it generated automatically. In
-     *   the future this will be a Collector object.
-     * @returns {string[]} - An array containing variable names
-     */
-    const variables = function (obj, poly = null, vars = null) {
-        vars ||= {
-            c: [],
-            add(value) {
-                if (this.c.indexOf(value) === -1 && isNaN(value)) {
-                    this.c.push(value);
-                }
-            },
-        };
-
-        if (isSymbol(obj)) {
-            const { group } = obj;
-            const prevgroup = obj.previousGroup;
-            if (group === EX) {
-                variables(obj.power, poly, vars);
-            }
-
-            if (group === CP || group === CB || prevgroup === CP || prevgroup === CB) {
-                for (const x in obj.symbols) {
-                    if (!Object.hasOwn(obj.symbols, x)) {
-                        continue;
-                    }
-                    variables(obj.symbols[x], poly, vars);
-                }
-            } else if (group === S || prevgroup === S) {
-                // Very crude needs fixing. TODO
-                if (!(obj.value === 'e' || obj.value === 'pi' || obj.value === Settings.IMAGINARY)) {
-                    vars.add(obj.value);
-                }
-            } else if (group === PL || prevgroup === PL) {
-                variables(firstObject(obj.symbols), poly, vars);
-            } else if (group === EX) {
-                if (!isNaN(Number(obj.value))) {
-                    vars.add(obj.value);
-                }
-                variables(obj.power, poly, vars);
-            } else if (group === FN && !poly && obj.args) {
-                for (let i = 0; i < obj.args.length; i++) {
-                    variables(obj.args[i], poly, vars);
-                }
-            }
-        }
-
-        return vars.c.sort();
-    };
+    // variables function is now defined outside the IIFE (see above)
+    // Initialize VariablesDeps with group constants
+    VariablesDeps.EX = EX;
+    VariablesDeps.CP = CP;
+    VariablesDeps.CB = CB;
+    VariablesDeps.S = S;
+    VariablesDeps.PL = PL;
+    VariablesDeps.FN = FN;
 
     /**
      * Returns the sum of an array
@@ -9325,27 +9547,11 @@ const nerdamer = (function initNerdamerCore(imports) {
         return arr;
     };
 
-    /**
-     * Checks to see if the object provided is a Vector
-     *
-     * @param {object} obj
-     * @returns {obj is Vector}
-     */
-    const isVector = function (obj) {
-        return obj instanceof Vector;
-    };
+    // IsVector is now defined outside IIFE
 
     // IsCollection is now defined outside IIFE
 
-    /**
-     * Checks to see if the object provided is a Matrix
-     *
-     * @param {object} obj
-     * @returns {obj is Matrix}
-     */
-    const isMatrix = function (obj) {
-        return obj instanceof Matrix;
-    };
+    // isMatrix is now defined outside IIFE
 
     // IsSet is now defined outside IIFE
 
@@ -9394,27 +9600,8 @@ const nerdamer = (function initNerdamerCore(imports) {
 
     // firstObject is defined outside IIFE
 
-    /**
-     * Substitutes out variables for two symbols, parses them to a number and them compares them numerically
-     *
-     * @param {NerdamerSymbolType} sym1
-     * @param {NerdamerSymbolType} sym2
-     * @param {string[]} vars - An optional array of variables to use
-     * @returns {boolean}
-     */
-    const compare = function (sym1, sym2, vars) {
-        const n = 5; // A random number between 1 and 5 is good enough
-        /** @type {Record<string, NerdamerSymbol>} */
-        const scope = {}; // Scope object with random numbers generated using vars
-        let comparison;
-        for (let i = 0; i < vars.length; i++) {
-            scope[vars[i]] = new NerdamerSymbol(Math.floor(Math.random() * n) + 1);
-        }
-        block('PARSE2NUMBER', () => {
-            comparison = _.parse(sym1, scope).equals(_.parse(sym2, scope));
-        });
-        return comparison;
-    };
+    // compare is now defined outside IIFE
+    // CompareDeps._ is set after parser initialization
 
     /**
      * Is used to set a user defined function using the function assign operator and also is used to set a user defined
@@ -9502,62 +9689,8 @@ const nerdamer = (function initNerdamerCore(imports) {
         }
     };
 
-    /**
-     * Gets nth roots of a number
-     *
-     * @param {NerdamerSymbolType} symbol
-     * @returns {Vector}
-     */
-    const nroots = function (symbol) {
-        let a;
-        let b;
-        let _roots;
-
-        if (symbol.group === FN && symbol.fname === '') {
-            a = NerdamerSymbol.unwrapPARENS(_.parse(symbol).toLinear());
-            b = _.parse(symbol.power);
-        } else if (symbol.group === P) {
-            a = _.parse(symbol.value);
-            b = _.parse(symbol.power);
-        }
-
-        if (a && b && a.group === N && b.group === N && a.multiplier.isNegative()) {
-            _roots = [];
-
-            const parts = NerdamerSymbol.toPolarFormArray(evaluate(symbol));
-            const r = parts[0];
-
-            // Var r = _.parse(a).abs().toString();
-
-            // https://en.wikipedia.org/wiki/De_Moivre%27s_formula
-            const x = _.arg(a);
-            const n = b.multiplier.den.toString();
-            const p = b.multiplier.num.toString();
-
-            const formula = '(({0})^({1})*(cos({3})+({2})*sin({3})))^({4})';
-
-            for (let i = 0; i < Number(n); i++) {
-                const t = evaluate(_.parse(format('(({0})+2*pi*({1}))/({2})', x, i, n))).multiplier.toDecimal();
-                _roots.push(evaluate(_.parse(format(formula, r, n, Settings.IMAGINARY, t, p))));
-            }
-            return Vector.fromArray(_roots);
-        }
-        if (symbol.isConstant(true, true)) {
-            const sign = symbol.sign();
-            const x = evaluate(symbol.abs());
-            const root = _.sqrt(x);
-
-            _roots = [root.clone(), root.negate()];
-
-            if (sign < 0) {
-                _roots = _roots.map(r => _.multiply(r, NerdamerSymbol.imaginary()));
-            }
-        } else {
-            _roots = [_.parse(symbol)];
-        }
-
-        return Vector.fromArray(_roots);
-    };
+    // Nroots is now defined outside IIFE
+    // NrootsDeps._ and NrootsDeps.format are set after parser initialization
 
     /**
      * TODO: Pick a more descriptive name and better description Breaks a function down into it's parts wrt to a
@@ -9671,40 +9804,8 @@ const nerdamer = (function initNerdamerCore(imports) {
         return o;
     };
 
-    /**
-     * Returns the coefficients of a symbol given a variable. Given ax^2+b^x+c, it divides each nth term by x^n.
-     *
-     * @param {NerdamerSymbolType} symbol
-     * @param {NerdamerSymbolType} wrt
-     */
-    const getCoeffs = function (symbol, wrt, _info) {
-        const coeffs = [];
-        // We loop through the symbols and stick them in their respective
-        // containers e.g. y*x^2 goes to index 2
-        symbol.each(term => {
-            let coeff;
-            let p;
-            if (term.contains(wrt)) {
-                // We want only the coefficient which in this case will be everything but the variable
-                // e.g. a*b*x -> a*b if the variable to solve for is x
-                coeff = term.stripVar(wrt);
-                const x = _.divide(term.clone(), coeff.clone());
-                p = x.power.toDecimal();
-            } else {
-                coeff = term;
-                p = 0;
-            }
-            const e = coeffs[p];
-            // If it exists just add it to it
-            coeffs[p] = e ? _.add(e, coeff) : coeff;
-        }, true);
-
-        for (let i = 0; i < coeffs.length; i++) {
-            coeffs[i] ||= new NerdamerSymbol(0);
-        }
-        // Fill the holes
-        return coeffs;
-    };
+    // GetCoeffs is now defined outside IIFE
+    // GetCoeffsDeps._ is set after parser initialization (see below where _ is assigned)
 
     // Evaluate is now defined outside IIFE
     // EvaluateDeps._ is set after parser initialization (see below where _ is assigned)
@@ -12614,7 +12715,7 @@ const nerdamer = (function initNerdamerCore(imports) {
                             const argSplit = [[], [], [], []];
                             let argIdx = 0;
                             for (let k = 0; k < e.args.length; k++) {
-                                if (e.args[k] === ',') {
+                                if (/** @type {any} */ (e.args[k]) === ',') {
                                     argIdx++;
                                     continue;
                                 }
@@ -15143,7 +15244,7 @@ const nerdamer = (function initNerdamerCore(imports) {
 
             if (aIsSymbol && bIsSymbol) {
                 // Forward to Unit division
-                if (a.unit || b.unit) {
+                if (/** @type {any} */ (a).unit || /** @type {any} */ (b).unit) {
                     return _.Unit.divide(a, b);
                 }
                 let result;
@@ -15224,7 +15325,7 @@ const nerdamer = (function initNerdamerCore(imports) {
             const bIsSymbol = isSymbol(b);
             if (aIsSymbol && bIsSymbol) {
                 // It has units then it's the Unit module's problem
-                if (a.unit || b.unit) {
+                if (/** @type {any} */ (a).unit || /** @type {any} */ (b).unit) {
                     return _.Unit.pow(a, b);
                 }
 
@@ -15300,7 +15401,13 @@ const nerdamer = (function initNerdamerCore(imports) {
                 }
 
                 // Compute imaginary numbers right away
-                if (Settings.PARSE2NUMBER && aIsConstant && bIsConstant && a.sign() < 0 && evenFraction(b)) {
+                if (
+                    Settings.PARSE2NUMBER &&
+                    aIsConstant &&
+                    bIsConstant &&
+                    a.sign() < 0 &&
+                    evenFraction(/** @type {any} */ (b))
+                ) {
                     const k = Math.PI * Number(b.multiplier.toDecimal());
                     const re = new NerdamerSymbol(Math.cos(k));
                     const im = _.multiply(NerdamerSymbol.imaginary(), new NerdamerSymbol(Math.sin(k)));
@@ -15308,7 +15415,13 @@ const nerdamer = (function initNerdamerCore(imports) {
                 }
 
                 // Imaginary number under negative nthroot or to the n
-                if (Settings.PARSE2NUMBER && a.isImaginary() && bIsConstant && isInt(b) && !b.lessThan(0)) {
+                if (
+                    Settings.PARSE2NUMBER &&
+                    a.isImaginary() &&
+                    bIsConstant &&
+                    isInt(/** @type {any} */ (b)) &&
+                    !b.lessThan(0)
+                ) {
                     let r;
                     let theta;
                     let nre;
@@ -15344,7 +15457,7 @@ const nerdamer = (function initNerdamerCore(imports) {
                 } else {
                     signVal = m.sign();
                     // Handle cases such as (-a^3)^(1/4)
-                    if (evenFraction(b) && signVal < 0) {
+                    if (evenFraction(/** @type {any} */ (b)) && signVal < 0) {
                         // Swaperoo
                         // First put the sign back on the symbol
                         result.negate();
@@ -15376,7 +15489,9 @@ const nerdamer = (function initNerdamerCore(imports) {
                         } else if (even(b.multiplier.den)) {
                             c = _.pow(_.symfunction(PARENTHESIS, [new NerdamerSymbol(signVal)]), b.clone());
                         } else {
-                            c = new NerdamerSymbol(signVal ** /** @type {number} */ (b.multiplier.num));
+                            c = new NerdamerSymbol(
+                                signVal ** /** @type {number} */ (/** @type {unknown} */ (b.multiplier.num))
+                            );
                         }
                     }
 
@@ -15477,7 +15592,7 @@ const nerdamer = (function initNerdamerCore(imports) {
                         // Eliminate imaginary if possible
                         if (a.imaginary) {
                             if (bIsInt) {
-                                const s = Math.sign(b);
+                                const s = Math.sign(/** @type {any} */ (b));
                                 const p = abs(b);
                                 const n = p % 4;
                                 result = new NerdamerSymbol(even(n) ? -1 : Settings.IMAGINARY);
@@ -15488,7 +15603,7 @@ const nerdamer = (function initNerdamerCore(imports) {
                                 // Assume i = sqrt(-1) -> (-1)^(1/2)
                                 const nr = b.multiplier.multiply(Frac.quick(1, 2));
                                 // The denominator denotes the power so raise to it. It will turn positive it round
-                                const tn = (-1) ** /** @type {number} */ (nr.num);
+                                const tn = (-1) ** /** @type {number} */ (/** @type {unknown} */ (nr.num));
                                 result = even(nr.den)
                                     ? /** @type {NerdamerSymbolType} */ (
                                           /** @type {unknown} */ (new NerdamerSymbol(-1))
@@ -15692,6 +15807,12 @@ const nerdamer = (function initNerdamerCore(imports) {
     EvaluateDeps._ = _;
     // Initialize NerdamerSymbolDeps._ now that Parser is created
     NerdamerSymbolDeps._ = _;
+    // Initialize GetCoeffsDeps._ now that Parser is created
+    GetCoeffsDeps._ = _;
+    // Initialize NrootsDeps._ now that Parser is created
+    NrootsDeps._ = _;
+    // Initialize CompareDeps._ now that Parser is created
+    CompareDeps._ = _;
 
     // Initialize ExpressionDeps._ now that Parser is created
     // Note: ExpressionDeps.Build is initialized later after Build is defined
