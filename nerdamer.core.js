@@ -84,6 +84,16 @@
  * @typedef {import('./index').NerdamerCore.ParseError} ParseErrorType
  *
  * @typedef {import('./index').NerdamerCore.NerdamerTypeError} NerdamerTypeErrorType
+ *
+ * @typedef {import('./index').NerdamerCore.Core} CoreType
+ *
+ * @typedef {import('big-integer').BigInteger} BigIntegerType
+ *
+ * @typedef {import('decimal.js').Decimal} DecimalType
+ *
+ *   Custom error constructor type - used for exception classes
+ *
+ * @typedef {new (message?: string) => Error} CustomErrorConstructor
  */
 
 // externals ====================================================================
@@ -105,12 +115,13 @@ const nerdamerConstants =
 // Runtime state variables - declared before CoreDeps to avoid forward references
 // ============================================================================
 // Custom operators registry - populated by IIFE
+/** @type {{ [key: string]: { precedence: number; operator: string; action: string; postfix?: boolean } }} */
 const CUSTOM_OPERATORS = {};
 
 // Runtime state arrays - used by CoreDeps.state getters
-/** @type {any[]} */
+/** @type {ExpressionType[]} */
 const EXPRESSIONS = [];
-/** @type {Record<string, any>} */
+/** @type {Record<string, NerdamerSymbolType>} */
 const VARS_STORE = {};
 /** @type {string[]} */
 const RESERVED = [];
@@ -123,13 +134,13 @@ const USER_FUNCTIONS = [];
 // Used by CoreDeps getters to avoid forward reference issues
 /**
  * @type {{
- *     Settings: any;
- *     Math2: any;
+ *     Settings: SettingsType | null;
+ *     Math2: Math2Interface | null;
  * }}
  */
 const LateRefs = {
-    Settings: /** @type {any} */ (null),
-    Math2: /** @type {any} */ (null),
+    Settings: /** @type {SettingsType | null} */ (null),
+    Math2: /** @type {Math2Interface | null} */ (null),
 };
 
 // CoreDeps - Centralized Dependency Registry ==================================
@@ -154,42 +165,44 @@ const LateRefs = {
 /**
  * @type {{
  *     ext: {
- *         bigInt: any;
- *         bigDec: any;
+ *         bigInt: import('big-integer').BigIntegerStatic;
+ *         bigDec: typeof import('decimal.js').default;
  *         PRIMES: number[];
  *         PRIMES_SET: Record<number, boolean>;
  *         LONG_PI: string;
  *         LONG_E: string;
- *         BIG_LOG_CACHE: Record<string, any>;
+ *         BIG_LOG_CACHE: string[];
  *     };
  *     groups: {
- *         N: number;
- *         P: number;
- *         S: number;
- *         EX: number;
- *         FN: number;
- *         PL: number;
- *         CB: number;
- *         CP: number;
+ *         N: 1;
+ *         P: 2;
+ *         S: 3;
+ *         EX: 4;
+ *         FN: 5;
+ *         PL: 6;
+ *         CB: 7;
+ *         CP: 8;
  *     };
  *     fnNames: {
- *         SQRT: string;
- *         ABS: string;
- *         FACTORIAL: string;
- *         DOUBLEFACTORIAL: string;
- *         PARENTHESIS: string;
- *         LOG: string;
- *         CONST_HASH: string;
+ *         SQRT: 'sqrt';
+ *         ABS: 'abs';
+ *         FACTORIAL: 'factorial';
+ *         DOUBLEFACTORIAL: 'dfactorial';
+ *         PARENTHESIS: 'parens';
+ *         LOG: 'log';
+ *         CONST_HASH: '#';
  *     };
  *     settings: SettingsType;
  *     state: {
- *         EXPRESSIONS: any[];
- *         VARS: Record<string, any>;
- *         CONSTANTS: Record<string, any>;
+ *         EXPRESSIONS: ExpressionType[];
+ *         VARS: Record<string, NerdamerSymbolType>;
+ *         CONSTANTS: Record<string, NerdamerSymbolType | string | number>;
  *         RESERVED: string[];
  *         WARNINGS: string[];
  *         USER_FUNCTIONS: string[];
- *         CUSTOM_OPERATORS: Record<string, any>;
+ *         CUSTOM_OPERATORS: {
+ *             [key: string]: { precedence: number; operator: string; action: string; postfix?: boolean };
+ *         };
  *     };
  *     classes: {
  *         Frac: FracConstructor;
@@ -207,49 +220,49 @@ const LateRefs = {
  *         Build: BuildInterface;
  *     };
  *     utils: {
- *         isSymbol: (x: any) => boolean;
- *         isVector: (x: any) => boolean;
- *         isMatrix: (x: any) => boolean;
- *         isExpression: (x: any) => boolean;
- *         isNumericSymbol: (x: any) => boolean;
- *         isFraction: (x: any) => boolean;
- *         isArray: any;
- *         isInt: (n: any) => boolean;
- *         text: (symbol: any, opt?: string, useGroup?: any, decp?: any) => string;
- *         variables: (obj: any, poly?: boolean, vars?: any) => string[];
- *         scientificToDecimal: (num: any) => string;
- *         err: (msg: string, ErrorObj?: any) => void;
- *         block: (setting: string, f: Function, opt?: boolean, obj?: unknown) => any;
- *         evaluate: (symbol: any, o?: Record<string, any>) => any;
+ *         isSymbol: (x: unknown) => boolean;
+ *         isVector: (x: unknown) => boolean;
+ *         isMatrix: (x: unknown) => boolean;
+ *         isExpression: (x: unknown) => boolean;
+ *         isNumericSymbol: (symbol: NerdamerSymbolType) => boolean;
+ *         isFraction: (x: unknown) => boolean;
+ *         isArray: (arr: unknown) => boolean;
+ *         isInt: (n: number | string | unknown) => boolean;
+ *         text: (symbol: NerdamerSymbolType, opt?: OutputType, useGroup?: number, decp?: number) => string;
+ *         variables: (obj: NerdamerSymbolType | FracType, poly?: boolean, vars?: unknown) => string[];
+ *         scientificToDecimal: (num: number) => string;
+ *         err: (msg: string, ErrorObj?: CustomErrorConstructor) => void;
+ *         block: (setting: string, f: Function, opt?: boolean, obj?: unknown) => unknown;
+ *         evaluate: (symbol: NerdamerSymbolType, o?: Record<string, ExpressionParam>) => NerdamerSymbolType;
  *         reserveNames: (obj: object) => void;
  *         nround: (x: string | number, s?: number) => string | number;
- *         remove: (arr: any[], index: number) => any;
- *         _setFunction: (fnName: any, fnParams?: any, fnBody?: any) => boolean;
+ *         remove: (arr: unknown[], index: number) => unknown;
+ *         _setFunction: (fnName: string | Function, fnParams?: string[], fnBody?: string) => boolean;
  *         _clearFunctions: () => void;
- *         symfunction: (fname: string, args: any[]) => any;
- *         callfunction: (fname: string, args: any[]) => any;
+ *         symfunction: (fname: string, args: NerdamerSymbolType[]) => NerdamerSymbolType;
+ *         callfunction: (fname: string, args: NerdamerSymbolType[]) => NerdamerSymbolType;
  *     };
  *     exceptions: {
- *         DivisionByZero: any;
- *         ParseError: any;
- *         OutOfFunctionDomainError: any;
- *         UndefinedError: any;
- *         MaximumIterationsReached: any;
- *         NerdamerTypeError: any;
- *         ParityError: any;
- *         OperatorError: any;
- *         OutOfRangeError: any;
- *         DimensionError: any;
- *         InvalidVariableNameError: any;
- *         ValueLimitExceededError: any;
- *         NerdamerValueError: any;
- *         SolveError: any;
- *         InfiniteLoopError: any;
- *         UnexpectedTokenError: any;
+ *         DivisionByZero: CustomErrorConstructor;
+ *         ParseError: CustomErrorConstructor;
+ *         OutOfFunctionDomainError: CustomErrorConstructor;
+ *         UndefinedError: CustomErrorConstructor;
+ *         MaximumIterationsReached: CustomErrorConstructor;
+ *         NerdamerTypeError: CustomErrorConstructor;
+ *         ParityError: CustomErrorConstructor;
+ *         OperatorError: CustomErrorConstructor;
+ *         OutOfRangeError: CustomErrorConstructor;
+ *         DimensionError: CustomErrorConstructor;
+ *         InvalidVariableNameError: CustomErrorConstructor;
+ *         ValueLimitExceededError: CustomErrorConstructor;
+ *         NerdamerValueError: CustomErrorConstructor;
+ *         SolveError: CustomErrorConstructor;
+ *         InfiniteLoopError: CustomErrorConstructor;
+ *         UnexpectedTokenError: CustomErrorConstructor;
  *     };
  *     parser: ParserType | null;
- *     core: any;
- *     libExports: any;
+ *     core: CoreType | null;
+ *     libExports: typeof nerdamer | null;
  *     version: string;
  * }}
  */
@@ -301,7 +314,7 @@ const CoreDeps = {
         get VARS() {
             return VARS_STORE;
         },
-        CONSTANTS: /** @type {Record<string, any>} */ ({}),
+        CONSTANTS: /** @type {Record<string, NerdamerSymbolType | string>} */ ({}),
         get RESERVED() {
             return RESERVED;
         },
@@ -394,21 +407,21 @@ const CoreDeps = {
             return _clearFunctions;
         },
         // Parser-bound methods - set by IIFE after parser instantiation
-        symfunction: /** @type {any} */ (null),
-        callfunction: /** @type {any} */ (null),
+        symfunction: /** @type {((fname: string, args: NerdamerSymbolType[]) => NerdamerSymbolType) | null} */ (null),
+        callfunction: /** @type {((fname: string, args: NerdamerSymbolType[]) => NerdamerSymbolType) | null} */ (null),
     },
 
     // Exception classes - assigned after exception definitions (see below Frac class)
     exceptions: /** @type {any} */ (null),
 
     // Parser instance - set by IIFE after Parser creation
-    parser: /** @type {any} */ (null),
+    parser: /** @type {ParserType | null} */ (null),
 
     // Core object C - set by IIFE at end
-    core: /** @type {any} */ (null),
+    core: /** @type {CoreType | null} */ (null),
 
     // Library exports function - set by IIFE
-    libExports: /** @type {any} */ (null),
+    libExports: /** @type {typeof nerdamer | null} */ (null),
 
     // Version string
     version: '1.1.16',
@@ -845,13 +858,16 @@ CoreDeps.exceptions = {
 /**
  * Dependency accessor for Frac class. Uses CoreDeps as the single source of truth for all dependencies.
  *
+ * Note: bigInt and bigDec are typed as 'any' because they are used with 'new' keyword at runtime, but their TypeScript
+ * types don't support constructor invocation.
+ *
  * @type {{
- *     bigInt: typeof nerdamerBigInt;
- *     bigDec: typeof nerdamerBigDecimal;
- *     isInt: (n: any) => boolean;
+ *     bigInt: any;
+ *     bigDec: any;
+ *     isInt: (n: number | string | unknown) => boolean;
  *     scientificToDecimal: (num: number) => string;
- *     DivisionByZero: new (msg: string) => Error;
- *     Settings: any;
+ *     DivisionByZero: CustomErrorConstructor;
+ *     Settings: SettingsType;
  *     Fraction: typeof Fraction;
  * }}
  */
@@ -1330,9 +1346,9 @@ CoreDeps.classes.Frac = /** @type {any} */ (Frac);
  * Dependency accessor for NerdamerSet class. Uses CoreDeps as the single source of truth.
  *
  * @type {{
- *     isVector: (x: any) => boolean;
- *     Vector: { fromArray: (arr: any[]) => any };
- *     remove: (arr: any[], index: number) => void;
+ *     isVector: (x: unknown) => boolean;
+ *     Vector: VectorConstructor;
+ *     remove: (arr: any[], index: number) => any;
  * }}
  */
 const SetDeps = {
@@ -1349,7 +1365,7 @@ const SetDeps = {
 
 /** NerdamerSet class for mathematical set operations. */
 class NerdamerSet {
-    /** @type {any[]} */
+    /** @type {NerdamerSymbolType[]} */
     elements = [];
 
     /**
@@ -1527,7 +1543,7 @@ CoreDeps.classes.NerdamerSet = NerdamerSet;
  *
  * @type {{
  *     _: any;
- *     block: Function;
+ *     block: (setting: string, f: Function, opt?: boolean, obj?: unknown) => unknown;
  * }}
  */
 const CollectionDeps = {
@@ -1629,17 +1645,19 @@ class Collection {
      * @returns {Collection | null}
      */
     add(c2) {
-        return CollectionDeps.block(
-            'SAFE',
-            () => {
-                const V = c2.elements || c2;
-                if (this.elements.length !== V.length) {
-                    return null;
-                }
-                return this.map((x, i) => CollectionDeps._.add(x, V[i - 1]));
-            },
-            undefined,
-            this
+        return /** @type {Collection | null} */ (
+            CollectionDeps.block(
+                'SAFE',
+                () => {
+                    const V = c2.elements || c2;
+                    if (this.elements.length !== V.length) {
+                        return null;
+                    }
+                    return this.map((x, i) => CollectionDeps._.add(x, V[i - 1]));
+                },
+                undefined,
+                this
+            )
         );
     }
 
@@ -1650,17 +1668,19 @@ class Collection {
      * @returns {Collection | null}
      */
     subtract(vector) {
-        return CollectionDeps.block(
-            'SAFE',
-            () => {
-                const V = vector.elements || vector;
-                if (this.elements.length !== V.length) {
-                    return null;
-                }
-                return this.map((x, i) => CollectionDeps._.subtract(x, V[i - 1]));
-            },
-            undefined,
-            this
+        return /** @type {Collection | null} */ (
+            CollectionDeps.block(
+                'SAFE',
+                () => {
+                    const V = vector.elements || vector;
+                    if (this.elements.length !== V.length) {
+                        return null;
+                    }
+                    return this.map((x, i) => CollectionDeps._.subtract(x, V[i - 1]));
+                },
+                undefined,
+                this
+            )
         );
     }
 }
@@ -2914,7 +2934,7 @@ function reserved(asArray) {
  *
  * @type {{
  *     _version: string;
- *     C: Record<string, { version: string }>;
+ *     C: CoreType | null;
  * }}
  */
 const VersionDeps = {
@@ -3020,7 +3040,7 @@ function getConstant(constant) {
  * Dependencies for the getVar function. Initialized inside the IIFE.
  *
  * @type {{
- *     VARS: object | null;
+ *     VARS: Record<string, NerdamerSymbolType>;
  * }}
  */
 const GetVarDeps = {
@@ -3074,19 +3094,8 @@ function getVars(output, option) {
  * Dependencies for core wrapper functions. Initialized inside the IIFE.
  *
  * @type {{
- *     _: {
- *         toTeX: (e: any, opt?: any) => string;
- *         getOperator: (operator: string) => any;
- *         aliasOperator: (operator: string, withOperator: string) => void;
- *         setOperator: (operator: any, shift?: any) => void;
- *         peekers: Record<string, Function[]>;
- *         tree: (e: any) => any;
- *         toRPN: (e: any) => any;
- *         tokenize: (e: any) => any;
- *         parse: (e: any) => any;
- *         functions: Record<string, any[]>;
- *     } | null;
- *     C: any;
+ *     _: ParserType | null;
+ *     C: CoreType | null;
  * }}
  */
 const ConvertToLaTeXDeps = {
@@ -3254,12 +3263,12 @@ function replaceFunction(name, fn, numArgs) {
  * @type {{
  *     EXPRESSIONS: any[];
  *     USER_FUNCTIONS: string[];
- *     LaTeX: any;
- *     text: (obj: any, option?: any) => string;
- *     functions: Record<string, any>;
+ *     LaTeX: LaTeXInterface;
+ *     text: (obj: any, option?: string | string[]) => string;
+ *     functions: Record<string, any[]>;
  *     Math2: Math2Interface;
- *     _: { tokenize: (e: any) => any; parse: (e: any) => any } | null;
- *     Expression: (new (symbol: any) => any) | null;
+ *     _: ParserType | null;
+ *     Expression: ExpressionConstructor | null;
  * }}
  */
 const ExpressionsDeps = {
@@ -3365,13 +3374,7 @@ function convertFromLaTeX(e) {
 /**
  * Dependencies for chain functions. Initialized inside the IIFE with actual references.
  *
- * @type {{
- *     libExports: any;
- *     VARS: Record<string, any>;
- *     _clearFunctions: () => void;
- *     _initConstants: () => void;
- *     clear: ((equationNumber?: any, keepExpressionsFixed?: boolean) => any) | null;
- * }}
+ * @type {object}
  */
 const ChainDeps = {
     get libExports() {
@@ -3467,8 +3470,8 @@ function load(loader) {
  * Dependencies for setConstant function. Initialized inside the IIFE with actual references.
  *
  * @type {{
- *     libExports: any;
- *     CONSTANTS: Record<string, any>;
+ *     libExports: typeof nerdamer | null;
+ *     CONSTANTS: Record<string, NerdamerSymbolType | string | number>;
  * }}
  */
 const SetConstantDeps = {
@@ -3511,11 +3514,11 @@ function setConstant(constant, value) {
  * Dependencies for setVar function. Initialized inside the IIFE with actual references.
  *
  * @type {{
- *     libExports: any;
- *     VARS: Record<string, any>;
- *     CONSTANTS: Record<string, any>;
- *     parse: (expression: any) => any;
- *     isSymbol: (obj: any) => boolean;
+ *     libExports: typeof nerdamer | null;
+ *     VARS: Record<string, NerdamerSymbolType>;
+ *     CONSTANTS: Record<string, NerdamerSymbolType | string | number>;
+ *     parse: (expression: ExpressionParam) => NerdamerSymbolType;
+ *     isSymbol: (obj: unknown) => boolean;
  * }}
  */
 const SetVarDeps = {
@@ -3566,8 +3569,8 @@ function setVar(v, val) {
  * Dependencies for setFunction function. Initialized inside the IIFE with actual references.
  *
  * @type {{
- *     libExports: any;
- *     _setFunction: (fnName: any, fnParams: any, fnBody: any) => boolean;
+ *     libExports: typeof nerdamer | null;
+ *     _setFunction: (fnName: string | Function, fnParams?: string[], fnBody?: string) => boolean;
  * }}
  */
 const SetFunctionDeps = {
@@ -7137,11 +7140,14 @@ LateRefs.Settings = Settings;
 /**
  * Dependency container for Math2 object. Populated by the IIFE during initialization.
  *
+ * Note: bigInt is typed as 'any' because big-integer library supports both function calls and `new` keyword invocation
+ * at runtime, but its TypeScript types only declare the function form.
+ *
  * @type {{
  *     bigInt: any;
- *     BIG_LOG_CACHE: Record<string, string>;
+ *     BIG_LOG_CACHE: string[];
  *     PRIMES: number[];
- *     NerdamerSymbol: any;
+ *     NerdamerSymbol: SymbolConstructor;
  *     CB: number;
  *     P: number;
  * }}
@@ -7630,6 +7636,11 @@ const Math2 = {
     },
     // Factors a number into rectangular box. If sides are primes that this will be
     // their prime factors. e.g. 21 -> (7)(3), 133 -> (7)(19)
+    /**
+     * @param {number} n
+     * @param {number} [max]
+     * @returns {[number, number] | [number, number, number]}
+     */
     boxfactor(n, max) {
         max ||= 200; // Stop after this number of iterations
         let c;
@@ -7644,13 +7655,13 @@ const Math2 = {
                 break;
             } // We're done
             if (safety) {
-                return [n, 1];
+                return /** @type {[number, number]} */ ([n, 1]);
             }
             d = Math.max(r, d - r);
             i++;
             safety = i > max;
         }
-        return [c, d, i];
+        return /** @type {[number, number, number]} */ ([c, d, i]);
     },
     fib(n) {
         let sign = Math.sign(n);
@@ -7727,7 +7738,7 @@ const Math2 = {
      * @param {number} b - Upper bound
      * @param {number} tol - Step width
      * @param {number} [maxdepth]
-     * @returns {number | string}
+     * @returns {number}
      */
     num_integrate(f, a, b, tol, maxdepth) {
         if (maxdepth < 0) {
@@ -7835,7 +7846,7 @@ const Math2 = {
             /* Fallback to non-adaptive*/
             return Math2.simpson(f, a, b);
         }
-        return nround(retval, 12);
+        return /** @type {number} */ (nround(retval, 12));
     },
     // https://en.wikipedia.org/wiki/Trigonometric_integral
     // CosineIntegral

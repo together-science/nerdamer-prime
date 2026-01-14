@@ -100,7 +100,7 @@ export { NerdamerExpression, NerdamerEquation, SolveResult, ExpressionParam, Out
 // #region Core Type Definitions
 
 /** A type alias for strings representing number output formats. */
-type OutputType = 'decimals' | 'fractions' | 'scientific' | 'mixed' | 'recurring' | 'decimals_or_scientific';
+type OutputType = 'decimals' | 'fractions' | 'scientific' | 'mixed' | 'recurring' | 'decimals_or_scientific' | string;
 
 /** A type alias for common parsing and evaluation options. */
 type ParseOption = 'numer' | 'expand';
@@ -1963,8 +1963,8 @@ declare namespace nerdamerPrime {
         interface NerdamerSymbol extends PowerValue {
             // Output methods
             toString: () => string;
-            text: (option?: OutputType) => string;
-            latex: (option?: OutputType) => string;
+            text: (option?: OutputType | string[]) => string;
+            latex: (option?: OutputType | string[]) => string;
             valueOf: () => number | string;
 
             // Properties
@@ -2255,9 +2255,9 @@ declare namespace nerdamerPrime {
             /** Maps a function over elements */
             map(lambda: (x: any, i: number) => any): Collection;
             /** Adds another collection element-wise */
-            add(c2: Collection): Collection;
+            add(c2: Collection): Collection | null;
             /** Subtracts another collection element-wise */
-            subtract(c2: Collection): Collection;
+            subtract(c2: Collection): Collection | null;
         }
 
         /** Static utility object for converting decimals to fractions. */
@@ -2339,13 +2339,20 @@ declare namespace nerdamerPrime {
             /** Dot/multiplication character for LaTeX */
             dot: string;
             /**
+             * Parses tokenized LaTeX into a string representation.
+             *
+             * @param rawTokens The tokenized input from LaTeX
+             * @returns Parsed string representation
+             */
+            parse(rawTokens: any): string;
+            /**
              * Converts a symbol to LaTeX format.
              *
              * @param symbol The symbol to convert
              * @param option Conversion option ('decimal' for numeric output)
              * @returns LaTeX string representation
              */
-            latex(symbol: any, option?: string): string;
+            latex(symbol: any, option?: string | string[]): string;
             /** Wraps content in brackets */
             brackets(contents: string, type?: string, braces?: boolean): string;
             /** Formats a fraction for LaTeX */
@@ -2411,7 +2418,7 @@ declare namespace nerdamerPrime {
             /** Integer factorization using Pollard's rho */
             ifactor(num: number): Record<string, number>;
             /** Box factorization */
-            boxfactor(n: number, max?: number): [number, number, number];
+            boxfactor(n: number, max?: number): [number, number] | [number, number, number];
             /** Fibonacci number */
             fib(n: number): number;
             /** Modulo operation */
@@ -2804,7 +2811,7 @@ declare namespace nerdamerPrime {
 
             // Internal storage
             /** Storage for constant values (PI, E, etc.) */
-            CONSTANTS?: Record<string, NerdamerSymbol>;
+            CONSTANTS?: Record<string, NerdamerSymbol | number>;
             /** Evaluates a symbol numerically */
             evaluate?(symbol: NerdamerSymbol, o?: any): NerdamerSymbol;
             /** Function body storage for user-defined functions */
@@ -2962,7 +2969,7 @@ declare namespace nerdamerPrime {
              *
              * @default '^'
              */
-            POWER_OPERATOR: '^' | '**';
+            POWER_OPERATOR: '^' | '**' | string;
 
             /**
              * An array of special single characters that are allowed in variable names.
@@ -3054,56 +3061,56 @@ declare namespace nerdamerPrime {
 
             // #endregion
 
-            // #region Solver Settings
+            // #region Solver Settings (added by Solve module)
 
             /**
              * The maximum number of recursive calls allowed during a `solve` operation.
              *
              * @default 10
              */
-            MAX_SOLVE_DEPTH: number;
+            MAX_SOLVE_DEPTH?: number;
 
             /**
              * The search radius (`-r` to `r`) for numerical root finding.
              *
              * @default 1000
              */
-            SOLVE_RADIUS: number;
+            SOLVE_RADIUS?: number;
 
             /**
              * The maximum number of roots to find on each side of the starting point in numerical solving.
              *
              * @default 10
              */
-            ROOTS_PER_SIDE: number;
+            ROOTS_PER_SIDE?: number;
 
             /**
              * If `true`, numerical solutions will attempt to be converted to multiples of pi.
              *
              * @default false
              */
-            make_pi_conversions: boolean;
+            make_pi_conversions?: boolean;
 
             /**
              * The step size for the initial root-finding point generation.
              *
              * @default 0.1
              */
-            STEP_SIZE: number;
+            STEP_SIZE?: number;
 
             /**
              * The maximum number of iterations for Newton's method.
              *
              * @default 200
              */
-            MAX_NEWTON_ITERATIONS: number;
+            MAX_NEWTON_ITERATIONS?: number;
 
             /**
              * The epsilon (tolerance) used as the stopping condition for Newton's method.
              *
              * @default 2e-15
              */
-            NEWTON_EPSILON: number;
+            NEWTON_EPSILON?: number;
 
             /**
              * When points are generated as starting points for Newton's method, they are sliced into smaller intervals
@@ -3111,49 +3118,49 @@ declare namespace nerdamerPrime {
              *
              * @default 200
              */
-            NEWTON_SLICES: number;
+            NEWTON_SLICES?: number;
 
             /**
              * The maximum number of iterations for the bisection method.
              *
              * @default 2000
              */
-            MAX_BISECTION_ITER: number;
+            MAX_BISECTION_ITER?: number;
 
             /**
              * The epsilon (tolerance) used as the stopping condition for the bisection method.
              *
              * @default 1e-12
              */
-            BI_SECTION_EPSILON: number;
+            BI_SECTION_EPSILON?: number;
 
             /**
              * An epsilon value used to determine if a numerical result is "close enough" to zero.
              *
              * @default 1e-9
              */
-            ZERO_EPSILON: number;
+            ZERO_EPSILON?: number;
 
             /**
              * The distance within which two numerical solutions are considered to be the same.
              *
              * @default 1e-14
              */
-            SOLUTION_PROXIMITY: number;
+            SOLUTION_PROXIMITY?: number;
 
             /**
              * If `true`, the solver will filter out duplicate solutions based on `SOLUTION_PROXIMITY`.
              *
              * @default true
              */
-            FILTER_SOLUTIONS: boolean;
+            FILTER_SOLUTIONS?: boolean;
 
             /**
              * The maximum number of times the non-linear system solver will try a new starting point.
              *
              * @default 12
              */
-            MAX_NON_LINEAR_TRIES: number;
+            MAX_NON_LINEAR_TRIES?: number;
 
             /**
              * For the non-linear solver, the number of iterations after which it checks for convergence and potentially
@@ -3161,50 +3168,50 @@ declare namespace nerdamerPrime {
              *
              * @default 50
              */
-            NON_LINEAR_JUMP_AT: number;
+            NON_LINEAR_JUMP_AT?: number;
 
             /**
              * The size of the "jump" for the non-linear solver when it's not converging.
              *
              * @default 100
              */
-            NON_LINEAR_JUMP_SIZE: number;
+            NON_LINEAR_JUMP_SIZE?: number;
 
             /**
              * The initial starting point for the non-linear equation solver.
              *
              * @default 0.01
              */
-            NON_LINEAR_START: number;
+            NON_LINEAR_START?: number;
 
             // #endregion
 
-            // #region Calculus Settings
+            // #region Calculus Settings (added by Calculus module)
 
             /**
              * Maximum recursion depth for symbolic integration.
              *
              * @default 10
              */
-            integration_depth: number;
+            integration_depth?: number;
 
             /**
              * Maximum recursion depth for calculating limits.
              *
              * @default 10
              */
-            max_lim_depth: number;
+            max_lim_depth?: number;
 
             // #endregion
 
-            // #region Extra Module Settings
+            // #region Extra Module Settings (added by Extra module)
 
             /**
              * Maximum recursion depth for calculating Laplace transforms via integration.
              *
              * @default 40
              */
-            Laplace_integration_depth: number;
+            Laplace_integration_depth?: number;
 
             // #endregion
 
@@ -3249,7 +3256,7 @@ declare namespace nerdamerPrime {
              *
              * @internal
              */
-            CONST_HASH: '#';
+            CONST_HASH?: '#';
 
             /** A long string representation of PI for high-precision calculations. */
             LONG_PI: string;
@@ -3280,7 +3287,7 @@ declare namespace nerdamerPrime {
              *
              * @internal
              */
-            LOG_FNS: {
+            LOG_FNS?: {
                 log: any;
                 log10: any;
             };
@@ -3292,6 +3299,14 @@ declare namespace nerdamerPrime {
              * @internal
              */
             callPeekers: boolean;
+
+            /**
+             * If `true`, enables high-precision big number arithmetic for certain calculations.
+             *
+             * @default false
+             * @internal
+             */
+            USE_BIG?: boolean;
 
             // #endregion
         }
