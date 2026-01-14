@@ -1,0 +1,30 @@
+{
+    "extends": "./tsconfig.base.json",
+    "compilerOptions": {
+        // JavaScript handling - skip checking for legacy JS
+        // These files have too many inferred type issues to be checked
+        // Set checkJs: true when you want to gradually fix type errors
+        "allowJs": true,
+        "checkJs": true,
+
+        // These options would apply if checkJs were enabled
+        "strict": false,
+        "noImplicitAny": false,
+        "noImplicitThis": false,
+        "strictNullChecks": false,
+        "strictFunctionTypes": false,
+        "strictBindCallApply": false,
+        "strictPropertyInitialization": false,
+        "noUncheckedIndexedAccess": false
+    },
+    "include": [
+        "index.d.ts",
+        "all.js",
+        "nerdamer.core.js",
+        "Algebra.js",
+        "Calculus.js",
+        "Solve.js",
+        "Extra.js",
+        "constants.js"
+    ]
+}

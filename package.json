@@ -49,11 +49,12 @@
         "node": ">=15"
     },
     "scripts": {
-        "test": "tsc --noEmit && jasmine && jest",
-        "build": "tsc && esbuild all.js --bundle --minify --outfile=all.min.js --format=iife --global-name=nerdamer",
-        "lint": "eslint . && tsc --noEmit",
-        "format": "prettier --write \"**/*.{ts,js,json,jml,md,html}\"",
-        "format:check": "prettier --check \"**/*.{ts,js,json,jml,md,html}\""
+        "build": "tsc && tsc -p tsconfig.js.json && esbuild all.js --bundle --minify --outfile=all.min.js --format=iife --global-name=nerdamer",
+        "test": "tsc --noEmit && tsc -p tsconfig.js.json --noEmit && jasmine && jest",
+        "lint": "tsc --noEmit && tsc -p tsconfig.js.json --noEmit && eslint . --fix",
+        "lint:check": "tsc --noEmit && tsc -p tsconfig.js.json --noEmit && eslint .",
+        "format": "tsc --noEmit && tsc -p tsconfig.js.json --noEmit && prettier --write \"**/*.{ts,js,json,jml,md,html}\"",
+        "format:check": "tsc --noEmit && tsc -p tsconfig.js.json --noEmit && prettier --check \"**/*.{ts,js,json,jml,md,html}\""
     },
     "dependencies": {
         "big-integer": "^1.6.52",
