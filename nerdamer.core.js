@@ -4658,6 +4658,289 @@ Matrix.prototype = {
 // Aliases
 Matrix.prototype.each = Matrix.prototype.eachElement;
 
+// Build Object =================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via BuildDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for Build object. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     Math2: any;
+ *     Frac: typeof Frac;
+ *     NerdamerSymbol: any;
+ *     isInt: Function;
+ *     nround: Function;
+ *     even: Function;
+ *     block: Function;
+ *     _: any;
+ *     variables: Function;
+ *     inBrackets: Function;
+ *     FN: number;
+ *     N: number;
+ *     S: number;
+ *     P: number;
+ *     EX: number;
+ *     CB: number;
+ * }}
+ */
+const BuildDeps = {
+    Math2: {},
+    Frac,
+    NerdamerSymbol: null,
+    isInt: () => false,
+    nround: (x, _s) => x,
+    even: () => false,
+    block: (name, fn) => fn(),
+    _: null,
+    variables: () => [],
+    inBrackets: str => `(${str})`,
+    FN: 5,
+    N: 1,
+    S: 3,
+    P: 2,
+    EX: 4,
+    CB: 7,
+};
+
+/** Build object for compiling mathematical expressions to JavaScript functions. */
+const Build = {
+    /** @type {any} */
+    dependencies: {},
+    /** @type {any} */
+    reformat: {},
+    /**
+     * @param {string} f
+     * @returns {string}
+     */
+    getProperName(f) {
+        const map = {
+            continuedFraction: 'continuedFraction',
+        };
+        return map[f] || f;
+    },
+    /**
+     * Assumes that dependencies are at max 2 levels
+     *
+     * @param {string} f
+     * @param {any} deps
+     * @returns {any[]}
+     */
+    compileDependencies(f, deps) {
+        // Grab the predefined dependencies
+        const dependencies = Build.dependencies[f];
+
+        // The dependency string
+        let depString = deps && deps[1] ? deps[1] : '';
+
+        // The functions to be replaced
+        const replacements = deps && deps[0] ? deps[0] : {};
+
+        // Loop through them and add them to the list
+        for (const x in dependencies) {
+            if (typeof dependencies[x] === 'object') {
+                continue;
+            } // Skip object
+            const components = x.split('.'); // Math.f becomes f
+            // if the function isn't part of an object then reference the function itself
+            let depValue = dependencies[x];
+            // If it's a function, convert method shorthand to function expression
+            if (typeof depValue === 'function') {
+                let fnStr = depValue.toString();
+                // Handle ES6 method shorthand like "gamma(z) { ... }" -> "function gamma(z) { ... }"
+                if (!fnStr.startsWith('function') && !fnStr.startsWith('(') && !fnStr.startsWith('async')) {
+                    fnStr = `function ${fnStr}`;
+                }
+                depValue = fnStr;
+            }
+            depString += `let ${components.length > 1 ? components[1] : components[0]}=${depValue};`;
+            replacements[x] = components.pop();
+        }
+
+        return [replacements, depString];
+    },
+    /**
+     * @param {any} symbol
+     * @param {any} dependencies
+     * @returns {any}
+     */
+    getArgsDeps(symbol, dependencies) {
+        const { args } = symbol;
+        let deps = dependencies;
+        const processFn = function (x) {
+            if (x.group === BuildDeps.FN) {
+                deps = Build.compileDependencies(x.fname, deps);
+            }
+        };
+        for (let i = 0; i < args.length; i++) {
+            symbol.args[i].each(processFn);
+        }
+        return deps;
+    },
+    /**
+     * @param {any} symbol
+     * @param {any[]} [argArray]
+     * @returns {Function}
+     */
+    build(symbol, argArray) {
+        const {
+            Math2,
+            NerdamerSymbol,
+            block: blockFn,
+            _,
+            variables,
+            inBrackets: wrapInBrackets,
+            FN,
+            N,
+            S,
+            P,
+            EX,
+            CB,
+        } = BuildDeps;
+
+        symbol = blockFn('PARSE2NUMBER', () => _.parse(symbol), true);
+        let args = variables(symbol);
+        const supplements = [];
+        let dependencies = [];
+        const ftext = function (sym, xports) {
+            // Fix for #545 - Parentheses confuse build.
+            if (sym.fname === '') {
+                sym = NerdamerSymbol.unwrapPARENS(sym);
+            }
+            xports ||= [];
+            const c = [];
+            const { group } = sym;
+            let prefix = '';
+
+            const ftextComplex = function (grp) {
+                const d = grp === CB ? '*' : '+';
+                const cc = [];
+
+                for (const x in sym.symbols) {
+                    if (!Object.hasOwn(sym.symbols, x)) {
+                        continue;
+                    }
+                    const s = sym.symbols[x];
+                    let ft = ftext(s, xports)[0];
+                    // Wrap it in brackets if it's group PL or CP
+                    if (s.isComposite()) {
+                        ft = wrapInBrackets(ft);
+                    }
+                    cc.push(ft);
+                }
+                let retval = cc.join(d);
+                retval = retval && !sym.multiplier.equals(1) ? wrapInBrackets(retval) : retval;
+                return retval;
+            };
+            const ftextFunction = function (bn) {
+                let retval;
+                if (bn in Math) {
+                    retval = `Math.${bn}`;
+                } else {
+                    bn = Build.getProperName(bn);
+                    if (supplements.indexOf(bn) === -1) {
+                        // Make sure you're not adding the function twice
+                        // Math2 functions aren't part of the standard javascript
+                        // Math library and must be exported.
+                        let fnStr = Math2[bn].toString();
+                        // Handle ES6 method shorthand like "factorial(x) { ... }" -> "function factorial(x) { ... }"
+                        if (!fnStr.startsWith('function') && !fnStr.startsWith('(') && !fnStr.startsWith('async')) {
+                            fnStr = `function ${fnStr}`;
+                        }
+                        xports.push(`let ${bn} = ${fnStr}; `);
+                        supplements.push(bn);
+                    }
+                    retval = bn;
+                }
+                retval += wrapInBrackets(sym.args.map(x => ftext(x, xports)[0]).join(','));
+
+                return retval;
+            };
+
+            // The multiplier
+            if (group === N) {
+                c.push(sym.multiplier.toDecimal());
+            } else if (sym.multiplier.equals(-1)) {
+                prefix = '-';
+            } else if (!sym.multiplier.equals(1)) {
+                c.push(sym.multiplier.toDecimal());
+            }
+            // The value
+            let value;
+
+            if (group === S || group === P) {
+                value = sym.value;
+            } else if (group === FN) {
+                dependencies = Build.compileDependencies(sym.fname, dependencies);
+                dependencies = Build.getArgsDeps(sym, dependencies);
+                if (Build.reformat[sym.fname]) {
+                    const components = Build.reformat[sym.fname](sym, dependencies);
+                    dependencies = components[1];
+                    value = components[0];
+                } else {
+                    value = ftextFunction(sym.fname);
+                }
+            } else if (group === EX) {
+                const pg = sym.previousGroup;
+                if (pg === N || pg === S) {
+                    value = sym.value;
+                } else if (pg === FN) {
+                    value = ftextFunction(sym.fname);
+                    dependencies = Build.compileDependencies(sym.fname, dependencies);
+                    dependencies = Build.getArgsDeps(sym, dependencies);
+                } else {
+                    value = ftextComplex(sym.previousGroup);
+                }
+            } else {
+                value = ftextComplex(sym.group);
+            }
+
+            if (sym.group !== N && !sym.power.equals(1)) {
+                const pow = ftext(_.parse(sym.power));
+                xports.push(pow[1]);
+                value = `Math.pow${wrapInBrackets(`${value},${pow[0]}`)}`;
+            }
+
+            if (value) {
+                c.push(prefix + value);
+            }
+
+            return [c.join('*'), xports.join('').replace(/\n+\s+/gu, ' ')];
+        };
+        if (argArray) {
+            // Fix for issue #546
+            // Disable argument checking since it's a bit presumptuous.
+            // Consider f(x) = 5; If I explicitely pass in an argument array contain x
+            // this check will fail and complain since the function doesn't contain x.
+            /*
+             for (let i = 0; i < args.length; i++) {
+             let arg = args[i];
+             if (argArray.indexOf(arg) === -1)
+             err(arg + ' not found in argument array');
+             }
+             */
+            args = argArray;
+        }
+
+        const fArray = ftext(symbol);
+
+        // Make all the substitutions;
+        for (const x in dependencies[0]) {
+            if (!Object.hasOwn(dependencies[0], x)) {
+                continue;
+            }
+            const alias = dependencies[0][x];
+            fArray[1] = fArray[1].replace(x, alias);
+            dependencies[1] = dependencies[1].replace(x, alias);
+        }
+
+        // eslint-disable-next-line no-new-func -- Dynamic function generation is intentional for compiling math expressions
+        const f = new Function(...args, `${(dependencies[1] || '') + fArray[1]} return ${fArray[0]};`);
+
+        return f;
+    },
+};
+
 const nerdamer = (function initNerdamerCore(imports) {
     // Version ======================================================================
     const _version = '1.1.16';
@@ -4790,7 +5073,7 @@ const nerdamer = (function initNerdamerCore(imports) {
     let LaTeX = null; // LaTeX object, defined at line ~11020
     let C = null; // Math2 object, Defined at line ~1745
     // Fraction is now defined outside IIFE
-    let Build = null; // Build object, Defined at line ~12723
+    // Build is now defined outside IIFE
     let isSymbol = null; // IsSymbol function, Defined at line ~478
     // firstObject is now defined outside IIFE
     // InvalidVariableNameError is now defined outside IIFE
@@ -15223,265 +15506,86 @@ const nerdamer = (function initNerdamerCore(imports) {
     CollectionDeps._ = _;
     CollectionDeps.block = block;
 
-    // Build ========================================================================
-    Build = {
-        dependencies: {
-            _rename: {
-                'Math2.factorial': 'factorial',
-            },
-            factorial: {
-                'Math2.gamma': Math2.gamma,
-            },
-            gamma_incomplete: {
-                'Math2.factorial': Math2.factorial,
-            },
-            Li: {
-                'Math2.Ei': Math2.Ei,
-                'Math2.bigLog': Math2.bigLog,
-                Frac,
-            },
-            Ci: {
-                'Math2.factorial': Math2.factorial,
-            },
-            Ei: {
-                'Math2.factorial': Math2.factorial,
-            },
-            Si: {
-                'Math2.factorial': Math2.factorial,
-            },
-            Shi: {
-                'Math2.factorial': Math2.factorial,
-            },
-            Chi: {
-                isInt,
-                nround,
-                'Math2.num_integrate': Math2.num_integrate,
-            },
-            factor: {
-                'Math2.ifactor': Math2.ifactor,
-                NerdamerSymbol,
-            },
-            num_integrate: {
-                'Math2.simpson': Math2.simpson,
-                nround,
-            },
-            fib: {
-                even,
-            },
+    // Build object is now defined outside the IIFE (see above).
+    // Initialize its dependencies and runtime properties now that they're available.
+    BuildDeps.Math2 = Math2;
+    BuildDeps.Frac = Frac;
+    BuildDeps.NerdamerSymbol = NerdamerSymbol;
+    BuildDeps.isInt = isInt;
+    BuildDeps.nround = nround;
+    BuildDeps.even = even;
+    BuildDeps.block = block;
+    BuildDeps._ = _;
+    BuildDeps.variables = variables;
+    BuildDeps.inBrackets = inBrackets;
+    BuildDeps.FN = FN;
+    BuildDeps.N = N;
+    BuildDeps.S = S;
+    BuildDeps.P = P;
+    BuildDeps.EX = EX;
+    BuildDeps.CB = CB;
+
+    // Initialize Build's runtime dependencies (these reference IIFE-local values)
+    Build.dependencies = {
+        _rename: {
+            'Math2.factorial': 'factorial',
         },
-        /* Some functions need to be made numeric safe. Build checks if there's a
-         * reformat option and calls that instead when compiling the function string.
-         */
-        reformat: {
-            // This simply extends the build function
-            diff(symbol, deps) {
-                const v = symbol.args[1].toString();
-                const f = `let f = ${Build.build(symbol.args[0].toString(), [v])};`;
-                let diffStr = Math2.diff.toString();
-                // Handle ES6 method shorthand
-                if (!diffStr.startsWith('function') && !diffStr.startsWith('(') && !diffStr.startsWith('async')) {
-                    diffStr = `function ${diffStr}`;
-                }
-                deps[1] += `let diff = ${diffStr};`;
-                deps[1] += f;
-
-                return [`diff(f)(${v})`, deps];
-            },
+        factorial: {
+            'Math2.gamma': Math2.gamma,
         },
-        getProperName(f) {
-            const map = {
-                continuedFraction: 'continuedFraction',
-            };
-            return map[f] || f;
+        gamma_incomplete: {
+            'Math2.factorial': Math2.factorial,
         },
-        // Assumes that dependences are at max 2 levels
-        compileDependencies(f, deps) {
-            // Grab the predefined dependiences
-            const dependencies = Build.dependencies[f];
+        Li: {
+            'Math2.Ei': Math2.Ei,
+            'Math2.bigLog': Math2.bigLog,
+            Frac,
+        },
+        Ci: {
+            'Math2.factorial': Math2.factorial,
+        },
+        Ei: {
+            'Math2.factorial': Math2.factorial,
+        },
+        Si: {
+            'Math2.factorial': Math2.factorial,
+        },
+        Shi: {
+            'Math2.factorial': Math2.factorial,
+        },
+        Chi: {
+            isInt,
+            nround,
+            'Math2.num_integrate': Math2.num_integrate,
+        },
+        factor: {
+            'Math2.ifactor': Math2.ifactor,
+            NerdamerSymbol,
+        },
+        num_integrate: {
+            'Math2.simpson': Math2.simpson,
+            nround,
+        },
+        fib: {
+            even,
+        },
+    };
 
-            // The dependency string
-            let depString = deps && deps[1] ? deps[1] : '';
-
-            // The functions to be replaced
-            const replacements = deps && deps[0] ? deps[0] : {};
-
-            // Loop through them and add them to the list
-            for (const x in dependencies) {
-                if (typeof dependencies[x] === 'object') {
-                    continue;
-                } // Skip object
-                const components = x.split('.'); // Math.f becomes f
-                // if the function isn't part of an object then reference the function itself
-                let depValue = dependencies[x];
-                // If it's a function, convert method shorthand to function expression
-                if (typeof depValue === 'function') {
-                    let fnStr = depValue.toString();
-                    // Handle ES6 method shorthand like "gamma(z) { ... }" -> "function gamma(z) { ... }"
-                    if (!fnStr.startsWith('function') && !fnStr.startsWith('(') && !fnStr.startsWith('async')) {
-                        fnStr = `function ${fnStr}`;
-                    }
-                    depValue = fnStr;
-                }
-                depString += `let ${components.length > 1 ? components[1] : components[0]}=${depValue};`;
-                replacements[x] = components.pop();
+    // Initialize Build's reformat functions (these reference IIFE-local values)
+    Build.reformat = {
+        // This simply extends the build function
+        diff(symbol, deps) {
+            const v = symbol.args[1].toString();
+            const f = `let f = ${Build.build(symbol.args[0].toString(), [v])};`;
+            let diffStr = Math2.diff.toString();
+            // Handle ES6 method shorthand
+            if (!diffStr.startsWith('function') && !diffStr.startsWith('(') && !diffStr.startsWith('async')) {
+                diffStr = `function ${diffStr}`;
             }
+            deps[1] += `let diff = ${diffStr};`;
+            deps[1] += f;
 
-            return [replacements, depString];
-        },
-        getArgsDeps(symbol, dependencies) {
-            const { args } = symbol;
-            let deps = dependencies;
-            const processFn = function (x) {
-                if (x.group === FN) {
-                    deps = Build.compileDependencies(x.fname, deps);
-                }
-            };
-            for (let i = 0; i < args.length; i++) {
-                symbol.args[i].each(processFn);
-            }
-            return deps;
-        },
-        build(symbol, argArray) {
-            symbol = block('PARSE2NUMBER', () => _.parse(symbol), true);
-            let args = variables(symbol);
-            const supplements = [];
-            let dependencies = [];
-            const ftext = function (sym, xports) {
-                // Fix for #545 - Parentheses confuse build.
-                if (sym.fname === '') {
-                    sym = NerdamerSymbol.unwrapPARENS(sym);
-                }
-                xports ||= [];
-                const c = [];
-                const { group } = sym;
-                let prefix = '';
-
-                const ftextComplex = function (grp) {
-                    const d = grp === CB ? '*' : '+';
-                    const cc = [];
-
-                    for (const x in sym.symbols) {
-                        if (!Object.hasOwn(sym.symbols, x)) {
-                            continue;
-                        }
-                        const s = sym.symbols[x];
-                        let ft = ftext(s, xports)[0];
-                        // Wrap it in brackets if it's group PL or CP
-                        if (s.isComposite()) {
-                            ft = inBrackets(ft);
-                        }
-                        cc.push(ft);
-                    }
-                    let retval = cc.join(d);
-                    retval = retval && !sym.multiplier.equals(1) ? inBrackets(retval) : retval;
-                    return retval;
-                };
-                const ftextFunction = function (bn) {
-                    let retval;
-                    if (bn in Math) {
-                        retval = `Math.${bn}`;
-                    } else {
-                        bn = Build.getProperName(bn);
-                        if (supplements.indexOf(bn) === -1) {
-                            // Make sure you're not adding the function twice
-                            // Math2 functions aren't part of the standard javascript
-                            // Math library and must be exported.
-                            let fnStr = Math2[bn].toString();
-                            // Handle ES6 method shorthand like "factorial(x) { ... }" -> "function factorial(x) { ... }"
-                            if (!fnStr.startsWith('function') && !fnStr.startsWith('(') && !fnStr.startsWith('async')) {
-                                fnStr = `function ${fnStr}`;
-                            }
-                            xports.push(`let ${bn} = ${fnStr}; `);
-                            supplements.push(bn);
-                        }
-                        retval = bn;
-                    }
-                    retval += inBrackets(sym.args.map(x => ftext(x, xports)[0]).join(','));
-
-                    return retval;
-                };
-
-                // The multiplier
-                if (group === N) {
-                    c.push(sym.multiplier.toDecimal());
-                } else if (sym.multiplier.equals(-1)) {
-                    prefix = '-';
-                } else if (!sym.multiplier.equals(1)) {
-                    c.push(sym.multiplier.toDecimal());
-                }
-                // The value
-                let value;
-
-                if (group === S || group === P) {
-                    value = sym.value;
-                } else if (group === FN) {
-                    dependencies = Build.compileDependencies(sym.fname, dependencies);
-                    dependencies = Build.getArgsDeps(sym, dependencies);
-                    if (Build.reformat[sym.fname]) {
-                        const components = Build.reformat[sym.fname](sym, dependencies);
-                        dependencies = components[1];
-                        value = components[0];
-                    } else {
-                        value = ftextFunction(sym.fname);
-                    }
-                } else if (group === EX) {
-                    const pg = sym.previousGroup;
-                    if (pg === N || pg === S) {
-                        value = sym.value;
-                    } else if (pg === FN) {
-                        value = ftextFunction(sym.fname);
-                        dependencies = Build.compileDependencies(sym.fname, dependencies);
-                        dependencies = Build.getArgsDeps(sym, dependencies);
-                    } else {
-                        value = ftextComplex(sym.previousGroup);
-                    }
-                } else {
-                    value = ftextComplex(sym.group);
-                }
-
-                if (sym.group !== N && !sym.power.equals(1)) {
-                    const pow = ftext(_.parse(sym.power));
-                    xports.push(pow[1]);
-                    value = `Math.pow${inBrackets(`${value},${pow[0]}`)}`;
-                }
-
-                if (value) {
-                    c.push(prefix + value);
-                }
-
-                return [c.join('*'), xports.join('').replace(/\n+\s+/gu, ' ')];
-            };
-            if (argArray) {
-                // Fix for issue #546
-                // Disable argument checking since it's a bit presumptuous.
-                // Consider f(x) = 5; If I explicitely pass in an argument array contain x
-                // this check will fail and complain since the function doesn't contain x.
-                /*
-                 for (let i = 0; i < args.length; i++) {
-                 let arg = args[i];
-                 if (argArray.indexOf(arg) === -1)
-                 err(arg + ' not found in argument array');
-                 }
-                 */
-                args = argArray;
-            }
-
-            const fArray = ftext(symbol);
-
-            // Make all the substitutions;
-            for (const x in dependencies[0]) {
-                if (!Object.hasOwn(dependencies[0], x)) {
-                    continue;
-                }
-                const alias = dependencies[0][x];
-                fArray[1] = fArray[1].replace(x, alias);
-                dependencies[1] = dependencies[1].replace(x, alias);
-            }
-
-            // eslint-disable-next-line no-new-func -- Dynamic function generation is intentional for compiling math expressions
-            const f = new Function(...args, `${(dependencies[1] || '') + fArray[1]} return ${fArray[0]};`);
-
-            return f;
+            return [`diff(f)(${v})`, deps];
         },
     };
 
