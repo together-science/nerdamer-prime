@@ -4941,6 +4941,881 @@ const Build = {
     },
 };
 
+// LaTeX Object =================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via LaTeXDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for LaTeX object. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     _: any;
+ *     isArray: Function;
+ *     isSymbol: Function;
+ *     isMatrix: Function;
+ *     isVector: Function;
+ *     isSet: Function;
+ *     isNegative: Function;
+ *     inBrackets: Function;
+ *     Settings: any;
+ *     SQRT: string;
+ *     ABS: string;
+ *     PARENTHESIS: string;
+ *     FACTORIAL: string;
+ *     DOUBLEFACTORIAL: string;
+ *     FN: number;
+ *     S: number;
+ *     P: number;
+ *     N: number;
+ *     CB: number;
+ *     CP: number;
+ *     EX: number;
+ *     Parser: any;
+ * }}
+ */
+const LaTeXDeps = {
+    _: null,
+    isArray: () => false,
+    isSymbol: () => false,
+    isMatrix: () => false,
+    isVector: () => false,
+    isSet: () => false,
+    isNegative: () => false,
+    inBrackets: str => `(${str})`,
+    Settings: {},
+    SQRT: 'sqrt',
+    ABS: 'abs',
+    PARENTHESIS: 'parens',
+    FACTORIAL: 'factorial',
+    DOUBLEFACTORIAL: 'dfactorial',
+    FN: 5,
+    S: 3,
+    P: 2,
+    N: 1,
+    CB: 7,
+    CP: 8,
+    EX: 4,
+    Parser: null,
+};
+
+/** LaTeX generator object for converting symbols to LaTeX notation. */
+const LaTeX = {
+    /** @type {any} */
+    parser: null, // Initialized inside IIFE after Parser is created
+    space: '~',
+    dot: ' \\cdot ',
+
+    /**
+     * @param {any} symbol
+     * @param {string} [option]
+     * @returns {string}
+     */
+    latex(symbol, option) {
+        const {
+            _: parser,
+            isArray: checkIsArray,
+            isSymbol: checkIsSymbol,
+            isMatrix: checkIsMatrix,
+            isVector: checkIsVector,
+            isSet: checkIsSet,
+            isNegative: checkIsNegative,
+            P: GROUP_P,
+            CB: GROUP_CB,
+        } = LaTeXDeps;
+
+        // It might be an array
+        if (symbol.clone) {
+            symbol = symbol.clone(); // Leave original as-is
+        }
+        if (symbol instanceof parser.classes.Collection) {
+            symbol = symbol.elements;
+        }
+
+        if (checkIsArray(symbol)) {
+            const LaTeXArray = [];
+            for (let i = 0; i < symbol.length; i++) {
+                let sym = symbol[i];
+                // This way I can generate LaTeX on an array of strings.
+                if (!checkIsSymbol(sym)) {
+                    sym = parser.parse(sym);
+                }
+                LaTeXArray.push(this.latex(sym, option));
+            }
+            return this.brackets(LaTeXArray.join(', '), 'square');
+        }
+        if (checkIsMatrix(symbol)) {
+            let TeX = '\\begin{pmatrix}\n';
+            for (let i = 0; i < symbol.elements.length; i++) {
+                const rowTeX = [];
+                const e = symbol.elements[i];
+                for (let j = 0; j < e.length; j++) {
+                    rowTeX.push(this.latex(e[j], option));
+                }
+                TeX += rowTeX.join(' & ');
+                if (i < symbol.elements.length - 1) {
+                    TeX += '\\\\\n';
+                }
+            }
+            TeX += '\\end{pmatrix}';
+            return TeX;
+        }
+        if (checkIsVector(symbol)) {
+            let TeX = '\\left[';
+            for (let i = 0; i < symbol.elements.length; i++) {
+                TeX += `${this.latex(symbol.elements[i], option)} ${i === symbol.elements.length - 1 ? '' : ',\\,'}`;
+            }
+            TeX += '\\right]';
+            return TeX;
+        }
+        if (checkIsSet(symbol)) {
+            let TeX = '\\{';
+            for (let i = 0; i < symbol.elements.length; i++) {
+                TeX += `${this.latex(symbol.elements[i], option)} ${i === symbol.elements.length - 1 ? '' : ',\\,'}`;
+            }
+            TeX += '\\}';
+            return TeX;
+        }
+
+        symbol = symbol.clone();
+
+        const decimal = option === 'decimal' || option === 'decimals';
+        const { power } = symbol;
+        const invert = checkIsNegative(power);
+        const negative = symbol.multiplier.lessThan(0);
+
+        if (symbol.group === GROUP_P && decimal) {
+            return String(symbol.multiplier.toDecimal() * symbol.value ** symbol.power.toDecimal());
+        }
+        symbol.multiplier = symbol.multiplier.abs();
+
+        // If the user wants the result in decimal format then return it as such by placing it at the top part
+        let mArray;
+
+        if (decimal) {
+            const m = String(symbol.multiplier.toDecimal());
+            // If(String(m) === '1' && !decimal) m = '';
+            mArray = [m, ''];
+        } else {
+            mArray = [symbol.multiplier.num, symbol.multiplier.den];
+        }
+        // Get the value as a two part array
+        const vArray = this.value(symbol, invert, option, negative);
+        let p;
+        // Make it all positive since we know whether to push the power to the numerator or denominator already.
+        if (invert) {
+            power.negate();
+        }
+        // The power is simple since it requires no additional formatting. We can get it to a
+        // string right away. pass in true to neglect unit powers
+        if (decimal) {
+            p = checkIsSymbol(power) ? LaTeX.latex(power, option) : String(power.toDecimal());
+            if (String(p) === '1') {
+                p = '';
+            }
+        }
+        // Get the latex representation
+        else if (checkIsSymbol(power)) {
+            p = this.latex(power, option);
+        }
+        // Get it as a fraction
+        else {
+            p = this.formatFrac(power, true);
+        }
+        // Use this array to specify if the power is getting attached to the top or the bottom
+        const pArray = ['', ''];
+        // Stick it to the top or the bottom. If it's negative then the power gets placed on the bottom
+        const index = invert ? 1 : 0;
+        pArray[index] = p;
+
+        // Special case group P and decimal
+        const retval = (negative ? '-' : '') + this.set(mArray, vArray, pArray, symbol.group === GROUP_CB);
+
+        return retval.replace(/\+-/giu, '-');
+    },
+    // Greek mapping
+    greek: {
+        alpha: '\\alpha',
+        beta: '\\beta',
+        gamma: '\\gamma',
+        delta: '\\delta',
+        epsilon: '\\epsilon',
+        zeta: '\\zeta',
+        eta: '\\eta',
+        theta: '\\theta',
+        iota: '\\iota',
+        kappa: '\\kappa',
+        lambda: '\\lambda',
+        mu: '\\mu',
+        nu: '\\nu',
+        xi: '\\xi',
+        omnikron: '\\omnikron',
+        pi: '\\pi',
+        rho: '\\rho',
+        sigma: '\\sigma',
+        tau: '\\tau',
+        upsilon: '\\upsilon',
+        phi: '\\phi',
+        chi: '\\chi',
+        psi: '\\psi',
+        omega: '\\omega',
+        Gamma: '\\Gamma',
+        Delta: '\\Delta',
+        Epsilon: '\\Epsilon',
+        Theta: '\\Theta',
+        Lambda: '\\Lambda',
+        Xi: '\\Xi',
+        Pi: '\\Pi',
+        Sigma: '\\Sigma',
+        Phi: '\\Phi',
+        Psi: '\\Psi',
+        Omega: '\\Omega',
+    },
+    symbols: {
+        arccos: '\\arccos',
+        cos: '\\cos',
+        csc: '\\csc',
+        exp: '\\exp',
+        ker: '\\ker',
+        limsup: '\\limsup',
+        min: '\\min',
+        sinh: '\\sinh',
+        arcsin: '\\arcsin',
+        cosh: '\\cosh',
+        deg: '\\deg',
+        gcd: '\\gcd',
+        lg: '\\lg',
+        ln: '\\ln',
+        Pr: '\\Pr',
+        sqrt: '\\sqrt',
+        sup: '\\sup',
+        arctan: '\\arctan',
+        cot: '\\cot',
+        det: '\\det',
+        hom: '\\hom',
+        lim: '\\lim',
+        log: '\\log',
+        LN: '\\LN',
+        sec: '\\sec',
+        tan: '\\tan',
+        arg: '\\arg',
+        coth: '\\coth',
+        dim: '\\dim',
+        inf: '\\inf',
+        liminf: '\\liminf',
+        max: '\\max',
+        sin: '\\sin',
+        tanh: '\\tanh',
+    },
+    /**
+     * Get the raw value of the symbol as an array
+     *
+     * @param {any} symbol
+     * @param {boolean} inverted
+     * @param {string} [option]
+     * @param {boolean} [negative]
+     * @returns {string[]}
+     */
+    value(symbol, inverted, option, negative) {
+        const {
+            isSymbol: checkIsSymbol,
+            isNegative: checkIsNegative,
+            Settings: settings,
+            SQRT,
+            ABS,
+            PARENTHESIS,
+            FACTORIAL,
+            DOUBLEFACTORIAL,
+            FN: GROUP_FN,
+            S: GROUP_S,
+            P: GROUP_P,
+            N: GROUP_N,
+            CB: GROUP_CB,
+            CP: GROUP_CP,
+            EX: GROUP_EX,
+        } = LaTeXDeps;
+
+        const { group } = symbol;
+        const { previousGroup } = symbol;
+        const v = ['', ''];
+        const index = inverted ? 1 : 0;
+        /* If(group === N) // do nothing since we want to return top & bottom blank; */
+        if (symbol.isInfinity) {
+            v[index] = '\\infty';
+        } else if (
+            group === GROUP_S ||
+            group === GROUP_P ||
+            previousGroup === GROUP_S ||
+            previousGroup === GROUP_P ||
+            previousGroup === GROUP_N
+        ) {
+            let value = this.formatSubscripts(symbol.value);
+            if (value.replace) {
+                value = value.replace(/(?<prefix>.+)_$/u, '$1\\_');
+            }
+            // Split it so we can check for instances of alpha as well as alpha_b
+            const tVarray = String(value).split('_');
+            const greek = this.greek[tVarray[0]];
+            if (greek) {
+                tVarray[0] = greek;
+                value = tVarray.join('_');
+            }
+            const symbolEntry = this.symbols[tVarray[0]];
+            if (symbolEntry) {
+                tVarray[0] = symbolEntry;
+                value = tVarray.join('_');
+            }
+            v[index] = value;
+        } else if (group === GROUP_FN || previousGroup === GROUP_FN) {
+            const input = [];
+            const { fname } = symbol;
+            // Collect the arguments
+            for (let i = 0; i < symbol.args.length; i++) {
+                const arg = symbol.args[i];
+                let item;
+                if (typeof arg === 'string') {
+                    item = arg;
+                } else {
+                    item = this.latex(arg, option);
+                }
+                input.push(item);
+            }
+
+            if (fname === SQRT) {
+                v[index] = `\\sqrt${this.braces(input.join(','))}`;
+            } else if (fname === ABS) {
+                v[index] = this.brackets(input.join(','), 'abs');
+            } else if (fname === PARENTHESIS) {
+                v[index] = this.brackets(input.join(','), 'parens');
+            } else if (fname === 'limit') {
+                v[index] = ` \\lim\\limits_{${input[1]} \\to ${input[2]}} ${input[0]}`;
+            } else if (fname === 'integrate') {
+                v[index] = `\\int${this.braces(input[0])}${this.braces(`d${input[1]}`)}`;
+            } else if (fname === 'defint') {
+                v[index] = `\\int\\limits_${this.braces(input[1])}^${this.braces(input[2])} ${input[0]} d${input[3]}`;
+            } else if (fname === FACTORIAL || fname === DOUBLEFACTORIAL) {
+                const arg = symbol.args[0];
+                if (arg.power.equals(1) && (arg.isComposite() || arg.isCombination())) {
+                    input[0] = this.brackets(input[0]);
+                }
+                v[index] = input[0] + (fname === FACTORIAL ? '!' : '!!');
+            } else if (fname === 'floor') {
+                v[index] = `\\left \\lfloor${this.braces(input[0])}\\right \\rfloor`;
+            } else if (fname === 'ceil') {
+                v[index] = `\\left \\lceil${this.braces(input[0])}\\right \\rceil`;
+            }
+            // Capture log(a, b)
+            else if (fname === settings.LOG && input.length > 1) {
+                v[index] = `\\mathrm${this.braces(settings.LOG)}_${this.braces(input[1])}${this.brackets(input[0])}`;
+            }
+            // Capture log(a, b)
+            else if (fname === settings.LOG10) {
+                v[index] = `\\mathrm${this.braces(settings.LOG)}_${this.braces('10')}${this.brackets(input[0])}`;
+            } else if (fname === settings.LOG2) {
+                v[index] = `\\mathrm${this.braces(settings.LOG)}_${this.braces('2')}${this.brackets(input[0])}`;
+            } else if (fname === settings.LOG1P) {
+                v[index] = `\\ln${this.brackets(`1 + ${input[0]}`)}`;
+            } else if (fname === 'sum') {
+                const a = input[0];
+                const b = input[1];
+                const c = input[2];
+                const d = input[3];
+                v[index] = `\\sum\\limits_{${this.braces(b)}=${this.braces(c)}}^${this.braces(d)} ${this.braces(a)}`;
+            } else if (fname === 'product') {
+                const a = input[0];
+                const b = input[1];
+                const c = input[2];
+                const d = input[3];
+                v[index] = `\\prod\\limits_{${this.braces(b)}=${this.braces(c)}}^${this.braces(d)} ${this.braces(a)}`;
+            } else if (fname === 'nthroot') {
+                v[index] = `\\sqrt[${input[1]}]${this.braces(input[0])}`;
+            } else if (fname === 'mod') {
+                v[index] = `${input[0]} \\bmod ${input[1]}`;
+            } else if (fname === 'realpart') {
+                v[index] = `\\operatorname{Re}${this.brackets(input[0])}`;
+            } else if (fname === 'imagpart') {
+                v[index] = `\\operatorname{Im}${this.brackets(input[0])}`;
+            } else {
+                const name = fname === '' ? '' : `\\mathrm${this.braces(fname.replace(/_/gu, '\\_'))}`;
+                if (symbol.isConversion) {
+                    v[index] = name + this.brackets(input.join(''), 'parens');
+                } else {
+                    v[index] = name + this.brackets(input.join(','), 'parens');
+                }
+            }
+        } else if (symbol.isComposite()) {
+            const collected = symbol.collectSymbols().sort(
+                group === GROUP_CP || previousGroup === GROUP_CP
+                    ? (x, y) => y.group - x.group
+                    : (x, y) => {
+                          const px = checkIsSymbol(x.power) ? -1 : x.power;
+                          const py = checkIsSymbol(y.power) ? -1 : y.power;
+                          return py - px;
+                      }
+            );
+            const symbols = [];
+            const l = collected.length;
+            for (let i = 0; i < l; i++) {
+                symbols.push(LaTeX.latex(collected[i], option));
+            }
+            const value = symbols.join('+');
+
+            v[index] =
+                !(symbol.isLinear() && symbol.multiplier.equals(1)) || negative
+                    ? this.brackets(value, 'parens')
+                    : value;
+        } else if (group === GROUP_CB || previousGroup === GROUP_EX || previousGroup === GROUP_CB) {
+            if (group === GROUP_CB) {
+                symbol.distributeExponent();
+            }
+            // This almost feels a little like cheating but I need to know if I should be wrapping the symbol
+            // in brackets or not. We'll do this by checking the value of the numerator and then comparing it
+            // to whether the symbol value is "simple" or not.
+            const denominator = [];
+            const numerator = [];
+            // Generate a profile
+            const denMap = [];
+            const numMap = [];
+            let numC = 0;
+            let denC = 0;
+            const setBrackets = function (container, map, counter) {
+                if (counter > 1 && map.length > 0) {
+                    const l = map.length;
+                    for (let idx = 0; idx < l; idx++) {
+                        const mapIdx = map[idx];
+                        const containerItem = container[mapIdx];
+                        if (
+                            !(
+                                /^\\left\(.+\\right\)\^\{.+\}$/gu.test(containerItem) ||
+                                /^\\left\(.+\\right\)$/gu.test(containerItem)
+                            )
+                        ) {
+                            container[mapIdx] = LaTeX.brackets(containerItem, 'parens');
+                        }
+                    }
+                }
+                return container;
+            };
+
+            // Generate latex for each of them
+            symbol.each(x => {
+                const isDenom = checkIsNegative(x.power);
+                let laTex;
+
+                if (isDenom) {
+                    laTex = LaTeX.latex(x.invert(), option);
+                    denC++;
+                    if (x.isComposite()) {
+                        if (!symbol.multiplier.den.equals(1) && Math.abs(x.power) === 1) {
+                            laTex = LaTeX.brackets(laTex, 'parens');
+                        }
+                        denMap.push(denominator.length); // Make a note of where the composite was found
+                    }
+
+                    denominator.push(laTex);
+                } else {
+                    laTex = LaTeX.latex(x, option);
+                    numC++;
+                    if (x.isComposite()) {
+                        if (!symbol.multiplier.num.equals(1) && Math.abs(x.power) === 1) {
+                            laTex = LaTeX.brackets(laTex, 'parens');
+                        }
+                        numMap.push(numerator.length); // Make a note of where the composite was found
+                    }
+                    numerator.push(laTex);
+                }
+            });
+
+            // Apply brackets
+            setBrackets(numerator, numMap, numC);
+            v[0] = numerator.join(this.dot); // Collapse the numerator into one string
+
+            setBrackets(denominator, denMap, denC);
+            v[1] = denominator.join(this.dot);
+        }
+
+        return v;
+    },
+    /**
+     * @param {any[]} m
+     * @param {string[]} v
+     * @param {string[]} p
+     * @param {boolean} combinePower
+     * @returns {string}
+     */
+    set(m, v, p, combinePower) {
+        const isBracketed = function (str) {
+            return /^\\left\(.+\\right\)$/u.test(str);
+        };
+        // Format the power if it exists
+        p &&= this.formatP(p);
+        // Group CB will have to be wrapped since the power applies to both it's numerator and denominator
+        let tp;
+        if (combinePower) {
+            // POSSIBLE BUG: If powers for group CB format wrong, investigate this since I might have overlooked something
+            // the assumption is that in every case the denonimator should be empty when dealing with CB. I can't think
+            // of a case where this isn't true
+            tp = p[0];
+            p[0] = ''; // Temporarily make p blank
+        }
+
+        // Merge v and p. Not that v MUST be first since the order matters
+        v = this.merge(v, p);
+        let mn = m[0];
+        let md = m[1];
+        const vn = v[0];
+        const vd = v[1];
+        // Filters
+        // if the top has a variable but the numerator is one drop it
+        if (vn && Number(mn) === 1) {
+            mn = '';
+        }
+        // If denominator is 1 drop it always
+        if (Number(md) === 1) {
+            md = '';
+        }
+        // Prepare the top portion but check that it's not already bracketed. If it is then leave out the cdot
+        const top = this.join(mn, vn, isBracketed(vn) ? '' : this.dot);
+
+        // Prepare the bottom portion but check that it's not already bracketed. If it is then leave out the cdot
+        const bottom = this.join(md, vd, isBracketed(vd) ? '' : this.dot);
+        // Format the power if it exists
+        // make it a fraction if both top and bottom exists
+        if (top && bottom) {
+            let frac = this.frac(top, bottom);
+            if (combinePower && tp) {
+                frac = this.brackets(frac) + tp;
+            }
+            return frac;
+        }
+        // Otherwise only the top exists so return that
+
+        return top;
+    },
+    /**
+     * @param {string[]} a
+     * @param {string[]} b
+     * @returns {string[]}
+     */
+    merge(a, b) {
+        const r = [];
+        for (let i = 0; i < 2; i++) {
+            r[i] = a[i] + b[i];
+        }
+        return r;
+    },
+    /**
+     * Joins together two strings if both exist
+     *
+     * @param {string} n
+     * @param {string} d
+     * @param {string} glue
+     * @returns {string}
+     */
+    join(n, d, glue) {
+        if (!n && !d) {
+            return '';
+        }
+        if (n && !d) {
+            return n;
+        }
+        if (d && !n) {
+            return d;
+        }
+        return n + glue + d;
+    },
+    /**
+     * Places subscripts in braces for proper formatting
+     *
+     * @param {string} v
+     * @returns {string}
+     */
+    formatSubscripts(v) {
+        // Split it at the underscore
+        const arr = v.toString().split('_');
+
+        let name = '';
+
+        // Loop over all entries except the first one
+        while (arr.length > 1) {
+            // Wrap all in braces except for the last one
+            if (arr.length > 0) {
+                name = `_${this.braces(arr.pop() + name)}`;
+            }
+        }
+
+        return arr[0] + name;
+    },
+    /**
+     * @param {string[]} pArray
+     * @returns {string[]}
+     */
+    formatP(pArray) {
+        for (let i = 0; i < 2; i++) {
+            const p = pArray[i];
+            if (p) {
+                pArray[i] = `^${this.braces(p)}`;
+            }
+        }
+        return pArray;
+    },
+    /**
+     * Formats the fractions accordingly.
+     *
+     * @param {Frac} f
+     * @param {boolean} isPow
+     * @returns {string}
+     */
+    formatFrac(f, isPow) {
+        const n = f.num.toString();
+        const d = f.den.toString();
+        // No need to have x^1
+        if (isPow && n === '1' && d === '1') {
+            return '';
+        }
+        // No need to have x/1
+        if (d === '1') {
+            return n;
+        }
+        return this.frac(n, d);
+    },
+    /**
+     * @param {string} n
+     * @param {string} d
+     * @returns {string}
+     */
+    frac(n, d) {
+        return `\\frac${this.braces(n)}${this.braces(d)}`;
+    },
+    /**
+     * @param {string} e
+     * @returns {string}
+     */
+    braces(e) {
+        return `{${e}}`;
+    },
+    /**
+     * @param {string} e
+     * @param {string} [typ]
+     * @returns {string}
+     */
+    brackets(e, typ) {
+        typ ||= 'parens';
+        const bracketTypes = {
+            parens: ['(', ')'],
+            square: ['[', ']'],
+            brace: ['{', '}'],
+            abs: ['|', '|'],
+            angle: ['\\langle', '\\rangle'],
+        };
+        const bracket = bracketTypes[typ];
+        return `\\left${bracket[0]}${e}\\right${bracket[1]}`;
+    },
+    /**
+     * Removes extreneous tokens
+     *
+     * @param {any} tokens
+     * @returns {{ type: string; value: string }[] & { type?: string }}
+     */
+    filterTokens(tokens) {
+        const { isArray: checkIsArray } = LaTeXDeps;
+
+        /** @type {{ type: string; value: string }[] & { type?: string }} */
+        const filtered = /** @type {{ type: string; value: string }[] & { type?: string }} */ ([]);
+
+        // Copy over the type of the scope
+        if (checkIsArray(tokens)) {
+            filtered.type = tokens.type;
+        }
+
+        // The items that need to be disposed
+        const d = ['\\', 'left', 'right', 'big', 'Big', 'large', 'Large'];
+        for (let i = 0, l = tokens.length; i < l; i++) {
+            const token = tokens[i];
+            const nextToken = tokens[i + 1];
+            if (token.value === '\\' && nextToken.value === '\\') {
+                filtered.push(token);
+            } else if (checkIsArray(token)) {
+                filtered.push(/** @type {any} */ (LaTeX.filterTokens(token)));
+            } else if (d.indexOf(token.value) === -1) {
+                filtered.push(token);
+            }
+        }
+        return filtered;
+    },
+    /**
+     * Parses tokens from LaTeX string. Does not do any error checking
+     *
+     * @param {any} rawTokens
+     * @returns {string}
+     */
+    parse(rawTokens) {
+        const { inBrackets: wrapInBrackets, SQRT } = LaTeXDeps;
+
+        let i;
+        let l;
+        let retval = '';
+        const tokens = this.filterTokens(rawTokens);
+        const replace = {
+            cdot: '',
+            times: '',
+            infty: 'Infinity',
+        };
+        // Get the next token
+        const next = function (n) {
+            return tokens[typeof n === 'undefined' ? ++i : (i += n)];
+        };
+        const parseNext = function () {
+            return LaTeX.parse(next());
+        };
+        const get = function (token) {
+            if (token in replace) {
+                return replace[token];
+            }
+            // A quirk with implicit multiplication forces us to check for *
+            if (token === '*' && tokens[i + 1].value === '&') {
+                next(2); // Skip this and the &
+                return ',';
+            }
+
+            if (token === '&') {
+                next();
+                return ','; // Skip the *
+            }
+            // If it's the end of a row, return the row separator
+            if (token === '\\') {
+                return '],[';
+            }
+            return token;
+        };
+
+        // Start parsing the tokens
+        for (i = 0, l = tokens.length; i < l; i++) {
+            const token = tokens[i];
+            // Fractions
+            if (token.value === 'frac') {
+                // Parse and wrap it in brackets
+                const n = parseNext();
+                const d = parseNext();
+                retval += `${n}/${d}`;
+            } else if (token.value in LaTeX.symbols) {
+                if (token.value === SQRT && tokens[i + 1].type === 'vector' && tokens[i + 2].type === 'NerdamerSet') {
+                    const base = parseNext();
+                    const expr = parseNext();
+                    retval += `${expr}^${wrapInBrackets(`1/${base}`)}`;
+                } else {
+                    retval += token.value + parseNext();
+                }
+            } else if (token.value === 'int') {
+                const f = parseNext();
+                // Skip the comma
+                i++;
+                // Get the variable of integration
+                let dx = next().value;
+                dx = get(dx.substring(1, dx.length));
+                retval += `integrate${wrapInBrackets(`${f},${dx}`)}`;
+            } else if (token.value === 'int_') {
+                const lower = parseNext(); // Lower
+                i++; // Skip the ^
+                let u = next().value; // Upper
+                // if it is in brackets
+                if (u === undefined) {
+                    i--;
+                    u = parseNext();
+                }
+                const f = parseNext(); // Function
+
+                // get the variable of integration
+                let dx = next().value;
+                // Skip the comma
+                if (dx === ',') {
+                    dx = next().value;
+                }
+                // If 'd', skip
+                if (dx === 'differentialD') {
+                    // Skip the *
+                    i++;
+                    dx = next().value;
+                }
+                if (dx === 'mathrm') {
+                    // Skip the mathrm{d}
+                    i++;
+                    dx = next().value;
+                }
+                retval += `defint${wrapInBrackets(`${f},${lower},${u},${dx}`)}`;
+            } else if (token.value && token.value.startsWith('int_')) {
+                // Var l = parseNext(); // lower
+                const intLower = token.value.replace('int_', '');
+                i++; // Skip the ^
+                let u = next().value; // Upper
+                // if it is in brackets
+                if (u === undefined) {
+                    i--;
+                    u = parseNext();
+                }
+                const f = parseNext(); // Function
+
+                // get the variable of integration
+                let dx = next().value;
+                // Skip the comma
+                if (dx === ',') {
+                    dx = next().value;
+                }
+                // If 'd', skip
+                if (dx === 'differentialD') {
+                    // Skip the *
+                    i++;
+                    dx = next().value;
+                }
+                if (dx === 'mathrm') {
+                    // Skip the mathrm{d}
+                    i++;
+                    dx = next().value;
+                }
+                retval += `defint${wrapInBrackets(`${f},${intLower},${u},${dx}`)}`;
+            } else if (token.value === 'mathrm') {
+                const f = tokens[++i][0].value;
+                retval += f + parseNext();
+            }
+            // Sum and product
+            else if (token.value === 'sum_' || token.value === 'prod_') {
+                const fn = token.value === 'sum_' ? 'sum' : 'product';
+                const nxt = next();
+                i++; // Skip the caret
+                const end = parseNext();
+                const f = parseNext();
+                retval += fn + wrapInBrackets([f, get(nxt[0]), get(nxt[2]), get(end)].join(','));
+            } else if (token.value === 'lim_') {
+                const nxt = next();
+                retval += `limit${wrapInBrackets([parseNext(), get(nxt[0]), get(nxt[2])].join(','))}`;
+            } else if (token.value === 'begin') {
+                const nxt = next();
+                if (Array.isArray(nxt)) {
+                    const v = nxt[0].value;
+                    if (v === 'matrix') {
+                        // Start a matrix
+                        retval += 'matrix([';
+                    }
+                }
+            } else if (token.value === 'end') {
+                const nxt = next();
+                if (Array.isArray(nxt)) {
+                    const v = nxt[0].value;
+                    if (v === 'matrix') {
+                        // End a matrix
+                        retval += '])';
+                    }
+                }
+            } else if (Array.isArray(token)) {
+                retval += get(LaTeX.parse(token));
+            } else {
+                retval += get(token.value.toString());
+            }
+        }
+
+        return wrapInBrackets(retval);
+    },
+};
+
 const nerdamer = (function initNerdamerCore(imports) {
     // Version ======================================================================
     const _version = '1.1.16';
@@ -5070,7 +5945,7 @@ const nerdamer = (function initNerdamerCore(imports) {
     let _ = null; // Parser instance, defined at line ~10867
     // block is now defined outside IIFE
     // evaluate is now defined outside IIFE
-    let LaTeX = null; // LaTeX object, defined at line ~11020
+    // LaTeX is now defined outside IIFE
     let C = null; // Math2 object, Defined at line ~1745
     // Fraction is now defined outside IIFE
     // Build is now defined outside IIFE
@@ -14663,793 +15538,69 @@ const nerdamer = (function initNerdamerCore(imports) {
 
     // Fraction is now defined outside IIFE (before Frac class)
 
-    // The latex generator
-    LaTeX = {
-        parser: (function createLaTeXParser() {
-            // Create a parser and strip it from everything except the items that you need
-            const keep = [
-                'classes',
-                'setOperator',
-                'getOperators',
-                'getBrackets',
-                'tokenize',
-                'toRPN',
-                'tree',
-                'units',
-            ];
-            const parser = new Parser();
-            for (const x in parser) {
-                if (keep.indexOf(x) === -1) {
-                    delete parser[x];
-                }
+    // LaTeX is now defined outside IIFE
+    // Initialize LaTeXDeps with all needed references
+    LaTeXDeps._ = _;
+    LaTeXDeps.isArray = isArray;
+    LaTeXDeps.isSymbol = isSymbol;
+    LaTeXDeps.isMatrix = isMatrix;
+    LaTeXDeps.isVector = isVector;
+    LaTeXDeps.isSet = isSet;
+    LaTeXDeps.isNegative = isNegative;
+    LaTeXDeps.inBrackets = inBrackets;
+    LaTeXDeps.Settings = Settings;
+    LaTeXDeps.SQRT = SQRT;
+    LaTeXDeps.ABS = ABS;
+    LaTeXDeps.PARENTHESIS = PARENTHESIS;
+    LaTeXDeps.FACTORIAL = FACTORIAL;
+    LaTeXDeps.DOUBLEFACTORIAL = DOUBLEFACTORIAL;
+    LaTeXDeps.FN = FN;
+    LaTeXDeps.S = S;
+    LaTeXDeps.P = P;
+    LaTeXDeps.N = N;
+    LaTeXDeps.CB = CB;
+    LaTeXDeps.CP = CP;
+    LaTeXDeps.EX = EX;
+    LaTeXDeps.Parser = Parser;
+
+    // Initialize LaTeX.parser (requires Parser to be defined)
+    LaTeX.parser = (function createLaTeXParser() {
+        // Create a parser and strip it from everything except the items that you need
+        const keep = ['classes', 'setOperator', 'getOperators', 'getBrackets', 'tokenize', 'toRPN', 'tree', 'units'];
+        const parser = new Parser();
+        for (const x in parser) {
+            if (keep.indexOf(x) === -1) {
+                delete parser[x];
             }
-            // Declare the operators
-            parser.setOperator({
-                precedence: 8,
-                operator: '\\',
-                action: 'slash',
-                prefix: true,
-                postfix: false,
-                leftAssoc: true,
-                operation(e) {
-                    return e; // Bypass the slash
-                },
-            });
-            parser.setOperator({
-                precedence: 8,
-                operator: '\\,',
-                action: 'slash_comma',
-                prefix: true,
-                postfix: false,
-                leftAssoc: true,
-                operation(e) {
-                    return e; // Bypass the slash
-                },
-            });
-            // Have braces not map to anything. We want them to be return as-is
-            const brackets = parser.getBrackets();
-            brackets['{'].maps_to = undefined;
-            return parser;
-        })(),
-        space: '~',
-        dot: ' \\cdot ',
-        // Grab a list of supported functions but remove the excluded ones found in exclFN
-
-        latex(symbol, option) {
-            // It might be an array
-            if (symbol.clone) {
-                symbol = symbol.clone(); // Leave original as-is
-            }
-            if (symbol instanceof _.classes.Collection) {
-                symbol = symbol.elements;
-            }
-
-            if (isArray(symbol)) {
-                const LaTeXArray = [];
-                for (let i = 0; i < symbol.length; i++) {
-                    let sym = symbol[i];
-                    // This way I can generate LaTeX on an array of strings.
-                    if (!isSymbol(sym)) {
-                        sym = _.parse(sym);
-                    }
-                    LaTeXArray.push(this.latex(sym, option));
-                }
-                return this.brackets(LaTeXArray.join(', '), 'square');
-            }
-            if (isMatrix(symbol)) {
-                let TeX = '\\begin{pmatrix}\n';
-                for (let i = 0; i < symbol.elements.length; i++) {
-                    const rowTeX = [];
-                    const e = symbol.elements[i];
-                    for (let j = 0; j < e.length; j++) {
-                        rowTeX.push(this.latex(e[j], option));
-                    }
-                    TeX += rowTeX.join(' & ');
-                    if (i < symbol.elements.length - 1) {
-                        TeX += '\\\\\n';
-                    }
-                }
-                TeX += '\\end{pmatrix}';
-                return TeX;
-            }
-            if (isVector(symbol)) {
-                let TeX = '\\left[';
-                for (let i = 0; i < symbol.elements.length; i++) {
-                    TeX += `${this.latex(symbol.elements[i], option)} ${i === symbol.elements.length - 1 ? '' : ',\\,'}`;
-                }
-                TeX += '\\right]';
-                return TeX;
-            }
-            if (isSet(symbol)) {
-                let TeX = '\\{';
-                for (let i = 0; i < symbol.elements.length; i++) {
-                    TeX += `${this.latex(symbol.elements[i], option)} ${i === symbol.elements.length - 1 ? '' : ',\\,'}`;
-                }
-                TeX += '\\}';
-                return TeX;
-            }
-
-            symbol = symbol.clone();
-
-            const decimal = option === 'decimal' || option === 'decimals';
-            const { power } = symbol;
-            const invert = isNegative(power);
-            const negative = symbol.multiplier.lessThan(0);
-
-            if (symbol.group === P && decimal) {
-                return String(symbol.multiplier.toDecimal() * symbol.value ** symbol.power.toDecimal());
-            }
-            symbol.multiplier = symbol.multiplier.abs();
-
-            // If the user wants the result in decimal format then return it as such by placing it at the top part
-            let mArray;
-
-            if (decimal) {
-                const m = String(symbol.multiplier.toDecimal());
-                // If(String(m) === '1' && !decimal) m = '';
-                mArray = [m, ''];
-            } else {
-                mArray = [symbol.multiplier.num, symbol.multiplier.den];
-            }
-            // Get the value as a two part array
-            const vArray = this.value(symbol, invert, option, negative);
-            let p;
-            // Make it all positive since we know whether to push the power to the numerator or denominator already.
-            if (invert) {
-                power.negate();
-            }
-            // The power is simple since it requires no additional formatting. We can get it to a
-            // string right away. pass in true to neglect unit powers
-            if (decimal) {
-                p = isSymbol(power) ? LaTeX.latex(power, option) : String(power.toDecimal());
-                if (String(p) === '1') {
-                    p = '';
-                }
-            }
-            // Get the latex representation
-            else if (isSymbol(power)) {
-                p = this.latex(power, option);
-            }
-            // Get it as a fraction
-            else {
-                p = this.formatFrac(power, true);
-            }
-            // Use this array to specify if the power is getting attached to the top or the bottom
-            const pArray = ['', ''];
-            // Stick it to the top or the bottom. If it's negative then the power gets placed on the bottom
-            const index = invert ? 1 : 0;
-            pArray[index] = p;
-
-            // Special case group P and decimal
-            const retval = (negative ? '-' : '') + this.set(mArray, vArray, pArray, symbol.group === CB);
-
-            return retval.replace(/\+-/giu, '-');
-        },
-        // Greek mapping
-        greek: {
-            alpha: '\\alpha',
-            beta: '\\beta',
-            gamma: '\\gamma',
-            delta: '\\delta',
-            epsilon: '\\epsilon',
-            zeta: '\\zeta',
-            eta: '\\eta',
-            theta: '\\theta',
-            iota: '\\iota',
-            kappa: '\\kappa',
-            lambda: '\\lambda',
-            mu: '\\mu',
-            nu: '\\nu',
-            xi: '\\xi',
-            omnikron: '\\omnikron',
-            pi: '\\pi',
-            rho: '\\rho',
-            sigma: '\\sigma',
-            tau: '\\tau',
-            upsilon: '\\upsilon',
-            phi: '\\phi',
-            chi: '\\chi',
-            psi: '\\psi',
-            omega: '\\omega',
-            Gamma: '\\Gamma',
-            Delta: '\\Delta',
-            Epsilon: '\\Epsilon',
-            Theta: '\\Theta',
-            Lambda: '\\Lambda',
-            Xi: '\\Xi',
-            Pi: '\\Pi',
-            Sigma: '\\Sigma',
-            Phi: '\\Phi',
-            Psi: '\\Psi',
-            Omega: '\\Omega',
-        },
-        symbols: {
-            arccos: '\\arccos',
-            cos: '\\cos',
-            csc: '\\csc',
-            exp: '\\exp',
-            ker: '\\ker',
-            limsup: '\\limsup',
-            min: '\\min',
-            sinh: '\\sinh',
-            arcsin: '\\arcsin',
-            cosh: '\\cosh',
-            deg: '\\deg',
-            gcd: '\\gcd',
-            lg: '\\lg',
-            ln: '\\ln',
-            Pr: '\\Pr',
-            sqrt: '\\sqrt',
-            sup: '\\sup',
-            arctan: '\\arctan',
-            cot: '\\cot',
-            det: '\\det',
-            hom: '\\hom',
-            lim: '\\lim',
-            log: '\\log',
-            LN: '\\LN',
-            sec: '\\sec',
-            tan: '\\tan',
-            arg: '\\arg',
-            coth: '\\coth',
-            dim: '\\dim',
-            inf: '\\inf',
-            liminf: '\\liminf',
-            max: '\\max',
-            sin: '\\sin',
-            tanh: '\\tanh',
-        },
-        // Get the raw value of the symbol as an array
-        value(symbol, inverted, option, negative) {
-            const { group } = symbol;
-            const { previousGroup } = symbol;
-            const v = ['', ''];
-            const index = inverted ? 1 : 0;
-            /* If(group === N) // do nothing since we want to return top & bottom blank; */
-            if (symbol.isInfinity) {
-                v[index] = '\\infty';
-            } else if (
-                group === S ||
-                group === P ||
-                previousGroup === S ||
-                previousGroup === P ||
-                previousGroup === N
-            ) {
-                let value = this.formatSubscripts(symbol.value);
-                if (value.replace) {
-                    value = value.replace(/(?<prefix>.+)_$/u, '$1\\_');
-                }
-                // Split it so we can check for instances of alpha as well as alpha_b
-                const tVarray = String(value).split('_');
-                const greek = this.greek[tVarray[0]];
-                if (greek) {
-                    tVarray[0] = greek;
-                    value = tVarray.join('_');
-                }
-                const symbolEntry = this.symbols[tVarray[0]];
-                if (symbolEntry) {
-                    tVarray[0] = symbolEntry;
-                    value = tVarray.join('_');
-                }
-                v[index] = value;
-            } else if (group === FN || previousGroup === FN) {
-                const input = [];
-                const { fname } = symbol;
-                // Collect the arguments
-                for (let i = 0; i < symbol.args.length; i++) {
-                    const arg = symbol.args[i];
-                    let item;
-                    if (typeof arg === 'string') {
-                        item = arg;
-                    } else {
-                        item = this.latex(arg, option);
-                    }
-                    input.push(item);
-                }
-
-                if (fname === SQRT) {
-                    v[index] = `\\sqrt${this.braces(input.join(','))}`;
-                } else if (fname === ABS) {
-                    v[index] = this.brackets(input.join(','), 'abs');
-                } else if (fname === PARENTHESIS) {
-                    v[index] = this.brackets(input.join(','), 'parens');
-                } else if (fname === 'limit') {
-                    v[index] = ` \\lim\\limits_{${input[1]} \\to ${input[2]}} ${input[0]}`;
-                } else if (fname === 'integrate') {
-                    v[index] = `\\int${this.braces(input[0])}${this.braces(`d${input[1]}`)}`;
-                } else if (fname === 'defint') {
-                    v[index] = `\\int\\limits_${this.braces(input[1])}^${this.braces(input[2])} ${input[0]} d${
-                        input[3]
-                    }`;
-                } else if (fname === FACTORIAL || fname === DOUBLEFACTORIAL) {
-                    const arg = symbol.args[0];
-                    if (arg.power.equals(1) && (arg.isComposite() || arg.isCombination())) {
-                        input[0] = this.brackets(input[0]);
-                    }
-                    v[index] = input[0] + (fname === FACTORIAL ? '!' : '!!');
-                } else if (fname === 'floor') {
-                    v[index] = `\\left \\lfloor${this.braces(input[0])}\\right \\rfloor`;
-                } else if (fname === 'ceil') {
-                    v[index] = `\\left \\lceil${this.braces(input[0])}\\right \\rceil`;
-                }
-                // Capture log(a, b)
-                else if (fname === Settings.LOG && input.length > 1) {
-                    v[index] =
-                        `\\mathrm${this.braces(Settings.LOG)}_${this.braces(input[1])}${this.brackets(input[0])}`;
-                }
-                // Capture log(a, b)
-                else if (fname === Settings.LOG10) {
-                    v[index] = `\\mathrm${this.braces(Settings.LOG)}_${this.braces(10)}${this.brackets(input[0])}`;
-                } else if (fname === Settings.LOG2) {
-                    v[index] = `\\mathrm${this.braces(Settings.LOG)}_${this.braces(2)}${this.brackets(input[0])}`;
-                } else if (fname === Settings.LOG1P) {
-                    v[index] = `\\ln${this.brackets(`1 + ${input[0]}`)}`;
-                } else if (fname === 'sum') {
-                    const a = input[0];
-                    const b = input[1];
-                    const c = input[2];
-                    const d = input[3];
-                    v[index] = `\\sum\\limits_{${this.braces(b)}=${this.braces(c)}}^${this.braces(d)} ${this.braces(
-                        a
-                    )}`;
-                } else if (fname === 'product') {
-                    const a = input[0];
-                    const b = input[1];
-                    const c = input[2];
-                    const d = input[3];
-                    v[index] = `\\prod\\limits_{${this.braces(b)}=${this.braces(c)}}^${this.braces(d)} ${this.braces(
-                        a
-                    )}`;
-                } else if (fname === 'nthroot') {
-                    v[index] = `\\sqrt[${input[1]}]${this.braces(input[0])}`;
-                } else if (fname === 'mod') {
-                    v[index] = `${input[0]} \\bmod ${input[1]}`;
-                } else if (fname === 'realpart') {
-                    v[index] = `\\operatorname{Re}${this.brackets(input[0])}`;
-                } else if (fname === 'imagpart') {
-                    v[index] = `\\operatorname{Im}${this.brackets(input[0])}`;
-                } else {
-                    const name = fname === '' ? '' : `\\mathrm${this.braces(fname.replace(/_/gu, '\\_'))}`;
-                    if (symbol.isConversion) {
-                        v[index] = name + this.brackets(input.join(''), 'parens');
-                    } else {
-                        v[index] = name + this.brackets(input.join(','), 'parens');
-                    }
-                }
-            } else if (symbol.isComposite()) {
-                const collected = symbol.collectSymbols().sort(
-                    group === CP || previousGroup === CP
-                        ? (x, y) => y.group - x.group
-                        : (x, y) => {
-                              const px = isSymbol(x.power) ? -1 : x.power;
-                              const py = isSymbol(y.power) ? -1 : y.power;
-                              return py - px;
-                          }
-                );
-                const symbols = [];
-                const l = collected.length;
-                for (let i = 0; i < l; i++) {
-                    symbols.push(LaTeX.latex(collected[i], option));
-                }
-                const value = symbols.join('+');
-
-                v[index] =
-                    !(symbol.isLinear() && symbol.multiplier.equals(1)) || negative
-                        ? this.brackets(value, 'parens')
-                        : value;
-            } else if (group === CB || previousGroup === EX || previousGroup === CB) {
-                if (group === CB) {
-                    symbol.distributeExponent();
-                }
-                // This almost feels a little like cheating but I need to know if I should be wrapping the symbol
-                // in brackets or not. We'll do this by checking the value of the numerator and then comparing it
-                // to whether the symbol value is "simple" or not.
-                const denominator = [];
-                const numerator = [];
-                // Generate a profile
-                const denMap = [];
-                const numMap = [];
-                let numC = 0;
-                let denC = 0;
-                const setBrackets = function (container, map, counter) {
-                    if (counter > 1 && map.length > 0) {
-                        const l = map.length;
-                        for (let idx = 0; idx < l; idx++) {
-                            const mapIdx = map[idx];
-                            const containerItem = container[mapIdx];
-                            if (
-                                !(
-                                    /^\\left\(.+\\right\)\^\{.+\}$/gu.test(containerItem) ||
-                                    /^\\left\(.+\\right\)$/gu.test(containerItem)
-                                )
-                            ) {
-                                container[mapIdx] = LaTeX.brackets(containerItem, 'parens');
-                            }
-                        }
-                    }
-                    return container;
-                };
-
-                // Generate latex for each of them
-                symbol.each(x => {
-                    const isDenom = isNegative(x.power);
-                    let laTex;
-
-                    if (isDenom) {
-                        laTex = LaTeX.latex(x.invert(), option);
-                        denC++;
-                        if (x.isComposite()) {
-                            if (!symbol.multiplier.den.equals(1) && Math.abs(x.power) === 1) {
-                                laTex = LaTeX.brackets(laTex, 'parens');
-                            }
-                            denMap.push(denominator.length); // Make a note of where the composite was found
-                        }
-
-                        denominator.push(laTex);
-                    } else {
-                        laTex = LaTeX.latex(x, option);
-                        numC++;
-                        if (x.isComposite()) {
-                            if (!symbol.multiplier.num.equals(1) && Math.abs(x.power) === 1) {
-                                laTex = LaTeX.brackets(laTex, 'parens');
-                            }
-                            numMap.push(numerator.length); // Make a note of where the composite was found
-                        }
-                        numerator.push(laTex);
-                    }
-                });
-
-                // Apply brackets
-                setBrackets(numerator, numMap, numC);
-                v[0] = numerator.join(this.dot); // Collapse the numerator into one string
-
-                setBrackets(denominator, denMap, denC);
-                v[1] = denominator.join(this.dot);
-            }
-
-            return v;
-        },
-        set(m, v, p, combinePower) {
-            const isBracketed = function (str) {
-                return /^\\left\(.+\\right\)$/u.test(str);
-            };
-            // Format the power if it exists
-            p &&= this.formatP(p);
-            // Group CB will have to be wrapped since the power applies to both it's numerator and denominator
-            let tp;
-            if (combinePower) {
-                // POSSIBLE BUG: If powers for group CB format wrong, investigate this since I might have overlooked something
-                // the assumption is that in every case the denonimator should be empty when dealing with CB. I can't think
-                // of a case where this isn't true
-                tp = p[0];
-                p[0] = ''; // Temporarily make p blank
-            }
-
-            // Merge v and p. Not that v MUST be first since the order matters
-            v = this.merge(v, p);
-            let mn = m[0];
-            let md = m[1];
-            const vn = v[0];
-            const vd = v[1];
-            // Filters
-            // if the top has a variable but the numerator is one drop it
-            if (vn && Number(mn) === 1) {
-                mn = '';
-            }
-            // If denominator is 1 drop it always
-            if (Number(md) === 1) {
-                md = '';
-            }
-            // Prepare the top portion but check that it's not already bracketed. If it is then leave out the cdot
-            const top = this.join(mn, vn, isBracketed(vn) ? '' : this.dot);
-
-            // Prepare the bottom portion but check that it's not already bracketed. If it is then leave out the cdot
-            const bottom = this.join(md, vd, isBracketed(vd) ? '' : this.dot);
-            // Format the power if it exists
-            // make it a fraction if both top and bottom exists
-            if (top && bottom) {
-                let frac = this.frac(top, bottom);
-                if (combinePower && tp) {
-                    frac = this.brackets(frac) + tp;
-                }
-                return frac;
-            }
-            // Otherwise only the top exists so return that
-
-            return top;
-        },
-        merge(a, b) {
-            const r = [];
-            for (let i = 0; i < 2; i++) {
-                r[i] = a[i] + b[i];
-            }
-            return r;
-        },
-        // Joins together two strings if both exist
-        join(n, d, glue) {
-            if (!n && !d) {
-                return '';
-            }
-            if (n && !d) {
-                return n;
-            }
-            if (d && !n) {
-                return d;
-            }
-            return n + glue + d;
-        },
-        /**
-         * Places subscripts in braces for proper formatting
-         *
-         * @param {string} v
-         * @returns {string}
-         */
-        formatSubscripts(v) {
-            // Split it at the underscore
-            const arr = v.toString().split('_');
-
-            let name = '';
-
-            // Loop over all entries except the first one
-            while (arr.length > 1) {
-                // Wrap all in braces except for the last one
-                if (arr.length > 0) {
-                    name = `_${this.braces(arr.pop() + name)}`;
-                }
-            }
-
-            return arr[0] + name;
-        },
-        formatP(pArray) {
-            for (let i = 0; i < 2; i++) {
-                const p = pArray[i];
-                if (p) {
-                    pArray[i] = `^${this.braces(p)}`;
-                }
-            }
-            return pArray;
-        },
-        /**
-         * Formats the fractions accordingly.
-         *
-         * @param {Frac} f
-         * @param {boolean} isPow
-         */
-        formatFrac(f, isPow) {
-            const n = f.num.toString();
-            const d = f.den.toString();
-            // No need to have x^1
-            if (isPow && n === '1' && d === '1') {
-                return '';
-            }
-            // No need to have x/1
-            if (d === '1') {
-                return n;
-            }
-            return this.frac(n, d);
-        },
-        frac(n, d) {
-            return `\\frac${this.braces(n)}${this.braces(d)}`;
-        },
-        braces(e) {
-            return `{${e}}`;
-        },
-        brackets(e, typ) {
-            typ ||= 'parens';
-            const bracketTypes = {
-                parens: ['(', ')'],
-                square: ['[', ']'],
-                brace: ['{', '}'],
-                abs: ['|', '|'],
-                angle: ['\\langle', '\\rangle'],
-            };
-            const bracket = bracketTypes[typ];
-            return `\\left${bracket[0]}${e}\\right${bracket[1]}`;
-        },
-        /**
-         * Removes extreneous tokens
-         *
-         * @param {{ type: string; value: string }[] & { type?: string }} tokens
-         * @returns {{ type: string; value: string }[] & { type?: string }}
-         */
-        filterTokens(tokens) {
-            /** @type {{ type: string; value: string }[] & { type?: string }} */
-            const filtered = /** @type {{ type: string; value: string }[] & { type?: string }} */ ([]);
-
-            // Copy over the type of the scope
-            if (isArray(tokens)) {
-                filtered.type = tokens.type;
-            }
-
-            // The items that need to be disposed
-            const d = ['\\', 'left', 'right', 'big', 'Big', 'large', 'Large'];
-            for (let i = 0, l = tokens.length; i < l; i++) {
-                const token = tokens[i];
-                const nextToken = tokens[i + 1];
-                if (token.value === '\\' && nextToken.value === '\\') {
-                    filtered.push(token);
-                } else if (isArray(token)) {
-                    filtered.push(LaTeX.filterTokens(token));
-                } else if (d.indexOf(token.value) === -1) {
-                    filtered.push(token);
-                }
-            }
-            return filtered;
-        },
-        /*
-         * Parses tokens from LaTeX string. Does not do any error checking
-         * @param {Tokens[]} rpn
-         * @returns {string}
-         */
-        parse(rawTokens) {
-            let i;
-            let l;
-            let retval = '';
-            const tokens = this.filterTokens(rawTokens);
-            const replace = {
-                cdot: '',
-                times: '',
-                infty: 'Infinity',
-            };
-            // Get the next token
-            const next = function (n) {
-                return tokens[typeof n === 'undefined' ? ++i : (i += n)];
-            };
-            const parseNext = function () {
-                return LaTeX.parse(next());
-            };
-            const get = function (token) {
-                if (token in replace) {
-                    return replace[token];
-                }
-                // A quirk with implicit multiplication forces us to check for *
-                if (token === '*' && tokens[i + 1].value === '&') {
-                    next(2); // Skip this and the &
-                    return ',';
-                }
-
-                if (token === '&') {
-                    next();
-                    return ','; // Skip the *
-                }
-                // If it's the end of a row, return the row separator
-                if (token === '\\') {
-                    return '],[';
-                }
-                return token;
-            };
-
-            // Start parsing the tokens
-            for (i = 0, l = tokens.length; i < l; i++) {
-                const token = tokens[i];
-                // Fractions
-                if (token.value === 'frac') {
-                    // Parse and wrap it in brackets
-                    const n = parseNext();
-                    const d = parseNext();
-                    retval += `${n}/${d}`;
-                } else if (token.value in LaTeX.symbols) {
-                    if (
-                        token.value === SQRT &&
-                        tokens[i + 1].type === 'vector' &&
-                        tokens[i + 2].type === 'NerdamerSet'
-                    ) {
-                        const base = parseNext();
-                        const expr = parseNext();
-                        retval += `${expr}^${inBrackets(`1/${base}`)}`;
-                    } else {
-                        retval += token.value + parseNext();
-                    }
-                } else if (token.value === 'int') {
-                    const f = parseNext();
-                    // Skip the comma
-                    i++;
-                    // Get the variable of integration
-                    let dx = next().value;
-                    dx = get(dx.substring(1, dx.length));
-                    retval += `integrate${inBrackets(`${f},${dx}`)}`;
-                } else if (token.value === 'int_') {
-                    const lower = parseNext(); // Lower
-                    i++; // Skip the ^
-                    let u = next().value; // Upper
-                    // if it is in brackets
-                    if (u === undefined) {
-                        i--;
-                        u = parseNext();
-                    }
-                    const f = parseNext(); // Function
-
-                    // get the variable of integration
-                    let dx = next().value;
-                    // Skip the comma
-                    if (dx === ',') {
-                        dx = next().value;
-                    }
-                    // If 'd', skip
-                    if (dx === 'differentialD') {
-                        // Skip the *
-                        i++;
-                        dx = next().value;
-                    }
-                    if (dx === 'mathrm') {
-                        // Skip the mathrm{d}
-                        i++;
-                        dx = next().value;
-                    }
-                    retval += `defint${inBrackets(`${f},${lower},${u},${dx}`)}`;
-                } else if (token.value && token.value.startsWith('int_')) {
-                    // Var l = parseNext(); // lower
-                    const intLower = token.value.replace('int_', '');
-                    i++; // Skip the ^
-                    let u = next().value; // Upper
-                    // if it is in brackets
-                    if (u === undefined) {
-                        i--;
-                        u = parseNext();
-                    }
-                    const f = parseNext(); // Function
-
-                    // get the variable of integration
-                    let dx = next().value;
-                    // Skip the comma
-                    if (dx === ',') {
-                        dx = next().value;
-                    }
-                    // If 'd', skip
-                    if (dx === 'differentialD') {
-                        // Skip the *
-                        i++;
-                        dx = next().value;
-                    }
-                    if (dx === 'mathrm') {
-                        // Skip the mathrm{d}
-                        i++;
-                        dx = next().value;
-                    }
-                    retval += `defint${inBrackets(`${f},${intLower},${u},${dx}`)}`;
-                } else if (token.value === 'mathrm') {
-                    const f = tokens[++i][0].value;
-                    retval += f + parseNext();
-                }
-                // Sum and product
-                else if (token.value === 'sum_' || token.value === 'prod_') {
-                    const fn = token.value === 'sum_' ? 'sum' : 'product';
-                    const nxt = next();
-                    i++; // Skip the caret
-                    const end = parseNext();
-                    const f = parseNext();
-                    retval += fn + inBrackets([f, get(nxt[0]), get(nxt[2]), get(end)].join(','));
-                } else if (token.value === 'lim_') {
-                    const nxt = next();
-                    retval += `limit${inBrackets([parseNext(), get(nxt[0]), get(nxt[2])].join(','))}`;
-                } else if (token.value === 'begin') {
-                    const nxt = next();
-                    if (Array.isArray(nxt)) {
-                        const v = nxt[0].value;
-                        if (v === 'matrix') {
-                            // Start a matrix
-                            retval += 'matrix([';
-                        }
-                    }
-                } else if (token.value === 'end') {
-                    const nxt = next();
-                    if (Array.isArray(nxt)) {
-                        const v = nxt[0].value;
-                        if (v === 'matrix') {
-                            // End a matrix
-                            retval += '])';
-                        }
-                    }
-                } else if (Array.isArray(token)) {
-                    retval += get(LaTeX.parse(token));
-                } else {
-                    retval += get(token.value.toString());
-                }
-            }
-
-            return inBrackets(retval);
-        },
-    };
+        }
+        // Declare the operators
+        parser.setOperator({
+            precedence: 8,
+            operator: '\\',
+            action: 'slash',
+            prefix: true,
+            postfix: false,
+            leftAssoc: true,
+            operation(e) {
+                return e; // Bypass the slash
+            },
+        });
+        parser.setOperator({
+            precedence: 8,
+            operator: '\\,',
+            action: 'slash_comma',
+            prefix: true,
+            postfix: false,
+            leftAssoc: true,
+            operation(e) {
+                return e; // Bypass the slash
+            },
+        });
+        // Have braces not map to anything. We want them to be return as-is
+        const brackets = parser.getBrackets();
+        brackets['{'].maps_to = undefined;
+        return parser;
+    })();
 
     // Initialize ExpressionsDeps with references
     // Use getters for EXPRESSIONS and USER_FUNCTIONS since they can be reassigned
