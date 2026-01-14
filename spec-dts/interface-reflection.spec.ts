@@ -135,12 +135,12 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
     });
 
     describe('Core Expression Interfaces', () => {
-        it('should have CoreExpressionBase interface with essential methods', () => {
-            const coreBase = sourceFile.getInterface('CoreExpressionBase');
-            expect(coreBase).toBeDefined();
+        it('should have NerdamerExpression interface with essential output methods', () => {
+            const nerdamerExpression = sourceFile.getInterface('NerdamerExpression');
+            expect(nerdamerExpression).toBeDefined();
 
-            const methodNames = getMethodLikeMembers(coreBase);
-            // Note: 'clone' method removed due to runtime inconsistency - it doesn't exist in Expression prototype
+            const methodNames = getMethodLikeMembers(nerdamerExpression);
+            // These methods were previously in CoreExpressionBase but are now directly on NerdamerExpression
             const expectedMethods = ['toString', 'text', 'latex', 'valueOf'];
 
             for (const method of expectedMethods) {
@@ -148,13 +148,13 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             }
         });
 
-        it('should have NerdamerExpression interface extending CoreExpressionBase', () => {
+        it('should have NerdamerExpression interface as standalone (not extending CoreExpressionBase)', () => {
             const nerdamerExpression = sourceFile.getInterface('NerdamerExpression');
             expect(nerdamerExpression).toBeDefined();
 
             const extendsClause = nerdamerExpression?.getExtends();
-            expect(extendsClause).toHaveLength(1);
-            expect(extendsClause?.[0]?.getText()).toBe('CoreExpressionBase');
+            // NerdamerExpression no longer extends CoreExpressionBase - methods are directly defined
+            expect(extendsClause).toHaveLength(0);
         });
 
         it('should have NerdamerExpression with essential arithmetic methods', () => {

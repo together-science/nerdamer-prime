@@ -178,15 +178,25 @@ type SolveResult =
 // #region Core Expression Interfaces
 
 /**
- * An internal base interface for core symbolic objects to share common methods.
+ * The main expression object returned by nerdamer(), wrapping a symbolic NerdamerSymbol object. Provides a
+ * developer-friendly API for manipulating mathematical expressions.
  *
- * INCONSISTENCY NOTE: The `clone()` method was removed from this interface because it doesn't exist in the JavaScript
- * runtime. While NerdamerSymbol has a clone() method, Expression does not expose it, causing the Expression Method
- * Coverage to be 97% instead of 100%.
+ * All mathematical objects in Nerdamer (including vectors and matrices) are ultimately NerdamerExpression instances,
+ * making the API consistent and predictable.
  *
- * @internal
+ * @example
+ *     ```typescript
+ *         const expr = nerdamer('x^2 + 2*x + 1');
+ *         const expanded = expr.expand();           // x^2 + 2*x + 1
+ *         const factored = nerdamer.factor(expr);  // (x + 1)^2
+ *         const value = expr.evaluate({x: 3});     // 16
+ *         ```;
  */
-interface CoreExpressionBase {
+interface NerdamerExpression {
+    /** The underlying NerdamerSymbol object. */
+    symbol: nerdamerPrime.NerdamerCore.NerdamerSymbol;
+
+    // Basic output methods
     toString: () => string;
     /**
      * Gets the string representation of the expression.
@@ -221,26 +231,6 @@ interface CoreExpressionBase {
     text: (option?: OutputType) => string;
     latex: (option?: OutputType) => string;
     valueOf: () => number | string;
-}
-
-/**
- * The main expression object returned by nerdamer(), wrapping a symbolic NerdamerSymbol object. Provides a
- * developer-friendly API for manipulating mathematical expressions.
- *
- * All mathematical objects in Nerdamer (including vectors and matrices) are ultimately NerdamerExpression instances,
- * making the API consistent and predictable.
- *
- * @example
- *     ```typescript
- *         const expr = nerdamer('x^2 + 2*x + 1');
- *         const expanded = expr.expand();           // x^2 + 2*x + 1
- *         const factored = nerdamer.factor(expr);  // (x + 1)^2
- *         const value = expr.evaluate({x: 3});     // 16
- *         ```;
- */
-interface NerdamerExpression extends CoreExpressionBase {
-    /** The underlying NerdamerSymbol object. */
-    symbol: nerdamerPrime.NerdamerCore.NerdamerSymbol;
 
     // Basic methods
     variables: () => string[];
@@ -1954,7 +1944,13 @@ declare namespace nerdamerPrime {
          * The core symbolic object in Nerdamer. Everything from a variable to a complex expression is ultimately
          * represented as a NerdamerSymbol.
          */
-        interface NerdamerSymbol extends CoreExpressionBase {
+        interface NerdamerSymbol {
+            // Output methods
+            toString: () => string;
+            text: (option?: OutputType) => string;
+            latex: (option?: OutputType) => string;
+            valueOf: () => number | string;
+
             // Properties
             group: number;
             value: string | number;
@@ -2093,7 +2089,7 @@ declare namespace nerdamerPrime {
 
         /** Constructor for NerdamerExpression */
         interface ExpressionConstructor {
-            new (symbol: any): NerdamerExpression;
+            new (symbol: any): any;
             getExpression(index: 'last' | 'first' | number): NerdamerExpression | undefined;
         }
 
@@ -2198,27 +2194,265 @@ declare namespace nerdamerPrime {
         }
 
         /** Represents a mathematical set. */
-        interface NerdamerSet extends CoreExpressionBase {
+        interface NerdamerSet {
             elements: NerdamerSymbol[];
             add(element: NerdamerSymbol): void;
             contains(element: NerdamerSymbol): boolean;
             union(other: NerdamerSet): NerdamerSet;
             intersection(other: NerdamerSet): NerdamerSet;
             difference(other: NerdamerSet): NerdamerSet;
-            size(): NerdamerSymbol;
+            intersects(other: NerdamerSet): boolean;
+            isSubset(other: NerdamerSet): boolean;
+            remove(element: NerdamerSymbol): boolean;
+            clone(): NerdamerSet;
             each(fn: (e: NerdamerSymbol, newSet: NerdamerSet, i: number) => void): NerdamerSet;
+            toString(): string;
         }
 
         /** Constructor for Collection */
-        type CollectionConstructor = (new () => Collection) | typeof Collection;
+        interface CollectionConstructor {
+            new (): Collection;
+            create(e?: any): Collection;
+        }
 
         /** Internal-use collection for function arguments. */
-        interface Collection extends CoreExpressionBase {
-            items: NerdamerSymbol[];
-            add(item: NerdamerSymbol): void;
-            length(): number;
-            each(fn: (item: NerdamerSymbol, index: number) => void): void;
-            get(index: number): NerdamerSymbol;
+        interface Collection {
+            /** Array of elements in the collection */
+            elements: any[];
+            /** Appends an element to the collection */
+            append(e: any): void;
+            /** Gets the items/elements in the collection */
+            getItems(): any[];
+            /** Returns the number of elements */
+            dimensions(): number;
+            /** Returns a string representation */
+            toString(): string;
+            /** Returns a text representation with options */
+            text(options?: string): string;
+            /** Creates a clone of the collection */
+            clone(): Collection;
+            /** Expands all elements */
+            expand(options?: any): this;
+            /** Evaluates all elements */
+            evaluate(options?: any): this;
+            /** Maps a function over elements */
+            map(lambda: (x: any, i: number) => any): Collection;
+            /** Adds another collection element-wise */
+            add(c2: Collection): Collection;
+            /** Subtracts another collection element-wise */
+            subtract(c2: Collection): Collection;
+        }
+
+        /** Static utility object for converting decimals to fractions. */
+        interface Fraction {
+            /**
+             * Converts a decimal to a fraction.
+             *
+             * @param value The decimal value to convert
+             * @param opts Optional conversion options
+             * @returns An array [numerator, denominator]
+             */
+            convert(value: number | string, opts?: object): [number, number];
+            /**
+             * Quick conversion for very small or very large numbers.
+             *
+             * @param value The value to convert
+             * @returns An array [numerator, denominator]
+             */
+            quickConversion(value: number | string): [string, string];
+            /**
+             * Full precision conversion using continued fractions algorithm.
+             *
+             * @param dec The decimal to convert
+             * @returns An array [numerator, denominator]
+             */
+            fullConversion(dec: number | string): [number, number];
+        }
+
+        /** Constructor for Scientific notation handler */
+        interface ScientificConstructor {
+            new (num?: string | number): Scientific;
+            /** Check if a string is in scientific notation */
+            isScientific(num: string): boolean;
+            /** Get leading zeroes from a string */
+            leadingZeroes(num: string): string;
+            /** Remove leading zeroes from a string */
+            removeLeadingZeroes(num: string): string;
+            /** Remove trailing zeroes from a string */
+            removeTrailingZeroes(num: string): string;
+            /** Round a coefficient to n significant figures */
+            round(c: string, n: number): string;
+        }
+
+        /** Scientific notation handler for arbitrary precision numbers. */
+        interface Scientific {
+            /** The sign of the number (-1 or 1) */
+            sign: number;
+            /** The coefficient in scientific notation */
+            coeff: string;
+            /** The exponent in scientific notation */
+            exponent: number;
+            /** The whole number part */
+            wholes: string;
+            /** The decimal part */
+            dec: string;
+            /** The number of decimal places */
+            decp: number;
+            /** Convert from scientific notation string */
+            fromScientific(num: string): this;
+            /** Convert a regular number to scientific notation */
+            convert(num: string): this;
+            /** Round to specified decimal places */
+            round(num: number): Scientific;
+            /** Create a copy */
+            copy(): Scientific;
+            /** Convert to string with optional precision */
+            toString(n?: number): string;
+        }
+
+        /** Constructor for Parser */
+        type ParserConstructor = new () => Parser;
+
+        /** Static LaTeX conversion utilities. */
+        interface LaTeX {
+            /** Reference to the parser instance */
+            parser: Parser | null;
+            /** Space character for LaTeX */
+            space: string;
+            /** Dot/multiplication character for LaTeX */
+            dot: string;
+            /**
+             * Converts a symbol to LaTeX format.
+             *
+             * @param symbol The symbol to convert
+             * @param option Conversion option ('decimal' for numeric output)
+             * @returns LaTeX string representation
+             */
+            latex(symbol: any, option?: string): string;
+            /** Wraps content in brackets */
+            brackets(contents: string, type?: string, braces?: boolean): string;
+            /** Formats a fraction for LaTeX */
+            formatFrac(frac: Frac, ignoreOnes?: boolean): string;
+            /** Gets the value representation */
+            value(symbol: any, invert?: boolean, option?: string, negative?: boolean): string[];
+            /** Greek letter mappings */
+            greek: Record<string, string>;
+            /** Symbol mappings for functions */
+            symbols: Record<string, string>;
+            /** Initialize parser reference */
+            initParser(): void;
+        }
+
+        /** Static Math2 utilities for extended mathematical functions. */
+        interface Math2 {
+            /** Cosecant */
+            csc(x: number): number;
+            /** Secant */
+            sec(x: number): number;
+            /** Cotangent */
+            cot(x: number): number;
+            /** Arc cosecant */
+            acsc(x: number): number;
+            /** Arc secant */
+            asec(x: number): number;
+            /** Arc cotangent */
+            acot(x: number): number;
+            /** Error function */
+            erf(x: number): number;
+            /** Numerical derivative */
+            diff(f: (x: number) => number): (x: number) => number;
+            /** Median of values */
+            median(...values: number[]): number;
+            /** Convert from continued fraction */
+            fromContinued(contd: { whole: number; sign: number; fractions: number[] }): number;
+            /** Calculate continued fraction representation */
+            continuedFraction(n: number, x?: number): { whole: number; sign: number; fractions: number[] };
+            /** Big integer power */
+            bigpow(n: number | Frac, p: number | Frac): Frac;
+            /** Gamma function */
+            gamma(z: number): number;
+            /** Big integer factorial */
+            bigfactorial(x: number): Frac;
+            /** Big integer logarithm */
+            bigLog(x: number | string): Frac;
+            /** Factorial */
+            factorial(x: number): number;
+            /** Double factorial */
+            dfactorial(x: number): number | Frac;
+            /** Greatest common divisor */
+            GCD(...args: number[]): number;
+            /** GCD for Frac objects */
+            QGCD(...args: Frac[]): Frac;
+            /** Least common multiple */
+            LCM(a: number, b: number): number;
+            /** Power with negative number handling */
+            pow(b: number, e: number): number;
+            /** Factor a number */
+            factor(n: number): NerdamerSymbol;
+            /** Simple factorization using trial division */
+            sfactor(n: number, factors?: Record<string, number>): Record<string, number>;
+            /** Integer factorization using Pollard's rho */
+            ifactor(num: number): Record<string, number>;
+            /** Box factorization */
+            boxfactor(n: number, max?: number): [number, number, number];
+            /** Fibonacci number */
+            fib(n: number): number;
+            /** Modulo operation */
+            mod(x: number, y: number): number;
+            /** Integer part of a number */
+            integer_part(x: number): number;
+            /** Simpson's rule integration */
+            simpson(f: (x: number) => number, a: number, b: number, step?: number): number;
+            /** Adaptive Simpson integration */
+            num_integrate(f: (x: number) => number, a: number, b: number, tol?: number, maxdepth?: number): number;
+            /** Cosine integral */
+            Ci(x: number): number;
+            /** Sine integral */
+            Si(x: number): number;
+            /** Exponential integral */
+            Ei(x: number): number;
+            /** Hyperbolic sine integral */
+            Shi(x: number): number;
+            /** Hyperbolic cosine integral */
+            Chi(x: number): number;
+            /** Logarithmic integral */
+            Li(x: number | string): number;
+            /** Incomplete gamma function */
+            gamma_incomplete(n: number, x?: number): number;
+            /** Heaviside step function */
+            step(x: number): number;
+            /** Rectangle function */
+            rect(x: number): number;
+            /** Sinc function */
+            sinc(x: number): number;
+            /** Triangle function */
+            tri(x: number): number;
+            /** Nth root calculation */
+            nthroot(x: number | Frac, n: number | string): any;
+        }
+
+        /** Static Build utilities for compiling expressions to JavaScript functions. */
+        interface Build {
+            /** Dependency definitions for functions */
+            dependencies: Record<string, any>;
+            /** Reformat definitions for special functions */
+            reformat: Record<string, (symbol: any, deps: any) => [string, any]>;
+            /** Initialize dependencies (called once during setup) */
+            initDependencies(): void;
+            /** Get the proper name for a function */
+            getProperName(f: string): string;
+            /** Compile dependencies for a function */
+            compileDependencies(f: string, deps?: any): any[];
+            /** Get argument dependencies from a symbol */
+            getArgsDeps(symbol: any, dependencies?: any): any;
+            /**
+             * Build a JavaScript function from a symbolic expression.
+             *
+             * @param symbol The expression to compile
+             * @param argArray Optional array of argument names
+             * @returns A compiled JavaScript function
+             */
+            build(symbol: any, argArray?: string[]): Function;
         }
 
         // #endregion
@@ -2371,7 +2605,7 @@ declare namespace nerdamerPrime {
             };
 
             /** A map of all registered functions and their properties. */
-            functions: Record<string, [Function, number | [number, number], any?]>;
+            functions: Record<string, any[]>;
 
             /**
              * Gets a registered function by name.
@@ -3680,8 +3914,8 @@ declare namespace nerdamerPrime {
             groups: Record<'N' | 'P' | 'S' | 'EX' | 'FN' | 'PL' | 'CB' | 'CP', number>;
             Settings: Settings;
             Utils: Utils;
-            Math2: Record<string, Function>;
-            LaTeX: Record<string, Function>;
+            Math2: Math2;
+            LaTeX: LaTeX;
             bigInt: any;
             bigDec: any;
             exceptions: {

@@ -59,6 +59,24 @@
  *
  * @typedef {import('./index').NerdamerCore.MatrixConstructor} MatrixConstructor
  *
+ * @typedef {import('./index').NerdamerCore.ExpressionConstructor} ExpressionConstructor
+ *
+ * @typedef {import('./index').NerdamerCore.SetConstructor} SetConstructor
+ *
+ * @typedef {import('./index').NerdamerCore.CollectionConstructor} CollectionConstructor
+ *
+ * @typedef {import('./index').NerdamerCore.Fraction} FractionInterface
+ *
+ * @typedef {import('./index').NerdamerCore.ScientificConstructor} ScientificConstructor
+ *
+ * @typedef {import('./index').NerdamerCore.ParserConstructor} ParserConstructor
+ *
+ * @typedef {import('./index').NerdamerCore.LaTeX} LaTeXInterface
+ *
+ * @typedef {import('./index').NerdamerCore.Math2} Math2Interface
+ *
+ * @typedef {import('./index').NerdamerCore.Build} BuildInterface
+ *
  *   Exception types
  *
  * @typedef {import('./index').NerdamerCore.DivisionByZero} DivisionByZeroType
@@ -144,18 +162,18 @@ const nerdamerConstants =
  *     };
  *     classes: {
  *         Frac: FracConstructor;
- *         Fraction: typeof Fraction;
+ *         Fraction: FractionInterface;
  *         NerdamerSymbol: SymbolConstructor;
  *         Vector: VectorConstructor;
  *         Matrix: MatrixConstructor;
- *         Expression: any;
- *         Collection: any;
- *         NerdamerSet: any;
- *         Scientific: any;
- *         Parser: any;
- *         LaTeX: any;
- *         Math2: any;
- *         Build: any;
+ *         Expression: ExpressionConstructor;
+ *         Collection: CollectionConstructor;
+ *         NerdamerSet: SetConstructor;
+ *         Scientific: ScientificConstructor;
+ *         Parser: ParserConstructor;
+ *         LaTeX: LaTeXInterface;
+ *         Math2: Math2Interface;
+ *         Build: BuildInterface;
  *     };
  *     utils: {
  *         isSymbol: (x: any) => boolean;
@@ -270,19 +288,19 @@ const CoreDeps = {
 
     // Class constructors - set by IIFE after class definitions
     classes: {
-        Frac: /** @type {any} */ (null),
-        Fraction: /** @type {any} */ (null),
-        NerdamerSymbol: /** @type {any} */ (null),
-        Vector: /** @type {any} */ (null),
-        Matrix: /** @type {any} */ (null),
-        Expression: /** @type {any} */ (null),
-        Collection: /** @type {any} */ (null),
-        NerdamerSet: /** @type {any} */ (null),
-        Scientific: /** @type {any} */ (null),
-        Parser: /** @type {any} */ (null),
-        LaTeX: /** @type {any} */ (null),
-        Math2: /** @type {any} */ (null),
-        Build: /** @type {any} */ (null),
+        Frac: /** @type {FracConstructor} */ (null),
+        Fraction: /** @type {FractionInterface} */ (null),
+        NerdamerSymbol: /** @type {SymbolConstructor} */ (null),
+        Vector: /** @type {VectorConstructor} */ (null),
+        Matrix: /** @type {MatrixConstructor} */ (null),
+        Expression: /** @type {ExpressionConstructor} */ (null),
+        Collection: /** @type {CollectionConstructor} */ (null),
+        NerdamerSet: /** @type {SetConstructor} */ (null),
+        Scientific: /** @type {ScientificConstructor} */ (null),
+        Parser: /** @type {ParserConstructor} */ (null),
+        LaTeX: /** @type {LaTeXInterface} */ (null),
+        Math2: /** @type {Math2Interface} */ (null),
+        Build: /** @type {BuildInterface} */ (null),
     },
 
     // Utility functions - use getters for module-scope functions
@@ -3024,7 +3042,7 @@ function getVars(output, option) {
  *         toRPN: (e: any) => any;
  *         tokenize: (e: any) => any;
  *         parse: (e: any) => any;
- *         functions: Record<string, [Function, number | [number, number], any?]>;
+ *         functions: Record<string, any[]>;
  *     } | null;
  *     C: any;
  * }}
@@ -3196,8 +3214,8 @@ function replaceFunction(name, fn, numArgs) {
  *     USER_FUNCTIONS: string[];
  *     LaTeX: any;
  *     text: (obj: any, option?: any) => string;
- *     functions: Record<string, [Function, number | [number, number], any?]>;
- *     Math2: Record<string, Function>;
+ *     functions: Record<string, any>;
+ *     Math2: Math2Interface;
  *     _: { tokenize: (e: any) => any; parse: (e: any) => any } | null;
  *     Expression: (new (symbol: any) => any) | null;
  * }}
