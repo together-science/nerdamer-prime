@@ -2586,6 +2586,7 @@ declare namespace nerdamerPrime {
              *
              * @param symbol The symbol to expand.
              * @param options Expansion options.
+             * @param options.power_expand Whether to expand powers.
              * @returns The expanded expression.
              */
             expand(

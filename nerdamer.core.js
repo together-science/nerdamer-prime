@@ -15883,7 +15883,6 @@ class Parser {
                 }
 
                 if (result.multiplier.equals(0)) {
-                    /** @type {VectorType} */ (/** @type {unknown} */ (a));
                     result = new NerdamerSymbol(0);
                 }
 

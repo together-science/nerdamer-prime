@@ -2,6 +2,21 @@
 
 const nerdamer = require('../nerdamer.core.js');
 
+/**
+ * Helper to run a test with warnings silenced. Use this for tests where warnings are expected and don't indicate bugs.
+ *
+ * @param {Function} testFn - The test function to run
+ */
+function withSilencedWarnings(testFn) {
+    const previous = nerdamer.getCore().Settings.SILENCE_WARNINGS;
+    nerdamer.set('SILENCE_WARNINGS', true);
+    try {
+        testFn();
+    } finally {
+        nerdamer.set('SILENCE_WARNINGS', previous);
+    }
+}
+
 describe('TeX features', () => {
     it('should render TeX output correctly', () => {
         const testCases = [
@@ -322,12 +337,19 @@ describe('TeX features', () => {
             },
         ];
 
-        for (let i = 0; i < testCases.length; ++i) {
-            // When
-            const teX = nerdamer(testCases[i].given).toTeX();
+        /*
+         * The defint expression triggers numerical integration which generates warnings
+         * due to singularities at the bounds (log(cos(x/2)) → -∞ as x → ±π).
+         * The warnings are expected - we're only testing the TeX rendering here.
+         */
+        withSilencedWarnings(() => {
+            for (let i = 0; i < testCases.length; ++i) {
+                // When
+                const teX = nerdamer(testCases[i].given).toTeX();
 
-            // Then
-            expect(teX).toEqual(testCases[i].expected);
-        }
+                // Then
+                expect(teX).toEqual(testCases[i].expected);
+            }
+        });
     });
 });
