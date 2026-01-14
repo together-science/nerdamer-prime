@@ -1985,21 +1985,34 @@ function firstObject(obj, key, both) {
 /** Alias for Object.keys - returns an array of all the keys in an object */
 const { keys } = Object;
 
-// IsNumericSymbol Function ========================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-// Dependencies are injected via IsNumericSymbolDeps which is set by the IIFE after initialization.
+// GroupConstantsDeps ==============================================================
+// Shared dependency container for group constants (N, P, S). These constants define
+// the type groups for nerdamer symbols. Populated by the IIFE during initialization.
 
 /**
- * Dependency container for isNumericSymbol function. Populated by the IIFE during initialization.
- *
  * @type {{
  *     N: number;
  *     P: number;
+ *     S: number;
  * }}
  */
-const IsNumericSymbolDeps = {
+const GroupConstantsDeps = {
     N: 1,
     P: 2,
+    S: 3,
+};
+
+// ParserDeps ======================================================================
+// Shared dependency container for functions that only need the parser reference.
+// Populated by the IIFE during initialization.
+
+/**
+ * @type {{
+ *     _: any;
+ * }}
+ */
+const ParserDeps = {
+    _: null,
 };
 
 /**
@@ -2009,23 +2022,8 @@ const IsNumericSymbolDeps = {
  * @returns {boolean}
  */
 function isNumericSymbol(symbol) {
-    return symbol.group === IsNumericSymbolDeps.N || symbol.group === IsNumericSymbolDeps.P;
+    return symbol.group === GroupConstantsDeps.N || symbol.group === GroupConstantsDeps.P;
 }
-
-// IsVariableSymbol Function =======================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-// Dependencies are injected via IsVariableSymbolDeps which is set by the IIFE after initialization.
-
-/**
- * Dependency container for isVariableSymbol function. Populated by the IIFE during initialization.
- *
- * @type {{
- *     S: number;
- * }}
- */
-const IsVariableSymbolDeps = {
-    S: 3,
-};
 
 /**
  * Checks to see if a symbol is a variable with no multiplier nor power
@@ -2034,23 +2032,8 @@ const IsVariableSymbolDeps = {
  * @returns {boolean}
  */
 function isVariableSymbol(symbol) {
-    return symbol.group === IsVariableSymbolDeps.S && symbol.multiplier.equals(1) && symbol.power.equals(1);
+    return symbol.group === GroupConstantsDeps.S && symbol.multiplier.equals(1) && symbol.power.equals(1);
 }
-
-// AllNumbers Function =============================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-// Dependencies are injected via AllNumbersDeps which is set by the IIFE after initialization.
-
-/**
- * Dependency container for allNumbers function. Populated by the IIFE during initialization.
- *
- * @type {{
- *     N: number;
- * }}
- */
-const AllNumbersDeps = {
-    N: 1,
-};
 
 /**
  * Checks to see if all arguments are numbers
@@ -2060,25 +2043,22 @@ const AllNumbersDeps = {
  */
 function allNumbers(args) {
     for (let i = 0; i < args.length; i++) {
-        if (args[i].group !== AllNumbersDeps.N) {
+        if (args[i].group !== GroupConstantsDeps.N) {
             return false;
         }
     }
     return true;
 }
 
-// ReserveNames Function ===========================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-// Dependencies are injected via ReserveNamesDeps which is set by the IIFE after initialization.
+// ReservedDeps ====================================================================
+// Shared dependency container for RESERVED array access. Populated by the IIFE during initialization.
 
 /**
- * Dependency container for reserveNames function. Populated by the IIFE during initialization.
- *
  * @type {{
- *     RESERVED: string[];
+ *     RESERVED: (string | undefined)[];
  * }}
  */
-const ReserveNamesDeps = {
+const ReservedDeps = {
     RESERVED: [],
 };
 
@@ -2089,8 +2069,8 @@ const ReserveNamesDeps = {
  */
 function reserveNames(obj) {
     const add = function (item) {
-        if (ReserveNamesDeps.RESERVED.indexOf(item) === -1) {
-            ReserveNamesDeps.RESERVED.push(item);
+        if (ReservedDeps.RESERVED.indexOf(item) === -1) {
+            ReservedDeps.RESERVED.push(item);
         }
     };
 
@@ -2103,30 +2083,15 @@ function reserveNames(obj) {
     }
 }
 
-// ClearU Function =================================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-// Dependencies are injected via ClearUDeps which is set by the IIFE after initialization.
-
-/**
- * Dependency container for clearU function. Populated by the IIFE during initialization.
- *
- * @type {{
- *     RESERVED: (string | undefined)[];
- * }}
- */
-const ClearUDeps = {
-    RESERVED: [],
-};
-
 /**
  * Clears the u variable so it's no longer reserved
  *
  * @param {string} u
  */
 function clearU(u) {
-    const indx = ClearUDeps.RESERVED.indexOf(u);
+    const indx = ReservedDeps.RESERVED.indexOf(u);
     if (indx !== -1) {
-        ClearUDeps.RESERVED[indx] = undefined;
+        ReservedDeps.RESERVED[indx] = undefined;
     }
 }
 
@@ -2165,21 +2130,6 @@ function validateName(name, typ = 'variable') {
     }
 }
 
-// IsReserved Function =============================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-// Dependencies are injected via IsReservedDeps which is set by the IIFE after initialization.
-
-/**
- * Dependency container for isReserved function. Populated by the IIFE during initialization.
- *
- * @type {{
- *     RESERVED: string[];
- * }}
- */
-const IsReservedDeps = {
-    RESERVED: [],
-};
-
 /**
  * Checks to see if value is one of nerdamer's reserved names
  *
@@ -2187,7 +2137,7 @@ const IsReservedDeps = {
  * @returns {boolean}
  */
 function isReserved(value) {
-    return IsReservedDeps.RESERVED.indexOf(value) !== -1;
+    return ReservedDeps.RESERVED.indexOf(value) !== -1;
 }
 
 // Warn Function ===================================================================
@@ -2278,8 +2228,7 @@ function getSetting(setting) {
 }
 
 // ValidVarName Function =========================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-// Uses ClearUDeps.RESERVED (already initialized) and validateName (already external).
+// Uses ReservedDeps.RESERVED and validateName.
 
 /**
  * Validates if the provided string is a valid variable name
@@ -2290,7 +2239,7 @@ function getSetting(setting) {
 function validVarName(varname) {
     try {
         validateName(varname);
-        return ClearUDeps.RESERVED.indexOf(varname) === -1;
+        return ReservedDeps.RESERVED.indexOf(varname) === -1;
     } catch (e) {
         if (e.message === 'timeout') {
             throw e;
@@ -2300,8 +2249,7 @@ function validVarName(varname) {
 }
 
 // Reserved Function =============================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-// Uses ClearUDeps.RESERVED (already initialized).
+// Uses ReservedDeps.RESERVED.
 
 /**
  * Returns reserved variable names
@@ -2311,9 +2259,9 @@ function validVarName(varname) {
  */
 function reserved(asArray) {
     if (asArray) {
-        return ClearUDeps.RESERVED;
+        return ReservedDeps.RESERVED;
     }
-    return ClearUDeps.RESERVED.join(', ');
+    return ReservedDeps.RESERVED.join(', ');
 }
 
 // Version Function ==============================================================
@@ -3409,19 +3357,7 @@ function block(setting, f, opt = undefined, obj = undefined) {
 }
 
 // Evaluate Function ================================================================
-// Extracted outside IIFE to enable proper TypeScript type inference.
-// Dependencies are injected via EvaluateDeps which is set by the IIFE after initialization.
-
-/**
- * Dependency container for evaluate function. Populated by the IIFE during initialization.
- *
- * @type {{
- *     _: { parse: Function };
- * }}
- */
-const EvaluateDeps = {
-    _: { parse: () => {} },
-};
+// Uses ParserDeps._ for parser access.
 
 /**
  * As the name states. It forces evaluation of the expression
@@ -3431,7 +3367,7 @@ const EvaluateDeps = {
  * @returns {any}
  */
 function evaluate(symbol, o = undefined) {
-    return block('PARSE2NUMBER', () => EvaluateDeps._.parse(symbol, o), true);
+    return block('PARSE2NUMBER', () => ParserDeps._.parse(symbol, o), true);
 }
 
 // Expression Class =================================================================
@@ -6862,16 +6798,7 @@ function variables(obj, poly = null, vars = null) {
 }
 
 // GetCoeffs Function ==============================================================
-/**
- * Dependency container for getCoeffs function.
- *
- * @type {{
- *     _: any;
- * }}
- */
-const GetCoeffsDeps = {
-    _: null,
-};
+// Uses ParserDeps._ for parser access.
 
 /**
  * Returns the coefficients of a symbol given a variable. Given ax^2+b^x+c, it divides each nth term by x^n.
@@ -6890,7 +6817,7 @@ function getCoeffs(symbol, wrt, _info) {
             // We want only the coefficient which in this case will be everything but the variable
             // e.g. a*b*x -> a*b if the variable to solve for is x
             coeff = term.stripVar(wrt);
-            const x = GetCoeffsDeps._.divide(term.clone(), coeff.clone());
+            const x = ParserDeps._.divide(term.clone(), coeff.clone());
             p = x.power.toDecimal();
         } else {
             coeff = term;
@@ -6898,7 +6825,7 @@ function getCoeffs(symbol, wrt, _info) {
         }
         const e = coeffs[p];
         // If it exists just add it to it
-        coeffs[p] = e ? GetCoeffsDeps._.add(e, coeff) : coeff;
+        coeffs[p] = e ? ParserDeps._.add(e, coeff) : coeff;
     }, true);
 
     for (let i = 0; i < coeffs.length; i++) {
@@ -6984,16 +6911,7 @@ function nroots(symbol) {
 }
 
 // Compare Function ================================================================
-/**
- * Dependency container for compare function.
- *
- * @type {{
- *     _: any;
- * }}
- */
-const CompareDeps = {
-    _: null,
-};
+// Uses ParserDeps._ for parser access.
 
 /**
  * Compares two symbols by evaluating them with random values for variables. This is useful for checking if two
@@ -7013,7 +6931,7 @@ function compare(sym1, sym2, vars) {
         scope[vars[i]] = new NerdamerSymbol(Math.floor(Math.random() * n) + 1);
     }
     block('PARSE2NUMBER', () => {
-        comparison = CompareDeps._.parse(sym1, scope).equals(CompareDeps._.parse(sym2, scope));
+        comparison = ParserDeps._.parse(sym1, scope).equals(ParserDeps._.parse(sym2, scope));
     });
     return comparison;
 }
@@ -7033,16 +6951,7 @@ function isFraction(num) {
 }
 
 // ArraySum Function ===============================================================
-/**
- * Dependency container for arraySum function.
- *
- * @type {{
- *     _: any;
- * }}
- */
-const ArraySumDeps = {
-    _: null,
-};
+// Uses ParserDeps._ for parser access.
 
 /**
  * Returns the sum of an array
@@ -7056,7 +6965,7 @@ function arraySum(arr, toNumber) {
     for (let i = 0; i < arr.length; i++) {
         const x = arr[i];
         // Convert to symbol if not
-        sum = ArraySumDeps._.add(sum, isSymbol(x) ? x : ArraySumDeps._.parse(x));
+        sum = ParserDeps._.add(sum, isSymbol(x) ? x : ParserDeps._.parse(x));
     }
 
     return toNumber ? Number(sum) : sum;
@@ -7212,16 +7121,7 @@ function decomposeFn(fn, wrt, asObj) {
 }
 
 // Mix Function ====================================================================
-/**
- * Dependency container for mix function.
- *
- * @type {{
- *     _: any;
- * }}
- */
-const MixDeps = {
-    _: null,
-};
+// Uses ParserDeps._ for parser access.
 
 /**
  * Used to multiply two expressions in expanded form
@@ -7240,23 +7140,23 @@ function mix(a, b, opt) {
         a.each(x => {
             // If b is not a PL or a CP then simply multiply it
             if (!b.isComposite()) {
-                const term = MixDeps._.multiply(MixDeps._.parse(x), MixDeps._.parse(b));
-                t = MixDeps._.add(t, MixDeps._.expand(term, opt));
+                const term = ParserDeps._.multiply(ParserDeps._.parse(x), ParserDeps._.parse(b));
+                t = ParserDeps._.add(t, ParserDeps._.expand(term, opt));
             }
             // Otherwise multiply out each term.
             else if (b.isLinear()) {
                 b.each(y => {
-                    const term = MixDeps._.multiply(MixDeps._.parse(x), MixDeps._.parse(y));
-                    const expanded = MixDeps._.expand(MixDeps._.parse(term), opt);
-                    t = MixDeps._.add(t, expanded);
+                    const term = ParserDeps._.multiply(ParserDeps._.parse(x), ParserDeps._.parse(y));
+                    const expanded = ParserDeps._.expand(ParserDeps._.parse(term), opt);
+                    t = ParserDeps._.add(t, expanded);
                 }, true);
             } else {
-                t = MixDeps._.add(t, MixDeps._.multiply(x, MixDeps._.parse(b)));
+                t = ParserDeps._.add(t, ParserDeps._.multiply(x, ParserDeps._.parse(b)));
             }
         }, true);
     } else {
         // Just multiply them together
-        t = MixDeps._.multiply(a, b);
+        t = ParserDeps._.multiply(a, b);
     }
 
     // The expanded function is now t
@@ -7264,16 +7164,7 @@ function mix(a, b, opt) {
 }
 
 // ConvertToVector Function ========================================================
-/**
- * Dependency container for convertToVector function.
- *
- * @type {{
- *     _: any;
- * }}
- */
-const ConvertToVectorDeps = {
-    _: null,
-};
+// Uses ParserDeps._ for parser access.
 
 /**
  * Converts an array to a vector. Consider moving this to Vector.fromArray
@@ -7290,7 +7181,7 @@ function convertToVector(x) {
     }
     // Ensure that a nerdamer ready object is returned
     if (!isSymbol(x)) {
-        return ConvertToVectorDeps._.parse(x);
+        return ParserDeps._.parse(x);
     }
     return x;
 }
@@ -7316,16 +7207,7 @@ function arrayGetVariables(arr) {
 }
 
 // GetU Function ===================================================================
-/**
- * Dependency container for getU function.
- *
- * @type {{
- *     RESERVED: string[];
- * }}
- */
-const GetUDeps = {
-    RESERVED: [],
-};
+// Uses ReservedDeps.RESERVED for u-substitution variable tracking.
 
 /**
  * Is used for u-substitution. Gets a suitable u for substitution. If for instance a is used in the symbol then it keeps
@@ -7341,18 +7223,18 @@ function getU(symbol) {
     let c = 0; // Postfix number
     const vars = variables(symbol);
     // Make sure this variable isn't reserved and isn't in the variable list
-    while (!(GetUDeps.RESERVED.indexOf(v) === -1 && vars.indexOf(v) === -1)) {
+    while (!(ReservedDeps.RESERVED.indexOf(v) === -1 && vars.indexOf(v) === -1)) {
         v = u + c++;
     }
     // Get an empty slot. It seems easier to just push but the
     // problem is that we may have some which are created by clearU
     for (
-        let i = 0, l = GetUDeps.RESERVED.length;
+        let i = 0, l = ReservedDeps.RESERVED.length;
         i <= l;
         i++ // Reserved cannot equals false or 0 so we can safely check for a falsy type
     ) {
-        if (!GetUDeps.RESERVED[i]) {
-            GetUDeps.RESERVED[i] = v; // Reserve the variable
+        if (!ReservedDeps.RESERVED[i]) {
+            ReservedDeps.RESERVED[i] = v; // Reserve the variable
             break;
         }
     }
@@ -7478,16 +7360,7 @@ function _clearFunctions() {
 }
 
 // ImportFunctions Function ========================================================
-/**
- * Dependency container for importFunctions function.
- *
- * @type {{
- *     _: any;
- * }}
- */
-const ImportFunctionsDeps = {
-    _: null,
-};
+// Uses ParserDeps._ for parser access.
 
 /**
  * Provide a mechanism for accessing functions directly. Not yet complete!!! Some functions will return undefined. This
@@ -7496,11 +7369,11 @@ const ImportFunctionsDeps = {
  */
 function importFunctions() {
     const o = {};
-    for (const x in ImportFunctionsDeps._.functions) {
-        if (!Object.hasOwn(ImportFunctionsDeps._.functions, x)) {
+    for (const x in ParserDeps._.functions) {
+        if (!Object.hasOwn(ParserDeps._.functions, x)) {
             continue;
         }
-        o[x] = ImportFunctionsDeps._.functions[x][0];
+        o[x] = ParserDeps._.functions[x][0];
     }
     return o;
 }
@@ -9786,7 +9659,8 @@ const nerdamer = (function initNerdamerCore(imports) {
     // Most utility functions are now defined outside IIFE. This section initializes
     // their dependency containers with values from inside the IIFE.
 
-    IsReservedDeps.RESERVED = RESERVED;
+    // Initialize ReservedDeps with RESERVED array reference (shared by isReserved, reserveNames, clearU, getU, reserved, validVarName)
+    ReservedDeps.RESERVED = RESERVED;
 
     WarnDeps.WARNINGS = WARNINGS;
     Object.defineProperty(WarnDeps, 'SHOW_WARNINGS', {
@@ -9829,12 +9703,10 @@ const nerdamer = (function initNerdamerCore(imports) {
     SeparateDeps.EX = EX;
     SeparateDeps.ABS = ABS;
 
-    // Initialize IsNumericSymbolDeps with Groups constants
-    IsNumericSymbolDeps.N = N;
-    IsNumericSymbolDeps.P = P;
-
-    // Initialize IsVariableSymbolDeps with Groups constants
-    IsVariableSymbolDeps.S = S;
+    // Initialize GroupConstantsDeps with symbol group constants (shared by isNumericSymbol, isVariableSymbol, allNumbers)
+    GroupConstantsDeps.N = N;
+    GroupConstantsDeps.P = P;
+    GroupConstantsDeps.S = S;
 
     // Utility functions now defined outside IIFE:
     // isNegative, stringReplace, range, keys, firstObject, compare, _setFunction,
@@ -9843,27 +9715,14 @@ const nerdamer = (function initNerdamerCore(imports) {
     // generatePrimes, allNumbers, allConstants, mix
 
     // Initialize dependency containers with parser reference (set after Parser creation)
-    // CompareDeps._, ArraySumDeps._, SeparateDeps._, DecomposeFnDeps._,
-    // NrootsDeps._, ImportFunctionsDeps._, GetCoeffsDeps._, EvaluateDeps._,
-    // ConvertToVectorDeps._, MixDeps._, InternalSetFunctionDeps._, ClearFunctionsDeps._
+    // Consolidated into ParserDeps._: getCoeffs, compare, arraySum, mix, convertToVector, importFunctions, evaluate
+    // Remaining: NrootsDeps._, SeparateDeps._, DecomposeFnDeps._, InternalSetFunctionDeps._, ClearFunctionsDeps._
 
     // Initialize DecomposeFnDeps with group constant
     DecomposeFnDeps.CP = CP;
 
-    // Initialize GetUDeps with RESERVED array reference
-    GetUDeps.RESERVED = RESERVED;
-
-    // Initialize ClearUDeps with RESERVED array reference
-    ClearUDeps.RESERVED = RESERVED;
-
-    // Initialize ReserveNamesDeps with RESERVED array reference
-    ReserveNamesDeps.RESERVED = RESERVED;
-
     // Initialize BlockDeps with Settings reference
     BlockDeps.Settings = Settings;
-
-    // Initialize AllNumbersDeps with Groups constants
-    AllNumbersDeps.N = N;
 
     // Exceptions ===================================================================
     // All error classes are defined outside IIFE for proper TypeScript type inference:
@@ -15774,17 +15633,11 @@ const nerdamer = (function initNerdamerCore(imports) {
     _ = /** @type {ParserType} */ (/** @type {unknown} */ (new Parser()));
 
     // Parser-dependent deps (direct assignment)
-    EvaluateDeps._ = _;
+    ParserDeps._ = _; // Shared by getCoeffs, compare, arraySum, mix, convertToVector, importFunctions, evaluate
     NerdamerSymbolDeps._ = _;
-    GetCoeffsDeps._ = _;
     NrootsDeps._ = _;
-    CompareDeps._ = _;
-    ArraySumDeps._ = _;
     SeparateDeps._ = _;
     DecomposeFnDeps._ = _;
-    MixDeps._ = _;
-    ConvertToVectorDeps._ = _;
-    ImportFunctionsDeps._ = _;
     InternalSetFunctionDeps._ = _;
     ClearFunctionsDeps._ = _;
     ExpressionDeps._ = _; // Note: ExpressionDeps.Build initialized after Build is defined
