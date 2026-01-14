@@ -3280,6 +3280,322 @@ function evaluate(symbol, o = undefined) {
     return block('PARSE2NUMBER', () => EvaluateDeps._.parse(symbol, o), true);
 }
 
+// Expression Class =================================================================
+// Extracted outside IIFE to enable proper TypeScript type inference.
+// Dependencies are injected via ExpressionDeps which is set by the IIFE after initialization.
+
+/**
+ * Dependency container for Expression class. Populated by the IIFE during initialization.
+ *
+ * @type {{
+ *     EXPRESSIONS: any[];
+ *     Settings: { EXPRESSION_DECP: number; precision?: number };
+ *     LaTeX: { latex: Function };
+ *     text: Function;
+ *     variables: Function;
+ *     isVector: (x: any) => boolean;
+ *     isSymbol: (x: any) => boolean;
+ *     isExpression: (x: any) => boolean;
+ *     isNumericSymbol: (x: any) => boolean;
+ *     isFraction: (x: any) => boolean;
+ *     isArray: (x: any) => boolean;
+ *     _: any;
+ *     Build: any;
+ * }}
+ */
+const ExpressionDeps = {
+    EXPRESSIONS: [],
+    Settings: { EXPRESSION_DECP: 5 },
+    LaTeX: { latex: () => '' },
+    text: () => '',
+    variables: () => [],
+    isVector: () => false,
+    isSymbol: () => false,
+    isExpression: () => false,
+    isNumericSymbol: () => false,
+    isFraction: () => false,
+    isArray,
+    _: {
+        parse: () => {},
+        add: () => {},
+        subtract: () => {},
+        multiply: () => {},
+        divide: () => {},
+        pow: () => {},
+        expand: () => {},
+    },
+    Build: /** @type {any} */ (null),
+};
+
+/**
+ * Wraps a symbol in an Expression for user-facing API.
+ *
+ * @param {any} symbol
+ */
+function Expression(symbol) {
+    // We don't want arrays wrapped
+    this.symbol = symbol;
+}
+/**
+ * Returns stored expression at index. For first index use 1 not 0.
+ *
+ * @param {number | string} expressionNumber
+ * @param {boolean} [_asType]
+ */
+Expression.getExpression = function getExpression(expressionNumber, _asType = undefined) {
+    if (expressionNumber === 'last' || !expressionNumber) {
+        expressionNumber = ExpressionDeps.EXPRESSIONS.length;
+    }
+    if (expressionNumber === 'first') {
+        expressionNumber = 1;
+    }
+    const index = Number(expressionNumber) - 1;
+    const expression = ExpressionDeps.EXPRESSIONS[index];
+    const retval = expression ? new Expression(expression) : expression;
+    return retval;
+};
+Expression.prototype = {
+    /**
+     * Returns the text representation of the expression
+     *
+     * @param {string} [opt] - Option of formatting numbers
+     * @param {number} [n] The number of significant figures
+     * @returns {string}
+     */
+    text(opt = 'decimals', n = undefined) {
+        n ||= ExpressionDeps.Settings.EXPRESSION_DECP;
+        const sym = /** @type {NerdamerSymbolType} */ (this.symbol);
+        if (sym.text_) {
+            return sym.text_(opt);
+        }
+
+        return ExpressionDeps.text(this.symbol, opt, undefined, n);
+    },
+    /**
+     * Returns the latex representation of the expression
+     *
+     * @param {OutputType} option - Option for formatting numbers
+     * @returns {string}
+     */
+    latex(option) {
+        if (this.symbol.latex) {
+            return this.symbol.latex(option);
+        }
+        return ExpressionDeps.LaTeX.latex(this.symbol, option);
+    },
+    valueOf() {
+        return this.symbol.valueOf();
+    },
+
+    /**
+     * Evaluates the expression and tries to reduce it to a number if possible. If an argument is given in the form of
+     * %{integer} it will evaluate that expression. Other than that it will just use it's own text and reparse
+     *
+     * @returns {Expression}
+     */
+    evaluate(...args) {
+        // Don't evaluate an empty vector
+        if (ExpressionDeps.isVector(this.symbol) && this.symbol.dimensions() === 0) {
+            return this;
+        }
+
+        const firstArg = args[0];
+        let expression;
+        let idx = 1;
+
+        // Enable getting of expressions using the % so for example %1 should get the first expression
+        if (typeof firstArg === 'string') {
+            // TODO Replace substr with slice, and test it
+            expression = firstArg.charAt(0) === '%' ? Expression.getExpression(firstArg.substr(1)).text() : firstArg;
+        } else if (firstArg instanceof Expression || ExpressionDeps.isSymbol(firstArg)) {
+            expression = firstArg.text();
+        } else {
+            expression = this.symbol.text();
+            idx--;
+        }
+
+        const subs = args[idx] || {};
+
+        const retval = new Expression(block('PARSE2NUMBER', () => ExpressionDeps._.parse(expression, subs), true));
+
+        return retval;
+    },
+    /**
+     * Converts a symbol to a JS function. Pass in an array of variables to use that order instead of the default
+     * alphabetical order
+     *
+     * @param vars {Array}
+     */
+    buildFunction(vars) {
+        return ExpressionDeps.Build.build(this.symbol, vars);
+    },
+    /**
+     * Checks to see if the expression is just a plain old number
+     *
+     * @returns {boolean}
+     */
+    isNumber() {
+        return ExpressionDeps.isNumericSymbol(this.symbol);
+    },
+    /**
+     * Checks to see if the expression is infinity
+     *
+     * @returns {boolean}
+     */
+    isInfinity() {
+        return Math.abs(this.symbol.multiplier.valueOf()) === Infinity;
+    },
+    /**
+     * Checks to see if the expression contains imaginary numbers
+     *
+     * @returns {boolean}
+     */
+    isImaginary() {
+        return evaluate(ExpressionDeps._.parse(this.symbol)).isImaginary();
+    },
+    /**
+     * Returns all the variables in the expression
+     *
+     * @returns {Array}
+     */
+    variables() {
+        return ExpressionDeps.variables(this.symbol);
+    },
+
+    toString() {
+        try {
+            if (ExpressionDeps.isArray(this.symbol)) {
+                return `[${this.symbol.toString()}]`;
+            }
+            return this.symbol.toString();
+        } catch (e) {
+            if (e.message === 'timeout') {
+                throw e;
+            }
+            return '';
+        }
+    },
+    // Forces the symbol to be returned as a decimal
+    toDecimal(prec) {
+        ExpressionDeps.Settings.precision = prec;
+        const dec = ExpressionDeps.text(this.symbol, 'decimals');
+        ExpressionDeps.Settings.precision = undefined;
+        return dec;
+    },
+    // Checks to see if the expression is a fraction
+    isFraction() {
+        return ExpressionDeps.isFraction(this.symbol);
+    },
+    // Checks to see if the symbol is a multivariate polynomial
+    isPolynomial() {
+        return this.symbol.isPoly();
+    },
+    // Performs a substitution
+    sub(symbol, forSymbol) {
+        return new Expression(this.symbol.sub(ExpressionDeps._.parse(symbol), ExpressionDeps._.parse(forSymbol)));
+    },
+    operation(otype, symbol) {
+        if (ExpressionDeps.isExpression(symbol)) {
+            symbol = symbol.symbol;
+        } else if (!ExpressionDeps.isSymbol(symbol)) {
+            symbol = ExpressionDeps._.parse(symbol);
+        }
+        return new Expression(ExpressionDeps._[otype](this.symbol.clone(), symbol.clone()));
+    },
+    add(symbol) {
+        return this.operation('add', symbol);
+    },
+    subtract(symbol) {
+        return this.operation('subtract', symbol);
+    },
+    multiply(symbol) {
+        return this.operation('multiply', symbol);
+    },
+    divide(symbol) {
+        return this.operation('divide', symbol);
+    },
+    pow(symbol) {
+        return this.operation('pow', symbol);
+    },
+    expand() {
+        return new Expression(ExpressionDeps._.expand(this.symbol));
+    },
+    each(callback, i) {
+        if (this.symbol.each) {
+            this.symbol.each(callback, i);
+        } else if (ExpressionDeps.isArray(this.symbol)) {
+            for (let idx = 0; idx < this.symbol.length; idx++) {
+                callback.call(this.symbol, this.symbol[idx], idx);
+            }
+        } else {
+            callback.call(this.symbol);
+        }
+    },
+    eq(value) {
+        if (!ExpressionDeps.isSymbol(value)) {
+            value = ExpressionDeps._.parse(value);
+        }
+        try {
+            const d = ExpressionDeps._.subtract(this.symbol.clone(), value);
+            return d.equals(0);
+        } catch (e) {
+            if (e.message === 'timeout') {
+                throw e;
+            }
+            return false;
+        }
+    },
+    lt(value) {
+        if (!ExpressionDeps.isSymbol(value)) {
+            value = ExpressionDeps._.parse(value);
+        }
+        try {
+            const d = evaluate(ExpressionDeps._.subtract(this.symbol.clone(), value));
+            return d.lessThan(0);
+        } catch (e) {
+            if (e.message === 'timeout') {
+                throw e;
+            }
+            return false;
+        }
+    },
+    gt(value) {
+        if (!ExpressionDeps.isSymbol(value)) {
+            value = ExpressionDeps._.parse(value);
+        }
+        try {
+            const d = evaluate(ExpressionDeps._.subtract(this.symbol.clone(), value));
+            return d.greaterThan(0);
+        } catch (e) {
+            if (e.message === 'timeout') {
+                throw e;
+            }
+            return false;
+        }
+    },
+    gte(value) {
+        return this.gt(value) || this.eq(value);
+    },
+    lte(value) {
+        return this.lt(value) || this.eq(value);
+    },
+
+    numerator() {
+        return new Expression(this.symbol.getNum());
+    },
+    denominator() {
+        return new Expression(this.symbol.getDenom());
+    },
+    hasFunction(f) {
+        return this.symbol.containsFunction(f);
+    },
+    contains(variable) {
+        return this.symbol.contains(variable);
+    },
+};
+// Aliases
+Expression.prototype.toTeX = Expression.prototype.latex;
+
 const nerdamer = (function initNerdamerCore(imports) {
     // Version ======================================================================
     const _version = '1.1.16';
@@ -5505,280 +5821,20 @@ const nerdamer = (function initNerdamerCore(imports) {
     }
 
     // PrimeFactors is now defined outside IIFE
-    // Expression ===================================================================
-    /**
-     * This is what nerdamer returns. It's sort of a wrapper around the symbol class and provides the user with some
-     * useful functions. If you want to provide the user with extra library functions then add them to this class's
-     * prototype.
-     *
-     * @class
-     * @this {ExpressionType}
-     * @param {NerdamerSymbolType} symbol
-     */
-    function Expression(symbol) {
-        // We don't want arrays wrapped
-        this.symbol = symbol;
-    }
-    /**
-     * Returns stored expression at index. For first index use 1 not 0.
-     *
-     * @param {number | string} expressionNumber
-     * @param {boolean} [_asType]
-     */
-    Expression.getExpression = function getExpression(expressionNumber, _asType = undefined) {
-        if (expressionNumber === 'last' || !expressionNumber) {
-            expressionNumber = EXPRESSIONS.length;
-        }
-        if (expressionNumber === 'first') {
-            expressionNumber = 1;
-        }
-        const index = Number(expressionNumber) - 1;
-        const expression = EXPRESSIONS[index];
-        const retval = expression ? new Expression(expression) : expression;
-        return retval;
-    };
-    Expression.prototype = {
-        /**
-         * Returns the text representation of the expression
-         *
-         * @param {string} [opt] - Option of formatting numbers
-         * @param {number} [n] The number of significant figures
-         * @returns {string}
-         */
-        text(opt = 'decimals', n = undefined) {
-            n ||= Settings.EXPRESSION_DECP;
-            const sym = /** @type {NerdamerSymbolType} */ (this.symbol);
-            if (sym.text_) {
-                return sym.text_(opt);
-            }
-
-            return text(this.symbol, opt, undefined, n);
-        },
-        /**
-         * Returns the latex representation of the expression
-         *
-         * @param {OutputType} option - Option for formatting numbers
-         * @returns {string}
-         */
-        latex(option) {
-            if (this.symbol.latex) {
-                return this.symbol.latex(option);
-            }
-            return LaTeX.latex(this.symbol, option);
-        },
-        valueOf() {
-            return this.symbol.valueOf();
-        },
-
-        /**
-         * Evaluates the expression and tries to reduce it to a number if possible. If an argument is given in the form
-         * of %{integer} it will evaluate that expression. Other than that it will just use it's own text and reparse
-         *
-         * @returns {Expression}
-         */
-        evaluate(...args) {
-            // Don't evaluate an empty vector
-            if (isVector(this.symbol) && this.symbol.dimensions() === 0) {
-                return this;
-            }
-
-            const firstArg = args[0];
-            let expression;
-            let idx = 1;
-
-            // Enable getting of expressions using the % so for example %1 should get the first expression
-            if (typeof firstArg === 'string') {
-                // TODO Replace substr with slice, and test it
-                expression =
-                    firstArg.charAt(0) === '%' ? Expression.getExpression(firstArg.substr(1)).text() : firstArg;
-            } else if (firstArg instanceof Expression || isSymbol(firstArg)) {
-                expression = firstArg.text();
-            } else {
-                expression = this.symbol.text();
-                idx--;
-            }
-
-            const subs = args[idx] || {};
-
-            const retval = new Expression(block('PARSE2NUMBER', () => _.parse(expression, subs), true));
-
-            return retval;
-        },
-        /**
-         * Converts a symbol to a JS function. Pass in an array of variables to use that order instead of the default
-         * alphabetical order
-         *
-         * @param vars {Array}
-         */
-        buildFunction(vars) {
-            return Build.build(this.symbol, vars);
-        },
-        /**
-         * Checks to see if the expression is just a plain old number
-         *
-         * @returns {boolean}
-         */
-        isNumber() {
-            return isNumericSymbol(this.symbol);
-        },
-        /**
-         * Checks to see if the expression is infinity
-         *
-         * @returns {boolean}
-         */
-        isInfinity() {
-            return Math.abs(this.symbol.multiplier.valueOf()) === Infinity;
-        },
-        /**
-         * Checks to see if the expression contains imaginary numbers
-         *
-         * @returns {boolean}
-         */
-        isImaginary() {
-            return evaluate(_.parse(this.symbol)).isImaginary();
-        },
-        /**
-         * Returns all the variables in the expression
-         *
-         * @returns {Array}
-         */
-        variables() {
-            return variables(this.symbol);
-        },
-
-        toString() {
-            try {
-                if (isArray(this.symbol)) {
-                    return `[${this.symbol.toString()}]`;
-                }
-                return this.symbol.toString();
-            } catch (e) {
-                if (e.message === 'timeout') {
-                    throw e;
-                }
-                return '';
-            }
-        },
-        // Forces the symbol to be returned as a decimal
-        toDecimal(prec) {
-            Settings.precision = prec;
-            const dec = text(this.symbol, 'decimals');
-            Settings.precision = undefined;
-            return dec;
-        },
-        // Checks to see if the expression is a fraction
-        isFraction() {
-            return isFraction(this.symbol);
-        },
-        // Checks to see if the symbol is a multivariate polynomial
-        isPolynomial() {
-            return this.symbol.isPoly();
-        },
-        // Performs a substitution
-        sub(symbol, forSymbol) {
-            return new Expression(this.symbol.sub(_.parse(symbol), _.parse(forSymbol)));
-        },
-        operation(otype, symbol) {
-            if (isExpression(symbol)) {
-                symbol = symbol.symbol;
-            } else if (!isSymbol(symbol)) {
-                symbol = _.parse(symbol);
-            }
-            return new Expression(_[otype](this.symbol.clone(), symbol.clone()));
-        },
-        add(symbol) {
-            return this.operation('add', symbol);
-        },
-        subtract(symbol) {
-            return this.operation('subtract', symbol);
-        },
-        multiply(symbol) {
-            return this.operation('multiply', symbol);
-        },
-        divide(symbol) {
-            return this.operation('divide', symbol);
-        },
-        pow(symbol) {
-            return this.operation('pow', symbol);
-        },
-        expand() {
-            return new Expression(_.expand(this.symbol));
-        },
-        each(callback, i) {
-            if (this.symbol.each) {
-                this.symbol.each(callback, i);
-            } else if (isArray(this.symbol)) {
-                for (let idx = 0; idx < this.symbol.length; idx++) {
-                    callback.call(this.symbol, this.symbol[idx], idx);
-                }
-            } else {
-                callback.call(this.symbol);
-            }
-        },
-        eq(value) {
-            if (!isSymbol(value)) {
-                value = _.parse(value);
-            }
-            try {
-                const d = _.subtract(this.symbol.clone(), value);
-                return d.equals(0);
-            } catch (e) {
-                if (e.message === 'timeout') {
-                    throw e;
-                }
-                return false;
-            }
-        },
-        lt(value) {
-            if (!isSymbol(value)) {
-                value = _.parse(value);
-            }
-            try {
-                const d = evaluate(_.subtract(this.symbol.clone(), value));
-                return d.lessThan(0);
-            } catch (e) {
-                if (e.message === 'timeout') {
-                    throw e;
-                }
-                return false;
-            }
-        },
-        gt(value) {
-            if (!isSymbol(value)) {
-                value = _.parse(value);
-            }
-            try {
-                const d = evaluate(_.subtract(this.symbol.clone(), value));
-                return d.greaterThan(0);
-            } catch (e) {
-                if (e.message === 'timeout') {
-                    throw e;
-                }
-                return false;
-            }
-        },
-        gte(value) {
-            return this.gt(value) || this.eq(value);
-        },
-        lte(value) {
-            return this.lt(value) || this.eq(value);
-        },
-
-        numerator() {
-            return new Expression(this.symbol.getNum());
-        },
-        denominator() {
-            return new Expression(this.symbol.getDenom());
-        },
-        hasFunction(f) {
-            return this.symbol.containsFunction(f);
-        },
-        contains(variable) {
-            return this.symbol.contains(variable);
-        },
-    };
-    // Aliases
-    Expression.prototype.toTeX = Expression.prototype.latex;
+    // Expression class is now defined outside the IIFE (see above).
+    // Initialize its dependencies now that they're available (except _ and Build which are set later).
+    ExpressionDeps.EXPRESSIONS = EXPRESSIONS;
+    ExpressionDeps.Settings = Settings;
+    ExpressionDeps.LaTeX = LaTeX;
+    ExpressionDeps.text = text;
+    ExpressionDeps.variables = variables;
+    ExpressionDeps.isVector = isVector;
+    ExpressionDeps.isSymbol = isSymbol;
+    ExpressionDeps.isExpression = isExpression;
+    ExpressionDeps.isNumericSymbol = isNumericSymbol;
+    ExpressionDeps.isFraction = isFraction;
+    ExpressionDeps.isArray = isArray;
+    // Note: ExpressionDeps._ and ExpressionDeps.Build are initialized after Parser is created
 
     // Scientific class is now defined outside the IIFE (see above).\n    // Initialize its dependencies now that they're available.\n    ScientificDeps.Settings = Settings;\n    ScientificDeps.nround = nround;\n\n    // Frac class is now defined outside the IIFE (see above).
     // Initialize its dependencies now that they're available.
@@ -13222,6 +13278,10 @@ const nerdamer = (function initNerdamerCore(imports) {
     // Initialize EvaluateDeps with parser reference
     EvaluateDeps._ = _;
 
+    // Initialize ExpressionDeps._ now that Parser is created
+    // Note: ExpressionDeps.Build is initialized later after Build is defined
+    ExpressionDeps._ = _;
+
     // Supported is now defined outside IIFE
     // Initialize SupportedDeps with _.functions reference (use getter for lazy access)
     Object.defineProperty(SupportedDeps, 'functions', {
@@ -15313,6 +15373,9 @@ const nerdamer = (function initNerdamerCore(imports) {
             return f;
         },
     };
+
+    // Initialize ExpressionDeps.Build now that Build is defined
+    ExpressionDeps.Build = Build;
 
     // Finalize =====================================================================
     /* FINALIZE */
