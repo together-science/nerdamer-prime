@@ -6830,6 +6830,427 @@ const Math2 = {
     },
 };
 
+// Text Function ==================================================================
+/**
+ * Dependency container for text function. These are initialized later once they're available inside the IIFE.
+ *
+ * @type {{
+ *     bigInt: any;
+ *     isSymbol: Function;
+ *     isVector: Function;
+ *     N: number;
+ *     P: number;
+ *     S: number;
+ *     FN: number;
+ *     PL: number;
+ *     CB: number;
+ *     CP: number;
+ *     EX: number;
+ *     CUSTOM_OPERATORS: object;
+ * }}
+ */
+const TextDeps = {
+    bigInt: null,
+    isSymbol: null,
+    isVector: null,
+    N: 1,
+    P: 2,
+    S: 3,
+    FN: 5,
+    PL: 6,
+    CB: 7,
+    CP: 8,
+    EX: 4,
+    CUSTOM_OPERATORS: {},
+};
+
+function text(obj, option = undefined, useGroup = undefined, decp = undefined) {
+    const asHash = option === 'hash';
+    // Whether to wrap numbers in brackets
+    let wrapCondition;
+    const opt = asHash ? undefined : option;
+    const asDecimal = opt === 'decimal' || opt === 'decimals' || opt === 'decimals_or_scientific';
+
+    // Only set default decp for decimals_or_scientific mode, not for plain decimals.
+    // This preserves full valueOf() precision for internal operations.
+    //
+    // Background: When a NerdamerSymbol with a fractional multiplier (e.g., 1/3) is converted to
+    // a string via valueOf(), it becomes a decimal like "0.3333333333333333". If that
+    // decimal is then parsed back into a NerdamerSymbol, nerdamer uses a continued fractions
+    // algorithm (Fraction.fullConversion) to reconstruct the fraction. This algorithm
+    // finds the simplest fraction within epsilon (1e-30) of the decimal value.
+    //
+    // The precision matters:
+    //   - 16 threes (0.3333333333333333): exactly equals JS's 1/3 in IEEE 754 → reconstructs to 1/3
+    //   - 15 threes (0.333333333333333): differs by ~3.3e-16 → becomes 321685687669321/965057063007964
+    //
+    // Setting decp here would trigger toDecimal(16) which can truncate precision.
+    // By not setting decp for plain decimals mode, we preserve full valueOf() precision.
+    if (opt === 'decimals_or_scientific' && typeof decp === 'undefined') {
+        decp = Settings.DEFAULT_DECP;
+    }
+
+    function toString(fracObj, decimalPlaces) {
+        switch (option) {
+            case 'decimals':
+            case 'decimal':
+                wrapCondition ||= function (_str) {
+                    return false;
+                };
+                if (decimalPlaces) {
+                    return fracObj.toDecimal(decimalPlaces);
+                }
+                return fracObj.valueOf();
+            case 'recurring': {
+                wrapCondition ||= function (s) {
+                    return s.indexOf("'") !== -1;
+                };
+
+                const str = fracObj.toString();
+                // Verify that the string is actually a fraction
+                const frac = /^-?\d+(?:\/\d+)?$/u.exec(str);
+                if (frac.length === 0) {
+                    return str;
+                }
+
+                // Split the fraction into the numerator and denominator
+                const parts = frac[0].split('/');
+                let negative = false;
+                let m = Number(parts[0]);
+                if (m < 0) {
+                    m = -m;
+                    negative = true;
+                }
+                let n = Number(parts[1]);
+                n ||= 1;
+
+                // https://softwareengineering.stackexchange.com/questions/192070/what-is-a-efficient-way-to-find-repeating-decimal#comment743574_192081
+                /** @type {number | string} */
+                let quotient = Math.floor(m / n);
+                let c = 10 * (m - quotient * n);
+                quotient = `${quotient.toString()}.`;
+                while (c && c < n) {
+                    c *= 10;
+                    quotient += '0';
+                }
+                let digits = '';
+                const passed = [];
+                let i = 0;
+                while (true) {
+                    if (typeof passed[c] !== 'undefined') {
+                        const prefix = digits.slice(0, passed[c]);
+                        const cycle = digits.slice(passed[c]);
+                        const result = `${quotient + prefix}'${cycle}'`;
+                        return (negative ? '-' : '') + result.replace("'0'", '').replace(/\.$/u, '');
+                    }
+                    const q = Math.floor(c / n);
+                    const r = c - q * n;
+                    passed[c] = i;
+                    digits += q.toString();
+                    i += 1;
+                    c = 10 * r;
+                }
+            }
+            case 'mixed': {
+                wrapCondition ||= function (s) {
+                    return s.indexOf('/') !== -1;
+                };
+
+                const str = fracObj.toString();
+                // Verify that the string is actually a fraction
+                const frac = /^-?\d+(?:\/\d+)?$/u.exec(str);
+                if (frac.length === 0) {
+                    return str;
+                }
+
+                // Split the fraction into the numerator and denominator
+                const parts = frac[0].split('/');
+                const numer = new TextDeps.bigInt(parts[0]);
+                let denom = new TextDeps.bigInt(parts[1]);
+                if (denom.equals(0)) {
+                    denom = new TextDeps.bigInt(1);
+                }
+
+                // Return the quotient plus the remainder
+                const divmod = numer.divmod(denom);
+                const { quotient } = divmod;
+                const { remainder } = divmod;
+                const operator = parts[0][0] === '-' || quotient.equals(0) || remainder.equals(0) ? '' : '+';
+                return (
+                    (quotient.equals(0) ? '' : quotient.toString()) +
+                    operator +
+                    (remainder.equals(0) ? '' : `${remainder.toString()}/${parts[1]}`)
+                );
+            }
+            case 'scientific':
+                wrapCondition ||= function (_str) {
+                    return false;
+                };
+                return new Scientific(fracObj.valueOf()).toString(Settings.SCIENTIFIC_MAX_DECIMAL_PLACES);
+            case 'decimals_or_scientific': {
+                wrapCondition ||= function (_str) {
+                    return false;
+                };
+                const decimals = fracObj.valueOf();
+                const scientific = new Scientific(decimals);
+                if (Math.abs(scientific.exponent) >= Settings.SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT) {
+                    return scientific.toString(Settings.SCIENTIFIC_MAX_DECIMAL_PLACES);
+                }
+                if (decimalPlaces) {
+                    return fracObj.toDecimal(decimalPlaces);
+                }
+                return decimals;
+            }
+
+            default:
+                wrapCondition ||= function (s) {
+                    return s.indexOf('/') !== -1;
+                };
+
+                return fracObj.toString();
+        }
+    }
+
+    // If the object is a symbol
+    if (TextDeps.isSymbol(obj)) {
+        /** @type {string | number} */
+        let multiplier = '';
+        let power = '';
+        let sign = '';
+        const group = obj.group || useGroup;
+        let { value } = obj;
+
+        // If the value is to be used as a hash then the power and multiplier need to be suppressed
+        if (!asHash) {
+            // Get multiplier as string. Don't pass decp here to preserve precision
+            // for internal operations - decp is only applied in the TextDeps.N case below.
+            let om = toString(obj.multiplier);
+            if (String(om) === '-1' && String(obj.multiplier) === '-1') {
+                sign = '-';
+                om = '1';
+            }
+            // Only add the multiplier if it's not 1
+            if (String(om) !== '1') {
+                multiplier = om;
+            }
+            // Use asDecimal to get the object back as a decimal
+            const p = obj.power ? toString(obj.power) : '';
+            // Only add the multiplier
+            if (String(p) !== '1') {
+                // Is it a symbol
+                if (TextDeps.isSymbol(p)) {
+                    power = text(p, opt);
+                } else {
+                    power = p;
+                }
+            }
+        }
+
+        switch (group) {
+            case TextDeps.N: {
+                multiplier = '';
+                // Handle numeric output with appropriate precision:
+                // - decimals_or_scientific: use toString with decp to trigger Scientific formatting
+                // - decimals with explicit decp: round to requested decimal places
+                // - otherwise: use default toString which preserves full precision via valueOf()
+                let m;
+                if (opt === 'decimals_or_scientific') {
+                    m = toString(obj.multiplier, decp);
+                } else if (decp && asDecimal) {
+                    m = obj.multiplier.toDecimal(decp);
+                } else {
+                    m = toString(obj.multiplier);
+                }
+                // If it's numerical then all we need is the multiplier
+                value = String(obj.multiplier) === '-1' ? '1' : m;
+                power = '';
+                break;
+            }
+            case TextDeps.PL:
+                value = obj
+                    .collectSymbols()
+                    .map(x => {
+                        let txt = text(x, opt, useGroup, decp);
+                        if (txt === '0') {
+                            txt = '';
+                        }
+                        return txt;
+                    })
+                    .sort()
+                    .join('+')
+                    .replace(/\+-/gu, '-');
+                break;
+            case TextDeps.CP:
+                value = obj
+                    .collectSymbols()
+                    .map(x => {
+                        let txt = text(x, opt, useGroup, decp);
+                        if (txt === '0') {
+                            txt = '';
+                        }
+                        return txt;
+                    })
+                    .sort()
+                    .join('+')
+                    .replace(/\+-/gu, '-');
+                break;
+            case TextDeps.CB:
+                value = obj
+                    .collectSymbols(symbol => {
+                        const g = symbol.group;
+                        // Both groups will already be in brackets if their power is greater than 1
+                        // so skip it.
+                        if (
+                            (g === TextDeps.PL || g === TextDeps.CP) &&
+                            symbol.power.equals(1) &&
+                            symbol.multiplier.equals(1)
+                        ) {
+                            return inBrackets(text(symbol, opt));
+                        }
+                        return text(symbol, opt);
+                    })
+                    .join('*');
+                break;
+            case TextDeps.EX: {
+                const pg = obj.previousGroup;
+                const pwg = obj.power.group;
+
+                // TextDeps.PL are the exception. It's simpler to just collect and set the value
+                if (pg === TextDeps.PL) {
+                    value = obj.collectSymbols(text, opt).join('+').replace('+-', '-');
+                }
+                if (!(pg === TextDeps.N || pg === TextDeps.S || pg === TextDeps.FN) && !asHash) {
+                    value = inBrackets(value);
+                }
+
+                if (
+                    (pwg === TextDeps.CP ||
+                        pwg === TextDeps.CB ||
+                        pwg === TextDeps.PL ||
+                        obj.power.multiplier.toString() !== '1') &&
+                    power
+                ) {
+                    power = inBrackets(power);
+                }
+                break;
+            }
+        }
+
+        if (group === TextDeps.FN) {
+            value = obj.fname + inBrackets(obj.args.map(symbol => text(symbol, opt)).join(','));
+        }
+        // TODO: Needs to be more efficient. Maybe.
+        if (group === TextDeps.FN && obj.fname in TextDeps.CUSTOM_OPERATORS) {
+            let a = text(obj.args[0]);
+            let b = text(obj.args[1]);
+            if (obj.args[0].isComposite()) // Preserve the brackets
+            {
+                a = inBrackets(a);
+            }
+            if (obj.args[1].isComposite()) // Preserve the brackets
+            {
+                b = inBrackets(b);
+            }
+            value = a + TextDeps.CUSTOM_OPERATORS[obj.fname] + b;
+        }
+        // Wrap the power since / is less than ^
+        // TODO: introduce method call isSimple
+        const shouldWrapPower =
+            typeof wrapCondition === 'function' ? /** @type {Function} */ (wrapCondition)(power) : false;
+        if (power && group !== TextDeps.EX && shouldWrapPower) {
+            power = inBrackets(power);
+        }
+
+        // The following groups are held together by plus or minus. They can be raised to a power or multiplied
+        // by a multiplier and have to be in brackets to preserve the order of precedence
+        if (
+            ((group === TextDeps.CP || group === TextDeps.PL) &&
+                ((multiplier && String(multiplier) !== '1') || sign === '-')) ||
+            ((group === TextDeps.CB || group === TextDeps.CP || group === TextDeps.PL) &&
+                power &&
+                String(power) !== '1') ||
+            (!asHash && group === TextDeps.P && String(value) === '-1') ||
+            obj.fname === Settings.PARENTHESIS
+        ) {
+            value = inBrackets(value);
+        }
+
+        if (
+            decp &&
+            (option === 'decimal' || ((option === 'decimals' || option === 'decimals_or_scientific') && multiplier))
+        ) {
+            // Scientific notation? regular rounding would be the wrong decision here
+            if (multiplier.toString().includes('e')) {
+                if (option !== 'decimals_or_scientific') {
+                    // ToPrecision can create extra digits, so we also
+                    // convert it to string straight up and pick the shorter version
+                    const numMult = Number(multiplier);
+                    const m1 = numMult.toExponential();
+                    const m2 = numMult.toPrecision(decp);
+                    /** @type {string | number} */
+                    multiplier = m1.length < m2.length ? m1 : m2;
+                }
+            } else {
+                multiplier = nround(Number(multiplier), decp);
+            }
+        }
+
+        // Add the sign back
+        let c = sign + multiplier;
+
+        const shouldWrapMult =
+            typeof wrapCondition === 'function' ? /** @type {Function} */ (wrapCondition)(multiplier) : false;
+        if (multiplier && shouldWrapMult) {
+            c = inBrackets(c);
+        }
+
+        if (Number(power) < 0) {
+            power = inBrackets(power);
+        }
+
+        // Add the multiplication back
+        if (multiplier) {
+            c = `${c}*`;
+        }
+
+        if (power) {
+            if (value === 'e' && Settings.E_TO_EXP) {
+                return `${c}exp${inBrackets(power)}`;
+            }
+            power = Settings.POWER_OPERATOR + power;
+        }
+
+        // This needs serious rethinking. Must fix
+        if (group === TextDeps.EX && value.charAt(0) === '-') {
+            value = inBrackets(value);
+        }
+
+        let cv = c + value;
+
+        if (obj.parens) {
+            cv = inBrackets(cv);
+        }
+
+        return cv + power;
+    }
+    if (TextDeps.isVector(obj)) {
+        const l = obj.elements.length;
+        const c = [];
+        for (let i = 0; i < l; i++) {
+            c.push(obj.elements[i].text(option));
+        }
+        return `[${c.join(',')}]`;
+    }
+    try {
+        return obj.toString();
+    } catch (e) {
+        if (e.message === 'timeout') {
+            throw e;
+        }
+        return '';
+    }
+}
+
 /**
  * Dependency container for NerdamerSymbol class. These are initialized later once they're available inside the IIFE.
  *
@@ -9478,390 +9899,6 @@ const nerdamer = (function initNerdamerCore(imports) {
         return Math.ceil(x);
     };
 
-    // Global functions =============================================================
-    /**
-     * This method will return a hash or a text representation of a NerdamerSymbol, Matrix, or Vector. If all else fails
-     * it _assumes_ the object has a toString method and will call that.
-     *
-     * @param {object} obj
-     * @param {string | string[]} option Get is as a hash
-     * @param {number} useGroup
-     * @returns {string}
-     */
-    function text(obj, option = undefined, useGroup = undefined, decp = undefined) {
-        const asHash = option === 'hash';
-        // Whether to wrap numbers in brackets
-        let wrapCondition;
-        const opt = asHash ? undefined : option;
-        const asDecimal = opt === 'decimal' || opt === 'decimals' || opt === 'decimals_or_scientific';
-
-        // Only set default decp for decimals_or_scientific mode, not for plain decimals.
-        // This preserves full valueOf() precision for internal operations.
-        //
-        // Background: When a NerdamerSymbol with a fractional multiplier (e.g., 1/3) is converted to
-        // a string via valueOf(), it becomes a decimal like "0.3333333333333333". If that
-        // decimal is then parsed back into a NerdamerSymbol, nerdamer uses a continued fractions
-        // algorithm (Fraction.fullConversion) to reconstruct the fraction. This algorithm
-        // finds the simplest fraction within epsilon (1e-30) of the decimal value.
-        //
-        // The precision matters:
-        //   - 16 threes (0.3333333333333333): exactly equals JS's 1/3 in IEEE 754 → reconstructs to 1/3
-        //   - 15 threes (0.333333333333333): differs by ~3.3e-16 → becomes 321685687669321/965057063007964
-        //
-        // Setting decp here would trigger toDecimal(16) which can truncate precision.
-        // By not setting decp for plain decimals mode, we preserve full valueOf() precision.
-        if (opt === 'decimals_or_scientific' && typeof decp === 'undefined') {
-            decp = Settings.DEFAULT_DECP;
-        }
-
-        function toString(fracObj, decimalPlaces) {
-            switch (option) {
-                case 'decimals':
-                case 'decimal':
-                    wrapCondition ||= function (_str) {
-                        return false;
-                    };
-                    if (decimalPlaces) {
-                        return fracObj.toDecimal(decimalPlaces);
-                    }
-                    return fracObj.valueOf();
-                case 'recurring': {
-                    wrapCondition ||= function (s) {
-                        return s.indexOf("'") !== -1;
-                    };
-
-                    const str = fracObj.toString();
-                    // Verify that the string is actually a fraction
-                    const frac = /^-?\d+(?:\/\d+)?$/u.exec(str);
-                    if (frac.length === 0) {
-                        return str;
-                    }
-
-                    // Split the fraction into the numerator and denominator
-                    const parts = frac[0].split('/');
-                    let negative = false;
-                    let m = Number(parts[0]);
-                    if (m < 0) {
-                        m = -m;
-                        negative = true;
-                    }
-                    let n = Number(parts[1]);
-                    n ||= 1;
-
-                    // https://softwareengineering.stackexchange.com/questions/192070/what-is-a-efficient-way-to-find-repeating-decimal#comment743574_192081
-                    /** @type {number | string} */
-                    let quotient = Math.floor(m / n);
-                    let c = 10 * (m - quotient * n);
-                    quotient = `${quotient.toString()}.`;
-                    while (c && c < n) {
-                        c *= 10;
-                        quotient += '0';
-                    }
-                    let digits = '';
-                    const passed = [];
-                    let i = 0;
-                    while (true) {
-                        if (typeof passed[c] !== 'undefined') {
-                            const prefix = digits.slice(0, passed[c]);
-                            const cycle = digits.slice(passed[c]);
-                            const result = `${quotient + prefix}'${cycle}'`;
-                            return (negative ? '-' : '') + result.replace("'0'", '').replace(/\.$/u, '');
-                        }
-                        const q = Math.floor(c / n);
-                        const r = c - q * n;
-                        passed[c] = i;
-                        digits += q.toString();
-                        i += 1;
-                        c = 10 * r;
-                    }
-                }
-                case 'mixed': {
-                    wrapCondition ||= function (s) {
-                        return s.indexOf('/') !== -1;
-                    };
-
-                    const str = fracObj.toString();
-                    // Verify that the string is actually a fraction
-                    const frac = /^-?\d+(?:\/\d+)?$/u.exec(str);
-                    if (frac.length === 0) {
-                        return str;
-                    }
-
-                    // Split the fraction into the numerator and denominator
-                    const parts = frac[0].split('/');
-                    const numer = new bigInt(parts[0]);
-                    let denom = new bigInt(parts[1]);
-                    if (denom.equals(0)) {
-                        denom = new bigInt(1);
-                    }
-
-                    // Return the quotient plus the remainder
-                    const divmod = numer.divmod(denom);
-                    const { quotient } = divmod;
-                    const { remainder } = divmod;
-                    const operator = parts[0][0] === '-' || quotient.equals(0) || remainder.equals(0) ? '' : '+';
-                    return (
-                        (quotient.equals(0) ? '' : quotient.toString()) +
-                        operator +
-                        (remainder.equals(0) ? '' : `${remainder.toString()}/${parts[1]}`)
-                    );
-                }
-                case 'scientific':
-                    wrapCondition ||= function (_str) {
-                        return false;
-                    };
-                    return new Scientific(fracObj.valueOf()).toString(Settings.SCIENTIFIC_MAX_DECIMAL_PLACES);
-                case 'decimals_or_scientific': {
-                    wrapCondition ||= function (_str) {
-                        return false;
-                    };
-                    const decimals = fracObj.valueOf();
-                    const scientific = new Scientific(decimals);
-                    if (Math.abs(scientific.exponent) >= Settings.SCIENTIFIC_SWITCH_FROM_DECIMALS_MIN_EXPONENT) {
-                        return scientific.toString(Settings.SCIENTIFIC_MAX_DECIMAL_PLACES);
-                    }
-                    if (decimalPlaces) {
-                        return fracObj.toDecimal(decimalPlaces);
-                    }
-                    return decimals;
-                }
-
-                default:
-                    wrapCondition ||= function (s) {
-                        return s.indexOf('/') !== -1;
-                    };
-
-                    return fracObj.toString();
-            }
-        }
-
-        // If the object is a symbol
-        if (isSymbol(obj)) {
-            /** @type {string | number} */
-            let multiplier = '';
-            let power = '';
-            let sign = '';
-            const group = obj.group || useGroup;
-            let { value } = obj;
-
-            // If the value is to be used as a hash then the power and multiplier need to be suppressed
-            if (!asHash) {
-                // Get multiplier as string. Don't pass decp here to preserve precision
-                // for internal operations - decp is only applied in the N case below.
-                let om = toString(obj.multiplier);
-                if (String(om) === '-1' && String(obj.multiplier) === '-1') {
-                    sign = '-';
-                    om = '1';
-                }
-                // Only add the multiplier if it's not 1
-                if (String(om) !== '1') {
-                    multiplier = om;
-                }
-                // Use asDecimal to get the object back as a decimal
-                const p = obj.power ? toString(obj.power) : '';
-                // Only add the multiplier
-                if (String(p) !== '1') {
-                    // Is it a symbol
-                    if (isSymbol(p)) {
-                        power = text(p, opt);
-                    } else {
-                        power = p;
-                    }
-                }
-            }
-
-            switch (group) {
-                case N: {
-                    multiplier = '';
-                    // Handle numeric output with appropriate precision:
-                    // - decimals_or_scientific: use toString with decp to trigger Scientific formatting
-                    // - decimals with explicit decp: round to requested decimal places
-                    // - otherwise: use default toString which preserves full precision via valueOf()
-                    let m;
-                    if (opt === 'decimals_or_scientific') {
-                        m = toString(obj.multiplier, decp);
-                    } else if (decp && asDecimal) {
-                        m = obj.multiplier.toDecimal(decp);
-                    } else {
-                        m = toString(obj.multiplier);
-                    }
-                    // If it's numerical then all we need is the multiplier
-                    value = String(obj.multiplier) === '-1' ? '1' : m;
-                    power = '';
-                    break;
-                }
-                case PL:
-                    value = obj
-                        .collectSymbols()
-                        .map(x => {
-                            let txt = text(x, opt, useGroup, decp);
-                            if (txt === '0') {
-                                txt = '';
-                            }
-                            return txt;
-                        })
-                        .sort()
-                        .join('+')
-                        .replace(/\+-/gu, '-');
-                    break;
-                case CP:
-                    value = obj
-                        .collectSymbols()
-                        .map(x => {
-                            let txt = text(x, opt, useGroup, decp);
-                            if (txt === '0') {
-                                txt = '';
-                            }
-                            return txt;
-                        })
-                        .sort()
-                        .join('+')
-                        .replace(/\+-/gu, '-');
-                    break;
-                case CB:
-                    value = obj
-                        .collectSymbols(symbol => {
-                            const g = symbol.group;
-                            // Both groups will already be in brackets if their power is greater than 1
-                            // so skip it.
-                            if ((g === PL || g === CP) && symbol.power.equals(1) && symbol.multiplier.equals(1)) {
-                                return inBrackets(text(symbol, opt));
-                            }
-                            return text(symbol, opt);
-                        })
-                        .join('*');
-                    break;
-                case EX: {
-                    const pg = obj.previousGroup;
-                    const pwg = obj.power.group;
-
-                    // PL are the exception. It's simpler to just collect and set the value
-                    if (pg === PL) {
-                        value = obj.collectSymbols(text, opt).join('+').replace('+-', '-');
-                    }
-                    if (!(pg === N || pg === S || pg === FN) && !asHash) {
-                        value = inBrackets(value);
-                    }
-
-                    if ((pwg === CP || pwg === CB || pwg === PL || obj.power.multiplier.toString() !== '1') && power) {
-                        power = inBrackets(power);
-                    }
-                    break;
-                }
-            }
-
-            if (group === FN) {
-                value = obj.fname + inBrackets(obj.args.map(symbol => text(symbol, opt)).join(','));
-            }
-            // TODO: Needs to be more efficient. Maybe.
-            if (group === FN && obj.fname in CUSTOM_OPERATORS) {
-                let a = text(obj.args[0]);
-                let b = text(obj.args[1]);
-                if (obj.args[0].isComposite()) // Preserve the brackets
-                {
-                    a = inBrackets(a);
-                }
-                if (obj.args[1].isComposite()) // Preserve the brackets
-                {
-                    b = inBrackets(b);
-                }
-                value = a + CUSTOM_OPERATORS[obj.fname] + b;
-            }
-            // Wrap the power since / is less than ^
-            // TODO: introduce method call isSimple
-            const shouldWrapPower =
-                typeof wrapCondition === 'function' ? /** @type {Function} */ (wrapCondition)(power) : false;
-            if (power && group !== EX && shouldWrapPower) {
-                power = inBrackets(power);
-            }
-
-            // The following groups are held together by plus or minus. They can be raised to a power or multiplied
-            // by a multiplier and have to be in brackets to preserve the order of precedence
-            if (
-                ((group === CP || group === PL) && ((multiplier && String(multiplier) !== '1') || sign === '-')) ||
-                ((group === CB || group === CP || group === PL) && power && String(power) !== '1') ||
-                (!asHash && group === P && String(value) === '-1') ||
-                obj.fname === PARENTHESIS
-            ) {
-                value = inBrackets(value);
-            }
-
-            if (
-                decp &&
-                (option === 'decimal' || ((option === 'decimals' || option === 'decimals_or_scientific') && multiplier))
-            ) {
-                // Scientific notation? regular rounding would be the wrong decision here
-                if (multiplier.toString().includes('e')) {
-                    if (option !== 'decimals_or_scientific') {
-                        // ToPrecision can create extra digits, so we also
-                        // convert it to string straight up and pick the shorter version
-                        const numMult = Number(multiplier);
-                        const m1 = numMult.toExponential();
-                        const m2 = numMult.toPrecision(decp);
-                        /** @type {string | number} */
-                        multiplier = m1.length < m2.length ? m1 : m2;
-                    }
-                } else {
-                    multiplier = nround(Number(multiplier), decp);
-                }
-            }
-
-            // Add the sign back
-            let c = sign + multiplier;
-
-            const shouldWrapMult =
-                typeof wrapCondition === 'function' ? /** @type {Function} */ (wrapCondition)(multiplier) : false;
-            if (multiplier && shouldWrapMult) {
-                c = inBrackets(c);
-            }
-
-            if (Number(power) < 0) {
-                power = inBrackets(power);
-            }
-
-            // Add the multiplication back
-            if (multiplier) {
-                c = `${c}*`;
-            }
-
-            if (power) {
-                if (value === 'e' && Settings.E_TO_EXP) {
-                    return `${c}exp${inBrackets(power)}`;
-                }
-                power = Settings.POWER_OPERATOR + power;
-            }
-
-            // This needs serious rethinking. Must fix
-            if (group === EX && value.charAt(0) === '-') {
-                value = inBrackets(value);
-            }
-
-            let cv = c + value;
-
-            if (obj.parens) {
-                cv = inBrackets(cv);
-            }
-
-            return cv + power;
-        }
-        if (isVector(obj)) {
-            const l = obj.elements.length;
-            const c = [];
-            for (let i = 0; i < l; i++) {
-                c.push(obj.elements[i].text(option));
-            }
-            return `[${c.join(',')}]`;
-        }
-        try {
-            return obj.toString();
-        } catch (e) {
-            if (e.message === 'timeout') {
-                throw e;
-            }
-            return '';
-        }
-    }
-
     // PrimeFactors is now defined outside IIFE
     // Expression class is now defined outside the IIFE (see above).
     // Initialize its dependencies now that they're available (except _ and Build which are set later).
@@ -9907,6 +9944,21 @@ const nerdamer = (function initNerdamerCore(imports) {
     NerdamerSymbolDeps.SQRT = SQRT;
     NerdamerSymbolDeps.PARENTHESIS = PARENTHESIS;
     // Note: NerdamerSymbolDeps._ is initialized after Parser is created
+
+    // text function is now defined outside the IIFE (see above).
+    // Initialize its dependencies now that they're available.
+    TextDeps.bigInt = bigInt;
+    TextDeps.isSymbol = isSymbol;
+    TextDeps.isVector = isVector;
+    TextDeps.N = N;
+    TextDeps.P = P;
+    TextDeps.S = S;
+    TextDeps.FN = FN;
+    TextDeps.PL = PL;
+    TextDeps.CB = CB;
+    TextDeps.CP = CP;
+    TextDeps.EX = EX;
+    TextDeps.CUSTOM_OPERATORS = CUSTOM_OPERATORS;
 
     // Parser =======================================================================
     // Uses modified Shunting-yard algorithm. http://en.wikipedia.org/wiki/Shunting-yard_algorithm
