@@ -75,6 +75,10 @@ const nerdamerBigInt =
 /* Decimal.js v10.2.1 https://github.com/MikeMcl/decimal.js/LICENCE */
 const nerdamerBigDecimal =
     typeof globalThis.nerdamerBigDecimal === 'undefined' ? require('decimal.js') : globalThis.nerdamerBigDecimal;
+
+// Set BigDecimal precision immediately after import
+nerdamerBigDecimal.set({ precision: 250 });
+
 /* Mathematical constants */
 const nerdamerConstants =
     typeof globalThis.nerdamerConstants === 'undefined' ? require('./constants.js') : globalThis.nerdamerConstants;
@@ -162,14 +166,14 @@ const nerdamerConstants =
  *         isFraction: (x: any) => boolean;
  *         isArray: any;
  *         isInt: (n: any) => boolean;
- *         text: (symbol: any, opt?: string) => string;
- *         variables: (symbol: any, vars?: string[]) => string[];
+ *         text: (symbol: any, opt?: string, useGroup?: any, decp?: any) => string;
+ *         variables: (obj: any, poly?: boolean, vars?: any) => string[];
  *         scientificToDecimal: (num: any) => string;
- *         err: (msg: string) => never;
+ *         err: (msg: string, ErrorObj?: any) => void;
  *         block: (setting: string, f: Function, opt?: boolean, obj?: unknown) => any;
  *         evaluate: (symbol: any, o?: Record<string, any>) => any;
  *         reserveNames: (obj: object) => void;
- *         nround: (n: number, precision?: number) => number;
+ *         nround: (x: string | number, s?: number) => string | number;
  *         remove: (arr: any[], index: number) => any;
  *         _setFunction: (fnName: any, fnParams?: any, fnBody?: any) => boolean;
  *         _clearFunctions: () => void;
@@ -235,18 +239,33 @@ const CoreDeps = {
         CONST_HASH: '#',
     },
 
-    // Settings reference - set by IIFE
-    settings: /** @type {any} */ (null),
+    // Settings reference - getter since Settings is at module scope
+    get settings() {
+        return /** @type {any} */ (Settings); // eslint-disable-line no-use-before-define -- Lazy getter
+    },
 
-    // Runtime state - arrays/objects set by IIFE
+    // Runtime state - use getters for module-scope arrays
+    // CONSTANTS is set by IIFE after Parser creation
     state: {
-        EXPRESSIONS: /** @type {any[]} */ ([]),
-        VARS: /** @type {Record<string, any>} */ ({}),
+        get EXPRESSIONS() {
+            return EXPRESSIONS; // eslint-disable-line no-use-before-define -- Lazy getter
+        },
+        get VARS() {
+            return VARS_STORE; // eslint-disable-line no-use-before-define -- Lazy getter
+        },
         CONSTANTS: /** @type {Record<string, any>} */ ({}),
-        RESERVED: /** @type {string[]} */ ([]),
-        WARNINGS: /** @type {string[]} */ ([]),
-        USER_FUNCTIONS: /** @type {string[]} */ ([]),
-        CUSTOM_OPERATORS: /** @type {Record<string, any>} */ ({}),
+        get RESERVED() {
+            return RESERVED; // eslint-disable-line no-use-before-define -- Lazy getter
+        },
+        get WARNINGS() {
+            return WARNINGS; // eslint-disable-line no-use-before-define -- Lazy getter
+        },
+        get USER_FUNCTIONS() {
+            return USER_FUNCTIONS; // eslint-disable-line no-use-before-define -- Lazy getter
+        },
+        get CUSTOM_OPERATORS() {
+            return CUSTOM_OPERATORS; // eslint-disable-line no-use-before-define -- Lazy getter
+        },
     },
 
     // Class constructors - set by IIFE after class definitions
@@ -266,36 +285,73 @@ const CoreDeps = {
         Build: /** @type {any} */ (null),
     },
 
-    // Utility functions - set incrementally as they become available
+    // Utility functions - use getters for module-scope functions
+    // symfunction and callfunction are set by IIFE since they need parser binding
     utils: {
-        isSymbol: /** @type {any} */ (() => false),
-        isVector: /** @type {any} */ (() => false),
-        isMatrix: /** @type {any} */ (() => false),
-        isExpression: /** @type {any} */ (() => false),
-        isNumericSymbol: /** @type {any} */ (() => false),
-        isFraction: /** @type {any} */ (() => false),
-        isArray: /** @type {any} */ (null),
-        isInt: /** @type {any} */ (() => false),
-        text: /** @type {any} */ (() => ''),
-        variables: /** @type {any} */ (() => []),
-        scientificToDecimal: /** @type {any} */ (() => ''),
-        err: /** @type {any} */ (
-            msg => {
-                throw new Error(msg);
-            }
-        ),
-        block: /** @type {any} */ (() => null),
-        evaluate: /** @type {any} */ (() => null),
-        reserveNames: /** @type {any} */ (() => {}),
-        nround: /** @type {any} */ (n => n),
-        remove: /** @type {any} */ (() => {}),
-        _setFunction: /** @type {any} */ (() => false),
-        _clearFunctions: /** @type {any} */ (() => {}),
-        symfunction: /** @type {any} */ (() => null),
-        callfunction: /** @type {any} */ (() => null),
+        get isSymbol() {
+            return isSymbol;
+        },
+        get isVector() {
+            return isVector;
+        },
+        get isMatrix() {
+            return isMatrix;
+        },
+        get isExpression() {
+            return isExpression;
+        },
+        get isNumericSymbol() {
+            return isNumericSymbol;
+        },
+        get isFraction() {
+            return isFraction;
+        },
+        get isArray() {
+            return isArray;
+        },
+        get isInt() {
+            return isInt;
+        },
+        get text() {
+            return text;
+        },
+        get variables() {
+            return variables;
+        },
+        get scientificToDecimal() {
+            return scientificToDecimal;
+        },
+        get err() {
+            return err;
+        },
+        get block() {
+            return block;
+        },
+        get evaluate() {
+            return evaluate;
+        },
+        get reserveNames() {
+            return reserveNames;
+        },
+        get nround() {
+            return nround;
+        },
+        get remove() {
+            return remove;
+        },
+        get _setFunction() {
+            return _setFunction;
+        },
+        get _clearFunctions() {
+            return _clearFunctions;
+        },
+        // Parser-bound methods - set by IIFE after parser instantiation
+        symfunction: /** @type {any} */ (null),
+        callfunction: /** @type {any} */ (null),
     },
 
     // Exception classes - use getters since they're defined later in the file
+    /* eslint-disable no-use-before-define -- All exception getters reference classes defined later */
     exceptions: {
         get DivisionByZero() {
             return DivisionByZero;
@@ -346,6 +402,7 @@ const CoreDeps = {
             return UnexpectedTokenError;
         },
     },
+    /* eslint-enable no-use-before-define */
 
     // Parser instance - set by IIFE after Parser creation
     parser: /** @type {any} */ (null),
@@ -374,6 +431,18 @@ const Groups = {
 
 // Custom operators registry - populated by IIFE
 const CUSTOM_OPERATORS = {};
+
+// Runtime state arrays - used by CoreDeps.state getters
+/** @type {any[]} */
+const EXPRESSIONS = [];
+/** @type {Record<string, any>} */
+const VARS_STORE = {};
+/** @type {string[]} */
+const RESERVED = [];
+/** @type {string[]} */
+const WARNINGS = [];
+/** @type {string[]} */
+const USER_FUNCTIONS = [];
 
 // ============================================================================
 // Math Polyfills
@@ -633,7 +702,7 @@ const FracDeps = {
         return CoreDeps.utils.scientificToDecimal;
     },
     get DivisionByZero() {
-        return DivisionByZero;
+        return DivisionByZero; // eslint-disable-line no-use-before-define -- Lazy getter
     },
     get Settings() {
         return CoreDeps.settings;
@@ -5254,6 +5323,7 @@ const Build = {
     reformat: {},
     /** Initializes Build dependencies and reformat functions. Called once from IIFE after Math2 is available. */
     initDependencies() {
+        /* eslint-disable no-use-before-define -- Called from IIFE after Math2 is defined */
         this.dependencies = {
             _rename: {
                 'Math2.factorial': 'factorial',
@@ -5311,6 +5381,7 @@ const Build = {
                 return [`diff(f)(${v})`, deps];
             },
         };
+        /* eslint-enable no-use-before-define */
     },
     /**
      * @param {string} f
@@ -6419,9 +6490,9 @@ const LaTeX = {
      * available.
      */
     initParser() {
-        const { Parser } = LaTeXDeps;
+        const ParserClass = LaTeXDeps.Parser;
         const keep = ['classes', 'setOperator', 'getOperators', 'getBrackets', 'tokenize', 'toRPN', 'tree', 'units'];
-        const parser = new Parser();
+        const parser = new ParserClass();
         for (const x in parser) {
             if (keep.indexOf(x) === -1) {
                 delete parser[x];
@@ -6579,6 +6650,12 @@ const Settings = {
         }
     },
 };
+
+// Set Settings.CONST_HASH at module scope (previously in IIFE)
+Settings.CONST_HASH = CoreDeps.fnNames.CONST_HASH;
+
+// Initialize Settings.CACHE.roots at module scope
+Settings.initCache();
 
 // Math2 Object ==================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
@@ -7499,6 +7576,10 @@ const Math2 = {
         return xn;
     },
 };
+
+// Register Math2 in Settings.FUNCTION_MODULES (before Parser instantiation)
+Settings.FUNCTION_MODULES.push(Math2);
+reserveNames(/** @type {object} */ (Math2));
 
 // IsSymbol Function ==============================================================
 /**
@@ -16338,7 +16419,7 @@ function createLibExports() {
         armTimeout();
         try {
             const _ = CoreDeps.parser;
-            const { EXPRESSIONS } = CoreDeps.state;
+            const exprs = CoreDeps.state.EXPRESSIONS;
 
             // Initiate the numer flag
             let numer = false;
@@ -16382,9 +16463,9 @@ function createLibExports() {
             const e = block('PARSE2NUMBER', () => _.parse(expression, subs), numer || Settings.PARSE2NUMBER);
 
             if (location) {
-                EXPRESSIONS[location - 1] = e;
+                exprs[location - 1] = e;
             } else {
-                EXPRESSIONS.push(e);
+                exprs.push(e);
             }
 
             return new Expression(e);
@@ -16503,53 +16584,15 @@ function attachLibExports(libExports) {
 }
 
 const nerdamer = (function initNerdamerCore() {
-    // Set the precision to js precision
-    nerdamerBigDecimal.set({ precision: 250 });
-
     // ============================================================================
-    // CoreDeps Initialization - Single Source of Truth
+    // Parser Initialization
     // ============================================================================
-    // All dependencies are centralized in CoreDeps. This replaces the scattered
-    // Object.assign and Object.defineProperty calls that were spread throughout
-    // the IIFE initialization.
+    // The IIFE's main purpose is to instantiate Parser and wire up parser-dependent values.
+    // Most dependencies are centralized in CoreDeps via getters at module scope.
 
-    // 1. Initialize Settings reference (required early by many components)
-    CoreDeps.settings = /** @type {any} */ (Settings);
-    Settings.CONST_HASH = CoreDeps.fnNames.CONST_HASH;
-
-    // 2. Initialize state containers (use extracted CUSTOM_OPERATORS)
-    CoreDeps.state.EXPRESSIONS = [];
-    CoreDeps.state.VARS = {};
-    CoreDeps.state.RESERVED = [];
-    CoreDeps.state.WARNINGS = [];
-    CoreDeps.state.USER_FUNCTIONS = [];
-    CoreDeps.state.CUSTOM_OPERATORS = CUSTOM_OPERATORS;
-
-    // Initialize Settings.CACHE.roots
-    Settings.initCache();
-
-    // Timeout functions are now defined outside IIFE
-    // Initialize TimeoutDeps with Settings.TIMEOUT via getter
-    Object.defineProperty(TimeoutDeps, 'TIMEOUT', {
-        get: () => Settings.TIMEOUT,
-        configurable: true,
-    });
-
-    // Forward declarations for IIFE-local variables defined later
-    /** @type {ParserType | null} */
-    let _ = null;
-
-    // ============================================================================
-    // Legacy Deps Initialization
-    // ============================================================================
-    // Most deps objects now use CoreDeps getters - minimal initialization needed.
-
-    Settings.FUNCTION_MODULES.push(Math2);
-    reserveNames(/** @type {object} */ (Math2));
-
-    // Inits ========================================================================
-    // Initialize parser and all dependency containers that require it
-    _ = /** @type {ParserType} */ (/** @type {unknown} */ (new Parser()));
+    // Create parser instance
+    /** @type {ParserType} */
+    const _ = /** @type {ParserType} */ (/** @type {unknown} */ (new Parser()));
 
     // Set CoreDeps.parser immediately so all getters can access it
     CoreDeps.parser = _;
@@ -16574,25 +16617,7 @@ const nerdamer = (function initNerdamerCore() {
     CoreDeps.core = C;
     CoreDeps.classes.Math2 = C.Math2;
 
-    // Utils that need runtime values (parser methods, etc.)
-    CoreDeps.utils.isSymbol = isSymbol;
-    CoreDeps.utils.isVector = isVector;
-    CoreDeps.utils.isMatrix = isMatrix;
-    CoreDeps.utils.isExpression = isExpression;
-    CoreDeps.utils.isNumericSymbol = isNumericSymbol;
-    CoreDeps.utils.isFraction = isFraction;
-    CoreDeps.utils.isArray = isArray;
-    CoreDeps.utils.isInt = isInt;
-    CoreDeps.utils.text = /** @type {any} */ (text);
-    CoreDeps.utils.variables = /** @type {any} */ (variables);
-    CoreDeps.utils.scientificToDecimal = /** @type {any} */ (scientificToDecimal);
-    CoreDeps.utils.err = /** @type {any} */ (err);
-    CoreDeps.utils.block = block;
-    CoreDeps.utils.evaluate = evaluate;
-    CoreDeps.utils.reserveNames = reserveNames;
-    CoreDeps.utils.nround = /** @type {any} */ (nround);
-    CoreDeps.utils._setFunction = _setFunction;
-    CoreDeps.utils._clearFunctions = _clearFunctions;
+    // Parser-bound utils (these need runtime parser binding)
     CoreDeps.utils.symfunction = /** @type {any} */ (_.symfunction.bind(_));
     CoreDeps.utils.callfunction = /** @type {any} */ (_.callfunction.bind(_));
 
