@@ -128,6 +128,7 @@ var nerdamer = (function (imports) {
         PI: Math.PI,
         E: Math.E,
         LOG: 'log',
+        LOG_LATEX: 'log',
         LOG10: 'log10',
         LOG10_LATEX: 'log_{10}',
         LOG2: 'log2',
@@ -7459,6 +7460,8 @@ var nerdamer = (function (imports) {
                             f = LaTeX.brackets(this.toTeX(e.args), 'abs');
                         } else if (fname === PARENTHESIS) {
                             f = LaTeX.brackets(this.toTeX(e.args), 'parens');
+                        } else if (fname == Settings.LOG) {
+                            f = '\\' + Settings.LOG_LATEX + '\\left( ' + this.toTeX(e.args) + '\\right)'; 
                         } else if (fname === Settings.LOG10) {
                             f = '\\' + Settings.LOG10_LATEX + '\\left( ' + this.toTeX(e.args) + '\\right)';
                         } else if (fname === Settings.LOG2) {
