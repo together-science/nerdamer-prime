@@ -332,4 +332,25 @@ describe('TeX features', function () {
             expect(teX).toEqual(testCases[i].expected);
         }
     });
+
+    it('should handle operators in log with different bases', function() {
+        const testCases = [
+            {
+                given: 'log10(10*x)',
+                expected: '\\log_{10}\\left( 10 \\cdot x\\right)'
+            },
+            {
+                given: 'ln(10*x)',
+                expected: '\\ln \\left(10 \\cdot x\\right)'
+            },
+            {
+                given: 'log(10*x)',
+                expected: '\\log\\left( 10 \\cdot x\\right)'
+            }
+        ]
+        for (var i = 0; i < testCases.length; ++i) {
+            const output = nerdamer.convertToLaTeX(testCases[i].given);
+            expect(output).toEqual(testCases[i].expected);            
+        }
+    });
 });
