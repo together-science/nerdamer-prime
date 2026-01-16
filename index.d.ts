@@ -111,6 +111,53 @@ type ExpressionHistoryIndex = 'last' | 'first' | number;
 /** Type alias for integer numbers */
 type int = number;
 
+// #region Discriminated Union Types for Internal Values
+
+/**
+ * Base interface for all parseable mathematical objects. This provides common properties shared by NerdamerSymbol,
+ * Vector, and Matrix.
+ */
+interface _ParseableBase {
+    /** Multiplier coefficient */
+    multiplier: nerdamerPrime.NerdamerCore.Frac;
+    /** Clone method available on all types */
+    clone(): this;
+    /** String representation */
+    toString(): string;
+}
+
+/**
+ * Union type representing any value that can be returned by the parser. Use type guards (isSymbol, isVector, isMatrix)
+ * to narrow the type.
+ *
+ * @example
+ *     ```typescript
+ *     const result: ParseResult = parser.parse('x + 1');
+ *     if (nerdamer.getCore().Utils.isVector(result)) {
+ *         // result is narrowed to Vector
+ *         console.log(result.elements.length);
+ *     } else if (nerdamer.getCore().Utils.isMatrix(result)) {
+ *         // result is narrowed to Matrix
+ *         console.log(result.rows());
+ *     } else {
+ *         // result is narrowed to NerdamerSymbol
+ *         console.log(result.group);
+ *     }
+ *     ```;
+ */
+type ParseResult =
+    | nerdamerPrime.NerdamerCore.NerdamerSymbol
+    | nerdamerPrime.NerdamerCore.Vector
+    | nerdamerPrime.NerdamerCore.Matrix;
+
+/**
+ * Union type for values that can be used in mathematical operations. Includes all ParseResult types plus primitives
+ * that can be auto-converted.
+ */
+type _MathOperand = ParseResult | string | number;
+
+// #endregion
+
 /**
  * A type alias for common expression inputs accepted throughout the Nerdamer API.
  *
@@ -1287,7 +1334,7 @@ declare namespace nerdamerPrime {
      * **SAFE USAGE PATTERN**: Always check if symbol is undefined before using the result:
      *
      * ```typescript
-     * function safeVecget(coeffs: any, index: number): NerdamerExpression {
+     * function safeVecget(coeffs: NerdamerExpression, index: number): NerdamerExpression {
      *     const result = nerdamer.vecget(coeffs, index);
      *     // Check if symbol is undefined - this indicates missing coefficient
      *     if (!result || result.symbol === undefined) {
@@ -1972,15 +2019,33 @@ declare namespace nerdamerPrime {
         /**
          * The core symbolic object in Nerdamer. Everything from a variable to a complex expression is ultimately
          * represented as a NerdamerSymbol.
+         *
+         * **Discriminator**: NerdamerSymbol does NOT have a `custom` property, while Vector and Matrix have `custom:
+         * true`. Use this for type narrowing:
+         *
+         * ```typescript
+         * if ('custom' in result && result.custom === true) {
+         *     // result is Vector | Matrix
+         * } else {
+         *     // result is NerdamerSymbol
+         * }
+         * ```
          */
         interface NerdamerSymbol extends PowerValue {
+            /**
+             * Discriminator: NerdamerSymbol does NOT have custom property. Vector and Matrix have `custom: true`. This
+             * enables type narrowing in discriminated unions.
+             */
+            custom?: never;
+
             // Output methods
             toString: () => string;
             text: (option?: OutputType | string[]) => string;
             latex: (option?: OutputType | string[]) => string;
             valueOf: () => number | string;
 
-            // Properties
+            // Properties - these are REQUIRED on NerdamerSymbol but not on Vector/Matrix
+            /** Symbol group number (N, S, FN, PL, CB, CP, EX) - REQUIRED on NerdamerSymbol */
             group: number;
             /** The value/name of the symbol - always a string internally */
             value: string;
@@ -2142,26 +2207,38 @@ declare namespace nerdamerPrime {
          * (add, multiply, evaluate, etc.) and can be manipulated using vector-specific static functions.
          *
          * @example
-         *     ```typescript
-         *         // Create vectors
-         *         const v1 = nerdamer.vector([1, 2, 3]);
-         *         const v2 = nerdamer.vector(['x', 'y', 'z']);
+         *     // Create vectors
+         *     const v1 = nerdamer.vector([1, 2, 3]);
+         *     const v2 = nerdamer.vector(['x', 'y', 'z']);
          *
-         *         // Vector operations (using static functions)
-         *         const dot = nerdamer.dot(v1, v2);           // Dot product
-         *         const cross = nerdamer.cross(v1, v2);       // Cross product
-         *         const elem = nerdamer.vecget(v1, 0);        // Get element at index 0
+         *     // Vector operations (using static functions)
+         *     const dot = nerdamer.dot(v1, v2); // Dot product
+         *     const cross = nerdamer.cross(v1, v2); // Cross product
+         *     const elem = nerdamer.vecget(v1, 0); // Get element at index 0
          *
-         *         // Expression operations (inherited methods)
-         *         const scaled = v1.multiply(2);              // Scale vector by 2
-         *         const evaluated = v2.evaluate({x: 1, y: 2, z: 3}); // Substitute values
-         *         ```;
+         *     // Expression operations (inherited methods)
+         *     const scaled = v1.multiply(2); // Scale vector by 2
+         *     const evaluated = v2.evaluate({ x: 1, y: 2, z: 3 }); // Substitute values
          */
         interface Vector extends NerdamerExpression {
             // Vector-specific semantics are provided through static functions
             // All expression methods are inherited and work naturally with vectors
+
+            /**
+             * Discriminator property - always true for Vector and Matrix. Use with type guards like: if ('custom' in
+             * obj && obj.custom) { ... }
+             */
+            readonly custom: true;
+
+            /** Multiplier coefficient (inherited from internal structure) */
+            multiplier: Frac;
+
             /** Array of elements in the vector */
             elements: NerdamerSymbol[];
+
+            /** Whether this is a row vector (vs column vector) */
+            rowVector?: boolean;
+
             /** Clone the vector */
             clone(): Vector;
         }
@@ -2180,35 +2257,46 @@ declare namespace nerdamerPrime {
          * Matrices in Nerdamer are NerdamerExpression objects with matrix semantics. They inherit all expression
          * methods and can be manipulated using matrix-specific static functions.
          *
-         * **IMPORTANT**: For determinant calculations, use variable-based matrix creation:
+         * IMPORTANT: For determinant calculations, use variable-based matrix creation:
          *
          * @example
-         *     ```typescript
-         *         // ✅ RECOMMENDED - Variable-based creation (works with determinants):
-         *         nerdamer.setVar('M1', 'matrix([1,2],[3,4])');
-         *         const m1 = nerdamer('M1');                      // matrix([1,2],[3,4])
-         *         const det1 = nerdamer.determinant(m1);          // -2 ✅
+         *     // RECOMMENDED - Variable-based creation (works with determinants):
+         *     nerdamer.setVar('M1', 'matrix([1,2],[3,4])');
+         *     const m1 = nerdamer('M1'); // matrix([1,2],[3,4])
+         *     const det1 = nerdamer.determinant(m1); // -2
          *
-         *         // ✅ ALTERNATIVE - Identity matrices work reliably:
-         *         const identity = nerdamer.imatrix(3);           // 3x3 identity matrix
-         *         const detId = nerdamer.determinant(identity);   // 1 ✅
+         *     // ALTERNATIVE - Identity matrices work reliably:
+         *     const identity = nerdamer.imatrix(3); // 3x3 identity matrix
+         *     const detId = nerdamer.determinant(identity); // 1
          *
-         *         // ❌ PROBLEMATIC - Function-based creation (determinants fail):
-         *         const m2 = nerdamer.matrix([[1, 2], [3, 4]]);   // matrix([(1,2,3,4)])
-         *         const det2 = nerdamer.determinant(m2);          // "" (empty) ❌
+         *     // PROBLEMATIC - Function-based creation (determinants fail):
+         *     const m2 = nerdamer.matrix([
+         *         [1, 2],
+         *         [3, 4],
+         *     ]); // matrix([(1,2,3,4)])
+         *     const det2 = nerdamer.determinant(m2); // "" (empty)
          *
-         *         // ✅ Matrix operations work with all creation methods:
-         *         const inv = nerdamer.invert(m1);                // Matrix inverse
-         *         const trans = nerdamer.transpose(m1);           // Transpose
-         *         const elem = nerdamer.matget(m1, 0, 1);         // Get element at (0,1)
+         *     // Matrix operations work with all creation methods:
+         *     const inv = nerdamer.invert(m1); // Matrix inverse
+         *     const trans = nerdamer.transpose(m1); // Transpose
+         *     const elem = nerdamer.matget(m1, 0, 1); // Get element at (0,1)
          *
-         *         // ✅ Expression operations (inherited methods):
-         *         const scaled = m1.multiply(2);                  // Scale matrix by 2
-         *         ```;
+         *     // Expression operations (inherited methods):
+         *     const scaled = m1.multiply(2); // Scale matrix by 2
          */
         interface Matrix extends NerdamerExpression {
             // Matrix-specific semantics are provided through static functions
             // All expression methods are inherited and work naturally with matrices
+
+            /**
+             * Discriminator property - always true for Vector and Matrix. Use with type guards like: if ('custom' in
+             * obj && obj.custom) { ... }
+             */
+            readonly custom: true;
+
+            /** Multiplier coefficient (inherited from internal structure) */
+            multiplier: Frac;
+
             /** 2D array of elements in the matrix */
             elements: NerdamerSymbol[][];
             /** Iterates over each element in the matrix */
@@ -2674,8 +2762,8 @@ declare namespace nerdamerPrime {
                 pow(a: NerdamerSymbol, b: NerdamerSymbol): NerdamerSymbol;
             };
 
-            /** A map of all registered functions and their properties. */
-            functions: Record<string, any[]>;
+            /** A map of all registered functions and their properties [implementation, numArgs]. */
+            functions: Record<string, [Function, number]>;
 
             /**
              * Gets a registered function by name.
@@ -3017,7 +3105,7 @@ declare namespace nerdamerPrime {
              *
              * @internal
              */
-            CACHE: any;
+            CACHE: Record<string, unknown>;
 
             // #endregion
 
@@ -3354,8 +3442,8 @@ declare namespace nerdamerPrime {
              * @internal
              */
             LOG_FNS?: {
-                log: any;
-                log10: any;
+                log: (x: NerdamerSymbol) => NerdamerSymbol;
+                log10: (x: NerdamerSymbol) => NerdamerSymbol;
             };
 
             /**
@@ -3397,14 +3485,14 @@ declare namespace nerdamerPrime {
              * @param arr The array to check.
              * @returns `true` if all elements are numeric, `false` otherwise.
              */
-            allNumeric(arr: any[]): boolean;
+            allNumeric(arr: (string | number)[]): boolean;
 
             /**
              * Converts a function's `arguments` object into a standard array.
              *
              * @param obj The `arguments` object.
              */
-            arguments2Array(obj: IArguments): any[];
+            arguments2Array(obj: IArguments): unknown[];
 
             /**
              * Starts the timeout timer for long-running calculations.
@@ -3449,7 +3537,7 @@ declare namespace nerdamerPrime {
              * @param arr1 The first array.
              * @param arr2 The second array.
              */
-            arrayEqual(arr1: any[], arr2: any[]): boolean;
+            arrayEqual<T>(arr1: T[], arr2: T[]): boolean;
 
             /**
              * Removes duplicate values from an array.
@@ -3482,7 +3570,7 @@ declare namespace nerdamerPrime {
              * @param opt The temporary value for the setting.
              * @param obj The `this` context for the function.
              */
-            block<T>(setting: keyof Settings, f: () => T, opt?: boolean, obj?: any): T;
+            block<T>(setting: keyof Settings, f: () => T, opt?: boolean, obj?: object): T;
 
             /**
              * Compiles a NerdamerSymbol into a callable JavaScript function.
@@ -3513,7 +3601,7 @@ declare namespace nerdamerPrime {
              * @param b The secondary array to sort along with the first.
              * @returns A tuple containing the two sorted arrays.
              */
-            comboSort(a: any[], b: any[]): [any[], any[]];
+            comboSort<T, U>(a: T[], b: U[]): [T[], U[]];
 
             /**
              * Numerically compares two symbols by substituting random numbers for their variables.
@@ -3529,7 +3617,7 @@ declare namespace nerdamerPrime {
              *
              * @param x The item to convert.
              */
-            convertToVector(x: ExpressionParam | any[]): Vector | NerdamerSymbol;
+            convertToVector(x: ExpressionParam | ExpressionParam[]): Vector | NerdamerSymbol;
 
             /**
              * Creates a custom Error constructor.
@@ -3543,7 +3631,7 @@ declare namespace nerdamerPrime {
              *
              * @param obj The object to check.
              */
-            customType(obj: any): boolean;
+            customType(obj: unknown): obj is Vector | Matrix | Collection | NerdamerSet;
 
             /**
              * Decomposes a function into its parts with respect to a variable (ax+b).
@@ -3576,7 +3664,7 @@ declare namespace nerdamerPrime {
              * @param obj The object or array to iterate over.
              * @param fn A callback function `(item, key) => void`.
              */
-            each(obj: any[] | object, fn: (item: any, key: any) => void): void;
+            each<T>(obj: T[] | Record<string, T>, fn: (item: T, key: string | number) => void): void;
 
             /**
              * Forces the evaluation of a symbol, parsing it to a number if possible.
@@ -3606,7 +3694,7 @@ declare namespace nerdamerPrime {
              * @param arr The array to fill.
              * @param n The desired length of the array.
              */
-            fillHoles(arr: any[], n?: number): any[];
+            fillHoles(arr: NerdamerSymbol[], n?: number): NerdamerSymbol[];
 
             /**
              * Creates an array of a given length, filled with a specified value.
@@ -3634,7 +3722,7 @@ declare namespace nerdamerPrime {
              * @param str The template string.
              * @param args The values to insert into the template.
              */
-            format(str: string, ...args: any[]): string;
+            format(str: string, ...args: (string | number | boolean)[]): string;
 
             /**
              * Generates and caches prime numbers up to a given limit.
@@ -3675,7 +3763,7 @@ declare namespace nerdamerPrime {
              * @param a The first array.
              * @param b The second array.
              */
-            haveIntersection(a: any[], b: any[]): boolean;
+            haveIntersection<T>(a: T[], b: T[]): boolean;
 
             /**
              * Checks if a function name is an inverse trigonometric function.
@@ -3703,14 +3791,14 @@ declare namespace nerdamerPrime {
              *
              * @param arr The value to check.
              */
-            isArray(arr: any): arr is any[];
+            isArray(arr: unknown): arr is unknown[];
 
             /**
              * A type guard to check if an object is a NerdamerExpression.
              *
              * @param obj The object to check.
              */
-            isExpression(obj: any): obj is NerdamerExpression;
+            isExpression(obj: unknown): obj is NerdamerExpression;
 
             /**
              * Checks if a number or NerdamerSymbol represents a fraction.
@@ -3724,14 +3812,14 @@ declare namespace nerdamerPrime {
              *
              * @param num The value to check.
              */
-            isInt(num: any): boolean;
+            isInt(num: unknown): boolean;
 
             /**
              * A type guard to check if an object is a Matrix.
              *
              * @param obj The object to check.
              */
-            isMatrix(obj: any): obj is Matrix;
+            isMatrix(obj: unknown): obj is Matrix;
 
             /**
              * Checks if a number or NerdamerSymbol is negative.
@@ -3766,7 +3854,7 @@ declare namespace nerdamerPrime {
              *
              * @param obj The object to check.
              */
-            isSymbol(obj: any): obj is NerdamerSymbol;
+            isSymbol(obj: unknown): obj is NerdamerSymbol;
 
             /**
              * Checks if a NerdamerSymbol is a simple variable (e.g., 'x', not '2*x' or 'x^2').
@@ -3780,21 +3868,21 @@ declare namespace nerdamerPrime {
              *
              * @param obj The object to check.
              */
-            isVector(obj: any): obj is Vector;
+            isVector(obj: unknown): obj is Vector;
 
             /**
              * A type guard to check if an object is a Collection.
              *
              * @param obj The object to check.
              */
-            isCollection(obj: any): obj is Collection;
+            isCollection(obj: unknown): obj is Collection;
 
             /**
              * A type guard to check if an object is a NerdamerSet.
              *
              * @param obj The object to check.
              */
-            isSet(obj: any): obj is NerdamerSet;
+            isSet(obj: unknown): obj is NerdamerSet;
 
             /**
              * A robust wrapper for `Object.keys`.
@@ -3809,7 +3897,7 @@ declare namespace nerdamerPrime {
              * @param variable The variable name.
              * @param value The value to substitute.
              */
-            knownVariable(variable: string, value: any): Record<string, any>;
+            knownVariable(variable: string, value: ExpressionParam): Record<string, ExpressionParam>;
 
             /**
              * Calculates the nth roots of a number, including complex roots.
@@ -3921,7 +4009,7 @@ declare namespace nerdamerPrime {
              * @param test The test function to apply.
              * @returns True if all elements pass the test, false otherwise.
              */
-            checkAll(args: any[], test: (item: any) => boolean): boolean;
+            checkAll<T>(args: T[], test: (item: T) => boolean): boolean;
 
             /**
              * Rewrites a symbolic expression under one common denominator.
@@ -3950,7 +4038,7 @@ declare namespace nerdamerPrime {
              * @param arr The input array.
              * @returns An object with a `length` property and element mappings.
              */
-            toMapObj(arr: any[]): Record<string, number> & { length: number };
+            toMapObj(arr: (string | number)[]): Record<string, number> & { length: number };
         }
 
         // #endregion
@@ -4014,8 +4102,8 @@ declare namespace nerdamerPrime {
             Utils: Utils;
             Math2: Math2;
             LaTeX: LaTeX;
-            bigInt: any;
-            bigDec: any;
+            bigInt: typeof BigInteger;
+            bigDec: typeof Decimal;
             exceptions: {
                 DivisionByZero: new (message?: string) => DivisionByZero;
                 ParseError: new (message?: string) => ParseError;
@@ -4039,6 +4127,43 @@ declare namespace nerdamerPrime {
             Algebra: Record<string, Function>;
             Extra: Record<string, Function>;
         }
+
+        // #endregion
+
+        // #region Discriminated Union Types
+
+        /**
+         * Union type representing any value that can be returned by the parser. Use type guards (isSymbol, isVector,
+         * isMatrix) to narrow the type.
+         *
+         * Discriminator Pattern:
+         *
+         * - NerdamerSymbol has group: number and custom?: never
+         * - Vector has custom: true and elements: NerdamerSymbol[]
+         * - Matrix has custom: true and elements: NerdamerSymbol[][]
+         *
+         * @example
+         *     function processResult(result: ParseResult) {
+         *         const { Utils } = nerdamer.getCore();
+         *         if (Utils.isVector(result)) {
+         *             // result is narrowed to Vector
+         *             console.log(result.elements.length);
+         *         } else if (Utils.isMatrix(result)) {
+         *             // result is narrowed to Matrix
+         *             console.log(result.rows());
+         *         } else {
+         *             // result is narrowed to NerdamerSymbol
+         *             console.log(result.group, result.value);
+         *         }
+         *     }
+         */
+        type InternalParseResult = NerdamerSymbol | Vector | Matrix;
+
+        /**
+         * Union type for internal symbol operations that might return Vector/Matrix. Similar to ParseResult but used in
+         * internal parser operations.
+         */
+        type SymbolOrCustom = NerdamerSymbol | Vector | Matrix;
 
         // #endregion
     } // End NerdamerCore namespace

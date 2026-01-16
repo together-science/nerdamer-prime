@@ -2,6 +2,11 @@
 import nerdamerRuntime from '../all';
 import tsMorph from 'ts-morph';
 
+// Type alias for dynamic property access in reflection tests
+
+type Indexable = Record<string, any>;
+const nerdamer = nerdamerRuntime as typeof nerdamerRuntime & Indexable;
+
 describe('Nerdamer TypeScript Interface Reflection', () => {
     let project: tsMorph.Project;
     let sourceFile: tsMorph.SourceFile;
@@ -192,7 +197,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
     describe('JavaScript Runtime vs TypeScript Interface Comparison', () => {
         it('should validate NerdamerExpression methods exist on runtime instances', () => {
             // Create a runtime expression
-            const runtimeExpr = nerdamerRuntime('x + 1');
+            const runtimeExpr = nerdamerRuntime('x + 1') as Indexable;
 
             // Get TypeScript interface methods (including property signatures with function types)
             const nerdamerExpression = sourceFile.getInterface('NerdamerExpression');
@@ -308,24 +313,24 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
         });
 
         it('should validate equation handling matches TypeScript definitions', () => {
-            const equation = nerdamerRuntime('x^2 = 4');
+            const equation = nerdamerRuntime('x^2 = 4') as Indexable;
 
             // Check if it's recognized as an equation (has LHS and RHS properties)
-            if (equation.LHS && equation.RHS) {
-                expect(typeof equation.LHS.toString).toBe('function');
-                expect(typeof equation.RHS.toString).toBe('function');
+            if (equation['LHS'] && equation['RHS']) {
+                expect(typeof equation['LHS'].toString).toBe('function');
+                expect(typeof equation['RHS'].toString).toBe('function');
 
-                if (typeof equation.toLHS === 'function') {
-                    const lhsForm = equation.toLHS();
+                if (typeof equation['toLHS'] === 'function') {
+                    const lhsForm = equation['toLHS']();
                     expect(lhsForm).toBeDefined();
                     expect(typeof lhsForm.toString).toBe('function');
                 }
             }
 
             // Test solve functionality if available
-            if (typeof equation.solveFor === 'function') {
+            if (typeof equation['solveFor'] === 'function') {
                 try {
-                    const solutions = equation.solveFor('x');
+                    const solutions = equation['solveFor']('x');
                     expect(Array.isArray(solutions)).toBe(true);
                 } catch (error) {
                     // Some equations might not be solvable, that's ok
@@ -367,7 +372,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             // Test vector creation and base expression functionality
             if (typeof nerdamerRuntime.vector === 'function') {
                 try {
-                    const vec = nerdamerRuntime.vector([1, 2, 3]);
+                    const vec = nerdamerRuntime.vector([1, 2, 3]) as Indexable;
                     expect(vec).toBeDefined();
 
                     // Test that vector IS an expression (has base expression methods)
@@ -403,7 +408,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
                     const mat = nerdamerRuntime.matrix([
                         [1, 2],
                         [3, 4],
-                    ]);
+                    ]) as Indexable;
                     expect(mat).toBeDefined();
 
                     // Test that matrix IS an expression (has base expression methods)
@@ -480,7 +485,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
             // Test that at least some of these exist on the runtime
             const existingStaticMethods = staticMethods.filter(
-                (method: string) => typeof nerdamerRuntime[method] !== 'undefined'
+                (method: string) => typeof nerdamer[method] !== 'undefined'
             );
 
             console.log(
@@ -494,8 +499,8 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const essentialMethods = ['expand', 'factor', 'simplify', 'solve', 'diff', 'integrate', 'cos', 'sin'];
             for (const method of essentialMethods) {
                 if (staticMethods.includes(method)) {
-                    expect(nerdamerRuntime[method]).toBeDefined();
-                    expect(typeof nerdamerRuntime[method]).toBe('function');
+                    expect(nerdamer[method]).toBeDefined();
+                    expect(typeof nerdamer[method]).toBe('function');
                 }
             }
         });
@@ -588,7 +593,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
         it('should analyze static function coverage', () => {
             const runtimeStaticMethods = Object.getOwnPropertyNames(nerdamerRuntime)
-                .filter((name: string) => typeof nerdamerRuntime[name] === 'function')
+                .filter((name: string) => typeof nerdamer[name] === 'function')
                 .sort();
 
             const nerdamerNamespace = sourceFile.getModules().find(m => m.getName() === 'nerdamer');
