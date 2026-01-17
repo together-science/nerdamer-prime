@@ -1,16 +1,9 @@
 {
+    "extends": "./tsconfig.base.json",
     "compilerOptions": {
-        // Output settings
-        "declaration": false,
-        "emitDeclarationOnly": false,
-        "noEmit": true,
-        "outDir": "./dist",
-
-        // Modern ES target and libraries
-        "target": "ES2022",
-        "lib": ["ES2022", "DOM"],
-        "module": "ESNext",
-        "moduleResolution": "bundler",
+        // Allow importing JS files without type errors
+        "allowJs": true,
+        "checkJs": false,
 
         // Strict type checking - enabled for TypeScript files
         "strict": true,
@@ -19,40 +12,7 @@
         "noImplicitOverride": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
-        "noPropertyAccessFromIndexSignature": true,
-
-        // Modern module handling
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true,
-        "forceConsistentCasingInFileNames": true,
-        "verbatimModuleSyntax": false,
-        "allowImportingTsExtensions": false,
-
-        // JavaScript handling - allow but don't strictly check legacy JS
-        "allowJs": true,
-        "checkJs": true,
-
-        // Advanced options
-        "skipLibCheck": true,
-        "isolatedModules": true,
-
-        // Type resolution
-        "typeRoots": ["./node_modules/@types"],
-        "types": ["jest", "node"]
+        "noPropertyAccessFromIndexSignature": true
     },
-    "include": [
-        // TypeScript files (strict checking)
-        "index.d.ts",
-        "eslint.config.mts",
-        "spec-dts/**/*.ts",
-        // JavaScript files (included but not strictly checked due to checkJs: false)
-        "all.js",
-        "nerdamer.core.js",
-        "Algebra.js",
-        "Calculus.js",
-        "Solve.js",
-        "Extra.js",
-        "constants.js"
-    ],
-    "exclude": ["node_modules", "spec", "all.min.js", "dist"]
+    "include": ["index.d.ts", "eslint.config.mts", "spec-dts/**/*.ts"]
 }

@@ -486,7 +486,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     s.multiplier = s.multiplier.multiply(s.power);
                     s.power = s.power.subtract(new Frac(1));
                     if (s.power.equals(0)) {
-                        s = NerdamerSymbol(s.multiplier);
+                        s = new NerdamerSymbol(s.multiplier);
                     }
                 }
 
@@ -500,7 +500,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 let cp;
 
                 if (g === N || (g === S && s.value !== d) || g === P) {
-                    s = NerdamerSymbol(0);
+                    s = new NerdamerSymbol(0);
                 } else if (g === S) {
                     s = polydiff(s);
                 } else if (g === CB) {
@@ -566,7 +566,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         case 'parens':
                             // See product rule: f'.g goes to zero since f' will return zero. This way we only get back
                             // 1*g'
-                            s = NerdamerSymbol(1);
+                            s = new NerdamerSymbol(1);
                             break;
                         case 'cosh':
                             // Cosh -> -sinh
@@ -2853,13 +2853,13 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         Fresnel: {
             S(x) {
                 if (x.isConstant(true)) {
-                    return __.defint(_.parse('sin(pi*x^2/2)'), NerdamerSymbol(0), x, 'x');
+                    return __.defint(_.parse('sin(pi*x^2/2)'), new NerdamerSymbol(0), x, 'x');
                 }
                 return _.symfunction('S', [x]);
             },
             C(x) {
                 if (x.isConstant(true)) {
-                    return __.defint(_.parse('cos(pi*x^2/2)'), NerdamerSymbol(0), x, 'x');
+                    return __.defint(_.parse('cos(pi*x^2/2)'), new NerdamerSymbol(0), x, 'x');
                 }
                 return _.symfunction('C', [x]);
             },
