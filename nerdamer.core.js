@@ -79,6 +79,8 @@
  *
  * @typedef {import('./index').NerdamerCore.Build} BuildInterface
  *
+ * @typedef {import('./index').NerdamerCore.InternalParseResult} InternalParseResult
+ *
  *   Exceptions object type (for CoreDeps.exceptions)
  *
  * @typedef {{
@@ -544,7 +546,7 @@ const Fraction = {
      *
      * @param {number | string} value
      * @param {object} [_opts]
-     * @returns {Array} - An array containing the denominator and the numerator
+     * @returns {Array} An array containing the numerator and the denominator
      */
     convert(value, _opts) {
         const numValue = Number(value);
@@ -570,7 +572,7 @@ const Fraction = {
      * If the fraction is too small or too large this gets called instead of fullConversion method
      *
      * @param {number | string} value
-     * @returns {Array} - An array containing the denominator and the numerator
+     * @returns {Array} An array containing the numerator and the denominator as strings
      */
     quickConversion(value) {
         const stripSign = function (s) {
@@ -636,7 +638,7 @@ const Fraction = {
      * Peterson
      *
      * @param {number | string} dec
-     * @returns {Array} - An array containing the denominator and the numerator
+     * @returns {Array} An array containing the numerator and the denominator
      */
     fullConversion(dec) {
         const numDec = Number(dec);
@@ -1345,7 +1347,7 @@ class Frac {
 }
 
 // Assign Frac to CoreDeps immediately for early access
-CoreDeps.classes.Frac = /** @type {any} */ (Frac);
+CoreDeps.classes.Frac = Frac;
 
 // NerdamerSet Class ====================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
@@ -1372,14 +1374,18 @@ const SetDeps = {
     }, // Remove is defined later in file
 };
 
-/** NerdamerSet class for mathematical set operations. */
+/**
+ * NerdamerSet class for mathematical set operations.
+ *
+ * @implements {SetType}
+ */
 class NerdamerSet {
     /** @type {NerdamerSymbolType[]} */
     elements = [];
 
     /**
-     * @param {any} [setArg]
-     * @param {...any} rest
+     * @param {VectorType | NerdamerSymbolType | undefined} [setArg]
+     * @param {...NerdamerSymbolType} rest
      */
     constructor(setArg, ...rest) {
         // If the first object isn't an array, convert it to one.
@@ -1387,9 +1393,9 @@ class NerdamerSet {
             // No arguments passed
             return;
         }
-        let setVal = setArg;
-        if (!SetDeps.isVector(setVal)) {
-            setVal = SetDeps.Vector.fromArray([setVal, ...rest]);
+        let setVal = /** @type {VectorType} */ (setArg);
+        if (!SetDeps.isVector(setArg)) {
+            setVal = SetDeps.Vector.fromArray([/** @type {NerdamerSymbolType} */ (setArg), ...rest]);
         }
 
         if (setVal) {
@@ -1564,7 +1570,11 @@ const CollectionDeps = {
     },
 };
 
-/** Class used to collect arguments for functions */
+/**
+ * Class used to collect arguments for functions
+ *
+ * @implements {CollectionType}
+ */
 class Collection {
     /** @type {NerdamerSymbolType[]} */
     elements = [];
@@ -1705,7 +1715,7 @@ CoreDeps.classes.Collection = Collection;
  * Dependency container for Scientific class. Populated by the IIFE during initialization.
  *
  * @type {{
- *     Settings: any;
+ *     Settings: SettingsType;
  *     nround: Function;
  * }}
  */
@@ -2624,7 +2634,7 @@ const GroupConstantsDeps = {
  *     PARENTHESIS: string;
  *     bigDec: any;
  *     PRIMES: number[];
- *     VARS: Record<string, any>;
+ *     VARS: Record<string, NerdamerSymbolType>;
  * }}
  */
 const ParserDeps = {
@@ -2886,7 +2896,7 @@ function numExpressions() {
  * Dependency container for getSetting function. Populated by the IIFE during initialization.
  *
  * @type {{
- *     Settings: Record<string, any>;
+ *     Settings: SettingsType;
  * }}
  */
 const GetSettingDeps = {
@@ -3282,8 +3292,8 @@ function replaceFunction(name, fn, numArgs) {
  *     EXPRESSIONS: any[];
  *     USER_FUNCTIONS: string[];
  *     LaTeX: LaTeXInterface;
- *     text: (obj: any, option?: string | string[]) => string;
- *     functions: Record<string, any[]>;
+ *     text: (obj: unknown, option?: string | string[]) => string;
+ *     functions: Record<string, [Function, number] | [Function, number, object]>;
  *     Math2: Math2Interface;
  *     _: ParserType | null;
  *     Expression: ExpressionConstructor | null;
@@ -3392,7 +3402,13 @@ function convertFromLaTeX(e) {
 /**
  * Dependencies for chain functions. Initialized inside the IIFE with actual references.
  *
- * @type {object}
+ * @type {{
+ *     libExports: typeof nerdamer;
+ *     VARS: Record<string, NerdamerSymbolType>;
+ *     _clearFunctions: () => void;
+ *     _initConstants: () => void;
+ *     clear: (equationNumber: number | 'all' | 'last' | 'first', keepExpressionsFixed?: boolean) => typeof nerdamer;
+ * }}
  */
 const ChainDeps = {
     get libExports() {
@@ -3465,7 +3481,7 @@ function clearConstants() {
  * @returns {typeof nerdamer} Returns the nerdamer object for chaining
  */
 function flush() {
-    ChainDeps.clear(/** @type {any} */ ('all'));
+    ChainDeps.clear(/** @type {'all'} */ ('all'));
     return ChainDeps.libExports;
 }
 
@@ -3632,7 +3648,7 @@ function setFunction(fnName, fnParams, fnBody) {
  * Dependencies for clear function. Initialized inside the IIFE with actual references.
  *
  * @type {{
- *     libExports: any;
+ *     libExports: NerdamerType;
  *     EXPRESSIONS: any[];
  * }}
  */
@@ -3677,9 +3693,9 @@ function clear(equationNumber, keepExpressionsFixed = false) {
  * Dependencies for the register function. Initialized inside the IIFE with actual references.
  *
  * @type {{
- *     libExports: any;
- *     Settings: any;
- *     functions: any;
+ *     libExports: typeof nerdamer;
+ *     Settings: SettingsType;
+ *     functions: Record<string, [Function, number]>;
  * }}
  */
 const RegisterDeps = {
@@ -3745,10 +3761,10 @@ function register(obj) {
  *
  * @type {{
  *     bigDec: any;
- *     Settings: any;
- *     functions: any;
- *     symfunction: any;
- *     NerdamerSymbol: any;
+ *     Settings: SettingsType;
+ *     functions: Record<string, Function | [Function, number] | [Function, number, object]>;
+ *     symfunction: Function;
+ *     NerdamerSymbol: SymbolConstructor;
  * }}
  */
 const SettingsDeps = {
@@ -3780,7 +3796,7 @@ function set(setting, value) {
     // Current options:
     // PARSE2NUMBER, suppress_errors
     if (typeof setting === 'object' && setting !== null) {
-        const settingObj = /** @type {Record<string, any>} */ (setting);
+        const settingObj = /** @type {Partial<SettingsType>} */ (setting);
         for (const x in settingObj) {
             if (!Object.hasOwn(settingObj, x)) {
                 continue;
@@ -3833,11 +3849,11 @@ function set(setting, value) {
  * Dependencies for the updateAPI function. Initialized inside the IIFE with actual references.
  *
  * @type {{
- *     libExports: any;
- *     functions: any;
- *     parse: any;
- *     callfunction: any;
- *     Expression: any;
+ *     libExports: NerdamerType;
+ *     functions: Record<string, [Function, number] | [Function, number, object]>;
+ *     parse: (expression: ExpressionParam) => NerdamerSymbolType;
+ *     callfunction: Function;
+ *     Expression: ExpressionConstructor;
  * }}
  */
 const UpdateAPIDeps = {
@@ -4090,7 +4106,7 @@ function generatePrimes(upto) {
  * Dependency container for block function. Populated by the IIFE during initialization.
  *
  * @type {{
- *     Settings: Record<string, any>;
+ *     Settings: SettingsType;
  * }}
  */
 const BlockDeps = {
@@ -4145,16 +4161,16 @@ function evaluate(symbol, o = undefined) {
  *
  * @type {{
  *     EXPRESSIONS: any[];
- *     Settings: { EXPRESSION_DECP: number; precision?: number };
- *     LaTeX: { latex: Function };
+ *     Settings: SettingsType & { precision?: number };
+ *     LaTeX: LaTeXInterface;
  *     text: Function;
  *     variables: Function;
- *     isVector: (x: any) => boolean;
- *     isSymbol: (x: any) => boolean;
- *     isExpression: (x: any) => boolean;
- *     isNumericSymbol: (x: any) => boolean;
- *     isFraction: (x: any) => boolean;
- *     isArray: (x: any) => boolean;
+ *     isVector: (x: unknown) => boolean;
+ *     isSymbol: (x: unknown) => boolean;
+ *     isExpression: (x: unknown) => boolean;
+ *     isNumericSymbol: (x: unknown) => boolean;
+ *     isFraction: (x: unknown) => boolean;
+ *     isArray: (x: unknown) => boolean;
  *     _: any;
  *     Build: any;
  * }}
@@ -4201,7 +4217,11 @@ const ExpressionDeps = {
     },
 };
 
-/** Wraps a symbol in an Expression for user-facing API. */
+/**
+ * Wraps a symbol in an Expression for user-facing API.
+ *
+ * @implements {ExpressionType}
+ */
 class Expression {
     /** @type {NerdamerSymbolType} */
     symbol;
@@ -4606,7 +4626,7 @@ CoreDeps.classes.Expression = Expression;
  * Dependency container for Vector class. Populated by the IIFE during initialization. Only IIFE-scope values and
  * forward-referenced values need injection.
  *
- * @type {{ _: any; Settings: { PRECISION: number }; LaTeX: any; NerdamerSymbol: SymbolConstructor }}
+ * @type {{ _: any; Settings: { PRECISION: number }; LaTeX: LaTeXInterface; NerdamerSymbol: SymbolConstructor }}
  */
 const VectorDeps = {
     get _() {
@@ -4623,7 +4643,11 @@ const VectorDeps = {
     },
 };
 
-/** Vector class - Ported from Sylvester.js */
+/**
+ * Vector class - Ported from Sylvester.js
+ *
+ * @implements {VectorType}
+ */
 class Vector {
     /** @type {Frac} */
     multiplier;
@@ -4634,12 +4658,16 @@ class Vector {
     /** @type {boolean | undefined} */
     rowVector;
 
-    /** Custom marker for parser */
+    /**
+     * Custom marker for parser
+     *
+     * @type {true}
+     */
     custom = true;
 
     /**
-     * @param {any} [v]
-     * @param {...any} rest
+     * @param {VectorType | MatrixType | NerdamerSymbolType[] | NerdamerSymbolType | undefined} [v]
+     * @param {...NerdamerSymbolType} rest
      */
     constructor(v, ...rest) {
         this.multiplier = new Frac(1);
@@ -4666,8 +4694,8 @@ class Vector {
      * Generates a pre-filled array
      *
      * @param {number} n
-     * @param {any} [val]
-     * @returns {any[]}
+     * @param {NerdamerSymbolType | number} [val]
+     * @returns {(NerdamerSymbolType | number)[]}
      */
     static arrayPrefill(n, val) {
         const a = [];
@@ -5139,7 +5167,7 @@ class Vector {
 }
 
 // Assign Vector to CoreDeps immediately
-CoreDeps.classes.Vector = /** @type {any} */ (Vector);
+CoreDeps.classes.Vector = Vector;
 
 // Matrix Class =====================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
@@ -5148,7 +5176,7 @@ CoreDeps.classes.Vector = /** @type {any} */ (Vector);
 /**
  * Dependency container for Matrix class. Populated by the IIFE during initialization.
  *
- * @type {{ _: any; LaTeX: any; NerdamerSymbol: SymbolConstructor }}
+ * @type {{ _: any; LaTeX: LaTeXInterface; NerdamerSymbol: SymbolConstructor }}
  */
 const MatrixDeps = {
     get _() {
@@ -5162,7 +5190,11 @@ const MatrixDeps = {
     },
 };
 
-/** Matrix class - Ported from Sylvester.js */
+/**
+ * Matrix class - Ported from Sylvester.js
+ *
+ * @implements {MatrixType}
+ */
 class Matrix {
     /** @type {Frac} */
     multiplier;
@@ -5170,7 +5202,11 @@ class Matrix {
     /** @type {any[][]} */
     elements;
 
-    /** Custom marker for parser */
+    /**
+     * Custom marker for parser
+     *
+     * @type {true}
+     */
     custom = true;
 
     /** @param {...any} args */
@@ -5346,7 +5382,7 @@ class Matrix {
     /**
      * Ported from Sylvester.js
      *
-     * @returns {any}
+     * @returns {NerdamerSymbolType | null}
      */
     determinant() {
         if (!this.isSquare()) {
@@ -5371,7 +5407,8 @@ class Matrix {
 
     /** @returns {boolean} */
     isSingular() {
-        return this.isSquare() && this.determinant() === 0;
+        const det = this.determinant();
+        return this.isSquare() && det !== null && det.multiplier.equals(0);
     }
 
     /**
@@ -5412,7 +5449,7 @@ class Matrix {
     }
 
     /**
-     * @param {any} options
+     * @param {string} [options]
      * @returns {this}
      */
     expand(options) {
@@ -5421,7 +5458,7 @@ class Matrix {
     }
 
     /**
-     * @param {any} options
+     * @param {string} [options]
      * @returns {this}
      */
     evaluate(options) {
@@ -5773,7 +5810,7 @@ class Matrix {
 }
 
 // Assign Matrix to CoreDeps immediately
-CoreDeps.classes.Matrix = /** @type {any} */ (Matrix);
+CoreDeps.classes.Matrix = Matrix;
 
 // Build Object =================================================================
 // Extracted outside IIFE to enable proper TypeScript type inference.
@@ -5791,8 +5828,8 @@ CoreDeps.classes.Matrix = /** @type {any} */ (Matrix);
  *     EX: number;
  *     FN: number;
  *     CB: number;
- *     Math2: any;
- *     NerdamerSymbol: any;
+ *     Math2: Math2Interface;
+ *     NerdamerSymbol: SymbolConstructor;
  * }}
  */
 const BuildDeps = {
@@ -5827,9 +5864,17 @@ const BuildDeps = {
 
 /** Build object for compiling mathematical expressions to JavaScript functions. */
 const Build = {
-    /** @type {any} */
+    /** @type {Record<string, Record<string, Function | string | object> | Record<string, string>>} */
     dependencies: {},
-    /** @type {any} */
+    /**
+     * @type {Record<
+     *     string,
+     *     (
+     *         symbol: NerdamerSymbolType,
+     *         deps: [Record<string, string>, string]
+     *     ) => [string, [Record<string, string>, string]]
+     * >}
+     */
     reformat: {},
     /** Initializes Build dependencies and reformat functions. Called once from IIFE after Math2 is available. */
     initDependencies() {
@@ -5906,7 +5951,7 @@ const Build = {
      * Assumes that dependencies are at max 2 levels
      *
      * @param {string} f
-     * @param {any} deps
+     * @param {any} [deps]
      * @returns {any[]}
      */
     compileDependencies(f, deps) {
@@ -5944,7 +5989,7 @@ const Build = {
     },
     /**
      * @param {any} symbol
-     * @param {any} dependencies
+     * @param {any} [dependencies]
      * @returns {any}
      */
     getArgsDeps(symbol, dependencies) {
@@ -5962,7 +6007,7 @@ const Build = {
     },
     /**
      * @param {any} symbol
-     * @param {any[]} [argArray]
+     * @param {string[]} [argArray]
      * @returns {Function}
      */
     build(symbol, argArray) {
@@ -6126,7 +6171,7 @@ CoreDeps.classes.Build = Build;
  *
  * @type {{
  *     _: any;
- *     Settings: any;
+ *     Settings: SettingsType;
  *     SQRT: string;
  *     ABS: string;
  *     PARENTHESIS: string;
@@ -6139,7 +6184,7 @@ CoreDeps.classes.Build = Build;
  *     FN: number;
  *     CB: number;
  *     CP: number;
- *     Parser: any;
+ *     Parser: ParserConstructor | null;
  * }}
  */
 const LaTeXDeps = {
@@ -6192,7 +6237,7 @@ const LaTeXDeps = {
 
 /** LaTeX generator object for converting symbols to LaTeX notation. */
 const LaTeX = {
-    /** @type {any} */
+    /** @type {ParserType | null} */
     parser: null, // Initialized inside IIFE after Parser is created
     space: '~',
     dot: ' \\cdot ',
@@ -9425,7 +9470,7 @@ class NerdamerSymbol {
     /** @type {boolean | undefined} */
     isInfinity = undefined;
 
-    /** @param {any} obj */
+    /** @param {string | number | FracType | object} obj */
     constructor(obj) {
         checkTimeout();
 
@@ -9489,7 +9534,7 @@ class NerdamerSymbol {
      * Creates a shell symbol for a given group
      *
      * @param {number} group
-     * @param {any} [value]
+     * @param {string | number} [value]
      * @returns {NerdamerSymbolType}
      */
     static shell(group, value) {
@@ -9574,7 +9619,7 @@ class NerdamerSymbol {
     /**
      * Quickly creates a NerdamerSymbol
      *
-     * @param {any} value
+     * @param {string | number} value
      * @param {number} [power]
      * @returns {NerdamerSymbolType}
      */
@@ -10568,7 +10613,7 @@ class NerdamerSymbol {
      *     s.contains('y');
      *     //returns true
      *
-     * @param {any} variable
+     * @param {string | NerdamerSymbolType} variable
      * @param {boolean} [all]
      * @returns {boolean}
      */
@@ -14177,7 +14222,7 @@ class Parser {
          * A symbolic extension for sinc
          *
          * @param {NerdamerSymbolType} symbol
-         * @returns {any}
+         * @returns {NerdamerSymbolType}
          */
         function sinc(symbol) {
             if (Settings.PARSE2NUMBER) {
@@ -14193,11 +14238,11 @@ class Parser {
          * A symbolic extension for exp. This will auto-convert all instances of exp(x) to e^x. Thanks @ Happypig375
          *
          * @param {NerdamerSymbolType} symbol
-         * @returns {any}
+         * @returns {NerdamerSymbolType | VectorType | MatrixType}
          */
         function exp(symbol) {
             if (symbol.fname === Settings.LOG && symbol.isLinear()) {
-                return _.pow(symbol.args[0], NerdamerSymbol.create(symbol.multiplier));
+                return _.pow(symbol.args[0], NerdamerSymbol.create(symbol.multiplier.toString()));
             }
             return _.parse(format('e^({0})', symbol));
         }
@@ -14206,7 +14251,7 @@ class Parser {
          * Converts value degrees to radians
          *
          * @param {NerdamerSymbolType} symbol
-         * @returns {any}
+         * @returns {NerdamerSymbolType}
          */
         function radians(symbol) {
             return _.parse(format('({0})*pi/180', symbol));
@@ -14216,7 +14261,7 @@ class Parser {
          * Converts value from radians to degrees
          *
          * @param {NerdamerSymbolType} symbol
-         * @returns {any}
+         * @returns {NerdamerSymbolType}
          */
         function degrees(symbol) {
             return _.parse(format('({0})*180/pi', symbol));
@@ -14525,7 +14570,7 @@ class Parser {
         /**
          * @param {NerdamerSymbolType} num - The number being raised
          * @param {NerdamerSymbolType} p - The exponent
-         * @param {any} [prec] - The precision wanted
+         * @param {number} [prec] - The precision wanted
          * @param {boolean} [asbig] - True if a bigDecimal is wanted
          * @returns {NerdamerSymbolType}
          */
@@ -14675,7 +14720,7 @@ class Parser {
          * Returns the arugment of a complex number
          *
          * @param {NerdamerSymbolType} symbol
-         * @returns {any}
+         * @returns {NerdamerSymbolType}
          */
         function arg(symbol) {
             const re = symbol.realpart();
@@ -14869,7 +14914,7 @@ class Parser {
          *
          * @param {any} symbol
          * @param {any} [base]
-         * @returns {any}
+         * @returns {NerdamerSymbolType}
          */
         function log(symbol, base = undefined) {
             if (symbol.equals(1)) {
@@ -15129,6 +15174,7 @@ class Parser {
          * A wrapper for the expand function
          *
          * @param {any} symbol
+         * @param {object} [opt]
          * @returns {any}
          */
         function expandall(symbol, opt) {
@@ -15142,7 +15188,7 @@ class Parser {
          * Expands a symbol
          *
          * @param {any} symbol
-         * @param {any} [opt]
+         * @param {object} [opt]
          * @returns {any}
          */
         // Old expand
@@ -17162,7 +17208,7 @@ function createLibExports() {
      * @param {object} subs The object containing the variable values
      * @param {string | string[]} option Additional options
      * @param {number} location A specific location in the equation list to insert the evaluated expression
-     * @returns {any}
+     * @returns {ExpressionType | NerdamerType}
      */
     const libExports = /** @type {any} */ (
         function (expression, subs, option, location) {
@@ -17290,7 +17336,7 @@ function finalizeParser() {
 /**
  * Attaches all public API methods to libExports.
  *
- * @param {any} libExports - The main nerdamer function to attach methods to
+ * @param {NerdamerType} libExports - The main nerdamer function to attach methods to
  */
 function attachLibExports(libExports) {
     // Library exports (most functions defined outside IIFE with dependency injection)

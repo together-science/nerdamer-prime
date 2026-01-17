@@ -956,11 +956,11 @@ declare namespace nerdamerPrime {
      *     console.log(x.valueOf())
      *     OR just nerdamer.setFunction(function custom(x , y) { return x + y; });
      *
-     * @param functionDefinition The function definition as a string, name with params and body, or a function
+     * @param fnName The function name, definition string like 'f(x)=x^2', or a JavaScript function
+     * @param fnParams Optional array of parameter names (when fnName is a string name)
+     * @param fnBody Optional function body expression (when fnName is a string name)
      */
-    function setFunction(functionDefinition: string): typeof nerdamer;
-    function setFunction(name: string, params: string[], body: string | NerdamerExpression): typeof nerdamer;
-    function setFunction(fn: Function): typeof nerdamer;
+    function setFunction(fnName: string | Function, fnParams?: string[], fnBody?: string): typeof nerdamer;
     function clearFunctions(): typeof nerdamer;
 
     /**
@@ -977,8 +977,7 @@ declare namespace nerdamerPrime {
      *
      * @param asArray Pass in true to get the list back as an array instead of as an object.
      */
-    function reserved(asArray?: false): string;
-    function reserved(asArray: true): string[];
+    function reserved(asArray?: boolean): string | string[];
 
     /**
      * Each time an expression is parsed nerdamer stores the result. Use this method to get back stored expressions.
@@ -987,8 +986,11 @@ declare namespace nerdamerPrime {
      * @param asLaTeX Pass in the string "LaTeX" to get the expression to LaTeX, otherwise expressions come back as
      *   strings
      */
-    function expressions(asObject?: false, asLaTeX?: boolean, options?: OutputType): string[];
-    function expressions(asObject: true, asLaTeX?: boolean, options?: OutputType): Record<string, string>;
+    function expressions(
+        asObject?: boolean,
+        asLaTeX?: boolean,
+        options?: OutputType
+    ): string[] | Record<number, string>;
 
     /**
      * Registers a module function with nerdamer. The object needs to contain at a minimum, a name property (text), a
@@ -1065,7 +1067,7 @@ declare namespace nerdamerPrime {
      * @param value The value for the expression to be set to
      */
     function setVar(name: string, value: ExpressionParam | 'delete'): typeof nerdamer;
-    function getVar(name: string): NerdamerExpression;
+    function getVar(name: string): NerdamerCore.NerdamerSymbol | undefined;
 
     /** Clears all previously set variables. */
     function clearVars(): typeof nerdamer;
@@ -1816,8 +1818,7 @@ declare namespace nerdamerPrime {
      * @param option Optional formatting option
      * @returns Array of function definitions, or object if asObject is true
      */
-    function functions(asObject?: false, option?: OutputType): string[];
-    function functions(asObject: true, option?: OutputType): Record<string, string>;
+    function functions(asObject?: boolean, option?: OutputType): string[] | Record<number, string>;
     function addPeeker(name: string, fn: Function): void;
 
     /**
@@ -1867,7 +1868,7 @@ declare namespace nerdamerPrime {
     // #region Expression/Equation Management
 
     function getExpression(index: ExpressionHistoryIndex): NerdamerExpression | undefined;
-    function getEquation(index: ExpressionHistoryIndex): NerdamerEquation | undefined;
+    function getEquation(index: ExpressionHistoryIndex): NerdamerExpression | undefined;
     function numExpressions(): number;
     function numEquations(): number;
 
@@ -1920,16 +1921,12 @@ declare namespace nerdamerPrime {
             new (n?: number | string | Frac): Frac;
             /** Creates a Frac from a number, string, or existing Frac */
             create(n: number | string | Frac): Frac;
-            /** Creates a Frac quickly from numerator and denominator BigIntegers */
-            quick(n: BigInteger, d: BigInteger): Frac;
+            /** Creates a Frac quickly from numerator and denominator */
+            quick(n: string | number, d: string | number): Frac;
             /** Simplified fraction creation for special cases */
             simple(n: number | string): Frac;
             /** Type guard to check if a value is a Frac */
             isFrac(o: unknown): o is Frac;
-            /** Constant for 1 */
-            ONE: Frac;
-            /** Constant for -1 */
-            NEGATE: Frac;
         }
 
         /**
@@ -2196,15 +2193,16 @@ declare namespace nerdamerPrime {
 
         /** Constructor for Vector */
         interface VectorConstructor {
-            new (elements?: ExpressionParam[]): Vector;
+            new (elements?: Vector | Matrix | NerdamerSymbol[] | NerdamerSymbol, ...rest: NerdamerSymbol[]): Vector;
             fromArray(arr: (ExpressionParam | NerdamerSymbol)[]): Vector;
+            arrayPrefill(n: number, val?: NerdamerSymbol | number): (NerdamerSymbol | number)[];
         }
 
         /**
          * Represents a vector of symbolic expressions.
          *
-         * Vectors in Nerdamer are NerdamerExpression objects with vector semantics. They inherit all expression methods
-         * (add, multiply, evaluate, etc.) and can be manipulated using vector-specific static functions.
+         * Vectors in Nerdamer are internal objects with vector semantics. They can be manipulated using vector-specific
+         * static functions and have their own methods.
          *
          * @example
          *     // Create vectors
@@ -2215,22 +2213,15 @@ declare namespace nerdamerPrime {
          *     const dot = nerdamer.dot(v1, v2); // Dot product
          *     const cross = nerdamer.cross(v1, v2); // Cross product
          *     const elem = nerdamer.vecget(v1, 0); // Get element at index 0
-         *
-         *     // Expression operations (inherited methods)
-         *     const scaled = v1.multiply(2); // Scale vector by 2
-         *     const evaluated = v2.evaluate({ x: 1, y: 2, z: 3 }); // Substitute values
          */
-        interface Vector extends NerdamerExpression {
-            // Vector-specific semantics are provided through static functions
-            // All expression methods are inherited and work naturally with vectors
-
+        interface Vector {
             /**
              * Discriminator property - always true for Vector and Matrix. Use with type guards like: if ('custom' in
              * obj && obj.custom) { ... }
              */
             readonly custom: true;
 
-            /** Multiplier coefficient (inherited from internal structure) */
+            /** Multiplier coefficient */
             multiplier: Frac;
 
             /** Array of elements in the vector */
@@ -2239,8 +2230,86 @@ declare namespace nerdamerPrime {
             /** Whether this is a row vector (vs column vector) */
             rowVector?: boolean;
 
+            /** Returns the element at index i (1-based) */
+            e(i: number): NerdamerSymbol | null;
+
+            /** Sets element at index i */
+            set(i: number, val: NerdamerSymbol | string | number): void;
+
+            /** Returns the number of elements */
+            dimensions(): number;
+
+            /** Returns the modulus (length) of the vector */
+            modulus(): NerdamerSymbol;
+
+            /** Returns true if the vector equals the argument */
+            eql(vector: Vector | NerdamerSymbol[]): boolean;
+
             /** Clone the vector */
             clone(): Vector;
+
+            /** Expands all elements */
+            expand(options?: { simplify?: boolean }): this;
+
+            /** Maps the vector to another vector */
+            map(fn: (element: NerdamerSymbol, index: number) => NerdamerSymbol): Vector;
+
+            /** Calls the iterator for each element */
+            each(fn: (element: NerdamerSymbol, index: number) => void): void;
+
+            /** Returns a normalized unit vector */
+            toUnitVector(): Vector;
+
+            /** Returns the angle between this vector and another */
+            angleFrom(vector: Vector | NerdamerSymbol[]): NerdamerSymbol | null;
+
+            /** Returns true if parallel to argument */
+            isParallelTo(vector: Vector | NerdamerSymbol[]): boolean | null;
+
+            /** Returns true if antiparallel to argument */
+            isAntiparallelTo(vector: Vector | NerdamerSymbol[]): boolean | null;
+
+            /** Returns true if perpendicular to argument */
+            isPerpendicularTo(vector: Vector | NerdamerSymbol[]): boolean | null;
+
+            /** Adds another vector */
+            add(vector: Vector | NerdamerSymbol[]): Vector | null;
+
+            /** Subtracts another vector */
+            subtract(vector: Vector | NerdamerSymbol[]): Vector | null;
+
+            /** Multiplies by a scalar */
+            multiply(k: NerdamerSymbol): Vector;
+
+            /** Alias for multiply */
+            x(k: NerdamerSymbol): Vector;
+
+            /** Returns the dot product */
+            dot(vector: Vector | NerdamerSymbol[]): NerdamerSymbol | null;
+
+            /** Returns the cross product (only for 3D vectors) */
+            cross(vector: Vector | NerdamerSymbol[]): Vector | null;
+
+            /** Returns this (for interface compatibility) */
+            toUnitMultiplier(): this;
+
+            /** Returns the largest element by absolute value */
+            max(): NerdamerSymbol | number;
+
+            /** Returns the magnitude of the vector */
+            magnitude(): NerdamerSymbol;
+
+            /** Returns the index of the first match (1-based) */
+            indexOf(x: NerdamerSymbol | number): number | null;
+
+            /** Returns text representation */
+            text(x?: unknown, options?: { decimals?: boolean; decimalPlaces?: number }): string;
+
+            /** Returns string representation */
+            toString(): string;
+
+            /** Returns LaTeX representation */
+            latex(option?: OutputType): string;
         }
 
         /** Constructor for Matrix */
@@ -2254,8 +2323,8 @@ declare namespace nerdamerPrime {
         /**
          * Represents a matrix of symbolic expressions.
          *
-         * Matrices in Nerdamer are NerdamerExpression objects with matrix semantics. They inherit all expression
-         * methods and can be manipulated using matrix-specific static functions.
+         * Matrices in Nerdamer are internal objects with matrix semantics. They can be manipulated using
+         * matrix-specific static functions and have their own methods.
          *
          * IMPORTANT: For determinant calculations, use variable-based matrix creation:
          *
@@ -2269,48 +2338,119 @@ declare namespace nerdamerPrime {
          *     const identity = nerdamer.imatrix(3); // 3x3 identity matrix
          *     const detId = nerdamer.determinant(identity); // 1
          *
-         *     // PROBLEMATIC - Function-based creation (determinants fail):
-         *     const m2 = nerdamer.matrix([
-         *         [1, 2],
-         *         [3, 4],
-         *     ]); // matrix([(1,2,3,4)])
-         *     const det2 = nerdamer.determinant(m2); // "" (empty)
-         *
          *     // Matrix operations work with all creation methods:
          *     const inv = nerdamer.invert(m1); // Matrix inverse
          *     const trans = nerdamer.transpose(m1); // Transpose
          *     const elem = nerdamer.matget(m1, 0, 1); // Get element at (0,1)
-         *
-         *     // Expression operations (inherited methods):
-         *     const scaled = m1.multiply(2); // Scale matrix by 2
          */
-        interface Matrix extends NerdamerExpression {
-            // Matrix-specific semantics are provided through static functions
-            // All expression methods are inherited and work naturally with matrices
-
+        interface Matrix {
             /**
              * Discriminator property - always true for Vector and Matrix. Use with type guards like: if ('custom' in
              * obj && obj.custom) { ... }
              */
             readonly custom: true;
 
-            /** Multiplier coefficient (inherited from internal structure) */
+            /** Multiplier coefficient */
             multiplier: Frac;
 
             /** 2D array of elements in the matrix */
             elements: NerdamerSymbol[][];
-            /** Iterates over each element in the matrix */
-            each(fn: (element: NerdamerSymbol, row: number, col: number) => void): void;
-            /** Alias for each */
-            eachElement(fn: (element: NerdamerSymbol, row: number, col: number) => void): void;
-            /** Returns number of rows */
-            rows(): number;
+
+            /** Gets element at (row, column) */
+            get(row: number, column: number): NerdamerSymbol | undefined;
+
+            /** Maps the matrix to another matrix */
+            map(f: (element: NerdamerSymbol, row: number, col: number) => NerdamerSymbol, rawValues?: boolean): Matrix;
+
+            /** Sets an element at position (row, column) */
+            set(row: number, column: number, value: NerdamerSymbol | string | number, raw?: boolean): void;
+
             /** Returns number of columns */
             cols(): number;
+
+            /** Returns number of rows */
+            rows(): number;
+
+            /** Returns row n (1-based) */
+            row(n: number): NerdamerSymbol[];
+
+            /** Returns column n (1-based) */
+            col(n: number): NerdamerSymbol[];
+
+            /** Iterates over each element in the matrix */
+            eachElement(fn: (element: NerdamerSymbol, row: number, col: number) => void): void;
+
+            /** Alias for eachElement */
+            each(fn: (element: NerdamerSymbol, row: number, col: number) => void): void;
+
+            /** Returns the determinant (null if not square) */
+            determinant(): NerdamerSymbol | null;
+
+            /** Returns true if the matrix is square */
+            isSquare(): boolean;
+
+            /** Returns true if the matrix is singular */
+            isSingular(): boolean;
+
+            /** Augments this matrix with another matrix */
+            augment(m: Matrix): this;
+
             /** Clone the matrix */
             clone(): Matrix;
-            /** NerdamerSet an element at position (i, j) */
-            set(i: number, j: number, value: NerdamerSymbol): void;
+
+            /** Returns this (for interface compatibility) */
+            toUnitMultiplier(): this;
+
+            /** Expands all elements */
+            expand(options?: string): this;
+
+            /** Evaluates all elements */
+            evaluate(options?: string): this;
+
+            /** Returns the inverse of the matrix */
+            invert(): Matrix;
+
+            /** Returns the right triangular form */
+            toRightTriangular(): Matrix;
+
+            /** Returns the transpose */
+            transpose(): Matrix;
+
+            /** Returns true if this matrix can multiply the argument from the left */
+            canMultiplyFromLeft(matrix: Matrix | NerdamerSymbol[][]): boolean;
+
+            /** Returns true if the matrices have the same dimensions */
+            sameSize(matrix: Matrix): boolean;
+
+            /** Multiplies by another matrix */
+            multiply(matrix: Matrix): Matrix | null;
+
+            /** Adds another matrix */
+            add(
+                matrix: Matrix,
+                callback?: (result: NerdamerSymbol, e1: NerdamerSymbol, e2: NerdamerSymbol) => NerdamerSymbol
+            ): Matrix;
+
+            /** Subtracts another matrix */
+            subtract(
+                matrix: Matrix,
+                callback?: (result: NerdamerSymbol, e1: NerdamerSymbol, e2: NerdamerSymbol) => NerdamerSymbol
+            ): Matrix;
+
+            /** Negates all elements */
+            negate(): this;
+
+            /** Converts to a Vector if 1D, otherwise returns this */
+            toVector(): Vector | Matrix;
+
+            /** Returns string representation */
+            toString(newline?: string, toDecimal?: boolean): string;
+
+            /** Returns text representation */
+            text(): string;
+
+            /** Returns LaTeX representation */
+            latex(option?: OutputType): string;
         }
 
         /** Constructor for NerdamerSet */
@@ -2457,11 +2597,11 @@ declare namespace nerdamerPrime {
             /**
              * Converts a symbol to LaTeX format.
              *
-             * @param symbol The symbol to convert
+             * @param symbol The symbol to convert (can be NerdamerSymbol, Expression, array, or other types)
              * @param option Conversion option ('decimal' for numeric output)
              * @returns LaTeX string representation
              */
-            latex(symbol: NerdamerSymbol, option?: string | string[]): string;
+            latex(symbol: unknown, option?: string | string[]): string;
             /** Wraps content in brackets */
             brackets(contents: string, type?: string, braces?: boolean): string;
             /** Formats a fraction for LaTeX */
@@ -2567,20 +2707,23 @@ declare namespace nerdamerPrime {
         /** Static Build utilities for compiling expressions to JavaScript functions. */
         interface Build {
             /** Dependency definitions for functions */
-            dependencies: Record<string, string[]>;
+            dependencies: Record<string, Record<string, Function | string | object> | Record<string, string>>;
             /** Reformat definitions for special functions */
             reformat: Record<
                 string,
-                (symbol: NerdamerSymbol, deps: Record<string, string[]>) => [string, Record<string, string[]>]
+                (
+                    symbol: NerdamerSymbol,
+                    deps: [Record<string, string>, string]
+                ) => [string, [Record<string, string>, string]]
             >;
             /** Initialize dependencies (called once during setup) */
             initDependencies(): void;
             /** Get the proper name for a function */
             getProperName(f: string): string;
             /** Compile dependencies for a function */
-            compileDependencies(f: string, deps?: Record<string, string[]>): string[];
+            compileDependencies(f: string, deps?: unknown): unknown[];
             /** Get argument dependencies from a symbol */
-            getArgsDeps(symbol: NerdamerSymbol, dependencies?: Record<string, string[]>): Record<string, string[]>;
+            getArgsDeps(symbol: NerdamerSymbol, dependencies?: unknown): unknown;
             /**
              * Build a JavaScript function from a symbolic expression.
              *
@@ -2588,7 +2731,7 @@ declare namespace nerdamerPrime {
              * @param argArray Optional array of argument names
              * @returns A compiled JavaScript function
              */
-            build(symbol: NerdamerSymbol, argArray?: string[]): Function;
+            build(symbol: NerdamerSymbol | string, argArray?: string[]): Function;
         }
 
         // #endregion
@@ -2812,7 +2955,18 @@ declare namespace nerdamerPrime {
              * @param shift How to adjust precedence of other operators.
              */
             setOperator(
-                operator: string | { symbol: string; precedence?: number; leftAssoc?: boolean },
+                operator:
+                    | string
+                    | {
+                          operator?: string;
+                          symbol?: string;
+                          precedence?: number;
+                          leftAssoc?: boolean;
+                          action?: string;
+                          prefix?: boolean;
+                          postfix?: boolean;
+                          operation?: Function;
+                      },
                 action?: Function,
                 shift?: 'over' | 'under'
             ): void;
