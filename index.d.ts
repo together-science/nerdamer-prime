@@ -104,6 +104,7 @@ export {
     ArithmeticOperand,
     LaTeXToken,
     FilteredLaTeXToken,
+    SortFn,
 };
 
 // #endregion
@@ -151,6 +152,9 @@ type FilteredLaTeXToken = LaTeXToken | FilteredLaTeXToken[];
 
 /** Type alias for integer numbers */
 type int = number;
+
+/** Type alias for sort comparison functions */
+type SortFn = (a: unknown, b: unknown) => number;
 
 // #region Discriminated Union Types for Internal Values
 
@@ -2182,10 +2186,10 @@ declare namespace nerdamerPrime {
             /** Maps over symbols. Available on Vector/Matrix. */
             map?(fn: (symbol: NerdamerSymbol, key: string) => NerdamerSymbol): NerdamerSymbol;
             collectSymbols<T = NerdamerSymbol>(
-                fn?: (symbol: NerdamerSymbol) => T,
+                fn?: (symbol: NerdamerSymbol, opt?: string) => T,
                 opt?: string,
-                sort_fn?: (a: T, b: T) => number,
-                expand_symbol?: boolean
+                sortFn?: SortFn,
+                expandSymbol?: boolean
             ): T[];
             sub(a: ExpressionParam, b: ExpressionParam): NerdamerSymbol;
 
@@ -2202,9 +2206,9 @@ declare namespace nerdamerPrime {
             updateHash(): void;
             keyForGroup(group: number): string | number;
             collectSummandSymbols<T = NerdamerSymbol>(
-                fn?: (s: NerdamerSymbol) => T,
+                fn?: (s: NerdamerSymbol, opt?: string) => T,
                 opt?: string,
-                sortFn?: (a: T, b: T) => number,
+                sortFn?: SortFn,
                 expandSymbol?: boolean
             ): T[];
             isCombination(): boolean;
