@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        // Output settings
+        "declaration": false,
+        "emitDeclarationOnly": false,
+        "noEmit": true,
+        "outDir": "./dist",
+
+        // Modern ES target and libraries
+        "target": "ES2022",
+        "lib": ["ES2022", "DOM"],
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+
+        // Modern module handling
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "forceConsistentCasingInFileNames": true,
+        "verbatimModuleSyntax": false,
+        "allowImportingTsExtensions": false,
+
+        // Advanced options
+        "skipLibCheck": true,
+        "isolatedModules": true,
+
+        // Type resolution
+        "typeRoots": ["./node_modules/@types"],
+        "types": ["jest", "node"]
+    },
+    "exclude": ["node_modules", "spec", "all.min.js", "dist"]
+}

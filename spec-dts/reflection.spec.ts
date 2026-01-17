@@ -12,7 +12,7 @@ describe('Nerdamer API Surface Reflection Test', () => {
 
     beforeAll(() => {
         project = new tsMorph.Project({
-            tsConfigFilePath: 'spec-dts/tsconfig.json',
+            tsConfigFilePath: 'tsconfig.json',
         });
 
         sourceFile = project.getSourceFileOrThrow('index.d.ts');
@@ -22,16 +22,16 @@ describe('Nerdamer API Surface Reflection Test', () => {
         tsExportedDeclarations = nerdamerNamespace.getExportedDeclarations();
 
         // Get all exported functions, variables, etc. from the namespace
-        tsApiExports = (Array.from(tsExportedDeclarations.keys()) as string[])
-            .filter((name: string) => {
-                // Filter out internal types and interfaces that aren't expected on the runtime object
-                return (
-                    !name.startsWith('Nerdamer') &&
+        tsApiExports = Array.from(tsExportedDeclarations.keys())
+            .filter(
+                (name: string) =>
+                    // Filter out internal types and interfaces that aren't expected on the runtime object
+                    // NerdamerSet is an exception - it's a renamed Set to avoid conflicts with native Set
+                    (!name.startsWith('Nerdamer') || name === 'NerdamerSet') &&
                     !name.endsWith('Constructor') &&
                     !name.includes('Interface') &&
                     name !== 'NerdamerCore'
-                );
-            })
+            )
             .sort();
     });
 
@@ -60,10 +60,12 @@ describe('Nerdamer API Surface Reflection Test', () => {
         const importAliasInfo: string[] = [];
 
         for (const exportName of tsApiExports) {
-            const runtimeValue = (nerdamerRuntime as any)[exportName];
+            const runtimeValue = nerdamerRuntime[exportName];
             const tsDeclarations = tsExportedDeclarations.get(exportName) || [];
 
-            if (tsDeclarations.length === 0) continue;
+            if (tsDeclarations.length === 0) {
+                continue;
+            }
 
             const tsDeclaration = tsDeclarations[0];
             const isRuntimeFunction = typeof runtimeValue === 'function';
@@ -154,10 +156,12 @@ describe('Nerdamer API Surface Reflection Test', () => {
         const arityMismatches: string[] = [];
 
         for (const exportName of tsApiExports) {
-            const runtimeValue = (nerdamerRuntime as any)[exportName];
+            const runtimeValue = nerdamerRuntime[exportName];
             const tsDeclarations = tsExportedDeclarations.get(exportName) || [];
 
-            if (typeof runtimeValue !== 'function' || tsDeclarations.length === 0) continue;
+            if (typeof runtimeValue !== 'function' || tsDeclarations.length === 0) {
+                continue;
+            }
 
             const tsDeclaration = tsDeclarations[0];
 
@@ -193,7 +197,7 @@ describe('Nerdamer API Surface Reflection Test', () => {
         const issues: string[] = [];
 
         for (const exportName of jsApiExports) {
-            const runtimeValue = (nerdamerRuntime as any)[exportName];
+            const runtimeValue = nerdamerRuntime[exportName];
 
             if (typeof runtimeValue === 'function') {
                 // Check for functions that might throw immediately
@@ -239,7 +243,7 @@ describe('Nerdamer API Surface Reflection Test', () => {
         };
 
         for (const exportName of jsApiExports) {
-            const runtimeValue = (nerdamerRuntime as any)[exportName];
+            const runtimeValue = nerdamerRuntime[exportName];
             const type = typeof runtimeValue;
 
             if (type === 'function') {
@@ -316,7 +320,7 @@ describe('Nerdamer API Surface Reflection Test', () => {
             const primeExports = nerdamerPrimeNamespace.getExportedDeclarations();
 
             for (const exportName of tsApiExports) {
-                const runtimeValue = (nerdamerRuntime as any)[exportName];
+                const runtimeValue = nerdamerRuntime[exportName];
                 const isRuntimeFunction = typeof runtimeValue === 'function';
 
                 // Check if this export has a corresponding declaration in nerdamerPrime
@@ -325,7 +329,7 @@ describe('Nerdamer API Surface Reflection Test', () => {
                 if (primeDeclarations.length > 0) {
                     const primeDeclaration = primeDeclarations[0];
 
-                    if (primeDeclaration && primeDeclaration.getKind) {
+                    if (primeDeclaration?.getKind) {
                         const kindName = primeDeclaration.getKindName?.() || 'Unknown';
                         namespaceAnalysis[kindName] = (namespaceAnalysis[kindName] || 0) + 1;
 
@@ -366,7 +370,7 @@ describe('Nerdamer API Surface Reflection Test', () => {
 
         for (const exportName of tsApiExports) {
             const tsDeclarations = tsExportedDeclarations.get(exportName) || [];
-            const runtimeValue = (nerdamerRuntime as any)[exportName];
+            const runtimeValue = nerdamerRuntime[exportName];
             const isRuntimeFunction = typeof runtimeValue === 'function';
 
             if (tsDeclarations.length > 0) {
@@ -382,11 +386,7 @@ describe('Nerdamer API Surface Reflection Test', () => {
                     }
 
                     // Check for missing JSDoc or type annotations
-                    if (
-                        tsDeclaration.getJsDocs &&
-                        tsDeclaration.getJsDocs().length === 0 &&
-                        kindName === 'FunctionDeclaration'
-                    ) {
+                    if (tsDeclaration.getJsDocs?.().length === 0 && kindName === 'FunctionDeclaration') {
                         // Note: Not flagging this as an error since many functions may not have JSDoc
                     }
                 }

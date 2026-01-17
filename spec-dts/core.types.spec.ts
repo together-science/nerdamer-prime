@@ -1,10 +1,10 @@
-import { NerdamerExpression, NerdamerEquation } from '../index';
+import type { NerdamerEquation, NerdamerExpression } from '../index';
 
 // Import complete nerdamer with all modules for runtime
 const nerdamer = require('../all');
 
 // A helper function to make intent clear. It does nothing at runtime.
-function expectType<T>(value: T): void {
+function expectType<T>(_value: T): void {
     // This space intentionally left blank.
 }
 

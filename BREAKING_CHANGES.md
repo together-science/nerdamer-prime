@@ -1,3 +1,9 @@
+_version 1.4.0_
+
+- `continued_fraction` function renamed to `continuedFraction` for camelCase consistency
+- `is_subset` function renamed to `isSubset` for camelCase consistency
+- `is_in` function renamed to `isIn` for camelCase consistency
+
 _version 0.8.0_
 
 - Order of arguments changed for _defint_ in `nerdamer.convertToLaTeX`

@@ -11,7 +11,7 @@ module.exports = {
             'ts-jest',
             {
                 useESM: true,
-                tsconfig: '<rootDir>/spec-dts/tsconfig.json',
+                tsconfig: '<rootDir>/tsconfig.json',
             },
         ],
     },
@@ -21,7 +21,7 @@ module.exports = {
         '^../all$': '<rootDir>/all.js',
     },
     // Silence console warnings from nerdamer modules during testing
-    silent: false,
+    silent: true,
     // Don't collect coverage for type tests
     collectCoverage: false,
 };
