@@ -2106,11 +2106,11 @@ declare namespace nerdamerPrime {
             invert(powerOnly?: boolean, all?: boolean): this;
             toLinear(): this;
             toUnitMultiplier(keepSign?: boolean): this;
-            abs(): this;
-            stripVar(x: string | NerdamerSymbol, excludeX?: boolean): this;
+            abs(): NerdamerSymbol;
+            stripVar(x: string | NerdamerSymbol, excludeX?: boolean): NerdamerSymbol;
             distributeMultiplier(all?: boolean): this;
             distributeExponent(): this;
-            powSimp(): this;
+            powSimp(): NerdamerSymbol;
             getNth(n: number): NerdamerSymbol;
             setPower(p: number | Frac | NerdamerSymbol, retainSign?: boolean): this;
             /** Multiplies this symbol by x. Available on Vector/Matrix. */
@@ -2149,12 +2149,12 @@ declare namespace nerdamerPrime {
             sub(a: ExpressionParam, b: ExpressionParam): NerdamerSymbol;
 
             // Internal methods used by parser operations
-            pushMinus(): this;
+            pushMinus(): NerdamerSymbol;
             toArray(v: string, arr?: NerdamerSymbol[]): NerdamerSymbol[];
             hasFunc(v: string): boolean;
-            multiplyPower(p2: NerdamerSymbol | Frac): this;
+            multiplyPower(p2: NerdamerSymbol | Frac): NerdamerSymbol;
             length?: number;
-            convert(group: number, imaginary?: boolean): this;
+            convert(group: number, imaginary?: boolean): NerdamerSymbol;
             insert(symbol: NerdamerSymbol, action: 'add' | 'multiply'): this;
             attach(symbol: NerdamerSymbol | NerdamerSymbol[]): this;
             combine(symbol: NerdamerSymbol | NerdamerSymbol[]): this;
@@ -2228,7 +2228,7 @@ declare namespace nerdamerPrime {
             elements: NerdamerSymbol[];
 
             /** Whether this is a row vector (vs column vector) */
-            rowVector?: boolean;
+            rowVector: boolean;
 
             /** Returns the element at index i (1-based) */
             e(i: number): NerdamerSymbol | null;
@@ -2302,6 +2302,9 @@ declare namespace nerdamerPrime {
             /** Returns the index of the first match (1-based) */
             indexOf(x: NerdamerSymbol | number): number | null;
 
+            /** Internal text representation method */
+            text_(x?: unknown, options?: { decimals?: boolean; decimalPlaces?: number }): string;
+
             /** Returns text representation */
             text(x?: unknown, options?: { decimals?: boolean; decimalPlaces?: number }): string;
 
@@ -2353,8 +2356,8 @@ declare namespace nerdamerPrime {
             /** Multiplier coefficient */
             multiplier: Frac;
 
-            /** 2D array of elements in the matrix */
-            elements: NerdamerSymbol[][];
+            /** 2D array of elements in the matrix (can include nested vectors/matrices) */
+            elements: (NerdamerSymbol | Vector | Matrix)[][];
 
             /** Gets element at (row, column) */
             get(row: number, column: number): NerdamerSymbol | undefined;
@@ -2905,8 +2908,17 @@ declare namespace nerdamerPrime {
                 pow(a: NerdamerSymbol, b: NerdamerSymbol): NerdamerSymbol;
             };
 
-            /** A map of all registered functions and their properties [implementation, numArgs]. */
-            functions: Record<string, [Function, number]>;
+            /**
+             * A map of all registered functions and their properties [implementation, numArgs, metadata?]. The optional
+             * third element contains metadata for user-defined functions (name, params, body). numArgs can be a number
+             * or number[] for variable arity functions.
+             */
+            functions: Record<
+                string,
+                | [Function, number]
+                | [Function, number[]]
+                | [Function, number, { name: string; params: string[]; body: string }]
+            >;
 
             /**
              * Gets a registered function by name.

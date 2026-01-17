@@ -118,6 +118,11 @@
  *   Custom error constructor type - used for exception classes
  *
  * @typedef {new (message?: string) => Error} CustomErrorConstructor
+ *
+ * @typedef {Record<
+ *     string,
+ *     [Function, number] | [Function, number[]] | [Function, number, { name: string; params: string[]; body: string }]
+ * >} FunctionMapType
  */
 
 // externals ====================================================================
@@ -959,8 +964,8 @@ class Frac {
     /**
      * Safe to use with negative numbers or other types
      *
-     * @param {number | string | Frac} n
-     * @returns {Frac}
+     * @param {number | string | FracType} n
+     * @returns {FracType}
      */
     static create(n) {
         if (n instanceof Frac) {
@@ -980,7 +985,7 @@ class Frac {
 
     /**
      * @param {unknown} o
-     * @returns {o is Frac}
+     * @returns {o is FracType}
      */
     static isFrac(o) {
         return o instanceof Frac;
@@ -989,7 +994,7 @@ class Frac {
     /**
      * @param {string | number} n
      * @param {string | number} d
-     * @returns {Frac}
+     * @returns {FracType}
      */
     static quick(n, d) {
         const frac = new Frac();
@@ -1000,7 +1005,7 @@ class Frac {
 
     /**
      * @param {number | string} n
-     * @returns {Frac}
+     * @returns {FracType}
      */
     static simple(n) {
         const nstr = String(FracDeps.scientificToDecimal(/** @type {number} */ (n)));
@@ -1017,8 +1022,8 @@ class Frac {
     }
 
     /**
-     * @param {Frac} m
-     * @returns {Frac}
+     * @param {FracType} m
+     * @returns {FracType}
      */
     multiply(m) {
         if (this.isOne()) {
@@ -1036,8 +1041,8 @@ class Frac {
     }
 
     /**
-     * @param {Frac} m
-     * @returns {Frac}
+     * @param {FracType} m
+     * @returns {FracType}
      */
     divide(m) {
         if (m.equals(0)) {
@@ -1047,8 +1052,8 @@ class Frac {
     }
 
     /**
-     * @param {Frac} m
-     * @returns {Frac}
+     * @param {FracType} m
+     * @returns {FracType}
      */
     subtract(m) {
         return this.clone().add(m.clone().neg());
@@ -1057,8 +1062,8 @@ class Frac {
     /**
      * Alias for subtract
      *
-     * @param {Frac} m
-     * @returns {Frac}
+     * @param {FracType} m
+     * @returns {FracType}
      */
     sub(m) {
         return this.subtract(m);
@@ -1071,8 +1076,8 @@ class Frac {
     }
 
     /**
-     * @param {Frac} m
-     * @returns {Frac}
+     * @param {FracType} m
+     * @returns {FracType}
      */
     add(m) {
         const n1 = this.den;
@@ -1091,8 +1096,8 @@ class Frac {
     }
 
     /**
-     * @param {Frac} m
-     * @returns {Frac}
+     * @param {FracType} m
+     * @returns {FracType}
      */
     mod(m) {
         const a = this.clone();
@@ -1113,7 +1118,7 @@ class Frac {
         return this;
     }
 
-    /** @returns {Frac} */
+    /** @returns {FracType} */
     clone() {
         const m = new Frac();
         m.num = new FracDeps.bigInt(this.num);
@@ -1175,7 +1180,7 @@ class Frac {
     }
 
     /**
-     * @param {Frac} n
+     * @param {FracType} n
      * @returns {[import('big-integer').BigInteger, import('big-integer').BigInteger]}
      */
     qcompare(n) {
@@ -1183,45 +1188,45 @@ class Frac {
     }
 
     /**
-     * @param {number | Frac} n
+     * @param {number | FracType} n
      * @returns {boolean}
      */
     equals(n) {
         if (!isNaN(/** @type {number} */ (n))) {
             n = new Frac(/** @type {number} */ (n));
         }
-        const q = this.qcompare(/** @type {Frac} */ (n));
+        const q = this.qcompare(/** @type {FracType} */ (n));
         return q[0].equals(q[1]);
     }
 
     /**
-     * @param {number | Frac} n
+     * @param {number | FracType} n
      * @returns {boolean}
      */
     absEquals(n) {
         if (!isNaN(/** @type {number} */ (n))) {
             n = new Frac(/** @type {number} */ (n));
         }
-        const q = this.qcompare(/** @type {Frac} */ (n));
+        const q = this.qcompare(/** @type {FracType} */ (n));
         return q[0].abs().equals(q[1]);
     }
 
     /**
-     * @param {number | Frac} n
+     * @param {number | FracType} n
      * @returns {boolean}
      */
     greaterThan(n) {
         if (!isNaN(/** @type {number} */ (n))) {
             n = new Frac(/** @type {number} */ (n));
         }
-        const q = this.qcompare(/** @type {Frac} */ (n));
+        const q = this.qcompare(/** @type {FracType} */ (n));
         return q[0].gt(q[1]);
     }
 
     /**
      * Alias for greaterThan
      *
-     * @param {number | Frac} n
+     * @param {number | FracType} n
      * @returns {boolean}
      */
     gt(n) {
@@ -1229,7 +1234,7 @@ class Frac {
     }
 
     /**
-     * @param {number | Frac} n
+     * @param {number | FracType} n
      * @returns {boolean}
      */
     gte(n) {
@@ -1237,7 +1242,7 @@ class Frac {
     }
 
     /**
-     * @param {number | Frac} n
+     * @param {number | FracType} n
      * @returns {boolean}
      */
     lte(n) {
@@ -1245,21 +1250,21 @@ class Frac {
     }
 
     /**
-     * @param {number | Frac} n
+     * @param {number | FracType} n
      * @returns {boolean}
      */
     lessThan(n) {
         if (!isNaN(/** @type {number} */ (n))) {
             n = new Frac(/** @type {number} */ (n));
         }
-        const q = this.qcompare(/** @type {Frac} */ (n));
+        const q = this.qcompare(/** @type {FracType} */ (n));
         return q[0].lt(q[1]);
     }
 
     /**
      * Alias for lessThan
      *
-     * @param {number | Frac} n
+     * @param {number | FracType} n
      * @returns {boolean}
      */
     lt(n) {
@@ -1308,8 +1313,8 @@ class Frac {
     }
 
     /**
-     * @param {Frac} f
-     * @returns {Frac}
+     * @param {FracType} f
+     * @returns {FracType}
      */
     gcd(f) {
         return Frac.quick(FracDeps.bigInt.gcd(f.num, this.num), FracDeps.bigInt.lcm(f.den, this.den));
@@ -1337,7 +1342,7 @@ class Frac {
     /**
      * Checks if this fraction contains the given number (i.e., is divisible by it)
      *
-     * @param {number | Frac} n
+     * @param {number | FracType} n
      * @returns {boolean}
      */
     contains(n) {
@@ -1408,7 +1413,7 @@ class NerdamerSet {
 
     /**
      * @param {NerdamerSymbolType[]} arr
-     * @returns {NerdamerSet}
+     * @returns {SetType}
      */
     static fromArray(arr) {
         const newSet = new NerdamerSet();
@@ -1440,8 +1445,8 @@ class NerdamerSet {
     }
 
     /**
-     * @param {(e: NerdamerSymbolType, inputSet: NerdamerSet, i: number) => void} f
-     * @returns {NerdamerSet}
+     * @param {(e: NerdamerSymbolType, inputSet: SetType, i: number) => void} f
+     * @returns {SetType}
      */
     each(f) {
         const { elements } = this;
@@ -1453,7 +1458,7 @@ class NerdamerSet {
         return newSet;
     }
 
-    /** @returns {NerdamerSet} */
+    /** @returns {SetType} */
     clone() {
         const newSet = new NerdamerSet();
         this.each(e => {
@@ -1463,8 +1468,8 @@ class NerdamerSet {
     }
 
     /**
-     * @param {NerdamerSet} inputSet
-     * @returns {NerdamerSet}
+     * @param {SetType} inputSet
+     * @returns {SetType}
      */
     union(inputSet) {
         const _union = this.clone();
@@ -1476,8 +1481,8 @@ class NerdamerSet {
     }
 
     /**
-     * @param {NerdamerSet} inputSet
-     * @returns {NerdamerSet}
+     * @param {SetType} inputSet
+     * @returns {SetType}
      */
     difference(inputSet) {
         const diff = this.clone();
@@ -1503,8 +1508,8 @@ class NerdamerSet {
     }
 
     /**
-     * @param {NerdamerSet} inputSet
-     * @returns {NerdamerSet}
+     * @param {SetType} inputSet
+     * @returns {SetType}
      */
     intersection(inputSet) {
         const _intersection = new NerdamerSet();
@@ -1519,7 +1524,7 @@ class NerdamerSet {
     }
 
     /**
-     * @param {NerdamerSet} inputSet
+     * @param {SetType} inputSet
      * @returns {boolean}
      */
     intersects(inputSet) {
@@ -1527,7 +1532,7 @@ class NerdamerSet {
     }
 
     /**
-     * @param {NerdamerSet} inputSet
+     * @param {SetType} inputSet
      * @returns {boolean}
      */
     isSubset(inputSet) {
@@ -1557,7 +1562,7 @@ CoreDeps.classes.NerdamerSet = NerdamerSet;
  * Dependency container for Collection class. Populated by the IIFE during initialization.
  *
  * @type {{
- *     _: any;
+ *     _: ParserType;
  *     block: (setting: string, f: Function, opt?: boolean, obj?: unknown) => unknown;
  * }}
  */
@@ -1588,7 +1593,7 @@ class Collection {
 
     /**
      * @param {NerdamerSymbolType} [e]
-     * @returns {Collection}
+     * @returns {CollectionType}
      */
     static create(e) {
         return new Collection(e);
@@ -1622,7 +1627,7 @@ class Collection {
         return `(${this.elements.map(e => e.text(options)).join(',')})`;
     }
 
-    /** @returns {Collection} */
+    /** @returns {CollectionType} */
     clone() {
         const c = Collection.create();
         c.elements = this.elements.map(e => e.clone());
@@ -1634,7 +1639,9 @@ class Collection {
      * @returns {this}
      */
     expand(options) {
-        this.elements = this.elements.map(e => CollectionDeps._.expand(e, options));
+        this.elements = /** @type {NerdamerSymbolType[]} */ (
+            this.elements.map(e => CollectionDeps._.expand(e, /** @type {any} */ (options)))
+        );
         return this;
     }
 
@@ -1643,13 +1650,15 @@ class Collection {
      * @returns {this}
      */
     evaluate(options) {
-        this.elements = this.elements.map(e => CollectionDeps._.evaluate(e, options));
+        this.elements = /** @type {NerdamerSymbolType[]} */ (
+            this.elements.map(e => CollectionDeps._.evaluate(e, /** @type {any} */ (options)))
+        );
         return this;
     }
 
     /**
      * @param {Function} lambda
-     * @returns {Collection}
+     * @returns {CollectionType}
      */
     map(lambda) {
         const c2 = this.clone();
@@ -1660,11 +1669,11 @@ class Collection {
     /**
      * Returns the result of adding the argument to the vector
      *
-     * @param {Collection} c2
-     * @returns {Collection | null}
+     * @param {CollectionType} c2
+     * @returns {CollectionType | null}
      */
     add(c2) {
-        return /** @type {Collection | null} */ (
+        return /** @type {CollectionType | null} */ (
             CollectionDeps.block(
                 'SAFE',
                 () => {
@@ -1683,11 +1692,11 @@ class Collection {
     /**
      * Returns the result of subtracting the argument from the vector
      *
-     * @param {Collection} vector
-     * @returns {Collection | null}
+     * @param {CollectionType} vector
+     * @returns {CollectionType | null}
      */
     subtract(vector) {
-        return /** @type {Collection | null} */ (
+        return /** @type {CollectionType | null} */ (
             CollectionDeps.block(
                 'SAFE',
                 () => {
@@ -2517,7 +2526,7 @@ function comboSort(a, b) {
  * Checks to see if the object provided is a Collection
  *
  * @param {object} obj
- * @returns {obj is Collection}
+ * @returns {obj is CollectionType}
  */
 function isCollection(obj) {
     return obj instanceof Collection;
@@ -2530,7 +2539,7 @@ function isCollection(obj) {
  * Checks to see if the object provided is a NerdamerSet
  *
  * @param {object} obj
- * @returns {obj is NerdamerSet}
+ * @returns {obj is SetType}
  */
 function isSet(obj) {
     return obj instanceof NerdamerSet;
@@ -2618,7 +2627,7 @@ const GroupConstantsDeps = {
 
 /**
  * @type {{
- *     _: any;
+ *     _: ParserType;
  *     N: number;
  *     P: number;
  *     S: number;
@@ -3279,7 +3288,10 @@ function htmlTree(expression, indent) {
 function replaceFunction(name, fn, numArgs) {
     const existing = ConvertToLaTeXDeps._.functions[name];
     const newNumArgs = typeof numArgs === 'undefined' ? existing[1] : numArgs;
-    ConvertToLaTeXDeps._.functions[name] = [fn(existing[0], ConvertToLaTeXDeps.C), newNumArgs];
+    ConvertToLaTeXDeps._.functions[name] = /** @type {[Function, number] | [Function, number[]]} */ ([
+        fn(existing[0], ConvertToLaTeXDeps.C),
+        newNumArgs,
+    ]);
 }
 
 // Expressions Function ===========================================================
@@ -3293,7 +3305,7 @@ function replaceFunction(name, fn, numArgs) {
  *     USER_FUNCTIONS: string[];
  *     LaTeX: LaTeXInterface;
  *     text: (obj: unknown, option?: string | string[]) => string;
- *     functions: Record<string, [Function, number] | [Function, number, object]>;
+ *     functions: Record<string, [Function, number] | [Function, number[]] | [Function, number, object]>;
  *     Math2: Math2Interface;
  *     _: ParserType | null;
  *     Expression: ExpressionConstructor | null;
@@ -3379,7 +3391,7 @@ function getFunctions(asObject, option) {
  * Converts LaTeX to a nerdamer expression. Very basic at the moment - handles subscripts, superscripts, and fractions.
  *
  * @param {string} e LaTeX string to convert
- * @returns {Expression} Expression object
+ * @returns {ExpressionType} Expression object
  */
 function convertFromLaTeX(e) {
     // Convert x_2a => x_2 a
@@ -3591,7 +3603,7 @@ function setVar(v, val) {
     if (val === 'delete' || val === '') {
         delete SetVarDeps.VARS[v];
     } else {
-        SetVarDeps.VARS[v] = /** @type {NerdamerSymbol} */ (SetVarDeps.isSymbol(val) ? val : SetVarDeps.parse(val));
+        SetVarDeps.VARS[v] = /** @type {NerdamerSymbolType} */ (SetVarDeps.isSymbol(val) ? val : SetVarDeps.parse(val));
     }
     return SetVarDeps.libExports;
 }
@@ -3695,7 +3707,7 @@ function clear(equationNumber, keepExpressionsFixed = false) {
  * @type {{
  *     libExports: typeof nerdamer;
  *     Settings: SettingsType;
- *     functions: Record<string, [Function, number]>;
+ *     functions: Record<string, [Function, number] | [Function, number[]] | [Function, number, object]>;
  * }}
  */
 const RegisterDeps = {
@@ -3762,7 +3774,7 @@ function register(obj) {
  * @type {{
  *     bigDec: any;
  *     Settings: SettingsType;
- *     functions: Record<string, Function | [Function, number] | [Function, number, object]>;
+ *     functions: Record<string, Function | [Function, number] | [Function, number[]] | [Function, number, object]>;
  *     symfunction: Function;
  *     NerdamerSymbol: SymbolConstructor;
  * }}
@@ -3850,7 +3862,7 @@ function set(setting, value) {
  *
  * @type {{
  *     libExports: NerdamerType;
- *     functions: Record<string, [Function, number] | [Function, number, object]>;
+ *     functions: Record<string, [Function, number] | [Function, number[]] | [Function, number, object]>;
  *     parse: (expression: ExpressionParam) => NerdamerSymbolType;
  *     callfunction: Function;
  *     Expression: ExpressionConstructor;
@@ -4171,7 +4183,7 @@ function evaluate(symbol, o = undefined) {
  *     isNumericSymbol: (x: unknown) => boolean;
  *     isFraction: (x: unknown) => boolean;
  *     isArray: (x: unknown) => boolean;
- *     _: any;
+ *     _: ParserType;
  *     Build: any;
  * }}
  */
@@ -4290,13 +4302,13 @@ class Expression {
      * Evaluates the expression and tries to reduce it to a number if possible. If an argument is given in the form of
      * %{integer} it will evaluate that expression. Other than that it will just use it's own text and reparse
      *
-     * @returns {Expression}
+     * @returns {ExpressionType}
      */
     evaluate(...args) {
         // Don't evaluate an empty vector
         if (
             ExpressionDeps.isVector(this.symbol) &&
-            /** @type {Vector} */ (/** @type {unknown} */ (this.symbol)).dimensions() === 0
+            /** @type {VectorType} */ (/** @type {unknown} */ (this.symbol)).dimensions() === 0
         ) {
             return this;
         }
@@ -4420,7 +4432,7 @@ class Expression {
      *
      * @param {string | NerdamerSymbolType} symbol
      * @param {string | number | NerdamerSymbolType} forSymbol
-     * @returns {Expression}
+     * @returns {ExpressionType}
      */
     sub(symbol, forSymbol) {
         return new Expression(this.symbol.sub(ExpressionDeps._.parse(symbol), ExpressionDeps._.parse(forSymbol)));
@@ -4428,14 +4440,14 @@ class Expression {
 
     /**
      * @param {string} otype
-     * @param {string | number | NerdamerSymbolType | Expression} symbol
-     * @returns {Expression}
+     * @param {string | number | NerdamerSymbolType | ExpressionType} symbol
+     * @returns {ExpressionType}
      */
     operation(otype, symbol) {
         /** @type {NerdamerSymbolType} */
         let sym;
         if (ExpressionDeps.isExpression(symbol)) {
-            sym = /** @type {Expression} */ (symbol).symbol;
+            sym = /** @type {ExpressionType} */ (symbol).symbol;
         } else if (ExpressionDeps.isSymbol(symbol)) {
             sym = /** @type {NerdamerSymbolType} */ (symbol);
         } else {
@@ -4445,48 +4457,48 @@ class Expression {
     }
 
     /**
-     * @param {string | number | NerdamerSymbolType | Expression} symbol
-     * @returns {Expression}
+     * @param {string | number | NerdamerSymbolType | ExpressionType} symbol
+     * @returns {ExpressionType}
      */
     add(symbol) {
         return this.operation('add', symbol);
     }
 
     /**
-     * @param {string | number | NerdamerSymbolType | Expression} symbol
-     * @returns {Expression}
+     * @param {string | number | NerdamerSymbolType | ExpressionType} symbol
+     * @returns {ExpressionType}
      */
     subtract(symbol) {
         return this.operation('subtract', symbol);
     }
 
     /**
-     * @param {string | number | NerdamerSymbolType | Expression} symbol
-     * @returns {Expression}
+     * @param {string | number | NerdamerSymbolType | ExpressionType} symbol
+     * @returns {ExpressionType}
      */
     multiply(symbol) {
         return this.operation('multiply', symbol);
     }
 
     /**
-     * @param {string | number | NerdamerSymbolType | Expression} symbol
-     * @returns {Expression}
+     * @param {string | number | NerdamerSymbolType | ExpressionType} symbol
+     * @returns {ExpressionType}
      */
     divide(symbol) {
         return this.operation('divide', symbol);
     }
 
     /**
-     * @param {string | number | NerdamerSymbolType | Expression} symbol
-     * @returns {Expression}
+     * @param {string | number | NerdamerSymbolType | ExpressionType} symbol
+     * @returns {ExpressionType}
      */
     pow(symbol) {
         return this.operation('pow', symbol);
     }
 
-    /** @returns {Expression} */
+    /** @returns {ExpressionType} */
     expand() {
-        return new Expression(ExpressionDeps._.expand(this.symbol));
+        return new Expression(/** @type {NerdamerSymbolType} */ (ExpressionDeps._.expand(this.symbol)));
     }
 
     /**
@@ -4495,7 +4507,7 @@ class Expression {
      */
     each(callback, deep) {
         if (this.symbol.each) {
-            this.symbol.each(/** @type {(symbol: NerdamerSymbol, key: string) => void} */ (callback), deep);
+            this.symbol.each(/** @type {(symbol: NerdamerSymbolType, key: string) => void} */ (callback), deep);
         } else if (ExpressionDeps.isArray(this.symbol)) {
             for (let idx = 0; idx < this.symbol.length; idx++) {
                 callback.call(this.symbol, this.symbol[idx], idx);
@@ -4511,10 +4523,12 @@ class Expression {
      */
     eq(value) {
         if (!ExpressionDeps.isSymbol(value)) {
-            value = ExpressionDeps._.parse(value);
+            value = /** @type {NerdamerSymbolType} */ (ExpressionDeps._.parse(value));
         }
         try {
-            const d = ExpressionDeps._.subtract(this.symbol.clone(), value);
+            const d = /** @type {NerdamerSymbolType} */ (
+                ExpressionDeps._.subtract(this.symbol.clone(), /** @type {NerdamerSymbolType} */ (value))
+            );
             return d.equals(0);
         } catch (e) {
             if (e.message === 'timeout') {
@@ -4530,10 +4544,14 @@ class Expression {
      */
     lt(value) {
         if (!ExpressionDeps.isSymbol(value)) {
-            value = ExpressionDeps._.parse(value);
+            value = /** @type {NerdamerSymbolType} */ (ExpressionDeps._.parse(value));
         }
         try {
-            const d = evaluate(ExpressionDeps._.subtract(this.symbol.clone(), value));
+            const d = evaluate(
+                /** @type {NerdamerSymbolType} */ (
+                    ExpressionDeps._.subtract(this.symbol.clone(), /** @type {NerdamerSymbolType} */ (value))
+                )
+            );
             return d.lessThan(0);
         } catch (e) {
             if (e.message === 'timeout') {
@@ -4549,10 +4567,14 @@ class Expression {
      */
     gt(value) {
         if (!ExpressionDeps.isSymbol(value)) {
-            value = ExpressionDeps._.parse(value);
+            value = /** @type {NerdamerSymbolType} */ (ExpressionDeps._.parse(value));
         }
         try {
-            const d = evaluate(ExpressionDeps._.subtract(this.symbol.clone(), value));
+            const d = evaluate(
+                /** @type {NerdamerSymbolType} */ (
+                    ExpressionDeps._.subtract(this.symbol.clone(), /** @type {NerdamerSymbolType} */ (value))
+                )
+            );
             return d.greaterThan(0);
         } catch (e) {
             if (e.message === 'timeout') {
@@ -4578,12 +4600,12 @@ class Expression {
         return this.lt(value) || this.eq(value);
     }
 
-    /** @returns {Expression} */
+    /** @returns {ExpressionType} */
     numerator() {
         return new Expression(this.symbol.getNum());
     }
 
-    /** @returns {Expression} */
+    /** @returns {ExpressionType} */
     denominator() {
         return new Expression(this.symbol.getDenom());
     }
@@ -4626,7 +4648,12 @@ CoreDeps.classes.Expression = Expression;
  * Dependency container for Vector class. Populated by the IIFE during initialization. Only IIFE-scope values and
  * forward-referenced values need injection.
  *
- * @type {{ _: any; Settings: { PRECISION: number }; LaTeX: LaTeXInterface; NerdamerSymbol: SymbolConstructor }}
+ * @type {{
+ *     _: ParserType;
+ *     Settings: { PRECISION: number };
+ *     LaTeX: LaTeXInterface;
+ *     NerdamerSymbol: SymbolConstructor;
+ * }}
  */
 const VectorDeps = {
     get _() {
@@ -4649,7 +4676,7 @@ const VectorDeps = {
  * @implements {VectorType}
  */
 class Vector {
-    /** @type {Frac} */
+    /** @type {FracType} */
     multiplier;
 
     /** @type {any[]} */
@@ -4710,7 +4737,7 @@ class Vector {
      * Generate a vector from an array
      *
      * @param {(NerdamerSymbolType | string | number)[]} a
-     * @returns {Vector}
+     * @returns {VectorType}
      */
     static fromArray(a) {
         const v = new Vector();
@@ -4722,7 +4749,7 @@ class Vector {
      * Convert a NerdamerSet to a Vector
      *
      * @param {SetType} nerdamerSet
-     * @returns {Vector}
+     * @returns {VectorType}
      */
     static fromSet(nerdamerSet) {
         return Vector.fromArray(nerdamerSet.elements);
@@ -4765,29 +4792,31 @@ class Vector {
      * @returns {NerdamerSymbolType}
      */
     modulus() {
-        return block(
-            'SAFE',
-            () => VectorDeps._.pow(this.dot(this.clone()), new VectorDeps.NerdamerSymbol(0.5)),
-            undefined,
-            this
+        return /** @type {NerdamerSymbolType} */ (
+            block(
+                'SAFE',
+                () => VectorDeps._.pow(this.dot(this.clone()), new VectorDeps.NerdamerSymbol(0.5)),
+                undefined,
+                this
+            )
         );
     }
 
     /**
      * Returns true iff the vector is equal to the argument
      *
-     * @param {Vector | any[]} vector
+     * @param {VectorType | any[]} vector
      * @returns {boolean}
      */
     eql(vector) {
         let n = this.elements.length;
-        const V = /** @type {any[]} */ (/** @type {Vector} */ (vector).elements || vector);
+        const V = /** @type {any[]} */ (/** @type {VectorType} */ (vector).elements || vector);
         if (n !== V.length) {
             return false;
         }
         do {
             if (
-                Math.abs(VectorDeps._.subtract(this.elements[n - 1], V[n - 1]).valueOf()) >
+                Math.abs(/** @type {number} */ (VectorDeps._.subtract(this.elements[n - 1], V[n - 1]).valueOf())) >
                 VectorDeps.Settings.PRECISION
             ) {
                 return false;
@@ -4799,7 +4828,7 @@ class Vector {
     /**
      * Returns a clone of the vector
      *
-     * @returns {Vector}
+     * @returns {VectorType}
      */
     clone() {
         const V = new Vector();
@@ -4817,7 +4846,9 @@ class Vector {
      * @returns {this}
      */
     expand(options) {
-        this.elements = this.elements.map(e => VectorDeps._.expand(e, options));
+        this.elements = /** @type {NerdamerSymbolType[]} */ (
+            this.elements.map(e => VectorDeps._.expand(e, /** @type {any} */ (options)))
+        );
         return this;
     }
 
@@ -4825,7 +4856,7 @@ class Vector {
      * Maps the vector to another vector according to the given function
      *
      * @param {(element: NerdamerSymbolType, index: number) => NerdamerSymbolType} fn
-     * @returns {Vector}
+     * @returns {VectorType}
      */
     map(fn) {
         const elements = [];
@@ -4854,7 +4885,7 @@ class Vector {
     /**
      * Returns a new vector created by normalizing the receiver
      *
-     * @returns {Vector}
+     * @returns {VectorType}
      */
     toUnitVector() {
         return block(
@@ -4864,7 +4895,7 @@ class Vector {
                 if (r.valueOf() === 0) {
                     return this.clone();
                 }
-                return this.map(x => VectorDeps._.divide(x, r));
+                return this.map(x => /** @type {NerdamerSymbolType} */ (VectorDeps._.divide(x, r)));
             },
             undefined,
             this
@@ -4874,14 +4905,14 @@ class Vector {
     /**
      * Returns the angle between the vector and the argument (also a vector)
      *
-     * @param {Vector | NerdamerSymbolType[]} vector
+     * @param {VectorType | NerdamerSymbolType[]} vector
      * @returns {NerdamerSymbolType | null}
      */
     angleFrom(vector) {
         return block(
             'SAFE',
             () => {
-                const V = /** @type {NerdamerSymbolType[]} */ (/** @type {Vector} */ (vector).elements || vector);
+                const V = /** @type {NerdamerSymbolType[]} */ (/** @type {VectorType} */ (vector).elements || vector);
                 const n = this.elements.length;
                 if (n !== V.length) {
                     return null;
@@ -4891,18 +4922,20 @@ class Vector {
                 let mod2 = new VectorDeps.NerdamerSymbol(0);
                 // Work things out in parallel to save time
                 this.each((x, i) => {
-                    dot = VectorDeps._.add(dot, VectorDeps._.multiply(x, V[i - 1]));
-                    mod1 = VectorDeps._.add(mod1, VectorDeps._.multiply(x, x)); // Will not conflict in safe block
-                    mod2 = VectorDeps._.add(mod2, VectorDeps._.multiply(V[i - 1], V[i - 1])); // Will not conflict in safe block
+                    dot = /** @type {NerdamerSymbolType} */ (VectorDeps._.add(dot, VectorDeps._.multiply(x, V[i - 1])));
+                    mod1 = /** @type {NerdamerSymbolType} */ (VectorDeps._.add(mod1, VectorDeps._.multiply(x, x))); // Will not conflict in safe block
+                    mod2 = /** @type {NerdamerSymbolType} */ (
+                        VectorDeps._.add(mod2, VectorDeps._.multiply(V[i - 1], V[i - 1]))
+                    ); // Will not conflict in safe block
                 });
-                mod1 = VectorDeps._.pow(mod1, new VectorDeps.NerdamerSymbol(0.5));
-                mod2 = VectorDeps._.pow(mod2, new VectorDeps.NerdamerSymbol(0.5));
-                const product = VectorDeps._.multiply(mod1, mod2);
+                mod1 = /** @type {NerdamerSymbolType} */ (VectorDeps._.pow(mod1, new VectorDeps.NerdamerSymbol(0.5)));
+                mod2 = /** @type {NerdamerSymbolType} */ (VectorDeps._.pow(mod2, new VectorDeps.NerdamerSymbol(0.5)));
+                const product = /** @type {NerdamerSymbolType} */ (VectorDeps._.multiply(mod1, mod2));
                 if (product.valueOf() === 0) {
                     return null;
                 }
                 /** @type {NerdamerSymbolType | number} */
-                let theta = VectorDeps._.divide(dot, product);
+                let theta = /** @type {NerdamerSymbolType} */ (VectorDeps._.divide(dot, product));
                 const thetaVal = /** @type {number} */ (theta.valueOf());
                 if (thetaVal < -1) {
                     theta = -1;
@@ -4920,7 +4953,7 @@ class Vector {
     /**
      * Returns true iff the vector is parallel to the argument
      *
-     * @param {Vector | any[]} vector
+     * @param {VectorType | any[]} vector
      * @returns {boolean | null}
      */
     isParallelTo(vector) {
@@ -4931,7 +4964,7 @@ class Vector {
     /**
      * Returns true iff the vector is antiparallel to the argument
      *
-     * @param {Vector | any[]} vector
+     * @param {VectorType | any[]} vector
      * @returns {boolean | null}
      */
     isAntiparallelTo(vector) {
@@ -4942,7 +4975,7 @@ class Vector {
     /**
      * Returns true iff the vector is perpendicular to the argument
      *
-     * @param {Vector | any[]} vector
+     * @param {VectorType | any[]} vector
      * @returns {boolean | null}
      */
     isPerpendicularTo(vector) {
@@ -4955,18 +4988,18 @@ class Vector {
     /**
      * Returns the result of adding the argument to the vector
      *
-     * @param {Vector | any[]} vector
-     * @returns {Vector | null}
+     * @param {VectorType | any[]} vector
+     * @returns {VectorType | null}
      */
     add(vector) {
         return block(
             'SAFE',
             () => {
-                const V = /** @type {any[]} */ (/** @type {Vector} */ (vector).elements || vector);
+                const V = /** @type {any[]} */ (/** @type {VectorType} */ (vector).elements || vector);
                 if (this.elements.length !== V.length) {
                     return null;
                 }
-                return this.map((x, i) => VectorDeps._.add(x, V[i - 1]));
+                return this.map((x, i) => /** @type {NerdamerSymbolType} */ (VectorDeps._.add(x, V[i - 1])));
             },
             undefined,
             this
@@ -4976,18 +5009,18 @@ class Vector {
     /**
      * Returns the result of subtracting the argument from the vector
      *
-     * @param {Vector | any[]} vector
-     * @returns {Vector | null}
+     * @param {VectorType | any[]} vector
+     * @returns {VectorType | null}
      */
     subtract(vector) {
         return block(
             'SAFE',
             () => {
-                const V = /** @type {any[]} */ (/** @type {Vector} */ (vector).elements || vector);
+                const V = /** @type {any[]} */ (/** @type {VectorType} */ (vector).elements || vector);
                 if (this.elements.length !== V.length) {
                     return null;
                 }
-                return this.map((x, i) => VectorDeps._.subtract(x, V[i - 1]));
+                return this.map((x, i) => /** @type {NerdamerSymbolType} */ (VectorDeps._.subtract(x, V[i - 1])));
             },
             undefined,
             this
@@ -4998,7 +5031,7 @@ class Vector {
      * Returns the result of multiplying the elements of the vector by the argument
      *
      * @param {NerdamerSymbolType} k
-     * @returns {Vector}
+     * @returns {VectorType}
      */
     multiply(k) {
         return this.map(x => /** @type {NerdamerSymbolType} */ (VectorDeps._.multiply(x.clone(), k.clone())));
@@ -5008,7 +5041,7 @@ class Vector {
      * Alias for multiply
      *
      * @param {NerdamerSymbolType} k
-     * @returns {Vector}
+     * @returns {VectorType}
      */
     x(k) {
         return this.multiply(k);
@@ -5017,21 +5050,23 @@ class Vector {
     /**
      * Returns the scalar product of the vector with the argument Both vectors must have equal dimensionality
      *
-     * @param {Vector | any[]} vector
+     * @param {VectorType | any[]} vector
      * @returns {NerdamerSymbolType | null}
      */
     dot(vector) {
         return block(
             'SAFE',
             () => {
-                const V = /** @type {any[]} */ (/** @type {Vector} */ (vector).elements || vector);
+                const V = /** @type {any[]} */ (/** @type {VectorType} */ (vector).elements || vector);
                 let product = new VectorDeps.NerdamerSymbol(0);
                 let n = this.elements.length;
                 if (n !== V.length) {
                     return null;
                 }
                 do {
-                    product = VectorDeps._.add(product, VectorDeps._.multiply(this.elements[n - 1], V[n - 1]));
+                    product = /** @type {NerdamerSymbolType} */ (
+                        VectorDeps._.add(product, VectorDeps._.multiply(this.elements[n - 1], V[n - 1]))
+                    );
                 } while (--n);
                 return product;
             },
@@ -5043,23 +5078,29 @@ class Vector {
     /**
      * Returns the vector product of the vector with the argument Both vectors must have dimensionality 3
      *
-     * @param {Vector | any[]} vector
-     * @returns {Vector | null}
+     * @param {VectorType | any[]} vector
+     * @returns {VectorType | null}
      */
     cross(vector) {
-        const B = /** @type {any[]} */ (/** @type {Vector} */ (vector).elements || vector);
+        const B = /** @type {any[]} */ (/** @type {VectorType} */ (vector).elements || vector);
         if (this.elements.length !== 3 || B.length !== 3) {
             return null;
         }
-        const rowVector = this.rowVector && /** @type {Vector} */ (vector).rowVector;
+        const rowVector = this.rowVector && /** @type {VectorType} */ (vector).rowVector;
         const A = this.elements;
         return block(
             'SAFE',
             () => {
                 const result = new Vector([
-                    VectorDeps._.subtract(VectorDeps._.multiply(A[1], B[2]), VectorDeps._.multiply(A[2], B[1])),
-                    VectorDeps._.subtract(VectorDeps._.multiply(A[2], B[0]), VectorDeps._.multiply(A[0], B[2])),
-                    VectorDeps._.subtract(VectorDeps._.multiply(A[0], B[1]), VectorDeps._.multiply(A[1], B[0])),
+                    /** @type {NerdamerSymbolType} */ (
+                        VectorDeps._.subtract(VectorDeps._.multiply(A[1], B[2]), VectorDeps._.multiply(A[2], B[1]))
+                    ),
+                    /** @type {NerdamerSymbolType} */ (
+                        VectorDeps._.subtract(VectorDeps._.multiply(A[2], B[0]), VectorDeps._.multiply(A[0], B[2]))
+                    ),
+                    /** @type {NerdamerSymbolType} */ (
+                        VectorDeps._.subtract(VectorDeps._.multiply(A[0], B[1]), VectorDeps._.multiply(A[1], B[0]))
+                    ),
                 ]);
                 result.rowVector = rowVector;
                 return result;
@@ -5097,9 +5138,11 @@ class Vector {
     magnitude() {
         let magnitude = new VectorDeps.NerdamerSymbol(0);
         this.each(e => {
-            magnitude = VectorDeps._.add(magnitude, VectorDeps._.pow(e, new VectorDeps.NerdamerSymbol(2)));
+            magnitude = /** @type {NerdamerSymbolType} */ (
+                VectorDeps._.add(magnitude, VectorDeps._.pow(e, new VectorDeps.NerdamerSymbol(2)))
+            );
         });
-        return VectorDeps._.sqrt(magnitude);
+        return /** @type {NerdamerSymbolType} */ (VectorDeps._.sqrt(magnitude));
     }
 
     /**
@@ -5129,7 +5172,7 @@ class Vector {
      */
     text_(x, options) {
         const result = text(
-            /** @type {NerdamerSymbol} */ (/** @type {unknown} */ (this)),
+            /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this)),
             /** @type {string | undefined} */ (/** @type {unknown} */ (options))
         );
         return (this.rowVector ? '[' : '') + result + (this.rowVector ? ']' : '');
@@ -5142,7 +5185,7 @@ class Vector {
      */
     text(x, options) {
         const result = text(
-            /** @type {NerdamerSymbol} */ (/** @type {unknown} */ (this)),
+            /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (this)),
             /** @type {string | undefined} */ (/** @type {unknown} */ (options))
         );
         return (this.rowVector ? '[' : '') + result + (this.rowVector ? ']' : '');
@@ -5176,7 +5219,7 @@ CoreDeps.classes.Vector = Vector;
 /**
  * Dependency container for Matrix class. Populated by the IIFE during initialization.
  *
- * @type {{ _: any; LaTeX: LaTeXInterface; NerdamerSymbol: SymbolConstructor }}
+ * @type {{ _: ParserType; LaTeX: LaTeXInterface; NerdamerSymbol: SymbolConstructor }}
  */
 const MatrixDeps = {
     get _() {
@@ -5196,7 +5239,7 @@ const MatrixDeps = {
  * @implements {MatrixType}
  */
 class Matrix {
-    /** @type {Frac} */
+    /** @type {FracType} */
     multiplier;
 
     /** @type {any[][]} */
@@ -5246,7 +5289,7 @@ class Matrix {
 
     /**
      * @param {number} n
-     * @returns {Matrix}
+     * @returns {MatrixType}
      */
     static identity(n) {
         const m = new Matrix();
@@ -5261,7 +5304,7 @@ class Matrix {
 
     /**
      * @param {any[]} arr
-     * @returns {Matrix}
+     * @returns {MatrixType}
      */
     static fromArray(arr) {
         return new Matrix(...arr);
@@ -5270,7 +5313,7 @@ class Matrix {
     /**
      * @param {number} rows
      * @param {number} cols
-     * @returns {Matrix}
+     * @returns {MatrixType}
      */
     static zeroMatrix(rows, cols) {
         const m = new Matrix();
@@ -5295,7 +5338,7 @@ class Matrix {
     /**
      * @param {Function} f
      * @param {boolean} [rawValues]
-     * @returns {Matrix}
+     * @returns {MatrixType}
      */
     map(f, rawValues) {
         const M = new Matrix();
@@ -5316,7 +5359,9 @@ class Matrix {
         if (raw || isSymbol(value)) {
             this.elements[row][column] = value;
         } else {
-            this.elements[row][column] = new MatrixDeps.NerdamerSymbol(/** @type {string | number | Frac} */ (value));
+            this.elements[row][column] = new MatrixDeps.NerdamerSymbol(
+                /** @type {string | number | FracType} */ (value)
+            );
         }
     }
 
@@ -5389,13 +5434,15 @@ class Matrix {
             return null;
         }
         const M = this.toRightTriangular();
-        let det = M.elements[0][0];
+        let det = /** @type {NerdamerSymbolType} */ (M.elements[0][0]);
         let n = M.elements.length - 1;
         const k = n;
         let i;
         do {
             i = k - n + 1;
-            det = MatrixDeps._.multiply(det, M.elements[i][i]);
+            det = /** @type {NerdamerSymbolType} */ (
+                MatrixDeps._.multiply(det, /** @type {NerdamerSymbolType} */ (M.elements[i][i]))
+            );
         } while (--n);
         return det;
     }
@@ -5412,7 +5459,7 @@ class Matrix {
     }
 
     /**
-     * @param {Matrix} m
+     * @param {MatrixType} m
      * @returns {this}
      */
     augment(m) {
@@ -5428,7 +5475,7 @@ class Matrix {
         return this;
     }
 
-    /** @returns {Matrix} */
+    /** @returns {MatrixType} */
     clone() {
         const r = this.rows();
         const c = this.cols();
@@ -5453,7 +5500,7 @@ class Matrix {
      * @returns {this}
      */
     expand(options) {
-        this.eachElement(e => MatrixDeps._.expand(e, options));
+        this.eachElement(e => MatrixDeps._.expand(e, /** @type {any} */ (options)));
         return this;
     }
 
@@ -5462,14 +5509,14 @@ class Matrix {
      * @returns {this}
      */
     evaluate(options) {
-        this.eachElement(e => MatrixDeps._.evaluate(e, options));
+        this.eachElement(e => MatrixDeps._.evaluate(e, /** @type {any} */ (options)));
         return this;
     }
 
     /**
      * Ported from Sylvester.js
      *
-     * @returns {Matrix}
+     * @returns {MatrixType}
      */
     invert() {
         if (!this.isSquare()) {
@@ -5538,7 +5585,7 @@ class Matrix {
     /**
      * Ported from Sylvester.js
      *
-     * @returns {Matrix}
+     * @returns {MatrixType}
      */
     toRightTriangular() {
         return block(
@@ -5605,7 +5652,7 @@ class Matrix {
         );
     }
 
-    /** @returns {Matrix} */
+    /** @returns {MatrixType} */
     transpose() {
         const rows = this.elements.length;
         const cols = this.elements[0].length;
@@ -5640,7 +5687,7 @@ class Matrix {
     }
 
     /**
-     * @param {Matrix} matrix
+     * @param {MatrixType} matrix
      * @returns {boolean}
      */
     sameSize(matrix) {
@@ -5649,7 +5696,7 @@ class Matrix {
 
     /**
      * @param {any} matrix
-     * @returns {Matrix | null}
+     * @returns {MatrixType | null}
      */
     multiply(matrix) {
         return block(
@@ -5705,15 +5752,17 @@ class Matrix {
     }
 
     /**
-     * @param {Matrix} matrix
+     * @param {MatrixType} matrix
      * @param {Function} [callback]
-     * @returns {Matrix}
+     * @returns {MatrixType}
      */
     add(matrix, callback) {
         const M = new Matrix();
         if (this.sameSize(matrix)) {
             this.eachElement((e, i, j) => {
-                let result = MatrixDeps._.add(e.clone(), matrix.elements[i][j].clone());
+                let result = /** @type {NerdamerSymbolType} */ (
+                    MatrixDeps._.add(e.clone(), matrix.elements[i][j].clone())
+                );
                 if (callback) {
                     result = callback.call(M, result, e, matrix.elements[i][j]);
                 }
@@ -5724,15 +5773,17 @@ class Matrix {
     }
 
     /**
-     * @param {Matrix} matrix
+     * @param {MatrixType} matrix
      * @param {Function} [callback]
-     * @returns {Matrix}
+     * @returns {MatrixType}
      */
     subtract(matrix, callback) {
         const M = new Matrix();
         if (this.sameSize(matrix)) {
             this.eachElement((e, i, j) => {
-                let result = MatrixDeps._.subtract(e.clone(), matrix.elements[i][j].clone());
+                let result = /** @type {NerdamerSymbolType} */ (
+                    MatrixDeps._.subtract(e.clone(), matrix.elements[i][j].clone())
+                );
                 if (callback) {
                     result = callback.call(M, result, e, matrix.elements[i][j]);
                 }
@@ -5821,7 +5872,7 @@ CoreDeps.classes.Matrix = Matrix;
  * forward-referenced values.
  *
  * @type {{
- *     _: any;
+ *     _: ParserType;
  *     N: number;
  *     P: number;
  *     S: number;
@@ -6170,7 +6221,7 @@ CoreDeps.classes.Build = Build;
  * forward-referenced values.
  *
  * @type {{
- *     _: any;
+ *     _: ParserType;
  *     Settings: SettingsType;
  *     SQRT: string;
  *     ABS: string;
@@ -6788,7 +6839,7 @@ const LaTeX = {
     /**
      * Formats the fractions accordingly.
      *
-     * @param {Frac} f
+     * @param {FracType} f
      * @param {boolean} isPow
      * @returns {string}
      */
@@ -8154,7 +8205,7 @@ LateRefs.Math2 = Math2;
  * Checks to see if the object provided is a NerdamerSymbol
  *
  * @param {unknown} obj
- * @returns {obj is NerdamerSymbol}
+ * @returns {obj is NerdamerSymbolType}
  */
 function isSymbol(obj) {
     return obj instanceof CoreDeps.classes.NerdamerSymbol;
@@ -8165,7 +8216,7 @@ function isSymbol(obj) {
  * Checks to see if the object provided is a Vector
  *
  * @param {object} obj
- * @returns {obj is Vector}
+ * @returns {obj is VectorType}
  */
 function isVector(obj) {
     return obj instanceof Vector;
@@ -8176,7 +8227,7 @@ function isVector(obj) {
  * Checks to see if the object provided is a Matrix
  *
  * @param {object} obj
- * @returns {obj is Matrix}
+ * @returns {obj is MatrixType}
  */
 function isMatrix(obj) {
     return obj instanceof Matrix;
@@ -8187,7 +8238,7 @@ function isMatrix(obj) {
  * Checks to see if the object provided is an Expression
  *
  * @param {object} obj
- * @returns {obj is Expression}
+ * @returns {obj is ExpressionType}
  */
 function isExpression(obj) {
     return obj instanceof Expression;
@@ -8272,7 +8323,7 @@ function variables(obj, poly = null, vars = null) {
                 vars.add(obj.value);
             }
         } else if (group === VariablesDeps.PL || prevgroup === VariablesDeps.PL) {
-            variables(/** @type {NerdamerSymbol | Frac} */ (firstObject(obj.symbols)), poly, vars);
+            variables(/** @type {NerdamerSymbolType | FracType} */ (firstObject(obj.symbols)), poly, vars);
         } else if (group === VariablesDeps.EX) {
             if (!isNaN(Number(obj.value))) {
                 vars.add(obj.value);
@@ -8308,8 +8359,8 @@ function getCoeffs(symbol, wrt, _info) {
             // We want only the coefficient which in this case will be everything but the variable
             // e.g. a*b*x -> a*b if the variable to solve for is x
             coeff = term.stripVar(wrt);
-            const x = ParserDeps._.divide(term.clone(), coeff.clone());
-            p = x.power.toDecimal();
+            const x = /** @type {NerdamerSymbolType} */ (ParserDeps._.divide(term.clone(), coeff.clone()));
+            p = /** @type {FracType} */ (x.power).toDecimal();
         } else {
             coeff = term;
             p = 0;
@@ -8331,11 +8382,11 @@ function getCoeffs(symbol, wrt, _info) {
  * Dependency container for nroots function.
  *
  * @type {{
- *     _: any;
+ *     _: ParserType;
  *     FN: number;
  *     P: number;
  *     N: number;
- *     NerdamerSymbol: any;
+ *     NerdamerSymbol: SymbolConstructor;
  * }}
  */
 const NrootsDeps = {
@@ -8360,7 +8411,7 @@ const NrootsDeps = {
  * Gets nth roots of a number
  *
  * @param {NerdamerSymbolType} symbol
- * @returns {Vector}
+ * @returns {VectorType}
  */
 function nroots(symbol) {
     let a;
@@ -8404,10 +8455,12 @@ function nroots(symbol) {
         _roots = [root.clone(), root.negate()];
 
         if (sign < 0) {
-            _roots = _roots.map(r => NrootsDeps._.multiply(r, NrootsDeps.NerdamerSymbol.imaginary()));
+            _roots = /** @type {NerdamerSymbolType[]} */ (
+                _roots.map(r => NrootsDeps._.multiply(r, NrootsDeps.NerdamerSymbol.imaginary()))
+            );
         }
     } else {
-        _roots = [NrootsDeps._.parse(symbol)];
+        _roots = [/** @type {NerdamerSymbolType} */ (NrootsDeps._.parse(symbol))];
     }
 
     return Vector.fromArray(_roots);
@@ -8427,11 +8480,11 @@ function nroots(symbol) {
  */
 function compare(sym1, sym2, vars) {
     const n = 5; // A random number between 1 and 5 is good enough
-    /** @type {Record<string, NerdamerSymbol>} */
+    /** @type {Record<string, NerdamerSymbolType>} */
     const scope = {}; // Scope object with random numbers generated using vars
     let comparison;
     for (let i = 0; i < vars.length; i++) {
-        scope[vars[i]] = /** @type {NerdamerSymbol} */ (
+        scope[vars[i]] = /** @type {NerdamerSymbolType} */ (
             new CoreDeps.classes.NerdamerSymbol(Math.floor(Math.random() * n) + 1)
         );
     }
@@ -8471,7 +8524,7 @@ function arraySum(arr, toNumber) {
     for (let i = 0; i < arr.length; i++) {
         const x = arr[i];
         // Convert to symbol if not
-        sum = ParserDeps._.add(sum, isSymbol(x) ? x : ParserDeps._.parse(x));
+        sum = /** @type {NerdamerSymbolType} */ (ParserDeps._.add(sum, isSymbol(x) ? x : ParserDeps._.parse(x)));
     }
 
     return toNumber ? Number(sum) : sum;
@@ -8516,14 +8569,14 @@ function fillHoles(arr, n) {
 
 // IsNegative Function =============================================================
 /**
- * @param {number | NerdamerSymbol} obj
+ * @param {number | NerdamerSymbolType} obj
  * @returns {boolean}
  */
 function isNegative(obj) {
     if (isSymbol(obj)) {
         return obj.multiplier.lessThan(0);
     }
-    return obj < 0;
+    return /** @type {number} */ (obj) < 0;
 }
 
 // Separate Function ===============================================================
@@ -8531,7 +8584,7 @@ function isNegative(obj) {
  * Dependency container for separate function.
  *
  * @type {{
- *     _: any;
+ *     _: ParserType;
  *     S: number;
  *     FN: number;
  *     EX: number;
@@ -8566,11 +8619,11 @@ const SeparateDeps = {
  * @throws {Error} For exponentials
  */
 function separate(symbol, o) {
-    symbol = SeparateDeps._.expand(symbol);
+    symbol = /** @type {NerdamerSymbolType} */ (SeparateDeps._.expand(symbol));
     o ||= {};
     const insert = function (key, sym) {
         o[key] ||= new CoreDeps.classes.NerdamerSymbol(0);
-        o[key] = SeparateDeps._.add(o[key], sym.clone());
+        o[key] = /** @type {NerdamerSymbolType} */ (SeparateDeps._.add(o[key], sym.clone()));
     };
     symbol.each(x => {
         if (x.isConstant('all')) {
@@ -8595,7 +8648,7 @@ function separate(symbol, o) {
  * Dependency container for decomposeFn function.
  *
  * @type {{
- *     _: any;
+ *     _: ParserType;
  *     CP: number;
  * }}
  */
@@ -8620,14 +8673,14 @@ function decomposeFn(fn, wrt, asObj) {
     let ax;
     let b;
     if (fn.group === DecomposeFnDeps.CP) {
-        const t = DecomposeFnDeps._.expand(fn.clone()).stripVar(wrt);
+        const t = /** @type {NerdamerSymbolType} */ (DecomposeFnDeps._.expand(fn.clone())).stripVar(wrt);
         ax = DecomposeFnDeps._.subtract(fn.clone(), t.clone());
         b = t;
     } else {
         ax = fn.clone();
     }
-    const a = ax.stripVar(wrt);
-    const x = DecomposeFnDeps._.divide(ax.clone(), a.clone());
+    const a = /** @type {NerdamerSymbolType} */ (ax).stripVar(wrt);
+    const x = DecomposeFnDeps._.divide(/** @type {NerdamerSymbolType} */ (ax).clone(), a.clone());
     b ||= new CoreDeps.classes.NerdamerSymbol(0);
     if (asObj) {
         return {
@@ -8660,23 +8713,31 @@ function mix(a, b, opt) {
         a.each(x => {
             // If b is not a PL or a CP then simply multiply it
             if (!b.isComposite()) {
-                const term = ParserDeps._.multiply(ParserDeps._.parse(x), ParserDeps._.parse(b));
-                t = ParserDeps._.add(t, ParserDeps._.expand(term, opt));
+                const term = /** @type {NerdamerSymbolType} */ (
+                    ParserDeps._.multiply(ParserDeps._.parse(x), ParserDeps._.parse(b))
+                );
+                t = /** @type {NerdamerSymbolType} */ (ParserDeps._.add(t, ParserDeps._.expand(term, opt)));
             }
             // Otherwise multiply out each term.
             else if (b.isLinear()) {
                 b.each(y => {
-                    const term = ParserDeps._.multiply(ParserDeps._.parse(x), ParserDeps._.parse(y));
-                    const expanded = ParserDeps._.expand(ParserDeps._.parse(term), opt);
-                    t = ParserDeps._.add(t, expanded);
+                    const term = /** @type {NerdamerSymbolType} */ (
+                        ParserDeps._.multiply(ParserDeps._.parse(x), ParserDeps._.parse(y))
+                    );
+                    const expanded = /** @type {NerdamerSymbolType} */ (
+                        ParserDeps._.expand(/** @type {NerdamerSymbolType} */ (ParserDeps._.parse(term)), opt)
+                    );
+                    t = /** @type {NerdamerSymbolType} */ (ParserDeps._.add(t, expanded));
                 }, true);
             } else {
-                t = ParserDeps._.add(t, ParserDeps._.multiply(x, ParserDeps._.parse(b)));
+                t = /** @type {NerdamerSymbolType} */ (
+                    ParserDeps._.add(t, ParserDeps._.multiply(x, ParserDeps._.parse(b)))
+                );
             }
         }, true);
     } else {
         // Just multiply them together
-        t = ParserDeps._.multiply(a, b);
+        t = /** @type {NerdamerSymbolType} */ (ParserDeps._.multiply(a, b));
     }
 
     // The expanded function is now t
@@ -8689,7 +8750,7 @@ function mix(a, b, opt) {
 /**
  * Converts an array to a vector. Consider moving this to Vector.fromArray
  *
- * @param {string[] | string | NerdamerSymbol | number | number[]} x
+ * @param {string[] | string | NerdamerSymbolType | number | number[]} x
  */
 function convertToVector(x) {
     if (isArray(x)) {
@@ -8710,7 +8771,7 @@ function convertToVector(x) {
 /**
  * Gets all the variables in an array of Symbols
  *
- * @param {NerdamerSymbol[]} arr
+ * @param {NerdamerSymbolType[]} arr
  */
 function arrayGetVariables(arr) {
     let vars = variables(arr[0], null, null);
@@ -8766,8 +8827,8 @@ function getU(symbol) {
  * Dependency container for _setFunction function.
  *
  * @type {{
- *     _: any;
- *     C: any;
+ *     _: ParserType;
+ *     C: CoreType;
  *     USER_FUNCTIONS: string[];
  * }}
  */
@@ -8866,8 +8927,8 @@ function _setFunction(fnName, fnParams, fnBody) {
  * Dependency container for _clearFunctions function.
  *
  * @type {{
- *     _: any;
- *     C: any;
+ *     _: ParserType;
+ *     C: CoreType;
  *     USER_FUNCTIONS: string[];
  * }}
  */
@@ -9226,7 +9287,7 @@ function text(obj, option = undefined, useGroup = undefined, decp = undefined) {
                 break;
             case TextDeps.EX: {
                 const pg = obj.previousGroup;
-                const pwg = /** @type {NerdamerSymbol} */ (obj.power).group;
+                const pwg = /** @type {NerdamerSymbolType} */ (obj.power).group;
 
                 // TextDeps.PL are the exception. It's simpler to just collect and set the value
                 if (pg === TextDeps.PL) {
@@ -9240,7 +9301,7 @@ function text(obj, option = undefined, useGroup = undefined, decp = undefined) {
                     (pwg === TextDeps.CP ||
                         pwg === TextDeps.CB ||
                         pwg === TextDeps.PL ||
-                        /** @type {NerdamerSymbol} */ (obj.power).multiplier.toString() !== '1') &&
+                        /** @type {NerdamerSymbolType} */ (obj.power).multiplier.toString() !== '1') &&
                     power
                 ) {
                     power = inBrackets(power);
@@ -9370,7 +9431,7 @@ function text(obj, option = undefined, useGroup = undefined, decp = undefined) {
  * @type {{
  *     bigDec: any;
  *     bigInt: any;
- *     _: any;
+ *     _: ParserType;
  *     N: number;
  *     P: number;
  *     S: number;
@@ -9441,7 +9502,11 @@ const NerdamerSymbolDeps = {
     },
 };
 
-/** NerdamerSymbol class - The core symbol class for mathematical expressions */
+/**
+ * NerdamerSymbol class - The core symbol class for mathematical expressions
+ *
+ * @implements {NerdamerSymbolType}
+ */
 class NerdamerSymbol {
     /** @type {number} */
     group;
@@ -9455,7 +9520,7 @@ class NerdamerSymbol {
     /** @type {FracType | NerdamerSymbolType} */
     power;
 
-    /** @type {NerdamerSymbol[] | undefined} */
+    /** @type {NerdamerSymbolType[] | undefined} */
     args = undefined;
 
     /** @type {string | undefined} */
@@ -9574,10 +9639,25 @@ class NerdamerSymbol {
      * @returns {NerdamerSymbolType}
      */
     static hyp(a, b) {
-        a ||= new NerdamerSymbol(0);
-        b ||= new NerdamerSymbol(0);
+        a ||= /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
+        b ||= /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
         const { _ } = NerdamerSymbolDeps;
-        return _.sqrt(_.add(_.pow(a.clone(), new NerdamerSymbol(2)), _.pow(b.clone(), new NerdamerSymbol(2))));
+        return /** @type {NerdamerSymbolType} */ (
+            _.sqrt(
+                /** @type {NerdamerSymbolType} */ (
+                    _.add(
+                        _.pow(
+                            /** @type {NerdamerSymbolType} */ (a.clone()),
+                            /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(2)))
+                        ),
+                        _.pow(
+                            /** @type {NerdamerSymbolType} */ (b.clone()),
+                            /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(2)))
+                        )
+                    )
+                )
+            )
+        );
     }
 
     /**
@@ -9591,8 +9671,12 @@ class NerdamerSymbol {
         const im = symbol.imagpart();
         const r = NerdamerSymbol.hyp(re, im);
         const theta = re.equals(0)
-            ? NerdamerSymbolDeps._.parse('pi/2')
-            : NerdamerSymbolDeps._.trig.atan(NerdamerSymbolDeps._.divide(im, re));
+            ? /** @type {NerdamerSymbolType} */ (NerdamerSymbolDeps._.parse('pi/2'))
+            : /** @type {NerdamerSymbolType} */ (
+                  NerdamerSymbolDeps._.trig.atan(
+                      /** @type {NerdamerSymbolType} */ (NerdamerSymbolDeps._.divide(im, re))
+                  )
+              );
         return [r, theta];
     }
 
@@ -9668,8 +9752,10 @@ class NerdamerSymbol {
             }
 
             // Console.log("  negated main part: "+retval)
-            retval = _.parse(retval);
-            retval = _.multiply(_.parse(m), retval);
+            retval = /** @type {NerdamerSymbolType} */ (_.parse(retval));
+            retval = /** @type {NerdamerSymbolType} */ (
+                _.multiply(/** @type {NerdamerSymbolType} */ (_.parse(m)), retval)
+            );
         }
         return retval;
     }
@@ -9683,13 +9769,24 @@ class NerdamerSymbol {
     getNth(n) {
         const { _ } = NerdamerSymbolDeps;
         // First calculate the root
-        const root = evaluate(_.pow(_.parse(this.multiplier), _.parse(String(n)).invert()));
+        const parsedN = /** @type {NerdamerSymbolType} */ (_.parse(String(n)));
+        const root = /** @type {NerdamerSymbolType} */ (
+            evaluate(
+                /** @type {NerdamerSymbolType} */ (
+                    _.pow(/** @type {NerdamerSymbolType} */ (_.parse(this.multiplier)), parsedN.clone().invert())
+                )
+            )
+        );
         // Round of any errors
-        const rounded = _.parse(nround(/** @type {number} */ (/** @type {unknown} */ (root))));
+        const rounded = /** @type {NerdamerSymbolType} */ (
+            _.parse(nround(/** @type {number} */ (/** @type {unknown} */ (root))))
+        );
         // Reverse the root
-        const e = evaluate(_.pow(rounded, _.parse(String(n))));
+        const e = /** @type {NerdamerSymbolType} */ (
+            evaluate(/** @type {NerdamerSymbolType} */ (_.pow(rounded, parsedN.clone())))
+        );
         // If the rounded root equals the original number then we're good
-        if (e.equals(_.parse(this.multiplier))) {
+        if (e.equals(/** @type {NerdamerSymbolType} */ (_.parse(this.multiplier)))) {
             return rounded;
         }
         // Otherwise return the unrounded version
@@ -9799,16 +9896,19 @@ class NerdamerSymbol {
                     in_ = in_.multiply(new Frac(x)); // Move the factor inside the bracket
                 }
 
-                out_ = out_.multiply(_.parse(`${inBrackets(x)}^${inBrackets(n)}`).multiplier);
+                out_ = out_.multiply(
+                    /** @type {NerdamerSymbolType} */ (_.parse(`${inBrackets(x)}^${inBrackets(n)}`)).multiplier
+                );
             }
-            let t = new NerdamerSymbol(in_);
+            /** @type {NerdamerSymbolType} */
+            let t = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(in_)));
             this.each(x => {
                 x = x.clone();
                 x.power = x.power.divide(min);
-                t = _.multiply(t, x);
+                t = /** @type {NerdamerSymbolType} */ (_.multiply(t, /** @type {NerdamerSymbolType} */ (x)));
             });
 
-            const xt = _.symfunction(NerdamerSymbolDeps.PARENTHESIS, [t]);
+            const xt = /** @type {NerdamerSymbolType} */ (_.symfunction(NerdamerSymbolDeps.PARENTHESIS, [t]));
             xt.power = min;
             xt.multiplier = sign < 0 ? out_.negate() : out_;
 
@@ -9988,7 +10088,9 @@ class NerdamerSymbol {
             retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(1)));
             this.each(s => {
                 if (!s.contains(x, true)) {
-                    retval = _.multiply(retval, s.clone());
+                    retval = /** @type {NerdamerSymbolType} */ (
+                        _.multiply(retval, /** @type {NerdamerSymbolType} */ (s.clone()))
+                    );
                 }
             });
             retval.multiplier = retval.multiplier.multiply(this.multiplier);
@@ -10000,7 +10102,7 @@ class NerdamerSymbol {
                 if (!s.contains(x)) {
                     const t = s.clone();
                     t.multiplier = t.multiplier.multiply(this.multiplier);
-                    retval = _.add(retval, t);
+                    retval = /** @type {NerdamerSymbolType} */ (_.add(retval, /** @type {NerdamerSymbolType} */ (t)));
                 }
             });
             // BIG TODO!!! It doesn't make much sense
@@ -10043,7 +10145,12 @@ class NerdamerSymbol {
             arr.add(new NerdamerSymbol(this.multiplier), this.power);
         } else if (g === NerdamerSymbolDeps.CB) {
             const a = this.stripVar(v);
-            const x = _.divide(this.clone(), a.clone());
+            const x = /** @type {NerdamerSymbolType} */ (
+                _.divide(
+                    /** @type {NerdamerSymbolType} */ (this.clone()),
+                    /** @type {NerdamerSymbolType} */ (a.clone())
+                )
+            );
             const p = x.isConstant() ? 0 : x.power;
             arr.add(a, p);
         } else if (g === NerdamerSymbolDeps.PL && this.value === v) {
@@ -10294,7 +10401,7 @@ class NerdamerSymbol {
             /** @type {NerdamerSymbolType} */
             let retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
             this.each(x => {
-                retval = _.add(retval, x.realpart());
+                retval = /** @type {NerdamerSymbolType} */ (_.add(retval, x.realpart()));
             });
             return retval;
         }
@@ -10324,7 +10431,7 @@ class NerdamerSymbol {
             /** @type {NerdamerSymbolType} */
             let retval = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(0)));
             this.each(x => {
-                retval = _.add(retval, x.imagpart());
+                retval = /** @type {NerdamerSymbolType} */ (_.add(retval, x.imagpart()));
             });
             return retval;
         }
@@ -10434,7 +10541,9 @@ class NerdamerSymbol {
                 this.convert(NerdamerSymbolDeps.EX);
             }
             /** @type {FracType | NerdamerSymbolType} */
-            const newPower = /** @type {FracType | NerdamerSymbolType} */ (/** @type {unknown} */ (_.multiply(p1, p2)));
+            const newPower = /** @type {FracType | NerdamerSymbolType} */ (
+                _.multiply(/** @type {NerdamerSymbolType} */ (p1), /** @type {NerdamerSymbolType} */ (p2))
+            );
             /** @type {FracType | NerdamerSymbolType} */
             this.power = newPower;
         }
@@ -10865,7 +10974,9 @@ class NerdamerSymbol {
 
                     if (existing) {
                         // Remove because the symbol may have changed
-                        symbol = _.multiply(remove(this.symbols, key), symbol);
+                        symbol = /** @type {NerdamerSymbolType} */ (
+                            _.multiply(/** @type {NerdamerSymbolType} */ (remove(this.symbols, key)), symbol)
+                        );
                         if (symbol.isConstant()) {
                             this.multiplier = this.multiplier.multiply(symbol.multiplier);
                             symbol = /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (new NerdamerSymbol(1))); // The dirty work gets done down the line when it detects 1
@@ -11151,15 +11262,19 @@ class NerdamerSymbol {
      * Get's the denominator of the symbol if the symbol is of class CB (multiplication) with other classes the symbol
      * is either the denominator or not. Take x^-1+x^-2. If the symbol was to be mixed such as x+x^-2 then the symbol
      * doesn't have have an exclusive denominator and has to be found by looking at the actual symbols themselves.
+     *
+     * @returns {NerdamerSymbolType}
      */
     getDenom() {
         const { _ } = NerdamerSymbolDeps;
+        /** @type {NerdamerSymbolType | VectorType | MatrixType} */
         let retval;
+        /** @type {NerdamerSymbolType} */
         let symbol;
-        symbol = this.clone();
+        symbol = /** @type {NerdamerSymbolType} */ (this.clone());
         // E.g. 1/(x*(x+1))
         if (this.group === NerdamerSymbolDeps.CB && this.power.lessThan(0)) {
-            symbol = _.expand(symbol);
+            symbol = /** @type {NerdamerSymbolType} */ (_.expand(symbol));
         }
 
         // If the symbol already is the denominator... DONE!!!
@@ -11184,22 +11299,28 @@ class NerdamerSymbol {
                     (s.group === NerdamerSymbolDeps.EX &&
                         /** @type {NerdamerSymbolType} */ (s.power).multiplier.lessThan(0))
                 ) {
-                    retval = _.multiply(retval, symbol.symbols[x].clone().invert());
+                    retval = _.multiply(
+                        /** @type {NerdamerSymbolType} */ (retval),
+                        /** @type {NerdamerSymbolType} */ (symbol.symbols[x].clone().invert())
+                    );
                 }
             }
         } else {
             retval = _.parse(symbol.multiplier.den);
         }
-        return retval;
+        return /** @type {NerdamerSymbolType} */ (retval);
     }
+    /** @returns {NerdamerSymbolType} */
     getNum() {
         const { _ } = NerdamerSymbolDeps;
+        /** @type {NerdamerSymbolType | VectorType | MatrixType} */
         let retval;
+        /** @type {NerdamerSymbolType} */
         let symbol;
-        symbol = this.clone();
+        symbol = /** @type {NerdamerSymbolType} */ (this.clone());
         // E.g. 1/(x*(x+1))
         if (symbol.group === NerdamerSymbolDeps.CB && symbol.power.lessThan(0)) {
-            symbol = _.expand(symbol);
+            symbol = /** @type {NerdamerSymbolType} */ (_.expand(symbol));
         }
         // If the symbol already is the denominator... DONE!!!
         if (
@@ -11216,7 +11337,10 @@ class NerdamerSymbol {
                     (x.group === NerdamerSymbolDeps.EX &&
                         /** @type {NerdamerSymbolType} */ (x.power).multiplier.greaterThan(0))
                 ) {
-                    retval = _.multiply(retval, x.clone());
+                    retval = _.multiply(
+                        /** @type {NerdamerSymbolType} */ (retval),
+                        /** @type {NerdamerSymbolType} */ (x.clone())
+                    );
                 }
             });
         }
@@ -11226,7 +11350,7 @@ class NerdamerSymbol {
         else {
             retval = _.parse(symbol.multiplier.num);
         }
-        return retval;
+        return /** @type {NerdamerSymbolType} */ (retval);
     }
     toString() {
         return this.text();
@@ -11256,7 +11380,7 @@ CoreDeps.classes.NerdamerSymbol = /** @type {any} */ (NerdamerSymbol);
  * This class is defined at module scope but instantiated inside the IIFE. The Parser destructures its dependencies from
  * ParserDeps at construction time, which the IIFE has already populated with the correct values.
  *
- * @class
+ * @implements {ParserType}
  */
 class Parser {
     constructor() {
@@ -11297,7 +11421,7 @@ class Parser {
 
             // Using 'getText' to avoid shadowing the outer 'text' function
             text() {
-                return `${text(/** @type {NerdamerSymbol} */ (this.upper))}:${text(/** @type {NerdamerSymbol} */ (this.lower))}`;
+                return `${text(/** @type {NerdamerSymbolType} */ (this.upper))}:${text(/** @type {NerdamerSymbolType} */ (this.lower))}`;
             }
         }
 
@@ -12447,6 +12571,7 @@ class Parser {
         };
         // Supported functions.
         // Format: function_name: [mappedFunction, number_of_parameters]
+        /** @type {FunctionMapType} */
         const functions = (this.functions = {
             cos: [trig.cos, 1],
             sin: [trig.sin, 1],
@@ -12811,7 +12936,7 @@ class Parser {
          * Preforms preprocessing on the string. Useful for making early modification before
          * sending to the parser
          * @param {string} e
-         * @param {Parser} parser - The parser instance to use as context
+         * @param {ParserType} parser - The parser instance to use as context
          */
         const prepareExpression = function prepareExpression(e, parser) {
             /*
@@ -14193,7 +14318,7 @@ class Parser {
             return b;
         }
         /**
-         * @param {Matrix | Vector | NerdamerSet | Collection} obj
+         * @param {MatrixType | VectorType | SetType | CollectionType} obj
          * @param {NerdamerSymbolType} item
          * @returns {NerdamerSymbolType}
          */
@@ -14201,7 +14326,7 @@ class Parser {
             if (isMatrix(obj)) {
                 for (let i = 0, l = obj.rows(); i < l; i++) {
                     for (let j = 0, l2 = obj.cols(); j < l2; j++) {
-                        const element = obj.elements[i][j];
+                        const element = /** @type {NerdamerSymbolType} */ (obj.elements[i][j]);
                         if (element.equals(item)) {
                             return new NerdamerSymbol(1);
                         }
@@ -14209,7 +14334,7 @@ class Parser {
                 }
             } else if (obj.elements) {
                 for (let i = 0, l = obj.elements.length; i < l; i++) {
-                    if (obj.elements[i].equals(item)) {
+                    if (/** @type {NerdamerSymbolType} */ (obj.elements[i]).equals(item)) {
                         return new NerdamerSymbol(1);
                     }
                 }
@@ -14590,7 +14715,7 @@ class Parser {
 
             // Return non numeric values unevaluated
             if (!num.isConstant(true)) {
-                /** @type {(NerdamerSymbol | boolean | any)[]} */
+                /** @type {(NerdamerSymbolType | boolean | any)[]} */
                 const symArgs = [num, p];
                 if (typeof prec !== 'undefined') {
                     symArgs.push(prec);
@@ -14691,7 +14816,7 @@ class Parser {
          * @returns {NerdamerSymbolType}
          */
         function realpart(symbol) {
-            return /** @type {NerdamerSymbol} */ (symbol.realpart());
+            return /** @type {NerdamerSymbolType} */ (symbol.realpart());
         }
 
         /**
@@ -14701,7 +14826,7 @@ class Parser {
          * @returns {NerdamerSymbolType}
          */
         function imagpart(symbol) {
-            return /** @type {NerdamerSymbol} */ (symbol.imagpart());
+            return /** @type {NerdamerSymbolType} */ (symbol.imagpart());
         }
 
         /**
@@ -14784,25 +14909,25 @@ class Parser {
             // TODO: e^((i*pi)/4)
             const original = symbol.clone();
             try {
-                const f = /** @type {{ a: any; x: any; ax: any; b: NerdamerSymbol }} */ (
+                const f = /** @type {{ a: any; x: any; ax: any; b: NerdamerSymbolType }} */ (
                     decomposeFn(symbol, 'e', true)
                 );
                 const p = _.divide(f.x.power, NerdamerSymbol.imaginary());
                 const q = evaluate(trig.tan(p));
                 const _s = _.pow(f.a, new NerdamerSymbol(2));
-                const d = /** @type {NerdamerSymbol} */ (q.getDenom());
-                const n = /** @type {NerdamerSymbol} */ (q.getNum());
+                const d = /** @type {NerdamerSymbolType} */ (q.getDenom());
+                const n = /** @type {NerdamerSymbolType} */ (q.getNum());
                 const h = NerdamerSymbol.hyp(n, d);
                 // Check
                 if (h.equals(f.a)) {
-                    return /** @type {NerdamerSymbol} */ (_.add(d, _.multiply(NerdamerSymbol.imaginary(), n)));
+                    return /** @type {NerdamerSymbolType} */ (_.add(d, _.multiply(NerdamerSymbol.imaginary(), n)));
                 }
-                return /** @type {NerdamerSymbol} */ (original);
+                return /** @type {NerdamerSymbolType} */ (original);
             } catch (e) {
                 if (e.message === 'timeout') {
                     throw e;
                 }
-                return /** @type {NerdamerSymbol} */ (original);
+                return /** @type {NerdamerSymbolType} */ (original);
             }
         }
 
@@ -14950,7 +15075,7 @@ class Parser {
                 const logBase = Math.log(base);
                 retval = new NerdamerSymbol(logSym / logBase);
             } else if (
-                (symbol.group === EX && /** @type {NerdamerSymbol} */ (symbol.power).multiplier.lessThan(0)) ||
+                (symbol.group === EX && /** @type {NerdamerSymbolType} */ (symbol.power).multiplier.lessThan(0)) ||
                 symbol.power.toString() === '-1'
             ) {
                 symbol.power.negate();
@@ -15017,7 +15142,7 @@ class Parser {
                 let v;
                 let e;
                 let exponent;
-                /** @type {NerdamerSymbol | string} */
+                /** @type {NerdamerSymbolType | string} */
                 v = x;
                 // Round the coefficient of then number but not the actual decimal value
                 // we know this because a negative number was passed
@@ -15048,7 +15173,7 @@ class Parser {
         /**
          * Gets the quadrant of the trig function
          *
-         * @param {Frac} m
+         * @param {FracType} m
          * @returns {number}
          */
         function getQuadrant(m) {
@@ -15073,7 +15198,7 @@ class Parser {
 
         /*
          * Serves as a bridge between numbers and bigNumbers
-         * @param {Frac|number} n
+         * @param {FracType|number} n
          * @returns {NerdamerSymbolType}
          */
         function bigConvert(n) {
@@ -15229,7 +15354,7 @@ class Parser {
                     /** @type {NerdamerSymbolType} */
                     let f = new NerdamerSymbol(0);
 
-                    symbol.each((/** @type {NerdamerSymbol} */ x) => {
+                    symbol.each((/** @type {NerdamerSymbolType} */ x) => {
                         f = /** @type {NerdamerSymbolType} */ (_.add(f, expand(_.parse(x), opt)));
                     });
 
@@ -15347,7 +15472,7 @@ class Parser {
          * Returns an identity matrix of nxn
          *
          * @param {number} n
-         * @returns {Matrix}
+         * @returns {MatrixType}
          */
         function imatrix(n) {
             return Matrix.identity(n);
@@ -15370,9 +15495,9 @@ class Parser {
         /**
          * Removes duplicates from a vector
          *
-         * @param {Vector} vec
+         * @param {VectorType} vec
          * @param {number} tolerance
-         * @returns {Vector}
+         * @returns {VectorType}
          */
         function vectrim(vec, tolerance) {
             tolerance = typeof tolerance === 'undefined' ? 1e-14 : tolerance;
@@ -15432,7 +15557,11 @@ class Parser {
          */
         function matgetrow(mat, i) {
             if (i.isConstant()) {
-                return /** @type {VectorType} */ (/** @type {unknown} */ (Vector.fromArray(mat.elements[Number(i)])));
+                return /** @type {VectorType} */ (
+                    /** @type {unknown} */ (
+                        Vector.fromArray(/** @type {NerdamerSymbolType[]} */ (mat.elements[Number(i)]))
+                    )
+                );
             }
             return _.symfunction('matgetrow', [/** @type {MatrixType} */ (/** @type {unknown} */ (mat)), i]);
         }
@@ -16988,12 +17117,12 @@ class Parser {
                 if (result.fname === SQRT) {
                     const isEX = result.group === EX;
                     const t = isEX
-                        ? /** @type {NerdamerSymbol} */ (result.power).multiplier.toString()
+                        ? /** @type {NerdamerSymbolType} */ (result.power).multiplier.toString()
                         : result.power.toString();
                     if (even(t)) {
                         const pt = isEX
                             ? _.divide(result.power, new NerdamerSymbol(2))
-                            : new NerdamerSymbol(/** @type {Frac} */ (result.power).divide(new Frac(2)));
+                            : new NerdamerSymbol(/** @type {FracType} */ (result.power).divide(new Frac(2)));
                         const resultMult = result.multiplier;
                         result = _.pow(result.args[0], pt);
                         result.multiplier = result.multiplier.multiply(resultMult);
@@ -17232,7 +17361,7 @@ function createLibExports() {
                     typeof expression === 'object' &&
                     /** @type {any} */ (expression) instanceof Expression
                 ) {
-                    expression = /** @type {Expression} */ (expression).toString();
+                    expression = /** @type {ExpressionType} */ (expression).toString();
                 }
 
                 // Convert it to an array for simplicity
