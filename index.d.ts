@@ -93,7 +93,18 @@ export = nerdamer;
 export as namespace nerdamer;
 
 // Named exports for modern import syntax
-export { NerdamerExpression, NerdamerEquation, SolveResult, ExpressionParam, OutputType, ParseOption };
+export {
+    NerdamerExpression,
+    NerdamerEquation,
+    SolveResult,
+    ExpressionParam,
+    OutputType,
+    ParseOption,
+    ExpandOptions,
+    ArithmeticOperand,
+    LaTeXToken,
+    FilteredLaTeXToken,
+};
 
 // #endregion
 
@@ -107,6 +118,36 @@ type ParseOption = 'numer' | 'expand';
 
 /** A type alias for accessing items in the expression history. */
 type ExpressionHistoryIndex = 'last' | 'first' | number;
+
+/** Options for expand operations */
+interface ExpandOptions {
+    /** Whether to expand the denominator */
+    expand_denominator?: boolean;
+    /** Whether to expand functions */
+    expand_functions?: boolean;
+}
+
+/** Union type for arithmetic operands in parser operations. These methods accept symbols, vectors, or matrices. */
+type ArithmeticOperand =
+    | nerdamerPrime.NerdamerCore.NerdamerSymbol
+    | nerdamerPrime.NerdamerCore.Vector
+    | nerdamerPrime.NerdamerCore.Matrix;
+
+/** Type alias for cloneable array items */
+interface _Cloneable {
+    clone(): this;
+}
+
+/** Represents an item in a LaTeX token stream. Used during LaTeX parsing and generation. */
+interface LaTeXToken {
+    type: string;
+    value: string;
+    left?: LaTeXToken;
+    right?: LaTeXToken;
+}
+
+/** Represents a filtered token or token array from LaTeX parsing. */
+type FilteredLaTeXToken = LaTeXToken | FilteredLaTeXToken[];
 
 /** Type alias for integer numbers */
 type int = number;
@@ -2194,7 +2235,7 @@ declare namespace nerdamerPrime {
         /** Constructor for Vector */
         interface VectorConstructor {
             new (elements?: Vector | Matrix | NerdamerSymbol[] | NerdamerSymbol, ...rest: NerdamerSymbol[]): Vector;
-            fromArray(arr: (ExpressionParam | NerdamerSymbol)[]): Vector;
+            fromArray(arr: (NerdamerSymbol | Vector | Matrix | string | number)[]): Vector;
             arrayPrefill(n: number, val?: NerdamerSymbol | number): (NerdamerSymbol | number)[];
         }
 
@@ -2224,14 +2265,14 @@ declare namespace nerdamerPrime {
             /** Multiplier coefficient */
             multiplier: Frac;
 
-            /** Array of elements in the vector */
-            elements: NerdamerSymbol[];
+            /** Array of elements in the vector (can include nested vectors/matrices from parser operations) */
+            elements: (NerdamerSymbol | Vector | Matrix)[];
 
             /** Whether this is a row vector (vs column vector) */
             rowVector: boolean;
 
             /** Returns the element at index i (1-based) */
-            e(i: number): NerdamerSymbol | null;
+            e(i: number): NerdamerSymbol | Vector | Matrix | null;
 
             /** Sets element at index i */
             set(i: number, val: NerdamerSymbol | string | number): void;
@@ -2249,7 +2290,7 @@ declare namespace nerdamerPrime {
             clone(): Vector;
 
             /** Expands all elements */
-            expand(options?: { simplify?: boolean }): this;
+            expand(options?: ExpandOptions): this;
 
             /** Maps the vector to another vector */
             map(fn: (element: NerdamerSymbol, index: number) => NerdamerSymbol): Vector;
@@ -2294,7 +2335,7 @@ declare namespace nerdamerPrime {
             toUnitMultiplier(): this;
 
             /** Returns the largest element by absolute value */
-            max(): NerdamerSymbol | number;
+            max(): NerdamerSymbol | Vector | Matrix | number;
 
             /** Returns the magnitude of the vector */
             magnitude(): NerdamerSymbol;
@@ -2356,17 +2397,22 @@ declare namespace nerdamerPrime {
             /** Multiplier coefficient */
             multiplier: Frac;
 
-            /** 2D array of elements in the matrix (can include nested vectors/matrices) */
+            /** 2D array of elements in the matrix (can include nested vectors/matrices from parser operations) */
             elements: (NerdamerSymbol | Vector | Matrix)[][];
 
             /** Gets element at (row, column) */
-            get(row: number, column: number): NerdamerSymbol | undefined;
+            get(row: number, column: number): NerdamerSymbol | Vector | Matrix | undefined;
 
-            /** Maps the matrix to another matrix */
-            map(f: (element: NerdamerSymbol, row: number, col: number) => NerdamerSymbol, rawValues?: boolean): Matrix;
+            /** Maps the matrix to another matrix. Note: callback only receives element, not row/col indices */
+            map(f: (element: NerdamerSymbol) => NerdamerSymbol, rawValues?: boolean): Matrix;
 
             /** Sets an element at position (row, column) */
-            set(row: number, column: number, value: NerdamerSymbol | string | number, raw?: boolean): void;
+            set(
+                row: number,
+                column: number,
+                value: NerdamerSymbol | Vector | Matrix | string | number,
+                raw?: boolean
+            ): void;
 
             /** Returns number of columns */
             cols(): number;
@@ -2375,10 +2421,10 @@ declare namespace nerdamerPrime {
             rows(): number;
 
             /** Returns row n (1-based) */
-            row(n: number): NerdamerSymbol[];
+            row(n: number): (NerdamerSymbol | Vector | Matrix)[];
 
             /** Returns column n (1-based) */
-            col(n: number): NerdamerSymbol[];
+            col(n: number): (NerdamerSymbol | Vector | Matrix)[];
 
             /** Iterates over each element in the matrix */
             eachElement(fn: (element: NerdamerSymbol, row: number, col: number) => void): void;
@@ -2405,10 +2451,10 @@ declare namespace nerdamerPrime {
             toUnitMultiplier(): this;
 
             /** Expands all elements */
-            expand(options?: string): this;
+            expand(options?: ExpandOptions): this;
 
             /** Evaluates all elements */
-            evaluate(options?: string): this;
+            evaluate(options?: Record<string, ExpressionParam>): this;
 
             /** Returns the inverse of the matrix */
             invert(): Matrix;
@@ -2501,9 +2547,9 @@ declare namespace nerdamerPrime {
             /** Creates a clone of the collection */
             clone(): Collection;
             /** Expands all elements */
-            expand(options?: string): this;
+            expand(options?: ExpandOptions): this;
             /** Evaluates all elements */
-            evaluate(options?: string): this;
+            evaluate(options?: Record<string, ExpressionParam>): this;
             /** Maps a function over elements */
             map(lambda: (x: NerdamerSymbol, i: number) => NerdamerSymbol): Collection;
             /** Adds another collection element-wise */
@@ -2724,9 +2770,12 @@ declare namespace nerdamerPrime {
             /** Get the proper name for a function */
             getProperName(f: string): string;
             /** Compile dependencies for a function */
-            compileDependencies(f: string, deps?: unknown): unknown[];
+            compileDependencies(f: string, deps?: [Record<string, string>, string]): [Record<string, string>, string];
             /** Get argument dependencies from a symbol */
-            getArgsDeps(symbol: NerdamerSymbol, dependencies?: unknown): unknown;
+            getArgsDeps(
+                symbol: NerdamerSymbol,
+                dependencies?: [Record<string, string>, string]
+            ): [Record<string, string>, string];
             /**
              * Build a JavaScript function from a symbolic expression.
              *
@@ -2780,7 +2829,8 @@ declare namespace nerdamerPrime {
             ): NerdamerSymbol | Vector | Matrix;
 
             /**
-             * Multiplies two symbols or data structures (Vector, Matrix).
+             * Multiplies two symbols or data structures (Vector, Matrix). Note: In special cases (function assignment),
+             * may return Collection.
              *
              * @param a The first operand.
              * @param b The second operand.
@@ -2820,13 +2870,9 @@ declare namespace nerdamerPrime {
              *
              * @param symbol The symbol to expand.
              * @param options Expansion options.
-             * @param options.power_expand Whether to expand powers.
              * @returns The expanded expression.
              */
-            expand(
-                symbol: NerdamerSymbol | Vector | Matrix,
-                options?: { power_expand?: boolean }
-            ): NerdamerSymbol | Vector | Matrix;
+            expand(symbol: NerdamerSymbol | Vector | Matrix, options?: ExpandOptions): NerdamerSymbol | Vector | Matrix;
 
             /**
              * Creates a symbolic function representation.
@@ -3136,7 +3182,7 @@ declare namespace nerdamerPrime {
 
             // Linked convenience functions
             /** Expands an expression */
-            expand(symbol: NerdamerSymbol | Vector | Matrix): NerdamerSymbol | Vector | Matrix;
+            expand(symbol: NerdamerSymbol | Vector | Matrix, options?: ExpandOptions): NerdamerSymbol | Vector | Matrix;
             /** Rounds a number to specified decimal places */
             round(symbol: NerdamerSymbol, decimals?: number): NerdamerSymbol;
             /** Cleans/simplifies an expression */
