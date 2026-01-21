@@ -3789,14 +3789,6 @@ declare namespace nerdamerPrime {
             block<T>(setting: keyof Settings, f: () => T, opt?: boolean, obj?: object): T;
 
             /**
-             * Compiles a NerdamerSymbol into a callable JavaScript function.
-             *
-             * @param symbol The NerdamerSymbol to compile.
-             * @param arg_array Optional array to define the order of the function's arguments.
-             */
-            build(symbol: NerdamerSymbol, arg_array?: string[]): Function;
-
-            /**
              * A function that must be called periodically in long-running loops to check for timeouts.
              *
              * @throws {Error} An error if the timeout has been exceeded.
@@ -3840,14 +3832,14 @@ declare namespace nerdamerPrime {
              *
              * @param name The name of the custom error.
              */
-            customError(name: string): ErrorConstructor;
+            customError(name: string): new (message?: string) => Error;
 
             /**
              * Checks if an object is a custom Nerdamer data structure (like Matrix or Vector).
              *
              * @param obj The object to check.
              */
-            customType(obj: unknown): obj is Vector | Matrix | Collection | NerdamerSet;
+            customType(obj: unknown): boolean;
 
             /**
              * Decomposes a function into its parts with respect to a variable (ax+b).
@@ -3859,13 +3851,15 @@ declare namespace nerdamerPrime {
             decompose_fn(
                 fn: NerdamerSymbol,
                 wrt: string,
-                as_obj?: false
-            ): [NerdamerSymbol, NerdamerSymbol, NerdamerSymbol, NerdamerSymbol];
-            decompose_fn(
-                fn: NerdamerSymbol,
-                wrt: string,
-                as_obj: true
-            ): { a: NerdamerSymbol; x: NerdamerSymbol; ax: NerdamerSymbol; b: NerdamerSymbol };
+                as_obj?: boolean
+            ):
+                | (NerdamerSymbol | Vector | Matrix)[]
+                | {
+                      a: NerdamerSymbol;
+                      x: NerdamerSymbol | Vector | Matrix;
+                      ax: NerdamerSymbol | Vector | Matrix;
+                      b: NerdamerSymbol;
+                  };
 
             /**
              * Disarms the timeout timer.
@@ -3913,15 +3907,6 @@ declare namespace nerdamerPrime {
             fillHoles(arr: NerdamerSymbol[], n?: number): NerdamerSymbol[];
 
             /**
-             * Creates an array of a given length, filled with a specified value.
-             *
-             * @param v The value to fill the array with.
-             * @param n The length of the array.
-             * @param clss Optional constructor to use for creating new instances of the value.
-             */
-            filledArray<T>(v: T, n: number, clss?: new (val: T) => T): T[];
-
-            /**
              * Gets the first property from an object.
              *
              * @param obj The object.
@@ -3951,10 +3936,11 @@ declare namespace nerdamerPrime {
              * Extracts the coefficients of a polynomial NerdamerSymbol with respect to a variable.
              *
              * @param symbol The polynomial NerdamerSymbol.
-             * @param wrt The variable name.
+             * @param wrt The variable name or NerdamerSymbol.
+             * @param _info Optional info parameter.
              * @returns An array of coefficient Symbols.
              */
-            getCoeffs(symbol: NerdamerSymbol, wrt: string): NerdamerSymbol[];
+            getCoeffs(symbol: NerdamerSymbol, wrt: NerdamerSymbol | string, _info?: unknown): unknown[];
 
             /**
              * Generates a unique temporary variable name (usually 'u') for substitutions.
@@ -3964,7 +3950,7 @@ declare namespace nerdamerPrime {
             getU(symbol: NerdamerSymbol): string;
 
             /** Imports all registered parser functions into a single object. */
-            importFunctions(): Record<string, Function>;
+            importFunctions(): {};
 
             /**
              * Wraps a string in parentheses.
@@ -3972,35 +3958,6 @@ declare namespace nerdamerPrime {
              * @param str The string to wrap.
              */
             inBrackets(str: string): string;
-
-            /**
-             * Checks if two arrays have at least one element in common.
-             *
-             * @param a The first array.
-             * @param b The second array.
-             */
-            haveIntersection<T>(a: T[], b: T[]): boolean;
-
-            /**
-             * Checks if a function name is an inverse trigonometric function.
-             *
-             * @param x The function name.
-             */
-            in_inverse_trig(x: string): boolean;
-
-            /**
-             * Checks if a function name is a standard trigonometric function.
-             *
-             * @param x The function name.
-             */
-            in_trig(x: string): boolean;
-
-            /**
-             * Checks if a function name is a hyperbolic trigonometric function.
-             *
-             * @param x The function name.
-             */
-            in_htrig(x: string): boolean;
 
             /**
              * A type guard to check if a value is an Array.
@@ -4152,7 +4109,7 @@ declare namespace nerdamerPrime {
              * @param x The number to round.
              * @param s The number of decimal places.
              */
-            round(x: number, s?: number): number;
+            round(x: string | number, s?: number): string | number;
 
             /**
              * Checks if two numbers have the same sign.
@@ -4188,20 +4145,15 @@ declare namespace nerdamerPrime {
             stringReplace(str: string, from: number, to: number, with_str: string): string;
 
             /**
-             * Substitutes function calls within a symbol with temporary variables.
+             * Converts an object to its text representation.
              *
-             * @param symbol The symbol to process.
-             * @param map An object to store the function-to-variable mappings.
-             * @returns The expression string with functions substituted.
+             * @param obj The object to convert (NerdamerSymbol, Vector, Matrix, etc.)
+             * @param option Format option ('decimal', 'decimals', 'hash', 'decimals_or_scientific')
+             * @param useGroup Group number to use for formatting
+             * @param decp Number of decimal places
+             * @returns The text representation
              */
-            subFunctions(symbol: NerdamerSymbol, map?: Record<string, string>): string;
-
-            /**
-             * Creates a substitution object to revert temporary variables back to their original function calls.
-             *
-             * @param map The map generated by `subFunctions`.
-             */
-            getFunctionsSubs(map: Record<string, string>): Record<string, NerdamerSymbol>;
+            text(obj: NerdamerSymbol | Vector | Matrix, option?: string, useGroup?: number, decp?: number): string;
 
             /**
              * Extract cluster of all variable names from a NerdamerSymbol.
@@ -4212,49 +4164,23 @@ declare namespace nerdamerPrime {
             variables(obj: NerdamerSymbol): string[];
 
             /**
+             * Validates a variable or function name according to nerdamer rules.
+             *
+             * Enforces rule: 'must start with a letter or underscore and can have any number of underscores, letters,
+             * and numbers thereafter.'
+             *
+             * @param name The name of the symbol being checked
+             * @param typ The type of symbol that's being validated (default: 'variable')
+             * @throws {Error} Throws an InvalidVariableNameError exception on validation failure
+             */
+            validateName(name: string, typ?: string): void;
+
+            /**
              * Logs a warning to the console and adds it to Nerdamer's internal warning list.
              *
              * @param msg The warning message.
              */
             warn(msg: string): void;
-
-            /**
-             * Checks if all elements in an array are linear polynomials.
-             *
-             * @param args The array of symbols to check.
-             * @param test The test function to apply.
-             * @returns True if all elements pass the test, false otherwise.
-             */
-            checkAll<T>(args: T[], test: (item: T) => boolean): boolean;
-
-            /**
-             * Rewrites a symbolic expression under one common denominator.
-             *
-             * @param symbol The symbol to rewrite.
-             */
-            toCommonDenominator(symbol: NerdamerSymbol): NerdamerSymbol;
-
-            /**
-             * Checks if all symbols in an array are function calls.
-             *
-             * @param arr The array of symbols.
-             */
-            all_functions(arr: NerdamerSymbol[]): boolean;
-
-            /**
-             * Applies trigonometric product-to-sum identities.
-             *
-             * @param arr An array of trigonometric function Symbols.
-             */
-            trigTransform(arr: NerdamerSymbol[]): NerdamerSymbol;
-
-            /**
-             * Creates an object mapping array elements to their indices.
-             *
-             * @param arr The input array.
-             * @returns An object with a `length` property and element mappings.
-             */
-            toMapObj(arr: (string | number)[]): Record<string, number> & { length: number };
         }
 
         // #endregion
@@ -4315,6 +4241,7 @@ declare namespace nerdamerPrime {
             PARSER: Parser;
             groups: Record<'N' | 'P' | 'S' | 'EX' | 'FN' | 'PL' | 'CB' | 'CP', number>;
             Settings: Settings;
+            Build: Build;
             Utils: Utils;
             Math2: Math2;
             LaTeX: LaTeX;

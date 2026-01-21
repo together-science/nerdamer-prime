@@ -2160,9 +2160,9 @@ if (typeof module !== 'undefined') {
             const newtonraph = function (xn) {
                 const mesh = 1e-12;
                 // If the derivative was already provided then don't recalculate.
-                const df = dx ? dx : core.Utils.build(core.Calculus.diff(f.clone()));
+                const df = dx ? dx : core.Build.build(core.Calculus.diff(f.clone()));
                 // If the function was passed in as a function then don't recalculate.
-                const fn = f instanceof Function ? f : core.Utils.build(f);
+                const fn = f instanceof Function ? f : core.Build.build(f);
                 const max = 10000;
                 let done = false;
                 let safety = 0;

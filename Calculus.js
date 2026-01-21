@@ -2417,7 +2417,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 const b = getValue(integral, lower, from, dx);
                 retval = _.subtract(a, b);
             } else if (vars.length === 1 && from.isConstant() && to.isConstant()) {
-                const f = core.Utils.build(symbol);
+                const f = core.Build.build(symbol);
                 retval = new NerdamerSymbol(core.Math2.num_integrate(f, Number(from), Number(to)));
             } else {
                 retval = _.symfunction('defint', [symbol, from, to, dx]);

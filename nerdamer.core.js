@@ -95,6 +95,8 @@
  *
  * @typedef {import('./index').NerdamerCore.Build} BuildInterface
  *
+ * @typedef {import('./index').NerdamerCore.Utils} UtilsInterface
+ *
  * @typedef {import('./index').NerdamerCore.InternalParseResult} InternalParseResult
  *
  *   Exceptions object type (for CoreDeps.exceptions)
@@ -14984,15 +14986,16 @@ class Parser {
         function rectform(symbol) {
             // TODO: e^((i*pi)/4)
             const original = symbol.clone();
+            /**
+             * @typedef {{
+             *     a: NerdamerSymbolType;
+             *     x: NerdamerSymbolType;
+             *     ax: NerdamerSymbolType;
+             *     b: NerdamerSymbolType;
+             * }} RectformDecompose
+             */
             try {
-                const f = /**
-                 * @type {{
-                 *     a: NerdamerSymbolType;
-                 *     x: NerdamerSymbolType;
-                 *     ax: NerdamerSymbolType;
-                 *     b: NerdamerSymbolType;
-                 * }}
-                 */ (decomposeFn(symbol, 'e', true));
+                const f = /** @type {RectformDecompose} */ (decomposeFn(symbol, 'e', true));
                 const xPower = NerdamerSymbolDeps.isSymbol(f.x.power) ? f.x.power : _.parse(f.x.power);
                 const p = _.divide(/** @type {NerdamerSymbolType} */ (xPower), NerdamerSymbol.imaginary());
                 const q = evaluate(trig.tan(p));
@@ -17461,6 +17464,7 @@ class Parser {
 // Utils ========================================================================
 // Utility functions exported as part of the nerdamer core.
 // All functions are already at module scope; Build.build uses a getter for lazy evaluation.
+/** @type {UtilsInterface} */
 const Utils = {
     allSame,
     allNumeric,
@@ -17475,9 +17479,6 @@ const Utils = {
     arrayGetVariables,
     arraySum,
     block,
-    get build() {
-        return Build.build;
-    },
     checkTimeout,
     clearU,
     comboSort,
@@ -17500,6 +17501,7 @@ const Utils = {
     importFunctions,
     inBrackets,
     isArray,
+    isCollection,
     isExpression,
     isFraction,
     isInt,
@@ -17508,10 +17510,10 @@ const Utils = {
     isNumericSymbol,
     isPrime,
     isReserved,
+    isSet,
     isSymbol,
     isVariableSymbol,
     isVector,
-    isCollection,
     keys,
     knownVariable,
     nroots,
@@ -17660,6 +17662,7 @@ function createCoreObject() {
         Fraction,
         Math2,
         LaTeX,
+        Build,
         Utils,
         PARSER: _,
         PARENTHESIS: CoreDeps.fnNames.PARENTHESIS,

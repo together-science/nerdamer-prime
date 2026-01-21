@@ -23,7 +23,7 @@ if (typeof module !== 'undefined') {
     const { evaluate } = core.Utils;
     const { remove } = core.Utils;
     const { format } = core.Utils;
-    const { build } = core.Utils;
+    const { build } = core.Build;
     const { knownVariable } = core.Utils;
     const { NerdamerSymbol } = core;
     const { isSymbol } = core.Utils;
