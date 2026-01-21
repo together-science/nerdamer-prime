@@ -95,6 +95,8 @@
  *
  * @typedef {import('./index').NerdamerCore.Build} BuildInterface
  *
+ * @typedef {import('./index').NerdamerCore.CoreUtils} CoreUtilsInterface
+ *
  * @typedef {import('./index').NerdamerCore.Utils} UtilsInterface
  *
  * @typedef {import('./index').NerdamerCore.InternalParseResult} InternalParseResult
@@ -13805,6 +13807,11 @@ class Parser {
                 if (error.message === 'timeout') {
                     throw error;
                 }
+                // Rethrow non-parsing errors (TypeError, ReferenceError, etc.) as-is
+                // to preserve stack traces for debugging
+                if (error instanceof TypeError || error instanceof ReferenceError || error instanceof RangeError) {
+                    throw error;
+                }
                 const rethrowErrors = [OutOfFunctionDomainError];
                 // Rethrow certain errors in the same class to preserve them
                 rethrowErrors.forEach(E => {
@@ -17464,7 +17471,8 @@ class Parser {
 // Utils ========================================================================
 // Utility functions exported as part of the nerdamer core.
 // All functions are already at module scope; Build.build uses a getter for lazy evaluation.
-/** @type {UtilsInterface} */
+// Note: CoreUtilsInterface is the base type - Algebra.js extends it with additional methods at runtime.
+/** @type {CoreUtilsInterface} */
 const Utils = {
     allSame,
     allNumeric,
@@ -17662,7 +17670,9 @@ function createCoreObject() {
         Math2,
         LaTeX,
         Build,
-        Utils,
+        // Utils is typed as CoreUtilsInterface here, but Algebra.js will add the remaining methods at runtime.
+        // Cast to UtilsInterface to satisfy the Core interface type.
+        Utils: /** @type {UtilsInterface} */ (/** @type {unknown} */ (Utils)),
         PARSER: _,
         Settings,
         bigInt: nerdamerBigInt,

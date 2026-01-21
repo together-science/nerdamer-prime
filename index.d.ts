@@ -648,13 +648,14 @@ interface NerdamerAddon {
      *
      * - Single number: exact number of arguments required
      * - -1: variable number of arguments
+     * - [n]: array with single number for exact count
      * - [min, max]: minimum and maximum number of arguments
      */
-    numargs: int | -1 | [int, int];
+    numargs: int | -1 | [int] | [int, int];
     /** Whether this function is visible and can be called through nerdamer. Defaults to true. */
     visible?: boolean;
     /** Factory function that returns the actual implementation function. */
-    build: () => (...args: number[]) => number;
+    build: () => (...args: unknown[]) => unknown;
 }
 
 // #endregion
@@ -2222,6 +2223,16 @@ declare namespace nerdamerPrime {
             simplify?(): NerdamerSymbol;
             hasTrig?(): boolean;
             hasIntegral?(): boolean;
+
+            // Methods added by Algebra module
+            /** Creates an alternate variable representation of this symbol. Returns a string expression. */
+            altVar?(newValue: string): string;
+            /** Gets the base of the symbol for transformation purposes. */
+            tBase?(): NerdamerSymbol;
+            /** Checks if two symbols have the same variables. */
+            sameVars?(symbol: NerdamerSymbol): boolean;
+            /** Collects factors from the symbol. */
+            collectFactors?(): Record<string, NerdamerSymbol>;
         }
 
         /**
@@ -3685,8 +3696,11 @@ declare namespace nerdamerPrime {
 
         // #region Utils Interface
 
-        /** A collection of utility functions used throughout the Nerdamer library. */
-        interface Utils {
+        /**
+         * Core utility functions available in nerdamer.core.js before Algebra module loads. This is the base set of
+         * utilities; the full Utils interface extends this with additional methods added by the Algebra module.
+         */
+        interface CoreUtils {
             /**
              * Checks if all symbols in an array are of equal value.
              *
@@ -4190,6 +4204,72 @@ declare namespace nerdamerPrime {
              */
             warn(msg: string): void;
         }
+
+        /**
+         * Utility methods added by the Algebra module at runtime. These are dynamically added to core.Utils when
+         * Algebra.js loads.
+         */
+        interface AlgebraUtilsExtensions {
+            /**
+             * Converts an array to a map object where keys are array values and values are indices. Also adds a
+             * `length` property with the array length.
+             *
+             * @param arr The array to convert.
+             * @returns A map object with index mappings.
+             */
+            toMapObj(arr: string[]): Record<string, number> & { length: number };
+
+            /**
+             * Creates a filled array of a given value.
+             *
+             * @template T
+             * @param v The value to fill with.
+             * @param n The length of the array.
+             * @param Clss Optional class constructor for creating objects (new Clss(v)).
+             * @returns An array of the filled values.
+             */
+            filledArray<T>(v: T, n: number, Clss?: new (v: T) => T): T[];
+
+            /**
+             * Calculates the sum of array elements.
+             *
+             * @param arr The array of numbers to sum.
+             * @returns The sum as a number.
+             */
+            arrSum(arr: number[]): number;
+
+            /**
+             * Checks if two arrays have any common elements.
+             *
+             * @param a The first array.
+             * @param b The second array.
+             * @returns True if arrays have common elements, false otherwise.
+             */
+            haveIntersection<T>(a: T[], b: T[]): boolean;
+
+            /**
+             * Substitutes functions in a symbol with simple variable names.
+             *
+             * @param symbol The symbol to process.
+             * @param map A map from hash values to substitution variable names.
+             * @returns The string representation with functions substituted.
+             */
+            subFunctions(symbol: NerdamerSymbol, map?: Record<string, string>): string;
+
+            /**
+             * Creates substitution symbols from a map of variable names.
+             *
+             * @param map A map from original to substitution variable names.
+             * @returns A record of substitution symbols.
+             */
+            getFunctionsSubs(map: Record<string, string>): Record<string, NerdamerSymbol>;
+        }
+
+        /**
+         * Full utility interface combining CoreUtils with Algebra module extensions. This is the type of `core.Utils`
+         * after all modules have loaded.
+         */
+        interface Utils extends CoreUtils, AlgebraUtilsExtensions {}
 
         // #endregion
 

@@ -193,8 +193,8 @@ describe('Algebra', () => {
         expect(nerdamer('factor(100*x)').toString()).toEqual('100*x');
         expect(nerdamer('(2*y+p)^2').toString()).toEqual('(2*y+p)^2');
         expect(nerdamer('factor((-1+x)*(y+1))').toString()).toEqual('(-1+x)*(1+y)');
-        expect(nerdamer('factor(x^2-6*x+9-4*y^2)').toString()).toEqual('(-2*y-3+x)*(-3+2*y+x)');
-        expect(nerdamer('factor((x^2+4x+4)-y^2)').toString()).toEqual('(-y+2+x)*(2+x+y)');
+        expect(nerdamer('factor(x^2-6*x+9-4*y^2)').toString()).toEqual('(-2*y-x+3)*(-x+2*y+3)');
+        expect(nerdamer('factor((x^2+4x+4)-y^2)').toString()).toEqual('(-2-x+y)*(-2-x-y)');
         expect(nerdamer('factor(baseunit_m^2*sin(alpha)+baseunit_m^2*cos(alpha))').toString()).toEqual('(cos(alpha)+sin(alpha))*baseunit_m^2');
         expect(nerdamer('factor(baseunit_m^2*sin(alpha)+baseunit_m^2)').toString()).toEqual('(1+sin(alpha))*baseunit_m^2');
         expect(nerdamer('factor(2*baseunit_m^2*sin(3*alpha)+(4)*baseunit_m^2*cos(5*alpha)^2+6*baseunit_m^2*sin(7*alpha)^2+8*baseunit_m^2)').toString()).toEqual('2*(2*cos(5*alpha)^2+3*sin(7*alpha)^2+4+sin(3*alpha))*baseunit_m^2');

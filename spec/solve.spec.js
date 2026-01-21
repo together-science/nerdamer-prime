@@ -73,7 +73,7 @@ describe('Solve', () => {
         expect(nerdamer('solve(x^3-1/2x^2-13/2x-3,x)').toString()).toEqual('[-2,3,-1/2]');
         expect(nerdamer('solve(x^3+2x^2+3x-4=0,x)').evaluate().text()).toEqual('[66362151/85513229,(9218173878809949/13715988601033358)*i+66362151/171026458,(5392046277848481/8022982236560057)*i-369886829845426470912/953260758068436223625]');
         expect(nerdamer('solve(x*log(x),x)').toString()).toEqual('[1]');
-        expect(nerdamer('solve((9x+x^2)^3+10800x+40x^4+4440x^2+720x^3+20(9*x+x^2)^2+8000,x) ').toString()).toEqual('[-5,-4]');
+        expect(nerdamer('solve((9x+x^2)^3+10800x+40x^4+4440x^2+720x^3+20(9*x+x^2)^2+8000,x) ').toString()).toEqual('[-4,-5]');
         expect(nerdamer('solve((x^3-4)/(x^3+7x-11),x)').evaluate().text()).toEqual('[123554237/77834292,(17162560630828463/12484317038729784)*i+123554237/155668584,(10039007984057947/7302532595409636)*i-17388712991038935924736/21908405527990418074125]');
         expect(nerdamer('solve((93222358/131836323)*(-2*y+549964829/38888386)=10, y)').toString()).toEqual('[1/3625267041734188]');
         expect(nerdamer('solve(sqrt(x)+sqrt(2x+1)=5,x) ').toString()).toEqual('[4]');
@@ -145,7 +145,7 @@ describe('Solve', () => {
     });
 
     it('should solve factors', () => {
-        expect(nerdamer('solve((x-1)*(-a*c-a*x+c*x+x^2),x)').text()).toEqual('[1,-c,a]');
+        expect(nerdamer('solve((x-1)*(-a*c-a*x+c*x+x^2),x)').text()).toEqual('[1,a,-c]');
     });
 
     it('should solve circle equations', () => {

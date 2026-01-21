@@ -2518,10 +2518,15 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 // - 1/cos(x)
                 // n/0 is still possible since we only checked for 0/0
                 const denIsZero = lim2.equals(0);
-                const p = Number(gin.power);
+                const _p = Number(gin.power);
 
                 if (lim.isConstant(true) && denIsZero) {
-                    retval = NerdamerSymbol.infinity(core.Utils.even(p) && lim1.lessThan(0) ? -1 : undefined);
+                    // The sign of infinity depends on:
+                    // - For even powers (x^2, x^4, etc.): denominator is always positive, so sign = sign(lim1)
+                    // - For odd powers (x, x^3, etc.): two-sided limit doesn't exist, but we return
+                    //   the right-hand limit by convention, so sign = sign(lim1)
+                    // In both cases, if lim1 < 0, the result is -Infinity
+                    retval = NerdamerSymbol.infinity(lim1.lessThan(0) ? -1 : undefined);
                 } else if (denIsZero) {
                     retval = __.Limit.diverges();
                 } else {
