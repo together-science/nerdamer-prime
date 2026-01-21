@@ -3869,6 +3869,14 @@ declare namespace nerdamerPrime {
             disarmTimeout(): void;
 
             /**
+             * Throws an error if suppress_errors setting is false. Use this for suppressible errors.
+             *
+             * @param msg The error message.
+             * @param ErrorObj Optional custom error constructor.
+             */
+            err(msg: string, ErrorObj?: new (message?: string) => Error): void;
+
+            /**
              * Iterates over the properties or elements of an object or array.
              *
              * @param obj The object or array to iterate over.

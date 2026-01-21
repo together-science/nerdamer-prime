@@ -775,7 +775,7 @@ if (typeof module !== 'undefined') {
                                 // Check to see if terms contain multiple variables
                                 if (term.contains(varArray[z])) {
                                     if (check) {
-                                        core.err(`Multiple variables found for term ${term}`);
+                                        core.Utils.err(`Multiple variables found for term ${term}`);
                                     }
                                     check = true;
                                 }

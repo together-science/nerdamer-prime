@@ -17476,6 +17476,7 @@ const Utils = {
     arrayMin,
     arrayEqual,
     arrayUnique,
+    err,
     arrayGetVariables,
     arraySum,
     block,
@@ -17645,7 +17646,7 @@ function createLibExports() {
  * Creates the core object containing all nerdamer internals. Must be called after Parser is instantiated and
  * CoreDeps.parser is set.
  *
- * @returns {object} The core object
+ * @returns {CoreType} The core object
  */
 function createCoreObject() {
     const _ = CoreDeps.parser;
@@ -17657,20 +17658,20 @@ function createCoreObject() {
         Frac,
         Vector,
         Matrix,
-        Parser,
-        Scientific,
-        Fraction,
+        NerdamerSet,
         Math2,
         LaTeX,
         Build,
         Utils,
         PARSER: _,
-        PARENTHESIS: CoreDeps.fnNames.PARENTHESIS,
         Settings,
-        err,
         bigInt: nerdamerBigInt,
         bigDec: nerdamerBigDecimal,
         exceptions: CoreDeps.exceptions,
+        Solve: /** @type {Record<string, Function>} */ ({}),
+        Calculus: /** @type {Record<string, Function>} */ ({}),
+        Algebra: /** @type {Record<string, Function>} */ ({}),
+        Extra: /** @type {Record<string, Function>} */ ({}),
     };
 }
 

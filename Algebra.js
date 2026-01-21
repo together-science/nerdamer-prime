@@ -836,7 +836,7 @@ if (typeof module !== 'undefined') {
             // Don't wrap group S or FN
             const factor =
                 f.power.equals(1) && f.fname !== '' /* Don't wrap it twice */
-                    ? _.symfunction(core.PARENTHESIS, [f])
+                    ? _.symfunction(core.Settings.PARENTHESIS, [f])
                     : f;
 
             factored = _.multiply(factored, factor);
@@ -874,7 +874,7 @@ if (typeof module !== 'undefined') {
                 continue;
             }
             let factor = this.factors[x];
-            if (factor.fname === core.PARENTHESIS && factor.isLinear()) {
+            if (factor.fname === core.Settings.PARENTHESIS && factor.isLinear()) {
                 factor = factor.args[0];
             }
             f.call(this, factor, x);
