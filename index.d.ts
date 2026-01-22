@@ -2377,6 +2377,25 @@ declare namespace nerdamerPrime {
             identity(size: number): Matrix;
             fromArray(arr: (ExpressionParam | NerdamerSymbol)[][] | (ExpressionParam | NerdamerSymbol)[]): Matrix;
             zeroMatrix(rows: number, cols: number): Matrix;
+
+            // Calculus module extensions (added when Calculus.js loads)
+            /**
+             * Computes the Jacobian matrix of a system of equations. Added by the Calculus module.
+             *
+             * @param eqns The array of equation symbols.
+             * @param vars Optional array of variable names. If not provided, extracted from equations.
+             * @returns The Jacobian matrix.
+             */
+            jacobian?(eqns: NerdamerSymbol[], vars?: string[]): Matrix;
+
+            /**
+             * Creates a constant matrix with specified value. Added by the Calculus module.
+             *
+             * @param value The constant value to fill the matrix with.
+             * @param vars The array of variable names determining the matrix size.
+             * @returns A column matrix with the specified value.
+             */
+            cMatrix?(value: number | string, vars: string[]): Matrix;
         }
 
         /**
@@ -2506,6 +2525,13 @@ declare namespace nerdamerPrime {
 
             /** Converts to a Vector if 1D, otherwise returns this */
             toVector(): Vector | Matrix;
+
+            /**
+             * Returns the maximum absolute value element in the matrix. Added by the Calculus module.
+             *
+             * @returns The maximum element.
+             */
+            max?(): NerdamerSymbol;
 
             /** Returns string representation */
             toString(newline?: string, toDecimal?: boolean): string;
@@ -3795,12 +3821,12 @@ declare namespace nerdamerPrime {
             /**
              * Temporarily changes a Nerdamer setting, executes a function, and then restores the original setting.
              *
-             * @param setting The name of the setting to change.
+             * @param setting The name of the setting to change. Can be empty string to run without changing settings.
              * @param f The function to execute within the temporary context.
              * @param opt The temporary value for the setting.
              * @param obj The `this` context for the function.
              */
-            block<T>(setting: keyof Settings, f: () => T, opt?: boolean, obj?: object): T;
+            block<T>(setting: keyof Settings | '', f: () => T, opt?: boolean, obj?: object): T;
 
             /**
              * A function that must be called periodically in long-running loops to check for timeouts.
@@ -3940,12 +3966,13 @@ declare namespace nerdamerPrime {
             firstObject<T>(obj: Record<string, T>, key: null | undefined, both: true): { key: string; obj: T };
 
             /**
-             * A simple string formatting function, replacing `{index}` with arguments.
+             * A simple string formatting function, replacing `{index}` with arguments. Accepts any value that can be
+             * converted to a string (calls toString() internally).
              *
              * @param str The template string.
-             * @param args The values to insert into the template.
+             * @param args The values to insert into the template (converted via toString()).
              */
-            format(str: string, ...args: (string | number | boolean)[]): string;
+            format(str: string, ...args: (string | number | boolean | { toString(): string })[]): string;
 
             /**
              * Generates and caches prime numbers up to a given limit.
@@ -4266,10 +4293,82 @@ declare namespace nerdamerPrime {
         }
 
         /**
-         * Full utility interface combining CoreUtils with Algebra module extensions. This is the type of `core.Utils`
-         * after all modules have loaded.
+         * Utility methods added by the Calculus module at runtime. These are dynamically added to core.Utils when
+         * Calculus.js loads.
          */
-        interface Utils extends CoreUtils, AlgebraUtilsExtensions {}
+        interface CalculusUtilsExtensions {
+            /**
+             * Checks if a function name is a trigonometric function.
+             *
+             * @param name The function name to check.
+             * @returns True if the function is a trig function (sin, cos, tan, sec, csc, cot).
+             */
+            inTrig(name: string): boolean;
+
+            /**
+             * Checks if a function name is an inverse trigonometric function.
+             *
+             * @param name The function name to check.
+             * @returns True if the function is an inverse trig function (asin, acos, atan, asec, acsc, acot).
+             */
+            inInverseTrig(name: string): boolean;
+
+            /**
+             * Checks if a function name is a hyperbolic trigonometric function.
+             *
+             * @param name The function name to check.
+             * @returns True if the function is a hyperbolic trig function (sinh, cosh, tanh, acsch, asech, acoth).
+             */
+            inHtrig(name: string): boolean;
+
+            /**
+             * Checks if all elements in an array are function symbols.
+             *
+             * @param arr The array of symbols to check.
+             * @returns True if all elements are function (FN group) symbols.
+             */
+            allFunctions(arr: NerdamerSymbol[]): boolean;
+
+            /**
+             * Attempts to rewrite a symbol under one common denominator. Transforms x/a+x -> (ax+x)/a
+             *
+             * @param symbol The symbol to transform.
+             * @returns The transformed symbol with a common denominator.
+             */
+            toCommonDenominator(symbol: NerdamerSymbol): NerdamerSymbol;
+
+            /**
+             * Transforms an array of trig functions into a simplified form.
+             *
+             * @param arr The array of trig function symbols.
+             * @returns The transformed symbol.
+             */
+            trigTransform(arr: NerdamerSymbol[]): NerdamerSymbol;
+
+            /**
+             * Transforms cos(a)*sin(b) into (sin(a+b)-sin(a-b))/2.
+             *
+             * @param symbol1 The first trig symbol.
+             * @param symbol2 The second trig symbol.
+             * @returns The transformed symbol.
+             */
+            cosAsinBtranform(symbol1: NerdamerSymbol, symbol2: NerdamerSymbol): NerdamerSymbol;
+
+            /**
+             * Transforms cos(a)*sin(a) into sin(2a)/2.
+             *
+             * @param symbol1 The first trig symbol.
+             * @param symbol2 The second trig symbol.
+             * @returns The transformed symbol.
+             */
+            cosAsinAtranform(symbol1: NerdamerSymbol, symbol2: NerdamerSymbol): NerdamerSymbol;
+        }
+
+        /**
+         * Full utility interface combining CoreUtils with Algebra and Calculus module extensions. This is the type of
+         * `core.Utils` after all modules have loaded.
+         */
+        interface Utils extends CoreUtils, AlgebraUtilsExtensions, CalculusUtilsExtensions {}
 
         // #endregion
 
@@ -4317,6 +4416,21 @@ declare namespace nerdamerPrime {
 
         // #region Core Interface
 
+        /**
+         * Equation constructor type. Used to create equation objects with LHS and RHS.
+         *
+         * @param lhs The left-hand side of the equation.
+         * @param rhs The right-hand side of the equation.
+         * @returns An equation object.
+         */
+        type EquationConstructor = new (lhs: NerdamerSymbol, rhs: NerdamerSymbol) => EquationInstance;
+
+        /** Equation instance type. Represents an equation with LHS and RHS properties. */
+        interface EquationInstance {
+            LHS: NerdamerSymbol;
+            RHS: NerdamerSymbol;
+        }
+
         /** The object returned by `nerdamer.getCore()`. */
         interface Core {
             NerdamerSymbol: SymbolConstructor;
@@ -4335,6 +4449,8 @@ declare namespace nerdamerPrime {
             LaTeX: LaTeX;
             bigInt: typeof BigInteger;
             bigDec: typeof Decimal;
+            /** Equation constructor (available when Solve module is loaded) */
+            Equation?: EquationConstructor;
             exceptions: {
                 DivisionByZero: new (message?: string) => DivisionByZero;
                 ParseError: new (message?: string) => ParseError;
@@ -4354,9 +4470,153 @@ declare namespace nerdamerPrime {
                 UnexpectedTokenError: new (message?: string) => UnexpectedTokenError;
             };
             Solve: Record<string, Function>;
-            Calculus: Record<string, Function>;
-            Algebra: Record<string, Function>;
+            Calculus: CalculusModule | Record<string, Function>;
+            Algebra: AlgebraModule | Record<string, Function>;
             Extra: Record<string, Function>;
+        }
+
+        /** Calculus module interface providing differentiation, integration, and limit operations. */
+        interface CalculusModule {
+            version: string;
+            diff: (
+                symbol: NerdamerSymbol | Vector | Matrix,
+                wrt?: NerdamerSymbol | string,
+                nth?: NerdamerSymbol | number
+            ) => NerdamerSymbol | Vector | Matrix;
+            integrate: (
+                symbol: NerdamerSymbol,
+                dx?: NerdamerSymbol | string,
+                depth?: number,
+                opt?: object
+            ) => NerdamerSymbol;
+            defint: (symbol: NerdamerSymbol, from: NerdamerSymbol, to: NerdamerSymbol, dx?: string) => NerdamerSymbol;
+            sum: (
+                fn: NerdamerSymbol,
+                index: NerdamerSymbol,
+                start: NerdamerSymbol,
+                end: NerdamerSymbol
+            ) => NerdamerSymbol;
+            product: (
+                fn: NerdamerSymbol,
+                index: NerdamerSymbol,
+                start: NerdamerSymbol,
+                end: NerdamerSymbol
+            ) => NerdamerSymbol;
+            integration: IntegrationSubModule;
+            Limit: LimitSubModule;
+            Fresnel: FresnelSubModule;
+            [key: string]: unknown;
+        }
+
+        /** Integration sub-module with integration methods */
+        interface IntegrationSubModule {
+            u_substitution: (symbols: NerdamerSymbol[], dx: string) => NerdamerSymbol | undefined;
+            poly_integrate: (x: NerdamerSymbol, dx?: string, depth?: number) => NerdamerSymbol;
+            stop: (msg?: string) => never;
+            partial_fraction: (
+                input: NerdamerSymbol,
+                dx: NerdamerSymbol | string,
+                depth: number,
+                opt?: object
+            ) => NerdamerSymbol;
+            get_udv: (symbol: NerdamerSymbol) => [NerdamerSymbol, NerdamerSymbol];
+            trig_sub: (
+                symbol: NerdamerSymbol,
+                dx: string,
+                depth: number,
+                opt: object,
+                parts?: NerdamerSymbol[],
+                _symbols?: NerdamerSymbol[]
+            ) => NerdamerSymbol | undefined;
+            by_parts: (symbol: NerdamerSymbol, dx: string, depth: number, o: object) => NerdamerSymbol;
+            decompose_arg: (symbol: NerdamerSymbol, dx: string | NerdamerSymbol, asObject?: boolean) => DecomposeResult;
+            [key: string]: unknown;
+        }
+
+        /** Decompose result type for the decompose_arg function */
+        type DecomposeResult =
+            | (NerdamerSymbol | Vector | Matrix)[]
+            | {
+                  a: NerdamerSymbol;
+                  x: NerdamerSymbol | Vector | Matrix;
+                  ax: NerdamerSymbol | Vector | Matrix;
+                  b: NerdamerSymbol;
+              };
+
+        /** Limit sub-module for computing limits */
+        interface LimitSubModule {
+            interval: (start: string, end: string) => Vector;
+            diverges: () => Vector;
+            divide: (
+                f: NerdamerSymbol,
+                g: NerdamerSymbol,
+                x: string,
+                lim: NerdamerSymbol,
+                depth: number
+            ) => NerdamerSymbol | undefined;
+            rewriteToLog: (symbol: NerdamerSymbol) => NerdamerSymbol;
+            getSubbed: (f: NerdamerSymbol, x: string | NerdamerSymbol, lim: NerdamerSymbol) => NerdamerSymbol;
+            isInterval: (limit: NerdamerSymbol | Vector) => limit is Vector;
+            isConvergent: (limit: NerdamerSymbol | Vector) => boolean;
+            limit: (symbol: NerdamerSymbol, x: string, lim: NerdamerSymbol, depth?: number) => NerdamerSymbol | Vector;
+            [key: string]: unknown;
+        }
+
+        /** Fresnel sub-module */
+        interface FresnelSubModule {
+            S: (x: NerdamerSymbol) => NerdamerSymbol;
+            C: (x: NerdamerSymbol) => NerdamerSymbol;
+        }
+
+        /** Algebra module interface providing factoring, partial fractions, and polynomial operations. */
+        interface AlgebraModule {
+            version?: string;
+            divide: (a: NerdamerSymbol | Vector | Matrix, b: NerdamerSymbol | Vector | Matrix) => NerdamerSymbol;
+            degree: (symbol: NerdamerSymbol, wrt?: NerdamerSymbol) => Frac;
+            coeffs: (symbol: NerdamerSymbol, wrt?: NerdamerSymbol | string) => NerdamerSymbol[];
+            sqComplete: (
+                symbol: NerdamerSymbol,
+                dx: string
+            ) => { f: NerdamerSymbol; a: NerdamerSymbol; h: NerdamerSymbol };
+            Factor: FactorSubModule;
+            PartFrac: PartFracSubModule;
+            Simplify: SimplifySubModule;
+            Classes: AlgebraClassesSubModule;
+            [key: string]: unknown;
+        }
+
+        /** Factor sub-module for factorization operations */
+        interface FactorSubModule {
+            factor: (symbol: NerdamerSymbol) => NerdamerSymbol;
+            factorInner: (symbol: NerdamerSymbol) => NerdamerSymbol;
+            coeffFactor: (symbol: NerdamerSymbol, factors: Factors) => NerdamerSymbol;
+            [key: string]: unknown;
+        }
+
+        /** Partial fraction sub-module */
+        interface PartFracSubModule {
+            partfrac: (symbol: NerdamerSymbol, dx: NerdamerSymbol | string) => NerdamerSymbol;
+            [key: string]: unknown;
+        }
+
+        /** Simplify sub-module */
+        interface SimplifySubModule {
+            simplify: (symbol: NerdamerSymbol) => NerdamerSymbol;
+            [key: string]: unknown;
+        }
+
+        /** Algebra classes sub-module */
+        interface AlgebraClassesSubModule {
+            Factors: new () => Factors;
+            [key: string]: unknown;
+        }
+
+        /** Factors collection class from Algebra module */
+        interface Factors {
+            each: (fn: (factor: NerdamerSymbol) => void) => void;
+            add: (factor: NerdamerSymbol) => void;
+            toSymbol: () => NerdamerSymbol;
+            [key: string]: unknown;
         }
 
         // #endregion
