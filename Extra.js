@@ -1,10 +1,111 @@
-// @ts-nocheck
 /*
  * Author : Martin Donk
  * Website : http://www.nerdamer.com
  * Email : martin.r.donk@gmail.com
  * License : MIT
  * Source : https://github.com/jiggzson/nerdamer
+ */
+
+// Type imports for JSDoc ======================================================
+// These typedefs provide type aliases for the interfaces defined in index.d.ts.
+// They enable proper type checking when working with the classes defined in this file.
+//
+// Usage patterns:
+// - For return types: @returns {NerdamerSymbolType}
+// - For parameters: @param {NerdamerSymbolType} symbol
+// - For variable declarations: /** @type {NerdamerSymbolType} */
+//
+// Note: When casting local class instances to interface types, use the pattern:
+//   /** @type {InterfaceType} */ (/** @type {unknown} */ (localInstance))
+// This is needed because TypeScript sees local classes and interfaces as separate types.
+
+/**
+ * Core type aliases from index.d.ts
+ *
+ * @typedef {import('./index').NerdamerCore.NerdamerSymbol} NerdamerSymbolType
+ *
+ * @typedef {import('./index').NerdamerCore.Frac} FracType
+ *
+ * @typedef {import('./index').NerdamerCore.Vector} VectorType
+ *
+ * @typedef {import('./index').NerdamerCore.Matrix} MatrixType
+ *
+ * @typedef {import('./index').NerdamerCore.Parser} ParserType
+ *
+ * @typedef {import('./index').NerdamerCore.Settings} SettingsType
+ *
+ * @typedef {import('./index').NerdamerExpression} ExpressionType
+ *
+ * @typedef {typeof import('./index')} NerdamerType
+ *
+ * @typedef {import('./index').NerdamerCore.Utils} UtilsInterface
+ *
+ * @typedef {import('./index').NerdamerCore.Math2} Math2Interface
+ *
+ * @typedef {import('./index').NerdamerCore.Core} CoreType
+ *
+ * @typedef {import('./index').ExpressionParam} ExpressionParam
+ *
+ * @typedef {import('./index').ArithmeticOperand} ArithmeticOperand
+ *
+ * @typedef {import('./index').NerdamerCore.AlgebraModule} AlgebraModuleType
+ *
+ * @typedef {import('./index').NerdamerCore.PartFracSubModule} PartFracSubModuleType
+ *
+ * @typedef {import('./index').NerdamerCore.CalculusModule} CalculusModuleType
+ *
+ *   Interface for the LaPlace operations object
+ *
+ * @typedef {{
+ *     transform: (
+ *         symbol: NerdamerSymbolType,
+ *         t: NerdamerSymbolType | string,
+ *         s: NerdamerSymbolType | string
+ *     ) => NerdamerSymbolType;
+ *     inverse: (
+ *         symbol: NerdamerSymbolType,
+ *         s: NerdamerSymbolType | string,
+ *         t: NerdamerSymbolType | string
+ *     ) => NerdamerSymbolType;
+ * }} LaPlaceInterface
+ *   Interface for the Statistics operations object
+ *
+ * @typedef {{
+ *     frequencyMap: (arr: NerdamerSymbolType[]) => Record<string, number>;
+ *     sort: (arr: NerdamerSymbolType[]) => NerdamerSymbolType[];
+ *     count: (arr: NerdamerSymbolType[]) => NerdamerSymbolType;
+ *     sum: (arr: NerdamerSymbolType[], x_?: NerdamerSymbolType) => NerdamerSymbolType;
+ *     mean: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
+ *     median: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
+ *     mode: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
+ *     gVariance: (k: NerdamerSymbolType, args: NerdamerSymbolType[]) => NerdamerSymbolType;
+ *     variance: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
+ *     sampleVariance: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
+ *     standardDeviation: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
+ *     sampleStandardDeviation: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
+ *     zScore: (x: NerdamerSymbolType, mean: NerdamerSymbolType, stdev: NerdamerSymbolType) => NerdamerSymbolType;
+ * }} StatisticsInterface
+ *   Interface for the Units operations object
+ *
+ * @typedef {{
+ *     table: Record<string, string>;
+ * }} UnitsInterface Interface for the Extra module
+ *
+ * @typedef {{
+ *     version: string;
+ *     LaPlace: LaPlaceInterface;
+ *     Statistics: StatisticsInterface;
+ *     Units: UnitsInterface;
+ * }} ExtraInterface
+ *   Decompose result object from core.Utils.decompose_fn
+ *
+ * @typedef {{
+ *     a: NerdamerSymbolType;
+ *     x: NerdamerSymbolType;
+ *     ax: NerdamerSymbolType;
+ *     b: NerdamerSymbolType;
+ *     symbol?: NerdamerSymbolType;
+ * }} DecomposeResultType
  */
 
 // Check if nerdamer exists globally (browser) or needs to be required (Node.js)
@@ -16,21 +117,39 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 }
 
 (function initExtraModule() {
+    /** @type {CoreType} */
     const core = nerdamer.getCore();
+    /** @type {ParserType} */
     const _ = core.PARSER;
-    const { NerdamerSymbol } = core;
-    const { format } = core.Utils;
-    const { isVector } = core.Utils;
-    const { isArray } = core.Utils;
-    const _Vector = core.Vector;
-    const { S } = core.groups;
-    const _EX = core.groups.EX;
-    const { CP } = core.groups;
-    const { PL } = core.groups;
-    const { CB } = core.groups;
-    const { FN } = core.groups;
+    const {
+        NerdamerSymbol,
+        Vector: _Vector,
+        /** @type {AlgebraModuleType} */
+        Algebra,
+        /** @type {CalculusModuleType} */
+        Calculus,
+    } = core;
+    const { format, isVector, isArray, isSymbol } = core.Utils;
+    const { S, EX: _EX, CP, PL, CB, FN } = core.groups;
     core.Settings.Laplace_integration_depth = 40;
 
+    /**
+     * Check if a symbol's power is itself a symbol with group S or CB
+     *
+     * @param {NerdamerSymbolType} sym
+     * @returns {boolean}
+     */
+    function hasPowerGroupSOrCB(sym) {
+        return isSymbol(sym.power) && (sym.power.group === S || sym.power.group === CB);
+    }
+
+    /**
+     * Finds a function by name within this symbol's tree.
+     *
+     * @this {NerdamerSymbolType}
+     * @param {string} fname The function name to search for
+     * @returns {NerdamerSymbolType | undefined} The found function symbol clone, or undefined if not found
+     */
     NerdamerSymbol.prototype.findFunction = function findFunction(fname) {
         // This is what we're looking for
         if (this.group === FN && this.fname === fname) {
@@ -52,23 +171,32 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         return found;
     };
 
+    /** @type {ExtraInterface} */
     const __ = (core.Extra = {
         version: '1.4.2',
         // http://integral-table.com/downloads/LaplaceTable.pdf
         // Laplace assumes all coefficients to be positive
         LaPlace: {
             // Using: integral_0^oo f(t)*e^(-s*t) dt
+            /**
+             * @param {NerdamerSymbolType} symbol
+             * @param {NerdamerSymbolType | string} t
+             * @param {NerdamerSymbolType | string} s
+             * @returns {NerdamerSymbolType}
+             */
             transform(symbol, t, s) {
+                /** @type {NerdamerSymbolType} */
                 symbol = symbol.clone();
 
                 t = t.toString();
                 // First try a lookup for a speed boost
                 symbol = NerdamerSymbol.unwrapSQRT(symbol, true);
+                /** @type {NerdamerSymbolType} */
                 let retval;
                 const coeff = symbol.stripVar(t);
                 const g = symbol.group;
 
-                symbol = _.divide(symbol, coeff.clone());
+                symbol = /** @type {NerdamerSymbolType} */ (_.divide(symbol, coeff.clone()));
 
                 if (symbol.isConstant() || !symbol.contains(t, true)) {
                     retval = _.parse(format('({0})/({1})', symbol, s));
@@ -80,10 +208,10 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 } else if (symbol.isComposite()) {
                     retval = new NerdamerSymbol(0);
                     symbol.each(x => {
-                        retval = _.add(retval, __.LaPlace.transform(x, t, s));
+                        retval = /** @type {NerdamerSymbolType} */ (_.add(retval, __.LaPlace.transform(x, t, s)));
                     }, true);
-                } else if (symbol.isE() && (symbol.power.group === S || symbol.power.group === CB)) {
-                    const a = symbol.power.stripVar(t);
+                } else if (symbol.isE() && hasPowerGroupSOrCB(symbol)) {
+                    const a = /** @type {NerdamerSymbolType} */ (symbol.power).stripVar(t);
                     retval = _.parse(format('1/(({1})-({0}))', a, s));
                 } else {
                     const fns = ['sin', 'cos', 'sinh', 'cosh'];
@@ -126,20 +254,24 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                 const u = t;
                                 const sym = symbol.sub(t, u);
                                 const integrationExpr = _.parse(`e^(-${s}*${u})*${sym}`);
-                                retval = core.Calculus.integrate(integrationExpr, u);
-                                if (retval.hasIntegral()) {
-                                    retval = _.symfunction('laplace', [symbol, t, s]);
+                                retval = Calculus.integrate(integrationExpr, u);
+                                if (retval.hasIntegral?.()) {
+                                    retval = _.symfunction('laplace', [symbol, _.parse(String(t)), _.parse(String(s))]);
                                     return;
                                 }
                                 //                                _.error('Unable to compute transform');
                                 retval = retval.sub(t, 0);
-                                retval = _.expand(_.multiply(retval, new NerdamerSymbol(-1)));
+                                retval = /** @type {NerdamerSymbolType} */ (
+                                    _.expand(_.multiply(retval, new NerdamerSymbol(-1)))
+                                );
                                 retval = retval.sub(u, t);
                             },
                             false
                         );
 
-                        retval = core.Utils.block('PARSE2NUMBER', () => _.parse(retval), true);
+                        retval = /** @type {NerdamerSymbolType} */ (
+                            core.Utils.block('PARSE2NUMBER', () => _.parse(retval), true)
+                        );
 
                         if (depthIsLower) // Put the integration depth as it was
                         {
@@ -148,27 +280,45 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     }
                 }
 
-                return _.multiply(retval, coeff);
+                return /** @type {NerdamerSymbolType} */ (_.multiply(retval, coeff));
             },
+            /**
+             * @param {NerdamerSymbolType} symbol
+             * @param {NerdamerSymbolType | string} s_
+             * @param {NerdamerSymbolType | string} t
+             * @returns {NerdamerSymbolType}
+             */
             inverse(symbol, s_, t) {
                 const inputSymbol = symbol.clone();
                 return core.Utils.block(
                     'POSITIVE_MULTIPLIERS',
                     () => {
+                        /** @type {NerdamerSymbolType | undefined} */
                         let retval;
                         // Expand and get partial fractions
                         if (symbol.group === CB) {
-                            symbol = core.Algebra.PartFrac.partfrac(_.expand(symbol), s_);
+                            symbol = /** @type {PartFracSubModuleType} */ (Algebra.PartFrac).partfrac(
+                                /** @type {NerdamerSymbolType} */ (_.expand(symbol)),
+                                s_
+                            );
                         }
 
                         if (symbol.group === S || symbol.group === CB || symbol.isComposite()) {
+                            /** @type {number | FracType} */
                             let p;
+                            /** @type {FracType} */
                             let denP;
+                            /** @type {NerdamerSymbolType} */
                             let a;
+                            /** @type {NerdamerSymbolType | string} */
                             let b;
+                            /** @type {NerdamerSymbolType} */
                             let d;
+                            /** @type {string} */
                             let exp;
+                            /** @type {DecomposeResultType} */
                             let f2;
+                            /** @type {string | number} */
                             let fact;
                             // Remove the multiplier
                             const m = symbol.multiplier.clone();
@@ -182,7 +332,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                             // den = core.Algebra.Factor.factor(symbol.getDenom().invert(null, true));
 
                             if (den.group === CP || den.group === PL) {
-                                denP = den.power.clone();
+                                denP = /** @type {FracType} */ (den.power.clone());
                                 den.toLinear();
                             } else {
                                 denP = new core.Frac(1);
@@ -191,17 +341,23 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                             // Convert s to a string
                             const s = s_.toString();
                             // Split up the denominator if in the form ax+b
+                            /** @type {DecomposeResultType} */
                             const f = core.Utils.decompose_fn(den, s, true);
                             // Move the multiplier to the numerator
-                            const _fe = core.Utils.decompose_fn(_.expand(num.clone()), s, true);
+                            /** @type {DecomposeResultType} */
+                            const _fe = core.Utils.decompose_fn(
+                                /** @type {NerdamerSymbolType} */ (_.expand(num.clone())),
+                                s,
+                                true
+                            );
                             num.multiplier = num.multiplier.multiply(m);
 
                             const finalize = function () {
                                 // Put back the numerator
-                                retval = _.multiply(retval, num);
+                                retval = /** @type {NerdamerSymbolType} */ (_.multiply(retval, num));
                                 retval.multiplier = retval.multiplier.multiply(symbol.multiplier);
                                 // Put back a
-                                retval = _.divide(retval, f.a);
+                                retval = /** @type {NerdamerSymbolType} */ (_.divide(retval, f.a));
                             };
 
                             // Store the parts in variables for easy recognition
@@ -212,29 +368,47 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                 f.b.equals(0) &&
                                 core.Utils.isInt(f.x.power)
                             ) {
-                                p = f.x.power - 1;
+                                p = /** @type {number} */ (/** @type {unknown} */ (f.x.power)) - 1;
                                 fact = core.Math2.factorial(p);
                                 //  N!/s^(n-1)
-                                retval = _.divide(_.pow(t, new NerdamerSymbol(p)), new NerdamerSymbol(fact));
+                                retval = /** @type {NerdamerSymbolType} */ (
+                                    _.divide(_.pow(_.parse(String(t)), new NerdamerSymbol(p)), new NerdamerSymbol(fact))
+                                );
                                 // Wrap it up
                                 finalize();
                             } else if (den.group === CP && denP.equals(1)) {
-                                if (f.x.group === core.groups.PL && core.Algebra.degree(den).equals(2)) {
+                                if (f.x.group === core.groups.PL && Algebra.degree(den).equals(2)) {
                                     // Possibly in the form 1/(s^2+2*s+1)
                                     // Try factoring to get it in a more familiar form{
                                     // Apply inverse of F(s-a)
-                                    const completed = core.Algebra.sqComplete(den, s);
+                                    /**
+                                     * @type {{
+                                     *     f: NerdamerSymbolType;
+                                     *     a: NerdamerSymbolType;
+                                     *     h: NerdamerSymbolType;
+                                     *     c?: NerdamerSymbolType;
+                                     * }}
+                                     */
+                                    const completed = Algebra.sqComplete(den, s);
                                     const u = core.Utils.getU(den);
                                     // Get a for the function above
                                     a = core.Utils.decompose_fn(completed.a, s, true).b;
-                                    const tf = __.LaPlace.inverse(_.parse(`1/((${u})^2+(${completed.c}))`), u, t);
-                                    retval = _.multiply(tf, _.parse(`(${m})*e^(-(${a})*(${t}))`));
+                                    const tf = __.LaPlace.inverse(
+                                        _.parse(`1/((${u})^2+(${completed.c}))`),
+                                        u,
+                                        String(t)
+                                    );
+                                    retval = /** @type {NerdamerSymbolType} */ (
+                                        _.multiply(tf, _.parse(`(${m})*e^(-(${a})*(${t}))`))
+                                    );
                                     // A/(b*s-c) -> ae^(-bt)
                                 } else if (f.x.isLinear() && !num.contains(s)) {
-                                    t = _.divide(t, f.a.clone());
+                                    t = /** @type {NerdamerSymbolType | string} */ (
+                                        _.divide(_.parse(String(t)), f.a.clone())
+                                    );
 
                                     // Don't add factorial of one or zero
-                                    p = denP - 1;
+                                    p = /** @type {number} */ (/** @type {unknown} */ (denP)) - 1;
                                     fact = p === 0 || p === 1 ? '1' : `(${denP}-1)!`;
                                     retval = _.parse(
                                         format(
@@ -253,12 +427,13 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                         // A*s/(b*s^2+c^2)
                                         a = new NerdamerSymbol(1);
                                         if (num.group === CB) {
+                                            /** @type {NerdamerSymbolType} */
                                             let newNum = new NerdamerSymbol(1);
                                             num.each(x => {
                                                 if (x.contains(s)) {
-                                                    newNum = _.multiply(newNum, x);
+                                                    newNum = /** @type {NerdamerSymbolType} */ (_.multiply(newNum, x));
                                                 } else {
-                                                    a = _.multiply(a, x);
+                                                    a = /** @type {NerdamerSymbolType} */ (_.multiply(a, x));
                                                 }
                                             });
                                             num = newNum;
@@ -287,11 +462,13 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                                 )
                                             );
                                         } else if (aHasSin && bHasCos) {
-                                            const sin = fn1.findFunction('sin');
-                                            const cos = fn2.findFunction('cos');
+                                            const sin = /** @type {NerdamerSymbolType} */ (fn1.findFunction?.('sin'));
+                                            const cos = /** @type {NerdamerSymbolType} */ (fn2.findFunction?.('cos'));
                                             // Who has the s?
-                                            if (sin.args[0].equals(cos.args[0]) && !sin.args[0].contains(s)) {
-                                                b = _.divide(fn2, cos.toUnitMultiplier()).toString();
+                                            if (sin?.args?.[0].equals(cos?.args?.[0]) && !sin?.args?.[0].contains(s)) {
+                                                b = /** @type {NerdamerSymbolType} */ (
+                                                    _.divide(fn2, cos.toUnitMultiplier())
+                                                ).toString();
                                                 const c = sin.args[0].toString();
                                                 d = f.b;
                                                 const e = _.divide(fn1, sin.toUnitMultiplier());
@@ -313,35 +490,58 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                     }
                                 }
                             } else if (
-                                f.x.power.num &&
-                                f.x.power.num.equals(3) &&
-                                f.x.power.den.equals(2) &&
+                                /** @type {FracType} */ (f.x.power).num &&
+                                /** @type {FracType} */ (f.x.power).num.equals(3) &&
+                                /** @type {FracType} */ (f.x.power).den.equals(2) &&
                                 num.contains('sqrt(pi)') &&
                                 !num.contains(s) &&
                                 num.isLinear()
                             ) {
-                                b = _.divide(num.clone(), _.parse('sqrt(pi)'));
+                                b = /** @type {NerdamerSymbolType} */ (_.divide(num.clone(), _.parse('sqrt(pi)')));
                                 retval = _.parse(format('(2*({2})*sqrt({0}))/({1})', t, f.a, b, num));
                             } else if (denP.equals(2) && f.x.power.equals(2)) {
                                 if (num.contains(s)) {
                                     // Decompose the numerator to check value of s
-                                    f2 = core.Utils.decompose_fn(_.expand(num.clone()), s, true);
+                                    f2 = core.Utils.decompose_fn(
+                                        /** @type {NerdamerSymbolType} */ (_.expand(num.clone())),
+                                        s,
+                                        true
+                                    );
                                     if (f2.x.isComposite()) {
+                                        /** @type {DecomposeResultType[]} */
                                         const sTerms = [];
                                         // First collect the factors e.g. (a)(bx)(cx^2+d)
-                                        const symbols = num
-                                            .collectSymbols(x => {
-                                                x = NerdamerSymbol.unwrapPARENS(x);
-                                                const decomp = core.Utils.decompose_fn(x, s, true);
-                                                decomp.symbol = x;
-                                                return decomp;
-                                            })
-                                            // Then sort them by power hightest to lowest
-                                            .sort((x1, x2) => {
-                                                const p1 = x1.x.value === s ? x1.x.power : 0;
-                                                const p2 = x2.x.value === s ? x2.x.power : 0;
-                                                return p2 - p1;
-                                            });
+                                        /** @type {DecomposeResultType[]} */
+                                        const symbols = /** @type {DecomposeResultType[]} */ (
+                                            num
+                                                .collectSymbols(x => {
+                                                    x = NerdamerSymbol.unwrapPARENS(x);
+                                                    /** @type {DecomposeResultType} */
+                                                    const decomp = core.Utils.decompose_fn(x, s, true);
+                                                    decomp.symbol = x;
+                                                    return decomp;
+                                                })
+                                                // Then sort them by power hightest to lowest
+                                                .sort((x1, x2) => {
+                                                    const p1 =
+                                                        /** @type {DecomposeResultType} */ (x1).x.value === s
+                                                            ? /** @type {number} */ (
+                                                                  /** @type {unknown} */ (
+                                                                      /** @type {DecomposeResultType} */ (x1).x.power
+                                                                  )
+                                                              )
+                                                            : 0;
+                                                    const p2 =
+                                                        /** @type {DecomposeResultType} */ (x2).x.value === s
+                                                            ? /** @type {number} */ (
+                                                                  /** @type {unknown} */ (
+                                                                      /** @type {DecomposeResultType} */ (x2).x.power
+                                                                  )
+                                                              )
+                                                            : 0;
+                                                    return p2 - p1;
+                                                })
+                                        );
                                         a = new NerdamerSymbol(-1);
                                         // Grab only the ones which have s
                                         for (let i = 0; i < symbols.length; i++) {
@@ -349,7 +549,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                             if (fc.x.value === s) {
                                                 sTerms.push(fc);
                                             } else {
-                                                a = _.multiply(a, fc.symbol);
+                                                a = /** @type {NerdamerSymbolType} */ (_.multiply(a, fc.symbol));
                                             }
                                         }
                                         // The following 2 assumptions are made
@@ -371,18 +571,22 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                             retval = _.parse(format(exp, t, a, b, sTerms[0].b, f.a, f.b));
                                         }
                                     } else if (f2.x.isLinear()) {
-                                        a = _.divide(f2.a, new NerdamerSymbol(2));
+                                        a = /** @type {NerdamerSymbolType} */ (_.divide(f2.a, new NerdamerSymbol(2)));
                                         exp =
                                             '(({1})*({0})*sin((sqrt(({2})*({3}))*({0}))/({2})))/(({2})*sqrt(({2})*({3})))';
                                         retval = _.parse(format(exp, t, a, f.a, f.b));
                                     } else if (f2.x.power.equals(2)) {
                                         if (f2.b.equals(0)) {
-                                            a = _.divide(f2.a, new NerdamerSymbol(2));
+                                            a = /** @type {NerdamerSymbolType} */ (
+                                                _.divide(f2.a, new NerdamerSymbol(2))
+                                            );
                                             exp =
                                                 '(({1})*sin((sqrt(({2})*({3}))*({0}))/({2})))/(({2})*sqrt(({2})*({3})))+(({1})*({0})*cos((sqrt(({2})*({3}))*({0}))/({2})))/({2})^2';
                                             retval = _.parse(format(exp, t, a, f.a, f.b));
                                         } else {
-                                            a = _.divide(f2.a, new NerdamerSymbol(2));
+                                            a = /** @type {NerdamerSymbolType} */ (
+                                                _.divide(f2.a, new NerdamerSymbol(2))
+                                            );
                                             d = f2.b.negate();
                                             exp =
                                                 '-((({2})*({4})-2*({1})*({3}))*sin((sqrt(({2})*({3}))*({0}))/({2})))/(2*({2})*({3})*sqrt(({2})*({3})))+' +
@@ -391,7 +595,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                         }
                                     }
                                 } else {
-                                    a = _.divide(num, new NerdamerSymbol(2));
+                                    a = /** @type {NerdamerSymbolType} */ (_.divide(num, new NerdamerSymbol(2)));
                                     exp =
                                         '(({1})*sin((sqrt(({2})*({3}))*({0}))/({2})))/(({3})*sqrt(({2})*({3})))-(({1})*({0})*cos((sqrt(({2})*({3}))*({0}))/({2})))/(({2})*({3}))';
                                     retval = _.parse(format(exp, t, a, f.a, f.b));
@@ -403,25 +607,35 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                 } else {
                                     retval = new NerdamerSymbol(0);
 
-                                    symbol = core.Algebra.PartFrac.partfrac(_.expand(symbol), s_);
+                                    symbol = /** @type {PartFracSubModuleType} */ (Algebra.PartFrac).partfrac(
+                                        /** @type {NerdamerSymbolType} */ (_.expand(symbol)),
+                                        s_
+                                    );
 
                                     symbol.each(x => {
-                                        retval = _.add(retval, __.LaPlace.inverse(x, s_, t));
+                                        retval = /** @type {NerdamerSymbolType} */ (
+                                            _.add(retval, __.LaPlace.inverse(x, s_, t))
+                                        );
                                     }, true);
                                 }
                             }
                         }
 
-                        retval ||= _.symfunction('ilt', [inputSymbol, s_, t]);
+                        retval ||= _.symfunction('ilt', [inputSymbol, _.parse(String(s_)), _.parse(String(t))]);
 
-                        return retval;
+                        return /** @type {NerdamerSymbolType} */ (retval);
                     },
                     true
                 );
             },
         },
         Statistics: {
+            /**
+             * @param {NerdamerSymbolType[]} arr
+             * @returns {Record<string, number>}
+             */
             frequencyMap(arr) {
+                /** @type {Record<string, number>} */
                 const map = {};
                 // Get the frequency map
                 for (let i = 0, l = arr.length; i < l; i++) {
@@ -432,42 +646,67 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 }
                 return map;
             },
+            /**
+             * @param {NerdamerSymbolType[]} arr
+             * @returns {NerdamerSymbolType[]}
+             */
             sort(arr) {
                 return arr.sort((a, b) => {
                     if (!a.isConstant() || !b.isConstant()) {
                         _.error('Unable to sort! All values must be numeric');
                     }
-                    return a.multiplier.subtract(b.multiplier);
+                    return /** @type {number} */ (/** @type {unknown} */ (a.multiplier.subtract(b.multiplier)));
                 });
             },
+            /**
+             * @param {NerdamerSymbolType[]} arr
+             * @returns {NerdamerSymbolType}
+             */
             count(arr) {
                 return new NerdamerSymbol(arr.length);
             },
+            /**
+             * @param {NerdamerSymbolType[]} arr
+             * @param {NerdamerSymbolType} [x_]
+             * @returns {NerdamerSymbolType}
+             */
             sum(arr, x_) {
+                /** @type {NerdamerSymbolType} */
                 let sum = new NerdamerSymbol(0);
                 for (let i = 0, l = arr.length; i < l; i++) {
                     const xi = arr[i].clone();
                     if (x_) {
-                        sum = _.add(_.pow(_.subtract(xi, x_.clone()), new NerdamerSymbol(2)), sum);
+                        sum = /** @type {NerdamerSymbolType} */ (
+                            _.add(_.pow(_.subtract(xi, x_.clone()), new NerdamerSymbol(2)), sum)
+                        );
                     } else {
-                        sum = _.add(xi, sum);
+                        sum = /** @type {NerdamerSymbolType} */ (_.add(xi, sum));
                     }
                 }
 
                 return sum;
             },
+            /**
+             * @param {...NerdamerSymbolType} args
+             * @returns {NerdamerSymbolType}
+             */
             mean(...args) {
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.mean(...args[0].elements);
+                    return __.Statistics.mean(.../** @type {NerdamerSymbolType[]} */ (args[0].elements));
                 }
-                return _.divide(__.Statistics.sum(args), __.Statistics.count(args));
+                return /** @type {NerdamerSymbolType} */ (_.divide(__.Statistics.sum(args), __.Statistics.count(args)));
             },
+            /**
+             * @param {...NerdamerSymbolType} args
+             * @returns {NerdamerSymbolType}
+             */
             median(...args) {
+                /** @type {NerdamerSymbolType} */
                 let retval;
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.median(...args[0].elements);
+                    return __.Statistics.median(.../** @type {NerdamerSymbolType[]} */ (args[0].elements));
                 }
                 try {
                     const sorted = __.Statistics.sort(args);
@@ -479,18 +718,23 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         retval = sorted[Math.floor(l / 2)];
                     }
                 } catch (e) {
-                    if (e.message === 'timeout') {
+                    if (/** @type {Error} */ (e).message === 'timeout') {
                         throw e;
                     }
                     retval = _.symfunction('median', args);
                 }
                 return retval;
             },
+            /**
+             * @param {...NerdamerSymbolType} args
+             * @returns {NerdamerSymbolType}
+             */
             mode(...args) {
+                /** @type {NerdamerSymbolType} */
                 let retval;
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.mode(...args[0].elements);
+                    return __.Statistics.mode(.../** @type {NerdamerSymbolType[]} */ (args[0].elements));
                 }
 
                 const map = __.Statistics.frequencyMap(args);
@@ -500,6 +744,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     retval = args[0];
                 } else {
                     // Invert by arraning them according to their frequency
+                    /** @type {Record<number, string | string[]>} */
                     const inverse = {};
                     for (const x in map) {
                         if (!Object.hasOwn(map, x)) {
@@ -515,63 +760,105 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                             }
                             // Convert it to and array
                             else {
-                                inverse[freq] = [x, inverse[freq]];
+                                inverse[freq] = [x, /** @type {string} */ (inverse[freq])];
                             }
                         } else {
                             inverse[freq] = x;
                         }
                     }
                     // The keys now represent the maxes. We want the max of those keys
-                    const max = inverse[Math.max.apply(null, core.Utils.keys(inverse))];
+                    const keyNums = core.Utils.keys(inverse).map(k => Number(k));
+                    const maxKey = Math.max.apply(null, keyNums);
+                    const max = inverse[maxKey];
                     // Check it's an array. If it is then map over the results and convert
                     // them to NerdamerSymbol
                     if (isArray(max)) {
-                        retval = _.symfunction('mode', max.sort());
+                        retval = _.symfunction(
+                            'mode',
+                            max.sort().map(v => _.parse(v))
+                        );
                     } else {
-                        retval = _.parse(max);
+                        retval = _.parse(/** @type {string} */ (max));
                     }
                 }
 
                 return retval;
             },
+            /**
+             * @param {NerdamerSymbolType} k
+             * @param {NerdamerSymbolType[]} args
+             * @returns {NerdamerSymbolType}
+             */
             gVariance(k, args) {
                 const x_ = __.Statistics.mean(...args);
                 const sum = __.Statistics.sum(args, x_);
-                return _.multiply(k, sum);
+                return /** @type {NerdamerSymbolType} */ (_.multiply(k, sum));
             },
+            /**
+             * @param {...NerdamerSymbolType} args
+             * @returns {NerdamerSymbolType}
+             */
             variance(...args) {
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.variance(...args[0].elements);
+                    return __.Statistics.variance(.../** @type {NerdamerSymbolType[]} */ (args[0].elements));
                 }
-                const k = _.divide(new NerdamerSymbol(1), __.Statistics.count(args));
+                const k = /** @type {NerdamerSymbolType} */ (
+                    _.divide(new NerdamerSymbol(1), __.Statistics.count(args))
+                );
                 return __.Statistics.gVariance(k, args);
             },
+            /**
+             * @param {...NerdamerSymbolType} args
+             * @returns {NerdamerSymbolType}
+             */
             sampleVariance(...args) {
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.sampleVariance(...args[0].elements);
+                    return __.Statistics.sampleVariance(.../** @type {NerdamerSymbolType[]} */ (args[0].elements));
                 }
 
-                const k = _.divide(new NerdamerSymbol(1), _.subtract(__.Statistics.count(args), new NerdamerSymbol(1)));
+                const k = /** @type {NerdamerSymbolType} */ (
+                    _.divide(new NerdamerSymbol(1), _.subtract(__.Statistics.count(args), new NerdamerSymbol(1)))
+                );
                 return __.Statistics.gVariance(k, args);
             },
+            /**
+             * @param {...NerdamerSymbolType} args
+             * @returns {NerdamerSymbolType}
+             */
             standardDeviation(...args) {
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.standardDeviation(...args[0].elements);
+                    return __.Statistics.standardDeviation(.../** @type {NerdamerSymbolType[]} */ (args[0].elements));
                 }
-                return _.pow(__.Statistics.variance(...args), new NerdamerSymbol(1 / 2));
+                return /** @type {NerdamerSymbolType} */ (
+                    _.pow(__.Statistics.variance(...args), new NerdamerSymbol(1 / 2))
+                );
             },
+            /**
+             * @param {...NerdamerSymbolType} args
+             * @returns {NerdamerSymbolType}
+             */
             sampleStandardDeviation(...args) {
                 // Handle arrays
                 if (isVector(args[0])) {
-                    return __.Statistics.sampleStandardDeviation(...args[0].elements);
+                    return __.Statistics.sampleStandardDeviation(
+                        .../** @type {NerdamerSymbolType[]} */ (args[0].elements)
+                    );
                 }
-                return _.pow(__.Statistics.sampleVariance(...args), new NerdamerSymbol(1 / 2));
+                return /** @type {NerdamerSymbolType} */ (
+                    _.pow(__.Statistics.sampleVariance(...args), new NerdamerSymbol(1 / 2))
+                );
             },
+            /**
+             * @param {NerdamerSymbolType} x
+             * @param {NerdamerSymbolType} mean
+             * @param {NerdamerSymbolType} stdev
+             * @returns {NerdamerSymbolType}
+             */
             zScore(x, mean, stdev) {
-                return _.divide(_.subtract(x, mean), stdev);
+                return /** @type {NerdamerSymbolType} */ (_.divide(_.subtract(x, mean), stdev));
             },
         },
         Units: {

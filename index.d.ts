@@ -2238,6 +2238,15 @@ declare namespace nerdamerPrime {
             sameVars?(symbol: NerdamerSymbol): boolean;
             /** Collects factors from the symbol. */
             collectFactors?(): Record<string, NerdamerSymbol>;
+
+            // Methods added by Extra module
+            /**
+             * Finds a function by name within this symbol's tree. Added by the Extra module.
+             *
+             * @param fname The function name to search for
+             * @returns The found function symbol clone, or undefined if not found
+             */
+            findFunction?(fname: string): NerdamerSymbol | undefined;
         }
 
         /**
@@ -3942,15 +3951,14 @@ declare namespace nerdamerPrime {
             decompose_fn(
                 fn: NerdamerSymbol,
                 wrt: string,
-                as_obj?: boolean
-            ):
-                | (NerdamerSymbol | Vector | Matrix)[]
-                | {
-                      a: NerdamerSymbol;
-                      x: NerdamerSymbol | Vector | Matrix;
-                      ax: NerdamerSymbol | Vector | Matrix;
-                      b: NerdamerSymbol;
-                  };
+                as_obj: true
+            ): {
+                a: NerdamerSymbol;
+                x: NerdamerSymbol;
+                ax: NerdamerSymbol;
+                b: NerdamerSymbol;
+            };
+            decompose_fn(fn: NerdamerSymbol, wrt: string, as_obj?: false): (NerdamerSymbol | Vector | Matrix)[];
 
             /**
              * Disarms the timeout timer.
@@ -4586,7 +4594,7 @@ declare namespace nerdamerPrime {
             Solve: SolveModule | Record<string, Function>;
             Calculus: CalculusModule | Record<string, Function>;
             Algebra: AlgebraModule | Record<string, Function>;
-            Extra: Record<string, Function>;
+            Extra: ExtraModule | Record<string, Function>;
         }
 
         /** Calculus module interface providing differentiation, integration, and limit operations. */
@@ -4643,19 +4651,27 @@ declare namespace nerdamerPrime {
                 _symbols?: NerdamerSymbol[]
             ) => NerdamerSymbol | undefined;
             by_parts: (symbol: NerdamerSymbol, dx: string, depth: number, o: object) => NerdamerSymbol;
-            decompose_arg: (symbol: NerdamerSymbol, dx: string | NerdamerSymbol, asObject?: boolean) => DecomposeResult;
+            decompose_arg: {
+                (symbol: NerdamerSymbol, dx: string | NerdamerSymbol, asObject: true): DecomposeResultObject;
+                (
+                    symbol: NerdamerSymbol,
+                    dx: string | NerdamerSymbol,
+                    asObject?: false
+                ): (NerdamerSymbol | Vector | Matrix)[];
+            };
             [key: string]: unknown;
         }
 
+        /** Decompose result object type (when asObject=true) */
+        interface DecomposeResultObject {
+            a: NerdamerSymbol;
+            x: NerdamerSymbol;
+            ax: NerdamerSymbol;
+            b: NerdamerSymbol;
+        }
+
         /** Decompose result type for the decompose_arg function */
-        type DecomposeResult =
-            | (NerdamerSymbol | Vector | Matrix)[]
-            | {
-                  a: NerdamerSymbol;
-                  x: NerdamerSymbol | Vector | Matrix;
-                  ax: NerdamerSymbol | Vector | Matrix;
-                  b: NerdamerSymbol;
-              };
+        type DecomposeResult = (NerdamerSymbol | Vector | Matrix)[] | DecomposeResultObject;
 
         /** Limit sub-module for computing limits */
         interface LimitSubModule {
@@ -4732,6 +4748,62 @@ declare namespace nerdamerPrime {
         interface SimplifySubModule {
             simplify: (symbol: NerdamerSymbol) => NerdamerSymbol;
             [key: string]: unknown;
+        }
+
+        /** Extra module interface providing Laplace transforms, statistics, and unit conversions. */
+        interface ExtraModule {
+            version: string;
+            LaPlace: LaPlaceSubModule;
+            Statistics: StatisticsSubModule;
+            Units: UnitsSubModule;
+        }
+
+        /** LaPlace transform sub-module */
+        interface LaPlaceSubModule {
+            /**
+             * Computes the Laplace transform of a symbol.
+             *
+             * @param symbol The symbol to transform
+             * @param t The time variable
+             * @param s The frequency variable
+             * @returns The Laplace transform
+             */
+            transform: (
+                symbol: NerdamerSymbol,
+                t: NerdamerSymbol | string,
+                s: NerdamerSymbol | string
+            ) => NerdamerSymbol;
+            /**
+             * Computes the inverse Laplace transform.
+             *
+             * @param symbol The symbol in s-domain
+             * @param s The frequency variable
+             * @param t The time variable
+             * @returns The inverse Laplace transform
+             */
+            inverse: (symbol: NerdamerSymbol, s: NerdamerSymbol | string, t: NerdamerSymbol | string) => NerdamerSymbol;
+        }
+
+        /** Statistics sub-module */
+        interface StatisticsSubModule {
+            frequencyMap: (arr: NerdamerSymbol[]) => Record<string, number>;
+            sort: (arr: NerdamerSymbol[]) => NerdamerSymbol[];
+            count: (arr: NerdamerSymbol[]) => NerdamerSymbol;
+            sum: (arr: NerdamerSymbol[], x_?: NerdamerSymbol) => NerdamerSymbol;
+            mean: (...args: NerdamerSymbol[]) => NerdamerSymbol;
+            median: (...args: NerdamerSymbol[]) => NerdamerSymbol;
+            mode: (...args: NerdamerSymbol[]) => NerdamerSymbol;
+            gVariance: (k: NerdamerSymbol, args: NerdamerSymbol[]) => NerdamerSymbol;
+            variance: (...args: NerdamerSymbol[]) => NerdamerSymbol;
+            sampleVariance: (...args: NerdamerSymbol[]) => NerdamerSymbol;
+            standardDeviation: (...args: NerdamerSymbol[]) => NerdamerSymbol;
+            sampleStandardDeviation: (...args: NerdamerSymbol[]) => NerdamerSymbol;
+            zScore: (x: NerdamerSymbol, mean: NerdamerSymbol, stdev: NerdamerSymbol) => NerdamerSymbol;
+        }
+
+        /** Units conversion sub-module */
+        interface UnitsSubModule {
+            table: Record<string, string>;
         }
 
         /** Solve module interface for equation solving */

@@ -53,7 +53,7 @@
  *
  * @typedef {import('./index').NerdamerCore.AlgebraClassesSubModule} AlgebraClassesSubModuleType
  *
- * @typedef {import('./index').NerdamerCore.DecomposeResult} DecomposeResultType
+ * @typedef {import('./index').NerdamerCore.DecomposeResultObject} DecomposeResultType
  *
  * @typedef {import('./index').NerdamerCore.SolveModule} SolveModuleType
  *
@@ -86,30 +86,20 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     const _A = /** @type {AlgebraModuleType} */ (core.Algebra);
     /** @type {CalculusModuleType} */
     const _C = /** @type {CalculusModuleType} */ (core.Calculus);
-    /** @type {IntegrationSubModuleType} */
-    const integration = /** @type {IntegrationSubModuleType} */ (_C.integration);
-    const explode = integration.decompose_arg;
-    /** @type {FactorSubModuleType} */
-    const Factor = /** @type {FactorSubModuleType} */ (_A.Factor);
-    /** @type {SimplifySubModuleType} */
-    const Simplify = /** @type {SimplifySubModuleType} */ (_A.Simplify);
-    /** @type {AlgebraClassesSubModuleType} */
-    const AlgebraClasses = /** @type {AlgebraClassesSubModuleType} */ (_A.Classes);
-    const { evaluate } = core.Utils;
-    const { remove } = core.Utils;
-    const { format } = core.Utils;
+    const { integration } = /** @type {{ integration: IntegrationSubModuleType }} */ (_C);
+    const { decompose_arg: explode } = integration;
+    const {
+        Factor,
+        Simplify,
+        Classes: AlgebraClasses,
+    } = /** @type {{ Factor: FactorSubModuleType; Simplify: SimplifySubModuleType; Classes: AlgebraClassesSubModuleType }} */ (
+        _A
+    );
+    const { evaluate, remove, format, knownVariable, isSymbol, variables, range } = core.Utils;
     const { build } = core.Build;
-    const { knownVariable } = core.Utils;
     const { NerdamerSymbol } = core;
-    const { isSymbol } = core.Utils;
-    const { variables } = core.Utils;
-    const { S } = core.groups;
-    const { PL } = core.groups;
-    const { CB } = core.groups;
-    const { CP } = core.groups;
-    const { FN } = core.groups;
+    const { S, PL, CB, CP, FN } = core.groups;
     const { Settings } = core;
-    const { range } = core.Utils;
     const { isArray } = core.Utils;
 
     // The search radius for the roots
@@ -498,7 +488,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
          *
          * @param {NerdamerSymbolType[]} eqns
          * @param {string[]} vars
-         * @returns {Array | Object}
+         * @returns {Array | object}
          */
         solveCircle(eqns, vars) {
             // Convert the variables to symbols
@@ -1810,8 +1800,10 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     }
 
                     const parts = explode(sym, solveFor);
-                    const isSqrt = parts[1].fname === core.Settings.SQRT;
-                    const v = /** @type {NerdamerSymbolType} */ (NerdamerSymbol.unwrapSQRT(parts[1]));
+                    const isSqrt = /** @type {NerdamerSymbolType} */ (parts[1]).fname === core.Settings.SQRT;
+                    const v = /** @type {NerdamerSymbolType} */ (
+                        NerdamerSymbol.unwrapSQRT(/** @type {NerdamerSymbolType} */ (parts[1]))
+                    );
                     /** @type {FracType} */
                     const p = /** @type {FracType} */ (v.power.clone());
                     // Circular logic with sqrt. Since sqrt(x) becomes x^(1/2) which then becomes sqrt(x), this continues forever
@@ -1879,7 +1871,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             // Ax+b comes back as [a, x, ax, b];
             const parts = explode(lhs.args[0], solveFor);
             // Check if x is by itself
-            const x = parts[1];
+            const x = /** @type {NerdamerSymbolType} */ (parts[1]);
             if (x.group === S) {
                 return _.divide(_.symfunction(name, [_.divide(rhs, _.parse(lhs.multiplier))]), parts[0]);
             }
@@ -1900,8 +1892,8 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             eq.each((x, index) => {
                 if (x.contains(solveFor)) {
                     const parts = explode(x, solveFor);
-                    const v = parts[1];
-                    const p = v.power;
+                    const v = /** @type {NerdamerSymbolType} */ (parts[1]);
+                    const p = /** @type {FracType} */ (v.power);
                     if (p.den.gt(1)) {
                         v.power = p.multiply(new core.Frac(cfact));
                         eq.symbols[index] = _.multiply(v, parts[0]);
@@ -2191,7 +2183,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         // Ax+b comes back as [a, x, ax, b];
                         const parts = explode(lhs.args[0], solveFor);
                         // Check if x is by itself
-                        const x = parts[1];
+                        const x = /** @type {NerdamerSymbolType} */ (parts[1]);
                         if (x.group === S) {
                             rhs = _.divide(
                                 _.subtract(

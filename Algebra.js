@@ -52,7 +52,7 @@
  *
  * @typedef {import('./index').ExpandOptions} ExpandOptions
  *
- * @typedef {import('./index').NerdamerCore.DecomposeResult} DecomposeResultType Constructor types
+ * @typedef {import('./index').NerdamerCore.DecomposeResultObject} DecomposeResultType Constructor types
  *
  * @typedef {import('./index').NerdamerCore.FracConstructor} FracConstructor
  *

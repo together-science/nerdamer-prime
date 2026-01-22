@@ -95,7 +95,7 @@
  * }} ExtendedFunctionType
  *
  *
- * @typedef {import('./index').NerdamerCore.DecomposeResult} DecomposeResultType Integration options type
+ * @typedef {import('./index').NerdamerCore.DecomposeResultObject} DecomposeResultType Integration options type
  *
  * @typedef {{
  *     previous?: string[];

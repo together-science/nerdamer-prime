@@ -8744,9 +8744,23 @@ const DecomposeFnDeps = {
 /**
  * Breaks a function down into its parts wrt to a variable, mainly coefficients. Example: a*x^2+b wrt x
  *
+ * @overload
  * @param {NerdamerSymbolType} fn
  * @param {string} wrt
- * @param {boolean} asObj
+ * @param {true} asObj
+ * @returns {{ a: NerdamerSymbolType; x: NerdamerSymbolType; ax: NerdamerSymbolType; b: NerdamerSymbolType }}
+ */
+/**
+ * @overload
+ * @param {NerdamerSymbolType} fn
+ * @param {string} wrt
+ * @param {false} [asObj]
+ * @returns {(NerdamerSymbolType | VectorType | MatrixType)[]}
+ */
+/**
+ * @param {NerdamerSymbolType} fn
+ * @param {string} wrt
+ * @param {boolean} [asObj]
  */
 function decomposeFn(fn, wrt, asObj) {
     wrt = String(wrt); // Convert to string
