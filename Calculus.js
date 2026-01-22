@@ -51,9 +51,9 @@
  *
  * @typedef {import('./index').ExpandOptions} ExpandOptions
  *
- * @typedef {import('./index').NerdamerCore.FactorSubModule} FactorSubModule
+ * @typedef {import('./index').NerdamerCore.FactorSubModule} FactorSubModuleType
  *
- * @typedef {import('./index').NerdamerCore.PartFracSubModule} PartFracSubModule
+ * @typedef {import('./index').NerdamerCore.PartFracSubModule} PartFracSubModuleType
  *
  *   Constructor types
  *
@@ -93,16 +93,9 @@
  *     coeffFactor?: (symbol: NerdamerSymbolType, factors: object) => NerdamerSymbolType;
  *     simplify?: (symbol: NerdamerSymbolType) => NerdamerSymbolType;
  * }} ExtendedFunctionType
- *   Decompose function result type for integration
  *
- * @typedef {(NerdamerSymbolType | VectorType | MatrixType)[]
- *     | {
- *           a: NerdamerSymbolType;
- *           x: NerdamerSymbolType | VectorType | MatrixType;
- *           ax: NerdamerSymbolType | VectorType | MatrixType;
- *           b: NerdamerSymbolType;
- *       }} DecomposeResult
- *   Integration options type
+ *
+ * @typedef {import('./index').NerdamerCore.DecomposeResult} DecomposeResultType Integration options type
  *
  * @typedef {{
  *     previous?: string[];
@@ -1042,8 +1035,8 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 } else if (a.isComposite() || b.isComposite()) {
                     const f = function (sym1, sym2) {
                         const d = __.diff(sym2, dx);
-                        const A = /** @type {FactorSubModule} */ (core.Algebra.Factor).factorInner(sym1);
-                        const B = /** @type {FactorSubModule} */ (core.Algebra.Factor).factorInner(
+                        const A = /** @type {FactorSubModuleType} */ (core.Algebra.Factor).factorInner(sym1);
+                        const B = /** @type {FactorSubModuleType} */ (core.Algebra.Factor).factorInner(
                             /** @type {NerdamerSymbolType} */ (d)
                         );
                         const q = _.divide(A, B);
@@ -1104,7 +1097,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
                 let result;
                 result = new NerdamerSymbol(0);
-                const partialFractions = /** @type {PartFracSubModule} */ (core.Algebra.PartFrac).partfrac(
+                const partialFractions = /** @type {PartFracSubModuleType} */ (core.Algebra.PartFrac).partfrac(
                     input,
                     /** @type {NerdamerSymbolType} */ (dx)
                 );
@@ -1290,6 +1283,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             /*
              * Dependents: [Solve, integrate]
              */
+
             decompose_arg: core.Utils.decompose_fn,
         },
         // TODO: nerdamer.integrate('-e^(-a*t)*sin(t)', 't') -> gives incorrect output
@@ -1589,9 +1583,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                     retval = __.integration.by_parts(symbol, dx, depth, opt);
                                 } else {
                                     const f = symbol.clone().toLinear();
-                                    const factored = /** @type {FactorSubModule} */ (core.Algebra.Factor).factorInner(
-                                        f
-                                    );
+                                    const factored = /** @type {FactorSubModuleType} */ (
+                                        core.Algebra.Factor
+                                    ).factorInner(f);
                                     const wasFactored = factored.toString() !== f.toString();
                                     if (core.Algebra.degree(f, _.parse(dx)).equals(2) && !wasFactored) {
                                         try {
@@ -2521,7 +2515,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                                     const factors = new /** @type {any} */ (
                                                         core.Algebra.Classes
                                                     ).Factors();
-                                                    sym1 = /** @type {FactorSubModule} */ (
+                                                    sym1 = /** @type {FactorSubModuleType} */ (
                                                         core.Algebra.Factor
                                                     ).coeffFactor(sym1.invert(), factors);
                                                     const div = core.Algebra.divide(sym2, sym1);
@@ -2771,7 +2765,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                     cfsymbol.clone().toLinear().isPoly(true) &&
                                     core.Utils.variables(cfsymbol).length > 1
                                 ) {
-                                    cfsymbol = /** @type {FactorSubModule} */ (core.Algebra.Factor).factorInner(
+                                    cfsymbol = /** @type {FactorSubModuleType} */ (core.Algebra.Factor).factorInner(
                                         cfsymbol
                                     );
                                 }
@@ -3116,15 +3110,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                     const _p = symbol.power.clone();
                                     const _num = f.getNum();
                                     const _den = f.getDenom();
-                                    /**
-                                     * @type {{
-                                     *     a: NerdamerSymbolType;
-                                     *     x: NerdamerSymbolType;
-                                     *     ax: NerdamerSymbolType;
-                                     *     b: NerdamerSymbolType;
-                                     * }}
-                                     */
-                                    const fn = /** @type {any} */ (core.Utils.decompose_fn(_den, x, true));
+                                    const fn = /** @type {DecomposeResultType} */ (
+                                        core.Utils.decompose_fn(_den, x, true)
+                                    );
                                     // Start detection of pattern (x/(x+1))^x
                                     if (
                                         _num.group === S &&

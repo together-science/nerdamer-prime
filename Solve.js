@@ -1,9 +1,73 @@
-// @ts-nocheck
 /*
  * Author : Martin Donk
  * Website : http://www.nerdamer.com
  * Email : martin.r.donk@gmail.com
  * Source : https://github.com/jiggzson/nerdamer
+ */
+
+// Type imports for JSDoc ======================================================
+// These typedefs provide type aliases for the interfaces defined in index.d.ts.
+// They enable proper type checking when working with the classes defined in this file.
+//
+// Usage patterns:
+// - For return types: @returns {NerdamerSymbolType}
+// - For parameters: @param {NerdamerSymbolType} symbol
+// - For variable declarations: /** @type {NerdamerSymbolType} */
+
+/**
+ * Core type aliases from index.d.ts
+ *
+ * @typedef {import('./index').NerdamerCore.NerdamerSymbol} NerdamerSymbolType
+ *
+ * @typedef {import('./index').NerdamerCore.Frac} FracType
+ *
+ * @typedef {import('./index').NerdamerCore.Vector} VectorType
+ *
+ * @typedef {import('./index').NerdamerCore.Matrix} MatrixType
+ *
+ * @typedef {import('./index').NerdamerCore.Parser} ParserType
+ *
+ * @typedef {import('./index').NerdamerCore.Settings} SettingsType
+ *
+ * @typedef {import('./index').NerdamerExpression} ExpressionType
+ *
+ * @typedef {typeof import('./index')} NerdamerType
+ *
+ *   Constructor types (for factory functions)
+ *
+ * @typedef {import('./index').NerdamerCore.SymbolConstructor} SymbolConstructor
+ *
+ * @typedef {import('./index').NerdamerCore.VectorConstructor} VectorConstructor
+ *
+ *   Module types
+ *
+ * @typedef {import('./index').NerdamerCore.AlgebraModule} AlgebraModuleType
+ *
+ * @typedef {import('./index').NerdamerCore.CalculusModule} CalculusModuleType
+ *
+ * @typedef {import('./index').NerdamerCore.FactorSubModule} FactorSubModuleType
+ *
+ * @typedef {import('./index').NerdamerCore.SimplifySubModule} SimplifySubModuleType
+ *
+ * @typedef {import('./index').NerdamerCore.IntegrationSubModule} IntegrationSubModuleType
+ *
+ * @typedef {import('./index').NerdamerCore.AlgebraClassesSubModule} AlgebraClassesSubModuleType
+ *
+ * @typedef {import('./index').NerdamerCore.DecomposeResult} DecomposeResultType
+ *
+ * @typedef {import('./index').NerdamerCore.SolveModule} SolveModuleType
+ *
+ *   Utility types
+ *
+ * @typedef {import('./index').NerdamerCore.Utils} UtilsInterface
+ *
+ * @typedef {import('./index').NerdamerCore.Build} BuildInterface
+ *
+ * @typedef {import('big-integer').BigInteger} BigIntegerType
+ *
+ *   Equation instance type
+ *
+ * @typedef {import('./index').NerdamerCore.EquationInstance} EquationInstanceType
  */
 
 // Check if nerdamer exists globally (browser) or needs to be required (Node.js)
@@ -18,9 +82,19 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     // Handle imports
     const core = nerdamer.getCore();
     const _ = core.PARSER;
-    const _A = core.Algebra;
-    const _C = core.Calculus;
-    const explode = _C.integration.decompose_arg;
+    /** @type {AlgebraModuleType} */
+    const _A = /** @type {AlgebraModuleType} */ (core.Algebra);
+    /** @type {CalculusModuleType} */
+    const _C = /** @type {CalculusModuleType} */ (core.Calculus);
+    /** @type {IntegrationSubModuleType} */
+    const integration = /** @type {IntegrationSubModuleType} */ (_C.integration);
+    const explode = integration.decompose_arg;
+    /** @type {FactorSubModuleType} */
+    const Factor = /** @type {FactorSubModuleType} */ (_A.Factor);
+    /** @type {SimplifySubModuleType} */
+    const Simplify = /** @type {SimplifySubModuleType} */ (_A.Simplify);
+    /** @type {AlgebraClassesSubModuleType} */
+    const AlgebraClasses = /** @type {AlgebraClassesSubModuleType} */ (_A.Classes);
     const { evaluate } = core.Utils;
     const { remove } = core.Utils;
     const { format } = core.Utils;
@@ -103,6 +177,13 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
      * As such we can have this data type be supported completely outside of the core.
      * This is an equation that has a left hand side and a right hand side
      */
+    /**
+     * Equation class representing LHS = RHS.
+     *
+     * @class
+     * @param {NerdamerSymbolType} lhs - The left hand side symbol
+     * @param {NerdamerSymbolType} rhs - The right hand side symbol
+     */
     function Equation(lhs, rhs) {
         if (
             (rhs.isConstant() && lhs.isConstant() && !lhs.equals(rhs)) ||
@@ -111,7 +192,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         ) {
             throw new core.exceptions.NerdamerValueError(`${lhs.toString()} does not equal ${rhs.toString()}`);
         }
+        /** @type {NerdamerSymbolType} */
         this.LHS = lhs; // Left hand side
+        /** @type {NerdamerSymbolType} */
         this.RHS = rhs; // Right and side
     }
     // UTILS ##!!
@@ -123,17 +206,14 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         text(option) {
             return `${this.LHS.text(option)}=${this.RHS.text(option)}`;
         },
+        /**
+         * Brings the equation to LHS (sets RHS to zero).
+         *
+         * @param {boolean} [expand] - Whether to expand the result
+         * @returns {NerdamerSymbolType} The LHS with RHS subtracted
+         */
         toLHS(expand) {
             expand = !!expand;
-            // If (!expand && (eqn.RHS.isZero())) {
-            //     return this;
-            // }
-            // If(!expand) {
-            //     eqn = this.clone();
-            // }
-            // else {
-            //     eqn = this.removeDenom();
-            // }
             const eqn = this.removeDenom();
             let a = eqn.LHS;
             let b = eqn.RHS;
@@ -142,8 +222,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 // Swap them to avoid confusing parser and cause an infinite loop
                 [a, b] = [b, a];
             }
-            const _t = _.subtract(a, b);
-            let retval = expand ? _.expand(_t) : _t;
+            const _t = /** @type {NerdamerSymbolType} */ (_.subtract(a, b));
+            /** @type {NerdamerSymbolType} */
+            let retval = expand ? /** @type {NerdamerSymbolType} */ (_.expand(_t)) : _t;
 
             // Quick workaround for issue #636
             // This basically borrows the removeDenom method from the Equation class.
@@ -152,13 +233,18 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
             return retval;
         },
+        /**
+         * Removes denominators from both sides.
+         *
+         * @returns {Equation} Equation with denominators removed
+         */
         removeDenom() {
             let a = this.LHS.clone();
             let b = this.RHS.clone();
             // Remove the denominator on both sides
-            const den = _.multiply(a.getDenom(), b.getDenom());
-            a = _.expand(_.multiply(a, den.clone()));
-            b = _.expand(_.multiply(b, den));
+            const den = /** @type {NerdamerSymbolType} */ (_.multiply(a.getDenom(), b.getDenom()));
+            a = /** @type {NerdamerSymbolType} */ (_.expand(_.multiply(a, den.clone())));
+            b = /** @type {NerdamerSymbolType} */ (_.expand(_.multiply(b, den)));
             // Swap the groups
             if (b.group === CP && b.group !== CP) {
                 const t = a;
@@ -169,12 +255,13 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             // Scan to eliminate denominators
             if (a.group === CB) {
                 let t = new NerdamerSymbol(a.multiplier);
+                /** @type {NerdamerSymbolType} */
                 let newRHS = b.clone();
                 a.each(y => {
                     if (y.power.lessThan(0)) {
-                        newRHS = _.divide(newRHS, y);
+                        newRHS = /** @type {NerdamerSymbolType} */ (_.divide(newRHS, y));
                     } else {
-                        t = _.multiply(t, y);
+                        t = /** @type {NerdamerSymbolType} */ (_.multiply(t, y));
                     }
                 });
                 a = t;
@@ -195,8 +282,10 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                             const sym2 = sym.symbols[y];
                             if (sym2.power.lessThan(0)) {
                                 const result = new Equation(
-                                    _.expand(_.multiply(sym2.clone().toLinear(), a)),
-                                    _.expand(_.multiply(sym2.clone().toLinear(), b))
+                                    /** @type {NerdamerSymbolType} */ (
+                                        _.expand(_.multiply(sym2.clone().toLinear(), a))
+                                    ),
+                                    /** @type {NerdamerSymbolType} */ (_.expand(_.multiply(sym2.clone().toLinear(), b)))
                                 );
                                 return result;
                             }
@@ -207,23 +296,54 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
             return new Equation(a, b);
         },
+        /**
+         * Creates a copy of this equation.
+         *
+         * @returns {Equation}
+         */
         clone() {
             return new Equation(this.LHS.clone(), this.RHS.clone());
         },
+        /**
+         * Substitutes a value for a variable on both sides.
+         *
+         * @param {NerdamerSymbolType} x - Variable to replace
+         * @param {NerdamerSymbolType} y - Value to substitute
+         * @returns {Equation}
+         */
         sub(x, y) {
             const clone = this.clone();
             clone.LHS = clone.LHS.sub(x.clone(), y.clone());
             clone.RHS = clone.RHS.sub(x.clone(), y.clone());
             return clone;
         },
+        /**
+         * Checks if the equation evaluates to zero.
+         *
+         * @returns {boolean}
+         */
         isZero() {
             return core.Utils.evaluate(this.toLHS()).equals(0);
         },
+        /**
+         * Returns LaTeX representation.
+         *
+         * @param {string} [option]
+         * @returns {string}
+         */
         latex(option) {
             return [this.LHS.latex(option), this.RHS.latex(option)].join('=');
         },
     };
     // Overwrite the equals function
+    /**
+     * Creates an Equation from two symbols. This extends the parser's equals function to return Equation objects.
+     *
+     * @param {NerdamerSymbolType} a
+     * @param {NerdamerSymbolType} b
+     * @returns {Equation}
+     */
+    // @ts-ignore - Overriding parser.equals to return Equation instead of Symbol
     _.equals = function equals(a, b) {
         return new Equation(a, b);
     };
@@ -245,8 +365,8 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     /**
      * Sets two expressions equal
      *
-     * @param {NerdamerSymbol} symbol
-     * @returns {Expression}
+     * @param {NerdamerSymbolType} symbol
+     * @returns {Equation}
      */
     core.Expression.prototype.equals = function equals(symbol) {
         if (symbol instanceof core.Expression) {
@@ -275,7 +395,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
             const terms = solve(symbol, x);
             const result = terms.map(term => {
-                term = core.Algebra.Simplify.simplify(_.parse(term));
+                term = /** @type {NerdamerSymbolType} */ (
+                    Simplify.simplify(/** @type {NerdamerSymbolType} */ (_.parse(term)))
+                );
                 const expr = new core.Expression(term);
                 return expr;
             });
@@ -288,11 +410,11 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     core.Expression.prototype.expand = function expand() {
         if (this.symbol instanceof Equation) {
             const clone = this.symbol.clone();
-            clone.RHS = _.expand(clone.RHS);
-            clone.LHS = _.expand(clone.LHS);
+            clone.RHS = /** @type {NerdamerSymbolType} */ (_.expand(clone.RHS));
+            clone.LHS = /** @type {NerdamerSymbolType} */ (_.expand(clone.LHS));
             return new core.Expression(clone);
         }
-        return new core.Expression(_.expand(this.symbol));
+        return new core.Expression(_.expand(/** @type {NerdamerSymbolType} */ (this.symbol)));
     };
 
     // eslint-disable-next-line func-names -- naming this 'variables' would shadow the imported variables utility
@@ -325,6 +447,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     // Version solve
     const __ = (core.Solve = {
         version: '2.0.3',
+        /** @type {NerdamerSymbolType[]} */
         solutions: [],
         solve(eq, variable) {
             const save = Settings.PARSE2NUMBER;
@@ -337,8 +460,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         /**
          * Brings the equation to LHS. A string can be supplied which will be converted to an Equation
          *
-         * @param {Equation | string} eqn
-         * @returns {NerdamerSymbol}
+         * @param {Equation | string | NerdamerSymbolType} eqn
+         * @param {boolean} [expand]
+         * @returns {NerdamerSymbolType}
          */
         toLHS(eqn, expand) {
             if (isSymbol(eqn)) {
@@ -346,10 +470,14 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             }
             // If it's an equation then call its toLHS function instead
             if (!(eqn instanceof Equation)) {
-                const es = eqn.split('=');
+                const eqnStr = /** @type {string} */ (eqn);
+                const es = eqnStr.split('=');
                 // Convert falsey values to zero
                 es[1] ||= '0';
-                eqn = new Equation(_.parse(es[0]), _.parse(es[1]));
+                eqn = new Equation(
+                    /** @type {NerdamerSymbolType} */ (_.parse(es[0])),
+                    /** @type {NerdamerSymbolType} */ (_.parse(es[1]))
+                );
             }
             return eqn.toLHS(expand);
         },
@@ -368,25 +496,29 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         /**
          * Solve a set of circle equations.
          *
-         * @param {NerdamerSymbol[]} eqns
-         * @returns {Array}
+         * @param {NerdamerSymbolType[]} eqns
+         * @param {string[]} vars
+         * @returns {Array | Object}
          */
         solveCircle(eqns, vars) {
             // Convert the variables to symbols
-            const svars = vars.map(x => _.parse(x));
+            const svars = vars.map(x => /** @type {NerdamerSymbolType} */ (_.parse(x)));
 
+            /** @type {number[][]} */
             const deg = [];
 
+            /** @type {any[] | Record<string, string[]>} */
             let solutions = [];
 
             // Get the degree for the equations
             for (let i = 0; i < eqns.length; i++) {
+                /** @type {number[]} */
                 const d = [];
                 for (let j = 0; j < svars.length; j++) {
-                    d.push(Number(core.Algebra.degree(eqns[i], svars[j])));
+                    d.push(Number(_A.degree(eqns[i], svars[j])));
                 }
                 // Store the total degree
-                d.push(core.Utils.arraySum(d, true));
+                d.push(/** @type {number} */ (core.Utils.arraySum(d, true)));
                 deg.push(d);
             }
 
@@ -405,21 +537,32 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 const y = vars[1];
 
                 // We can now get the two points for y
-                const yPoints = solve(_.parse(b, knownVariable(x, solve(_.parse(a), x)[0])), y).map(pt =>
-                    pt.toString()
-                );
+                const yPoints = solve(
+                    /** @type {NerdamerSymbolType} */ (
+                        _.parse(b, knownVariable(x, solve(/** @type {NerdamerSymbolType} */ (_.parse(a)), x)[0]))
+                    ),
+                    y
+                ).map(pt => pt.toString());
 
                 // Since we now know y we can get the two x points from the first equation
-                const xPoints = [solve(_.parse(a, knownVariable(y, yPoints[0])))[0].toString()];
+                const xPoints = [
+                    solve(/** @type {NerdamerSymbolType} */ (_.parse(a, knownVariable(y, yPoints[0]))))[0].toString(),
+                ];
 
                 if (yPoints[1]) {
-                    xPoints.push(solve(_.parse(a, knownVariable(y, yPoints[1])))[0].toString());
+                    xPoints.push(
+                        solve(
+                            /** @type {NerdamerSymbolType} */ (_.parse(a, knownVariable(y, yPoints[1])))
+                        )[0].toString()
+                    );
                 }
 
                 if (Settings.SOLUTIONS_AS_OBJECT) {
-                    solutions = {};
-                    solutions[x] = xPoints;
-                    solutions[y] = yPoints;
+                    /** @type {Record<string, string[]>} */
+                    const solObj = {};
+                    solObj[x] = xPoints;
+                    solObj[y] = yPoints;
+                    solutions = solObj;
                 } else {
                     yPoints.unshift(y);
                     xPoints.unshift(x);
@@ -432,9 +575,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         /**
          * Solve a system of nonlinear equations
          *
-         * @param {NerdamerSymbol[]} eqns The array of equations
-         * @param {number} tries The maximum number of tries
-         * @param {number} start The starting point where to start looking for solutions
+         * @param {NerdamerSymbolType[]} eqns The array of equations
+         * @param {number} [tries] The maximum number of tries
+         * @param {number} [start] The starting point where to start looking for solutions
          * @returns {Array}
          */
         solveNonLinearSystem(eqns, tries, start) {
@@ -482,7 +625,8 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
             const fEqns = eqns.map(eq => build(eq, vars));
 
-            const J = jacobian.map(e => build(e, vars), true);
+            /** @type {MatrixType} */
+            const J = jacobian.map((/** @type {NerdamerSymbolType} */ e) => /** @type {any} */ (build(e, vars)), true);
             // Initial values
             xn1 = core.Matrix.cMatrix(0, vars);
 
@@ -515,7 +659,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 });
 
                 let m = new core.Matrix();
-                J.each((fn, i, j) => {
+                J.each((/** @type {any} */ fn, i, j) => {
                     const ans = fn(...currentO);
                     m.set(i, j, ans);
                 });
@@ -523,7 +667,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 m = m.invert();
 
                 // Preform the elimination
-                y = _.multiply(m, c).negate();
+                y = /** @type {MatrixType} */ (_.multiply(m, c)).negate();
 
                 // The callback is to avoid overflow in the coeffient denonimator
                 // it converts it to a decimal and then back to a fraction. Some precision
@@ -541,7 +685,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 // this may have to be adjusted at some point because of erroneous assumptions
                 if (iters >= jumpAt) {
                     // Check the norm. If the norm is greater than one then it's time to try another point
-                    if (norm > 1) {
+                    if (Number(norm) > 1) {
                         // Reset the start point at halway
                         if (tries === halfway) {
                             start = 0;
@@ -696,6 +840,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         reduced.push(_.parse(eqns[i]));
                     }
 
+                    /** @type {Record<string, any>} */
                     let knowns = {};
                     const solutions = __.solveSystem(reduced, vars);
                     // The solutions may have come back as an array
@@ -712,7 +857,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     let allZero = true;
                     // Check if the last solution evalutes to zero given these solutions
                     for (let i = n - 1; i < n; i++) {
-                        if (!_.parse(eqns[i], knowns).equals(0)) {
+                        if (!(/** @type {NerdamerSymbolType} */ (_.parse(eqns[i], knowns)).equals(0))) {
                             allZero = false;
                         }
                     }
@@ -763,7 +908,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 for (let i = 0; i < l; i++) {
                     // Prefill
                     c.set(i, 0, new NerdamerSymbol(0));
-                    const e = _.expand(eqns[i]).collectSummandSymbols(); // Expand and store
+                    const e = /** @type {NerdamerSymbolType[]} */ (
+                        /** @type {NerdamerSymbolType} */ (_.expand(eqns[i])).collectSummandSymbols()
+                    ); // Expand and store
                     // go trough each of the variables
                     for (let j = 0; j < varArray.length; j++) {
                         m.set(i, j, new NerdamerSymbol(0));
@@ -784,9 +931,11 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                             // We made sure that every term contains one variable so it's safe to assume that if the
                             // variable is found then the remainder is the coefficient.
                             if (term.contains(v)) {
-                                const tparts = explode(remove(e, k), v);
+                                const tparts = /** @type {(NerdamerSymbolType | VectorType | MatrixType)[]} */ (
+                                    explode(remove(e, k), v)
+                                );
                                 k--; // Issue #52: decrement k to hit this spot in the array e again next loop
-                                m.set(i, j, _.add(m.get(i, j), tparts[0]));
+                                m.set(i, j, _.add(m.get(i, j), /** @type {NerdamerSymbolType} */ (tparts[0])));
                             }
                         }
                     }
@@ -818,10 +967,10 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         /**
          * The quadratic function but only one side.
          *
-         * @param {NerdamerSymbol} c
-         * @param {NerdamerSymbol} b
-         * @param {NerdamerSymbol} a
-         * @returns {NerdamerSymbol}
+         * @param {NerdamerSymbolType} c
+         * @param {NerdamerSymbolType} b
+         * @param {NerdamerSymbolType} a
+         * @returns {(NerdamerSymbolType | VectorType | MatrixType)[]}
          */
         quad(c, b, a) {
             let discriminant = _.subtract(
@@ -829,9 +978,11 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 _.multiply(_.multiply(a.clone(), c.clone()), new NerdamerSymbol(4))
             ); /* B^2 - 4ac*/
             // Fix for #608
-            discriminant = _.expand(discriminant);
-            const det = _.pow(discriminant, new NerdamerSymbol(0.5));
-            const den = _.parse(_.multiply(new NerdamerSymbol(2), a.clone()));
+            discriminant = /** @type {NerdamerSymbolType} */ (_.expand(discriminant));
+            const det = /** @type {NerdamerSymbolType} */ (_.pow(discriminant, new NerdamerSymbol(0.5)));
+            const den = /** @type {NerdamerSymbolType} */ (
+                _.parse(/** @type {NerdamerSymbolType} */ (_.multiply(new NerdamerSymbol(2), a.clone())))
+            );
             const retval = [
                 _.parse(format('(-({0})+({1}))/({2})', b, det, den)),
                 _.parse(format('(-({0})-({1}))/({2})', b, det, den)),
@@ -843,10 +994,10 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
          * The cubic equation
          * http://math.stackexchange.com/questions/61725/is-there-a-systematic-way-of-solving-cubic-equations
          *
-         * @param {NerdamerSymbol} dO
-         * @param {NerdamerSymbol} cO
-         * @param {NerdamerSymbol} bO
-         * @param {NerdamerSymbol} aO
+         * @param {NerdamerSymbolType} dO
+         * @param {NerdamerSymbolType} cO
+         * @param {NerdamerSymbolType} bO
+         * @param {NerdamerSymbolType} aO
          * @returns {Array}
          */
         cubic(dO, cO, bO, aO) {
@@ -891,77 +1042,106 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         /**
          * The quartic equation
          *
-         * @param {NerdamerSymbol} e
-         * @param {NerdamerSymbol} d
-         * @param {NerdamerSymbol} c
-         * @param {NerdamerSymbol} b
-         * @param {NerdamerSymbol} a
+         * @param {NerdamerSymbolType} e
+         * @param {NerdamerSymbolType} d
+         * @param {NerdamerSymbolType} c
+         * @param {NerdamerSymbolType} b
+         * @param {NerdamerSymbolType} a
          * @returns {Array}
          */
         quartic(e, d, c, b, a) {
+            /** @type {Record<string, number>} */
             const scope = {};
             core.Utils.arrayUnique(
                 variables(a).concat(variables(b)).concat(variables(c)).concat(variables(d)).concat(variables(e))
             ).forEach(x => {
                 scope[x] = 1;
             });
-            a = a.toString();
-            b = b.toString();
-            c = c.toString();
-            d = d.toString();
-            e = e.toString();
+            const aStr = a.toString();
+            const bStr = b.toString();
+            const cStr = c.toString();
+            const dStr = d.toString();
+            const eStr = e.toString();
             let _D;
             /* Var D = core.Utils.block('PARSE2NUMBER', function() {
              return _.parse(format("256*({0})^3*({4})^3-192*({0})^2*({1})*({3})*({4})^2-128*({0})^2*({2})^2*({4})^2+144*({0})^2*({2})*({3})^2*({4})"+
              "-27*({0})^2*({3})^4+144*({0})*({1})^2*({2})*({4})^2-6*({0})*({1})^2*({3})^2*({4})-80*({0})*({1})*({2})^2*({3})*({4})+18*({0})*({1})*({2})*({3})^3"+
              "+16*({0})*({2})^4*({4})-4*({0})*({2})^3*({3})^2-27*({1})^4*({4})^2+18*({1})^3*({2})*({3})*({4})-4*({1})^3*({3})^3-4*({1})^2*({2})^3*({4})+({1})^2*({2})^2*({3})^2", 
-             a, b, c, d, e), scope);
+             aStr, bStr, cStr, dStr, eStr), scope);
              });*/
 
-            const p = _.parse(format('(8*({0})*({2})-3*({1})^2)/(8*({0})^2)', a, b, c)).toString(); // A, b, c
+            const p = _.parse(format('(8*({0})*({2})-3*({1})^2)/(8*({0})^2)', aStr, bStr, cStr)).toString(); // A, b, c
             const q = _.parse(
-                format('(({1})^3-4*({0})*({1})*({2})+8*({0})^2*({3}))/(8*({0})^3)', a, b, c, d)
+                format('(({1})^3-4*({0})*({1})*({2})+8*({0})^2*({3}))/(8*({0})^3)', aStr, bStr, cStr, dStr)
             ).toString(); // A, b, c, d, e
-            const D0 = _.parse(format('12*({0})*({4})-3*({1})*({3})+({2})^2', a, b, c, d, e)).toString(); // A, b, c, d, e
+            const D0 = _.parse(format('12*({0})*({4})-3*({1})*({3})+({2})^2', aStr, bStr, cStr, dStr, eStr)).toString(); // A, b, c, d, e
             const D1 = _.parse(
                 format(
                     '2*({2})^3-9*({1})*({2})*({3})+27*({1})^2*({4})+27*({0})*({3})^2-72*({0})*({2})*({4})',
-                    a,
-                    b,
-                    c,
-                    d,
-                    e
+                    aStr,
+                    bStr,
+                    cStr,
+                    dStr,
+                    eStr
                 )
             ).toString(); // A, b, c, d, e
             const Q = _.parse(format('((({1})+(({1})^2-4*({0})^3)^(1/2))/2)^(1/3)', D0, D1)).toString(); // D0, D1
             const quarticS = _.parse(
-                format('(1/2)*(-(2/3)*({1})+(1/(3*({0}))*(({2})+(({3})/({2})))))^(1/2)', a, p, Q, D0)
+                format('(1/2)*(-(2/3)*({1})+(1/(3*({0}))*(({2})+(({3})/({2})))))^(1/2)', aStr, p, Q, D0)
             ).toString(); // A, p, Q, D0
             const x1 = _.parse(
-                format('-(({1})/(4*({0})))-({4})+(1/2)*sqrt(-4*({4})^2-2*({2})+(({3})/({4})))', a, b, p, q, quarticS)
+                format(
+                    '-(({1})/(4*({0})))-({4})+(1/2)*sqrt(-4*({4})^2-2*({2})+(({3})/({4})))',
+                    aStr,
+                    bStr,
+                    p,
+                    q,
+                    quarticS
+                )
             ); // A, b, p, q, S
             const x2 = _.parse(
-                format('-(({1})/(4*({0})))-({4})-(1/2)*sqrt(-4*({4})^2-2*({2})+(({3})/({4})))', a, b, p, q, quarticS)
+                format(
+                    '-(({1})/(4*({0})))-({4})-(1/2)*sqrt(-4*({4})^2-2*({2})+(({3})/({4})))',
+                    aStr,
+                    bStr,
+                    p,
+                    q,
+                    quarticS
+                )
             ); // A, b, p, q, S
             const x3 = _.parse(
-                format('-(({1})/(4*({0})))+({4})+(1/2)*sqrt(-4*({4})^2-2*({2})-(({3})/({4})))', a, b, p, q, quarticS)
+                format(
+                    '-(({1})/(4*({0})))+({4})+(1/2)*sqrt(-4*({4})^2-2*({2})-(({3})/({4})))',
+                    aStr,
+                    bStr,
+                    p,
+                    q,
+                    quarticS
+                )
             ); // A, b, p, q, S
             const x4 = _.parse(
-                format('-(({1})/(4*({0})))+({4})-(1/2)*sqrt(-4*({4})^2-2*({2})-(({3})/({4})))', a, b, p, q, quarticS)
+                format(
+                    '-(({1})/(4*({0})))+({4})-(1/2)*sqrt(-4*({4})^2-2*({2})-(({3})/({4})))',
+                    aStr,
+                    bStr,
+                    p,
+                    q,
+                    quarticS
+                )
             ); // A, b, p, q, S
             return [x1, x2, x3, x4];
         },
         /**
          * Breaks the equation up in its factors and tries to solve the smaller parts
          *
-         * @param {NerdamerSymbol} symbol
+         * @param {NerdamerSymbolType} symbol
          * @param {string} solveFor
          * @returns {Array}
          */
         divideAndConquer(symbol, solveFor) {
             let sols = [];
             // See if we can solve the factors
-            const factors = core.Algebra.Factor.factorInner(symbol);
+            const factors = Factor.factorInner(symbol);
             if (factors.group === CB) {
                 factors.each(x => {
                     x = NerdamerSymbol.unwrapPARENS(x);
@@ -973,7 +1153,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         /**
          * Attempts to solve the equation assuming it's a polynomial with numeric coefficients
          *
-         * @param {NerdamerSymbol} eq
+         * @param {NerdamerSymbolType} eq
          * @param {string} solveFor
          * @returns {Array}
          */
@@ -990,12 +1170,12 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     let sr;
                     let _sp;
                     const roots = [];
-                    const f = core.Utils.decompose_fn(eq, solveFor, true);
+                    const f = /** @type {DecomposeResultType} */ (core.Utils.decompose_fn(eq, solveFor, true));
                     if (f.x.group === S) {
                         p = _.parse(f.x.power);
                         pn = Number(p);
-                        n = _.pow(_.divide(f.b.negate(), f.a), p.invert());
-                        pf = NerdamerSymbol.toPolarFormArray(n);
+                        n = _.pow(_.divide(f.b.negate(), f.a), /** @type {NerdamerSymbolType} */ (p).invert());
+                        pf = NerdamerSymbol.toPolarFormArray(/** @type {NerdamerSymbolType} */ (n));
                         r = pf[0];
                         _theta = pf[1];
                         sr = r.toString();
@@ -1020,7 +1200,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
          * a good point and starts expanding by a provided step size. Builds on the fact that if the sign changes over
          * an interval then a zero must exist on that interval
          *
-         * @param {NerdamerSymbol} symbol
+         * @param {NerdamerSymbolType} symbol
          * @param {number} step
          * @param {boolean} extended
          * @returns {Array}
@@ -1136,7 +1316,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
                 if (!isNaN(xPoint) && Math.abs(xPoint) <= core.Settings.BI_SECTION_EPSILON) {
                     // Returns too many junk solutions if not rounded at 13th place.
-                    return core.Utils.round(solution, 13);
+                    return /** @type {number} */ (core.Utils.round(solution, 13));
                 }
                 return undefined;
             }
@@ -1282,12 +1462,21 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
                 if (sqrts.length === 1) {
                     // Move the remainder to the RHS
-                    lhs = _.expand(_.pow(_.subtract(lhs, core.Utils.arraySum(rem)), new NerdamerSymbol(2)));
+                    lhs = /** @type {NerdamerSymbolType} */ (
+                        _.expand(
+                            _.pow(
+                                _.subtract(lhs, /** @type {NerdamerSymbolType} */ (core.Utils.arraySum(rem))),
+                                new NerdamerSymbol(2)
+                            )
+                        )
+                    );
                     // Square both sides
-                    rhs = _.expand(_.pow(NerdamerSymbol.unwrapSQRT(sqrts[0]), new NerdamerSymbol(2)));
+                    rhs = /** @type {NerdamerSymbolType} */ (
+                        _.expand(_.pow(NerdamerSymbol.unwrapSQRT(sqrts[0]), new NerdamerSymbol(2)))
+                    );
                 }
             } else {
-                rhs = NerdamerSymbol.unwrapSQRT(_.expand(rhs)); // Expand the term expression go get rid of quotients when possible
+                rhs = NerdamerSymbol.unwrapSQRT(/** @type {NerdamerSymbolType} */ (_.expand(rhs))); // Expand the term expression go get rid of quotients when possible
             }
 
             let c = 0; // A counter to see if we have all terms with the variable
@@ -1300,9 +1489,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 rhs.each(x => {
                     if (x.contains(forVariable)) {
                         c++;
-                        t = _.add(t, x.clone());
+                        t = /** @type {NerdamerSymbolType} */ (_.add(t, x.clone()));
                     } else {
-                        lhs = _.subtract(lhs, x.clone());
+                        lhs = /** @type {NerdamerSymbolType} */ (_.subtract(lhs, x.clone()));
                     }
                 });
                 rhs = t;
@@ -1325,18 +1514,20 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 let t = new NerdamerSymbol(1);
                 rhs.each(x => {
                     if (x.contains(forVariable)) {
-                        t = _.multiply(t, x.clone());
+                        t = /** @type {NerdamerSymbolType} */ (_.multiply(t, x.clone()));
                     } else {
-                        lhs = _.divide(lhs, x.clone());
+                        lhs = /** @type {NerdamerSymbolType} */ (_.divide(lhs, x.clone()));
                     }
                 });
                 rhs = t;
                 return __.rewrite(rhs, lhs, forVariable);
             }
             if (!rhs.isLinear() && rhs.contains(forVariable)) {
-                const p = _.parse(rhs.power.clone().invert());
-                rhs = _.pow(rhs, p.clone());
-                lhs = _.pow(_.expand(lhs), p.clone());
+                const p = /** @type {NerdamerSymbolType} */ (_.parse(rhs.power.clone().invert()));
+                rhs = /** @type {NerdamerSymbolType} */ (_.pow(rhs, p.clone()));
+                lhs = /** @type {NerdamerSymbolType} */ (
+                    _.pow(/** @type {NerdamerSymbolType} */ (_.expand(lhs)), p.clone())
+                );
                 return __.rewrite(rhs, lhs, forVariable);
             }
             if (rhs.group === FN || rhs.group === S || rhs.group === PL) {
@@ -1350,9 +1541,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             if (symbol.isComposite()) {
                 symbol.each(x => {
                     if (x.fname === 'sqrt' && x.contains(v)) {
-                        sqrts = _.add(sqrts, x.clone());
+                        sqrts = /** @type {NerdamerSymbolType} */ (_.add(sqrts, x.clone()));
                     } else {
-                        rem = _.add(rem, x.clone());
+                        rem = /** @type {NerdamerSymbolType} */ (_.add(rem, x.clone()));
                     }
                 });
                 // Quick and dirty ATM
@@ -1370,6 +1561,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         if (e.isImaginary()) {
                             return true;
                         }
+                        /** @type {Record<string, any>} */
                         const subs = {};
                         subs[v] = e;
                         const point = evaluate(symbol, subs);
@@ -1441,6 +1633,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
         // Easy fail. If it's a rational function and the denominator is zero
         // then we're done. Issue #555
+        /** @type {Record<string, any>} */
         const known = {};
         known[solveFor] = 0;
 
@@ -1468,8 +1661,8 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 if (core.Settings.make_pi_conversions && hasTrig) {
                     const temp = _.divide(r.clone(), new NerdamerSymbol(Math.PI));
                     const m = temp.multiplier;
-                    const a = Math.abs(m.num);
-                    const b = Math.abs(m.den);
+                    const a = Math.abs(Number(m.num));
+                    const b = Math.abs(Number(m.den));
                     if (a < 10 && b < 10) {
                         r = _.multiply(temp, new NerdamerSymbol('pi'));
                     }
@@ -1491,7 +1684,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             // See absSolve above
             // the rest of solve does a crappy job at solving abs,
             // so we wrap it here if necessary
-            const absResult = absSolve(eqns, solveFor, solutions, depth, fn);
+            const absResult = absSolve(eqns, solveFor, depth, fn);
             if (absResult) {
                 addToResult(absResult);
                 return solutions;
@@ -1530,9 +1723,10 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         // If not it failed
         if (eqns.group === S && eqns.contains(solveFor)) {
             try {
+                /** @type {Record<string, any>} */
                 const o = {};
                 o[solveFor] = 0;
-                evaluate(fn, o, 'numer');
+                evaluate(fn, o);
                 addToResult(new NerdamerSymbol(0));
             } catch (e) {
                 if (e.message === 'timeout') {
@@ -1606,9 +1800,10 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     const den = sym.getDenom();
 
                     if (!den.isConstant(true) && symbol.isComposite()) {
+                        /** @type {NerdamerSymbolType} */
                         let t = new NerdamerSymbol(0);
                         symbol.each(e => {
-                            t = _.add(t, _.multiply(e, den.clone()));
+                            t = /** @type {NerdamerSymbolType} */ (_.add(t, _.multiply(e, den.clone())));
                         });
 
                         return correctDenom(_.multiply(_.parse(symbol.multiplier), t));
@@ -1616,21 +1811,22 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
                     const parts = explode(sym, solveFor);
                     const isSqrt = parts[1].fname === core.Settings.SQRT;
-                    const v = NerdamerSymbol.unwrapSQRT(parts[1]);
-                    const p = v.power.clone();
+                    const v = /** @type {NerdamerSymbolType} */ (NerdamerSymbol.unwrapSQRT(parts[1]));
+                    /** @type {FracType} */
+                    const p = /** @type {FracType} */ (v.power.clone());
                     // Circular logic with sqrt. Since sqrt(x) becomes x^(1/2) which then becomes sqrt(x), this continues forever
                     // this needs to be terminated if p = 1/2
                     if (!isSymbol(p) && !p.equals(1 / 2)) {
-                        if (p.den.gt(1)) {
+                        if (Number(p.den) > 1) {
                             if (isSqrt) {
                                 symbol = _.subtract(symbol, sym.clone());
                                 symbol = _.add(symbol, _.multiply(parts[0].clone(), v));
                                 return correctDenom(symbol);
                             }
-                            let c = fractionals[p.den];
-                            fractionals[p.den] = c ? c++ : 1;
+                            let c = fractionals[Number(p.den)];
+                            fractionals[Number(p.den)] = c ? c++ : 1;
                         } else if (p.sign() === -1) {
-                            const factor = _.parse(`${solveFor}^${Math.abs(p)}`); // This
+                            const factor = _.parse(`${solveFor}^${Math.abs(Number(p))}`); // This
                             // unwrap the symbol's denoniator
                             const currentSymbol = symbol;
                             currentSymbol.each((y, index) => {
@@ -1641,12 +1837,17 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                             fractionals = {};
                             return correctDenom(_.parse(currentSymbol));
                         } else if (sym.group === PL) {
-                            const minP = core.Utils.arrayMin(core.Utils.keys(sym.symbols));
+                            const minP = core.Utils.arrayMin(core.Utils.keys(sym.symbols).map(Number));
                             if (minP < 0) {
-                                const factor = _.parse(`${solveFor}^${Math.abs(minP)}`);
+                                const factor = /** @type {NerdamerSymbolType} */ (
+                                    _.parse(`${solveFor}^${Math.abs(minP)}`)
+                                );
+                                /** @type {NerdamerSymbolType} */
                                 let corrected = new NerdamerSymbol(0);
                                 original.each(origSym => {
-                                    corrected = _.add(corrected, _.multiply(origSym.clone(), factor.clone()));
+                                    corrected = /** @type {NerdamerSymbolType} */ (
+                                        _.add(corrected, _.multiply(origSym.clone(), factor.clone()))
+                                    );
                                 }, true);
                                 return corrected;
                             }
@@ -1660,13 +1861,15 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
         // Separate the equation
         const separate = function (equation) {
+            /** @type {NerdamerSymbolType} */
             let lhs = new NerdamerSymbol(0);
+            /** @type {NerdamerSymbolType} */
             let rhs = new NerdamerSymbol(0);
             equation.each(x => {
                 if (x.contains(solveFor, true)) {
-                    lhs = _.add(lhs, x.clone());
+                    lhs = /** @type {NerdamerSymbolType} */ (_.add(lhs, x.clone()));
                 } else {
-                    rhs = _.subtract(rhs, x.clone());
+                    rhs = /** @type {NerdamerSymbolType} */ (_.subtract(rhs, x.clone()));
                 }
             });
             return [lhs, rhs];
@@ -1715,9 +1918,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         if (numvars === 1) {
             if (eq.isPoly(true)) {
                 // Try to factor and solve
-                const factors = new core.Algebra.Classes.Factors();
+                const factors = new AlgebraClasses.Factors();
 
-                core.Algebra.Factor.factorInner(eq, factors);
+                Factor.factorInner(eq, factors);
                 // If the equation has more than one symbolic factor then solve those individually
                 if (factors.getNumberSymbolics() > 1) {
                     for (const factorKey in factors.factors) {
@@ -1732,7 +1935,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     let wasCalculated = false;
                     if (vars[0] === solveFor) {
                         // Check to see if all the coefficients are constant
-                        if (checkAll(coeffs, coeff => coeff.group !== core.groups.N)) {
+                        if (
+                            checkAll(coeffs, coeff => /** @type {NerdamerSymbolType} */ (coeff).group !== core.groups.N)
+                        ) {
                             const roots = core.Algebra.proots(eq);
                             // If all the roots are integers then return those
                             if (checkAll(roots, root => !core.Utils.isInt(root))) {
@@ -1752,13 +1957,18 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
                             // We can solve algebraically for degrees 1, 2, 3. The remainder we switch to Jenkins-
                             if (deg === 1) {
-                                addToResult(_.divide(coeffs[0], coeffs[1].negate()));
+                                addToResult(
+                                    _.divide(
+                                        /** @type {NerdamerSymbolType} */ (coeffs[0]),
+                                        /** @type {NerdamerSymbolType} */ (coeffs[1]).negate()
+                                    )
+                                );
                             } else if (deg === 2) {
                                 addToResult(_.expand(__.quad.apply(undefined, coeffs)));
                             } else if (deg === 3) {
                                 let cubicSolutions = []; // Set to blank
                                 // first try to factor and solve
-                                const _factored = core.Algebra.Factor.factorInner(eqns);
+                                const _factored = Factor.factorInner(/** @type {NerdamerSymbolType} */ (eqns));
 
                                 // If it was successfully factored
                                 cubicSolutions = [];
@@ -1824,7 +2034,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
                 // Build the derivative and compile a function
                 const d = _C.diff(eq.clone());
-                const fp = build(d);
+                const fp = build(/** @type {NerdamerSymbolType} */ (d));
                 let lastPoint = points[0];
                 for (i = 0; i < points.length; i++) {
                     point = points[i];
@@ -1878,10 +2088,10 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             try {
                 // This is where solving certain quads goes wrong
 
-                const factored = core.Algebra.Factor.factorInner(eq.clone());
-                const test = _.expand(_.parse(factored));
+                const factored = Factor.factorInner(eq.clone());
+                const test = _.expand(/** @type {NerdamerSymbolType} */ (_.parse(factored)));
                 const test2 = _.expand(eq.clone());
-                const diff = _.subtract(test, test2);
+                const diff = /** @type {NerdamerSymbolType} */ (_.subtract(test, test2));
                 let validFactorization = true;
                 if (!diff.equals(0)) {
                     // Console.log("factored: "+test);
@@ -1914,7 +2124,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                 // => x = log(rhs/a)/(m*log(b))
 
                                 const log = core.Settings.LOG;
-                                const exprStr = `${log}((${rhs})/(${lhs.multiplier}))/(${log}(${lhs.value})*${lhs.power.multiplier})`;
+                                const exprStr = `${log}((${rhs})/(${lhs.multiplier}))/(${log}(${lhs.value})*${/** @type {NerdamerSymbolType} */ (lhs.power).multiplier})`;
                                 const parsed = _.parse(exprStr);
                                 addToResult(parsed);
                             }
@@ -1923,7 +2133,12 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         case 1:
                             // Nothing to do but to return the quotient of the constant and the LT
                             // e.g. 2*x-1
-                            addToResult(_.divide(coeffs[0], coeffs[1].negate()));
+                            addToResult(
+                                _.divide(
+                                    /** @type {NerdamerSymbolType} */ (coeffs[0]),
+                                    /** @type {NerdamerSymbolType} */ (coeffs[1]).negate()
+                                )
+                            );
                             break;
                         case 2:
                             addToResult(__.quad.apply(undefined, coeffs));
@@ -2019,7 +2234,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     // Reduce the equation
                     if (lhs.group === core.groups.EX && lhs.value === solveFor) {
                         // Change the base of both sides
-                        const p = lhs.power.clone().invert();
+                        const p = /** @type {NerdamerSymbolType} */ (lhs.power.clone().invert());
                         addToResult(_.pow(rhs, p));
                     }
                 }
@@ -2033,6 +2248,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         // Perform some cleanup but don't do it agains arrays, etc
         // Check it actually evaluates to zero
         if (isSymbol(eqns)) {
+            /** @type {Record<string, any>} */
             const knowns = {};
             solutions = solutions.filter(sol => {
                 try {
@@ -2077,13 +2293,15 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             parent: 'Solve',
             numargs: 2,
             visible: true,
+            /** @returns {(...args: unknown[]) => unknown} */
             build() {
-                return core.Solve.solve;
+                return /** @type {(...args: unknown[]) => unknown} */ (core.Solve.solve);
             },
         },
         {
             name: 'setEquation',
             parent: 'Solve',
+            numargs: 2,
             visible: true,
             build() {
                 return setEq;

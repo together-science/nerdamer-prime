@@ -52,15 +52,7 @@
  *
  * @typedef {import('./index').ExpandOptions} ExpandOptions
  *
- *   Decompose function object result type
- *
- * @typedef {{
- *     a: NerdamerSymbolType;
- *     x: NerdamerSymbolType;
- *     ax: NerdamerSymbolType;
- *     b: NerdamerSymbolType;
- * }} DecomposeResult
- *   Constructor types
+ * @typedef {import('./index').NerdamerCore.DecomposeResult} DecomposeResultType Constructor types
  *
  * @typedef {import('./index').NerdamerCore.FracConstructor} FracConstructor
  *
@@ -1025,7 +1017,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
      */
     NerdamerSymbol.prototype.groupTerms = function groupTerms(x) {
         x = String(x);
-        /** @type {DecomposeResult | undefined} */
+        /** @type {DecomposeResultType | undefined} */
         let f;
         /** @type {number} */
         let p;
@@ -1043,7 +1035,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     }
                 }
             } else {
-                f = /** @type {DecomposeResult} */ (core.Utils.decompose_fn(e, x, true));
+                f = /** @type {DecomposeResultType} */ (core.Utils.decompose_fn(e, x, true));
                 p =
                     /** @type {NerdamerSymbolType} */ (f.x).value === x
                         ? Number(/** @type {NerdamerSymbolType} */ (f.x).power)
@@ -2804,7 +2796,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     }
                 }
             } else if (g === CB && e.contains(forVariable)) {
-                const decomp = /** @type {DecomposeResult} */ (core.Utils.decompose_fn(e, forVariable, true));
+                const decomp = /** @type {DecomposeResultType} */ (core.Utils.decompose_fn(e, forVariable, true));
                 powers.push(decomp.x.power);
             }
             return core.Utils.arrayUnique(powers).sort();
@@ -4491,7 +4483,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 // Special case. May need revisiting
                 if (symbol1.group === S && symbol2.group === CP) {
                     const x = symbol1.value;
-                    const f = /** @type {DecomposeResult} */ (core.Utils.decompose_fn(symbol2.clone(), x, true));
+                    const f = /** @type {DecomposeResultType} */ (core.Utils.decompose_fn(symbol2.clone(), x, true));
                     if (symbol1.isLinear() && f.x && f.x.isLinear() && symbol2.isLinear()) {
                         const k = NerdamerSymbol.create(symbol1.multiplier);
                         return [

@@ -656,6 +656,11 @@ interface NerdamerAddon {
     visible?: boolean;
     /** Factory function that returns the actual implementation function. */
     build: () => (...args: unknown[]) => unknown;
+    /**
+     * Parent module for the function. Used to register functions to specific namespaces. Examples: 'nerdamer', 'Solve',
+     * 'Algebra', etc.
+     */
+    parent?: string;
 }
 
 // #endregion
@@ -2243,7 +2248,7 @@ declare namespace nerdamerPrime {
          * immediately.
          */
         interface ExpressionConstructor {
-            new (symbol: NerdamerSymbol): NerdamerExpression;
+            new (symbol: NerdamerSymbol | Vector | Matrix | EquationInstance): NerdamerExpression;
             getExpression(index: 'last' | 'first' | number): NerdamerExpression | undefined;
         }
 
@@ -2384,9 +2389,16 @@ declare namespace nerdamerPrime {
              *
              * @param eqns The array of equation symbols.
              * @param vars Optional array of variable names. If not provided, extracted from equations.
+             * @param transform Optional transformation function applied to each element.
+             * @param flag Optional flag passed to transformation function.
              * @returns The Jacobian matrix.
              */
-            jacobian?(eqns: NerdamerSymbol[], vars?: string[]): Matrix;
+            jacobian?(
+                eqns: NerdamerSymbol[],
+                vars?: string[],
+                transform?: (x: NerdamerSymbol) => Function,
+                flag?: boolean
+            ): Matrix;
 
             /**
              * Creates a constant matrix with specified value. Added by the Calculus module.
@@ -3715,6 +3727,35 @@ declare namespace nerdamerPrime {
              */
             USE_BIG?: boolean;
 
+            // #region Solve Module Extended Settings
+
+            /**
+             * If `true`, system solve results are returned as an object with variable names as keys. If `false`,
+             * results are returned as an array of [variable, solution] pairs.
+             *
+             * @default false
+             */
+            SOLUTIONS_AS_OBJECT?: boolean;
+
+            /**
+             * A callback function invoked before adding a solution to the result set. Can be used for custom processing
+             * like rounding.
+             *
+             * @default undefined
+             */
+            PRE_ADD_SOLUTION?: ((solution: NerdamerSymbol) => NerdamerSymbol) | undefined;
+
+            /**
+             * When `true`, the constant `e` is treated as a symbol rather than Euler's number. Used internally during
+             * certain solving operations.
+             *
+             * @default false
+             * @internal
+             */
+            IGNORE_E?: boolean;
+
+            // #endregion
+
             // #endregion
         }
 
@@ -3809,6 +3850,16 @@ declare namespace nerdamerPrime {
              * @returns A sorted array of unique variable names.
              */
             arrayGetVariables(arr: NerdamerSymbol[]): string[];
+
+            /**
+             * Loops through an array and attempts to fail a test. Stops if it manages to fail. Note: This method is
+             * added by the Solve module at runtime.
+             *
+             * @param args The array to check.
+             * @param test A test function that returns true if the test fails.
+             * @returns True if all items pass, false if any item fails.
+             */
+            checkAll?<T>(args: T[], test: (item: T) => boolean): boolean;
 
             /**
              * Calculates the sum of all elements in an array.
@@ -4427,8 +4478,71 @@ declare namespace nerdamerPrime {
 
         /** Equation instance type. Represents an equation with LHS and RHS properties. */
         interface EquationInstance {
+            /** Left-hand side of the equation */
             LHS: NerdamerSymbol;
+            /** Right-hand side of the equation */
             RHS: NerdamerSymbol;
+
+            /**
+             * Converts the equation to a string representation.
+             *
+             * @returns String in the form "LHS=RHS"
+             */
+            toString(): string;
+
+            /**
+             * Returns text representation of the equation.
+             *
+             * @param option - Optional formatting option
+             * @returns Text representation
+             */
+            text(option?: string): string;
+
+            /**
+             * Brings the equation to the left-hand side (LHS = 0 form).
+             *
+             * @param expand - Whether to expand the result
+             * @returns The LHS symbol after moving RHS to the left
+             */
+            toLHS(expand?: boolean): NerdamerSymbol;
+
+            /**
+             * Removes denominators from both sides of the equation.
+             *
+             * @returns New equation with denominators removed
+             */
+            removeDenom(): EquationInstance;
+
+            /**
+             * Creates a clone of the equation.
+             *
+             * @returns A new equation with cloned LHS and RHS
+             */
+            clone(): EquationInstance;
+
+            /**
+             * Substitutes a variable with a value in both sides of the equation.
+             *
+             * @param x - Variable to substitute
+             * @param y - Value to substitute with
+             * @returns New equation with substitution applied
+             */
+            sub(x: NerdamerSymbol, y: NerdamerSymbol): EquationInstance;
+
+            /**
+             * Checks if the equation equals zero (LHS - RHS = 0).
+             *
+             * @returns True if the equation evaluates to zero
+             */
+            isZero(): boolean;
+
+            /**
+             * Returns LaTeX representation of the equation.
+             *
+             * @param option - Optional formatting option
+             * @returns LaTeX string
+             */
+            latex(option?: string): string;
         }
 
         /** The object returned by `nerdamer.getCore()`. */
@@ -4469,7 +4583,7 @@ declare namespace nerdamerPrime {
                 InfiniteLoopError: new (message?: string) => InfiniteLoopError;
                 UnexpectedTokenError: new (message?: string) => UnexpectedTokenError;
             };
-            Solve: Record<string, Function>;
+            Solve: SolveModule | Record<string, Function>;
             Calculus: CalculusModule | Record<string, Function>;
             Algebra: AlgebraModule | Record<string, Function>;
             Extra: Record<string, Function>;
@@ -4578,6 +4692,21 @@ declare namespace nerdamerPrime {
                 symbol: NerdamerSymbol,
                 dx: string
             ) => { f: NerdamerSymbol; a: NerdamerSymbol; h: NerdamerSymbol };
+            /**
+             * Checks if all equations in an array are linear.
+             *
+             * @param eqns Array of equations to check
+             * @returns True if all equations are linear
+             */
+            allLinear: (eqns: NerdamerSymbol[]) => boolean;
+            /**
+             * Finds numeric polynomial roots using the Jenkins-Traub algorithm.
+             *
+             * @param symbol The polynomial to find roots for
+             * @param decp Decimal precision (optional)
+             * @returns Array of numeric roots as strings
+             */
+            proots: (symbol: NerdamerSymbol | unknown[], decp?: number) => string[];
             Factor: FactorSubModule;
             PartFrac: PartFracSubModule;
             Simplify: SimplifySubModule;
@@ -4588,7 +4717,7 @@ declare namespace nerdamerPrime {
         /** Factor sub-module for factorization operations */
         interface FactorSubModule {
             factor: (symbol: NerdamerSymbol) => NerdamerSymbol;
-            factorInner: (symbol: NerdamerSymbol) => NerdamerSymbol;
+            factorInner: (symbol: NerdamerSymbol, factors?: Factors) => NerdamerSymbol;
             coeffFactor: (symbol: NerdamerSymbol, factors: Factors) => NerdamerSymbol;
             [key: string]: unknown;
         }
@@ -4605,6 +4734,61 @@ declare namespace nerdamerPrime {
             [key: string]: unknown;
         }
 
+        /** Solve module interface for equation solving */
+        interface SolveModule {
+            version: string;
+            solutions: NerdamerSymbol[];
+            solve: (eq: NerdamerSymbol | string, variable: NerdamerSymbol | string) => Vector;
+            toLHS: (eqn: EquationInstance | string | NerdamerSymbol, expand?: boolean) => NerdamerSymbol;
+            solveCircle: (eqns: NerdamerSymbol[], vars: string[]) => any[] | Record<string, string[]>;
+            solveNonLinearSystem: (eqns: NerdamerSymbol[], tries?: number, start?: number) => any[];
+            systemSolutions: (
+                result: Matrix,
+                vars: string[],
+                expandResult?: boolean,
+                callback?: (this: NerdamerSymbol, solution: any) => any
+            ) => any[] | Record<string, any>;
+            solveSystemBySubstitution: (eqns: NerdamerSymbol[]) => any[];
+            solveSystem: (eqns: any[], varArray?: string[]) => any[] | Record<string, any>;
+            quad: (c: NerdamerSymbol, b: NerdamerSymbol, a: NerdamerSymbol) => (NerdamerSymbol | Vector | Matrix)[];
+            cubic: (
+                d: NerdamerSymbol,
+                c: NerdamerSymbol,
+                b: NerdamerSymbol,
+                a: NerdamerSymbol
+            ) => (NerdamerSymbol | Vector | Matrix)[];
+            quartic: (
+                e: NerdamerSymbol,
+                d: NerdamerSymbol,
+                c: NerdamerSymbol,
+                b: NerdamerSymbol,
+                a: NerdamerSymbol
+            ) => (NerdamerSymbol | Vector | Matrix)[];
+            divideAndConquer: (symbol: NerdamerSymbol, solveFor: string) => NerdamerSymbol[];
+            csolve: (eq: NerdamerSymbol, solveFor: string) => NerdamerSymbol[];
+            getPoints: (symbol: NerdamerSymbol, step?: number, extended?: boolean) => number[];
+            bisection: (point: number, f: (x: number) => number) => number | undefined;
+            bSearch: (left: number, right: number, f: (x: number) => number) => number | undefined;
+            Newton: (
+                point: number,
+                f: (x: number) => number,
+                fp: (x: number) => number,
+                point2?: number
+            ) => number | undefined;
+            rewrite: (
+                rhs: NerdamerSymbol,
+                lhs: NerdamerSymbol | null,
+                forVariable: string
+            ) => NerdamerSymbol | [NerdamerSymbol, NerdamerSymbol];
+            sqrtSolve: (symbol: NerdamerSymbol, v: string) => NerdamerSymbol[] | undefined;
+            inverseFunctionSolve?: (
+                name: string,
+                lhs: NerdamerSymbol,
+                rhs: NerdamerSymbol
+            ) => NerdamerSymbol | undefined;
+            [key: string]: unknown;
+        }
+
         /** Algebra classes sub-module */
         interface AlgebraClassesSubModule {
             Factors: new () => Factors;
@@ -4613,9 +4797,13 @@ declare namespace nerdamerPrime {
 
         /** Factors collection class from Algebra module */
         interface Factors {
+            /** Dictionary of factor symbols by their string key */
+            factors: Record<string, NerdamerSymbol>;
             each: (fn: (factor: NerdamerSymbol) => void) => void;
             add: (factor: NerdamerSymbol) => void;
             toSymbol: () => NerdamerSymbol;
+            /** Gets the count of symbolic (non-numeric) factors */
+            getNumberSymbolics: () => number;
             [key: string]: unknown;
         }
 
