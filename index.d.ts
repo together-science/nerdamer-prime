@@ -154,7 +154,7 @@ type FilteredLaTeXToken = LaTeXToken | FilteredLaTeXToken[];
 type int = number;
 
 /** Type alias for sort comparison functions */
-type SortFn = (a: unknown, b: unknown) => number;
+type SortFn<T = unknown> = (a: T, b: T) => number;
 
 // #region Discriminated Union Types for Internal Values
 
@@ -2186,12 +2186,12 @@ declare namespace nerdamerPrime {
             eachElement?(fn: (element: NerdamerSymbol, i: number, j?: number) => void): void;
             /** Maps over symbols. Available on Vector/Matrix. */
             map?(fn: (symbol: NerdamerSymbol, key: string) => NerdamerSymbol): NerdamerSymbol;
-            collectSymbols<T = NerdamerSymbol>(
-                fn?: (symbol: NerdamerSymbol, opt?: string) => T,
+            collectSymbols(
+                fn?: (symbol: NerdamerSymbol, opt?: string) => unknown,
                 opt?: string,
                 sortFn?: SortFn,
                 expandSymbol?: boolean
-            ): T[];
+            ): unknown[];
             sub(a: ExpressionParam, b: ExpressionParam): NerdamerSymbol;
 
             // Internal methods used by parser operations
@@ -2206,12 +2206,12 @@ declare namespace nerdamerPrime {
             combine(symbol: NerdamerSymbol | NerdamerSymbol[]): this;
             updateHash(): void;
             keyForGroup(group: number): string | number;
-            collectSummandSymbols<T = NerdamerSymbol>(
-                fn?: (s: NerdamerSymbol, opt?: string) => T,
+            collectSummandSymbols(
+                fn?: (s: NerdamerSymbol, opt?: string) => unknown,
                 opt?: string,
                 sortFn?: SortFn,
                 expandSymbol?: boolean
-            ): T[];
+            ): unknown[];
             isCombination(): boolean;
             greaterThan(n: ExpressionParam): boolean;
 

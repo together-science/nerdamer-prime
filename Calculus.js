@@ -7,6 +7,8 @@
  * Source : https://github.com/jiggzson/nerdamer
  */
 
+/** @typedef {import('./index').NerdamerCore.NerdamerSymbol} NerdamerSymbolType */
+
 // Check if nerdamer exists globally (browser) or needs to be required (Node.js)
 let nerdamer = typeof globalThis !== 'undefined' && globalThis.nerdamer ? globalThis.nerdamer : undefined;
 if (typeof module !== 'undefined' && nerdamer === undefined) {
@@ -2741,7 +2743,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                     // Loop through all the symbols
                                     // thus => lim f*g*h = lim (f*g)*h = (lim f*g)*(lim h)
                                     // symbols of lower groups are generally easier to differentiatee so get them to the right by first sorting
-                                    const symbols = symbol.collectSymbols().sort((a, b) => a.group - b.group);
+                                    const symbols = /** @type {NerdamerSymbolType[]} */ (symbol.collectSymbols()).sort(
+                                        (a, b) => a.group - b.group
+                                    );
 
                                     let f = symbols.pop();
                                     // Calculate the first limit so we can keep going down the list
@@ -2791,7 +2795,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                     // Apply lim f+g = (lim f)+(lim g)
                                     retval = new NerdamerSymbol(0);
 
-                                    let symbols = symbol.collectSymbols().sort((a, b) => b.group - a.group);
+                                    let symbols = /** @type {NerdamerSymbolType[]} */ (symbol.collectSymbols()).sort(
+                                        (a, b) => b.group - a.group
+                                    );
 
                                     const _symbols = [];
                                     // Analyze the functions first

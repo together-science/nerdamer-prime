@@ -955,7 +955,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         }
         /** @type {MVTerm[]} */
         const terms = [];
-        const symbols = this.collectSymbols(null, null, null, true);
+        const symbols = /** @type {NerdamerSymbolType[]} */ (this.collectSymbols(null, null, null, true));
         const l = symbols.length;
         for (let i = 0; i < l; i++) {
             const symbol = symbols[i];
@@ -2861,7 +2861,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         );
                         /** @type {(sym: unknown) => number} */
                         const getLength = sym => /** @type {{ length?: number }} */ (sym).length || 1;
-                        const symbols = expanded.collectSymbols(null, null, (a, b) => getLength(b) - getLength(a));
+                        const symbols = /** @type {NerdamerSymbolType[]} */ (
+                            expanded.collectSymbols(null, null, (a, b) => getLength(b) - getLength(a))
+                        );
 
                         /** @type {Record<string, [number, NerdamerSymbolType[]]>} */
                         const map = {}; // Create a map of common factors
@@ -3484,8 +3486,10 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             },
             reduce(symbol, factors) {
                 if (symbol.group === CP && symbol.length === 2) {
-                    const symbols = symbol.collectSymbols().sort((a, b) => b.multiplier - a.multiplier);
-                    if (symbols[0].power.equals(symbols[1].power)) {
+                    const symbols = /** @type {NerdamerSymbolType[]} */ (symbol.collectSymbols()).sort(
+                        (a, b) => Number(b.multiplier) - Number(a.multiplier)
+                    );
+                    if (/** @type {FracType} */ (symbols[0].power).equals(/** @type {FracType} */ (symbols[1].power))) {
                         // X^n-a^n
                         const n = _.parse(symbols[0].power);
                         const a = symbols[0].clone().toLinear();
@@ -3605,7 +3609,9 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                             return p;
                         };
                         // Factor out negatives from the lead term
-                        const terms = symbol.collectSymbols(null, null, null, true).sort((a, b) => {
+                        const terms = /** @type {NerdamerSymbolType[]} */ (
+                            symbol.collectSymbols(null, null, null, true)
+                        ).sort((a, b) => {
                             // Push constants to the back
                             if (a.isConstant(true)) {
                                 return 1;

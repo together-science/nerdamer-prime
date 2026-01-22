@@ -65,7 +65,7 @@
  *
  * @typedef {import('./index').ExpressionParam} ExpressionParam
  *
- * @typedef {import('./index').SortFn} SortFn
+ * @typedef {import('./index').SortFn<unknown>} SortFn
  *
  *   Constructor types (for factory functions)
  *
@@ -6671,7 +6671,9 @@ const LaTeX = {
                 }
             }
         } else if (/** @type {NerdamerSymbolType} */ (symbol).isComposite()) {
-            const collected = /** @type {NerdamerSymbolType} */ (symbol).collectSymbols().sort(
+            const collected = /** @type {NerdamerSymbolType[]} */ (
+                /** @type {NerdamerSymbolType} */ (symbol).collectSymbols()
+            ).sort(
                 group === GROUP_CP || previousGroup === GROUP_CP
                     ? (x, y) => y.group - x.group
                     : (x, y) => {
@@ -9322,8 +9324,7 @@ function text(obj, option = undefined, useGroup = undefined, decp = undefined) {
                 break;
             }
             case TextDeps.PL:
-                value = obj
-                    .collectSymbols()
+                value = /** @type {NerdamerSymbolType[]} */ (obj.collectSymbols())
                     .map(x => {
                         let txt = text(x, opt, useGroup, decp);
                         if (txt === '0') {
@@ -9336,8 +9337,7 @@ function text(obj, option = undefined, useGroup = undefined, decp = undefined) {
                     .replace(/\+-/gu, '-');
                 break;
             case TextDeps.CP:
-                value = obj
-                    .collectSymbols()
+                value = /** @type {NerdamerSymbolType[]} */ (obj.collectSymbols())
                     .map(x => {
                         let txt = text(x, opt, useGroup, decp);
                         if (txt === '0') {
@@ -15113,7 +15113,9 @@ class Parser {
 
                 return e.value;
             };
-            const symbols = isVector(symbol) ? symbol.elements : symbol.collectSymbols();
+            const symbols = /** @type {NerdamerSymbolType[]} */ (
+                isVector(symbol) ? symbol.elements : symbol.collectSymbols()
+            );
             return new Vector(
                 symbols.sort((a, b) => {
                     const aval = getval(a);
@@ -15509,8 +15511,7 @@ class Parser {
                     };
                     // Consider (a+b)(c+d). The result will be (a*c+a*d)+(b*c+b*d).
                     // We start by moving collecting the symbols. We want others>FN>CB>PL>CP
-                    const symbols = sym
-                        .collectSymbols()
+                    const symbols = /** @type {NerdamerSymbolType[]} */ (sym.collectSymbols())
                         .sort((a, b) => rank(b) - rank(a))
                         // Distribute the power to each symbol and expand
                         .map(s => {
