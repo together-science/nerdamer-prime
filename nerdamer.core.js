@@ -2456,9 +2456,9 @@ function scientificToDecimal(num) {
 // Extracted outside IIFE to enable proper TypeScript type inference.
 
 /**
- * Checks to see that all symbols in array are the same
+ * Checks to see that all items in array are equal using the equals method
  *
- * @param {NerdamerSymbolType[]} arr
+ * @param {{ equals(other: unknown): boolean }[]} arr
  * @returns {boolean}
  */
 function allSame(arr) {

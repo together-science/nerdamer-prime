@@ -77,6 +77,8 @@
  * @typedef {import('./index').NerdamerCore.SimplifySubModule} SimplifyInterface
  *
  * @typedef {import('./index').NerdamerCore.PartFracSubModule} PartFracInterface
+ *
+ * @typedef {new () => Factors} FactorsConstructor
  */
 
 // Check if nerdamer exists globally (browser) or needs to be required (Node.js)
@@ -2861,7 +2863,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
                     // Get the gcd. This will be the p in (a^n+b^m)^p
                     // if the gcd equals 1 meaning n = m then we need a tie breakder
-                    if (core.Utils.allSame(/** @type {any[]} */ (powers))) {
+                    if (core.Utils.allSame(powers)) {
                         // Get p given x number of terms
                         const nTerms = symbol.length;
                         // The number of zeroes determines
@@ -5021,18 +5023,21 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     // The results are backwards to reverse it
                     // partials.elements.reverse();
                     // convert it all back
-                    /** @type {any} */
-                    let retval = asArray ? [r] : r;
+                    if (asArray) {
+                        /** @type {(NerdamerSymbolType | VectorType | MatrixType)[]} */
+                        const retval = [r];
+                        partials.each((e, i) => {
+                            const term = _.multiply(ks[i], _.divide(e, factors[i]));
+                            retval.push(term);
+                        });
+                        return /** @type {NerdamerSymbolType[]} */ (retval);
+                    }
+                    /** @type {NerdamerSymbolType | VectorType | MatrixType} */
+                    let retval = r;
                     partials.each((e, i) => {
                         const term = _.multiply(ks[i], _.divide(e, factors[i]));
-                        if (asArray) {
-                            retval.push(term);
-                        } else {
-                            retval = _.add(retval, term);
-                        }
+                        retval = _.add(retval, term);
                     });
-
-                    // Done
                     return retval;
                 } catch (e) {
                     if (e.message === 'timeout') {
@@ -5076,13 +5081,14 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
          *
          * @param {NerdamerSymbolType} symbol - The polynomial
          * @param {NerdamerSymbolType} [v] - The variable
-         * @param {{ nd: any[]; sd: (NerdamerSymbolType | FracType)[]; depth: number }} [o] - Options for tracking
+         * @param {{ nd: NerdamerSymbolType[]; sd: (NerdamerSymbolType | FracType)[]; depth: number }} [o] - Options for
+         *   tracking
          * @returns {NerdamerSymbolType}
          */
         degree(symbol, v, o) {
             o ||= {
-                nd: [], // Numeric (can contain NerdamerSymbol or numbers)
-                sd: [], // Symbolic
+                nd: [], // Numeric degrees (stored as NerdamerSymbol)
+                sd: [], // Symbolic degrees
                 depth: 0, // Call depth
             };
 
@@ -5121,44 +5127,42 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             } else if (g === EX && symbol.value === v.value) {
                 o.sd.push(symbol.power.clone());
             } else if (g === S && symbol.value === v.value) {
-                /** @type {any} */ (o.nd).push(_.parse(symbol.power));
+                o.nd.push(/** @type {NerdamerSymbolType} */ (_.parse(symbol.power)));
             } else {
-                /** @type {any} */ (o.nd).push(new NerdamerSymbol(0));
+                o.nd.push(new NerdamerSymbol(0));
             }
 
-            // Get the max out of the array
-            /** @type {number | NerdamerSymbolType | undefined} */
-            let deg =
+            // Get the max out of the array - arrayMax uses valueOf() on each symbol to compare numerically
+            /** @type {number | undefined} */
+            const deg =
                 o.nd.length > 0
                     ? core.Utils.arrayMax(/** @type {number[]} */ (/** @type {unknown} */ (o.nd)))
                     : undefined;
 
             if (o.depth === 0 && o.sd.length > 0) {
                 if (deg !== undefined) {
-                    o.sd.unshift(/** @type {any} */ (deg));
+                    // Convert numeric deg back to symbol for the max function
+                    o.sd.unshift(/** @type {NerdamerSymbolType} */ (_.parse(deg)));
                 }
                 return /** @type {NerdamerSymbolType} */ (
                     _.symfunction('max', /** @type {NerdamerSymbolType[]} */ (o.sd))
                 );
             }
-            if (!core.Utils.isSymbol(deg)) {
-                deg = /** @type {NerdamerSymbolType} */ (_.parse(/** @type {any} */ (deg)));
-            }
-            // Return the degree
-            return /** @type {NerdamerSymbolType} */ (deg);
+            // Convert numeric degree to symbol
+            return /** @type {NerdamerSymbolType} */ (_.parse(deg ?? 0));
         },
         /**
          * Attempts to complete the square of a polynomial
          *
          * @param {NerdamerSymbolType} symbol
-         * @param {ExpressionParam} v
+         * @param {string | NerdamerSymbolType} v - The variable to complete the square with respect to
          * @param {boolean} raw
          * @returns {object | NerdamerSymbol[]}
          * @throws {Error}
          */
         sqComplete(symbol, v, raw) {
             if (!core.Utils.isSymbol(v)) {
-                v = _.parse(/** @type {any} */ (v));
+                v = _.parse(v);
             }
             const stop = function (msg) {
                 msg ||= 'Stopping';
@@ -6002,7 +6006,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
         Classes: {
             Polynomial,
-            Factors: /** @type {any} */ (Factors),
+            Factors: /** @type {FactorsConstructor} */ (/** @type {unknown} */ (Factors)),
             MVTerm,
         },
     });
@@ -6163,16 +6167,16 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         // Parse arguments WITHOUT PARSE2NUMBER to preserve symbolic constants like pi, e, sqrt(2)
         for (let i = 0; i < args.length; i++) {
             if (typeof args[i] === 'string') {
-                args[i] = parser.parse(/** @type {any} */ (args[i]));
-            } else if (args[i] && /** @type {any} */ (args[i]).symbol) {
+                args[i] = parser.parse(/** @type {string} */ (args[i]));
+            } else if (args[i] && /** @type {ExpressionType} */ (args[i]).symbol) {
                 // It's an Expression, get the symbol
-                args[i] = /** @type {any} */ (args[i]).symbol.clone();
+                args[i] = /** @type {ExpressionType} */ (args[i]).symbol.clone();
             } else if (core.Utils.isSymbol(args[i])) {
                 args[i] = /** @type {NerdamerSymbolType} */ (args[i]).clone();
             }
         }
         const resultCoeffs = __.coeffs(/** @type {NerdamerSymbolType} */ (args[0]), args[1]);
-        return new core.Expression(/** @type {any} */ (new core.Vector(resultCoeffs)));
+        return new core.Expression(/** @type {VectorType} */ (new core.Vector(resultCoeffs)));
     };
 
     nerdamer.register([

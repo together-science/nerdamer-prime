@@ -3997,12 +3997,12 @@ declare namespace nerdamerPrime {
          */
         interface CoreUtils {
             /**
-             * Checks if all symbols in an array are of equal value.
+             * Checks if all items in an array are of equal value. Uses the `.equals()` method of each item.
              *
-             * @param arr An array of Symbols.
-             * @returns `true` if all symbols are equal, `false` otherwise.
+             * @param arr An array of items with an equals method.
+             * @returns `true` if all items are equal, `false` otherwise.
              */
-            allSame(arr: NerdamerSymbol[]): boolean;
+            allSame(arr: { equals(other: unknown): boolean }[]): boolean;
 
             /**
              * Checks if all elements in an array are numeric strings.

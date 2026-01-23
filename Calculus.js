@@ -55,6 +55,12 @@
  *
  * @typedef {import('./index').NerdamerCore.PartFracSubModule} PartFracSubModuleType
  *
+ * @typedef {import('./index').NerdamerCore.AlgebraClassesSubModule} AlgebraClassesSubModuleType
+ *
+ * @typedef {import('./index').NerdamerCore.Factors} FactorsType
+ *
+ * @typedef {import('./index').NerdamerCore.SimplifySubModule} SimplifySubModuleType
+ *
  * @typedef {import('./index').NerdamerCore.CalculusModule} CalculusModuleType
  *
  *   Constructor types
@@ -2523,7 +2529,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                                     )
                                                 ) {
                                                     // Factor out coefficients
-                                                    const factors = new /** @type {any} */ (
+                                                    const factors = new /** @type {AlgebraClassesSubModuleType} */ (
                                                         core.Algebra.Classes
                                                     ).Factors();
                                                     sym1 = /** @type {FactorSubModuleType} */ (
@@ -3091,7 +3097,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     return limit;
                 }
                 symbol = /** @type {NerdamerSymbolType} */ (
-                    /** @type {any} */ (core.Algebra.Simplify).simplify(symbol)
+                    /** @type {SimplifySubModuleType} */ (core.Algebra.Simplify).simplify(symbol)
                 );
 
                 depth ||= 1;

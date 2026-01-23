@@ -73,6 +73,8 @@
  *
  * @typedef {import('./index').NerdamerCore.SystemSolutionResult} SystemSolutionResultType
  *
+ * @typedef {import('./index').NerdamerCore.SystemSolutionValue} SystemSolutionValueType
+ *
  * @typedef {import('./index').NerdamerCore.CircleSolutionResult} CircleSolutionResultType
  *
  * @typedef {(NerdamerSymbolType | EquationInstanceType | string)[]} SolveEquationArray
@@ -507,7 +509,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             /** @type {number[][]} */
             const deg = [];
 
-            /** @type {any[] | Record<string, string[]>} */
+            /** @type {CircleSolutionResultType} */
             let solutions = [];
 
             // Get the degree for the equations
@@ -625,8 +627,14 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
             const fEqns = eqns.map(eq => build(eq, vars));
 
-            /** @type {MatrixType} */
-            const J = jacobian.map((/** @type {NerdamerSymbolType} */ e) => /** @type {any} */ (build(e, vars)), true);
+            // Note: J stores compiled functions, not symbols. We use Matrix for its iteration
+            // capabilities, but elements are actually compiled functions `(...args: number[]) => number`
+            // The type system expects NerdamerSymbol but we're deliberately storing functions.
+            const J = jacobian.map(
+                (/** @type {NerdamerSymbolType} */ e) =>
+                    /** @type {NerdamerSymbolType} */ (/** @type {unknown} */ (build(e, vars))),
+                true
+            );
             // Initial values
             xn1 = core.Matrix.cMatrix(0, vars);
 
@@ -659,8 +667,11 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 });
 
                 let m = new core.Matrix();
-                J.each((/** @type {any} */ fn, i, j) => {
-                    const ans = fn(...currentO);
+                // J actually contains compiled functions, cast to access them
+                /** @type {{ each: (fn: (element: unknown, row: number, col: number) => void) => void }} */ (
+                    /** @type {unknown} */ (J)
+                ).each((fn, i, j) => {
+                    const ans = /** @type {(...args: number[]) => number} */ (fn)(...currentO);
                     m.set(i, j, ans);
                 });
 
@@ -729,22 +740,29 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
          * @returns {SystemSolutionResultType}
          */
         systemSolutions(result, vars, expandResult, callback) {
-            /** @type {Record<string, any> | [string, any][]} */
-            const solutions = core.Settings.SOLUTIONS_AS_OBJECT ? {} : [];
-
+            if (core.Settings.SOLUTIONS_AS_OBJECT) {
+                /** @type {Record<string, SystemSolutionValueType>} */
+                const solutions = {};
+                result.each((e, idx) => {
+                    /** @type {SystemSolutionValueType} */
+                    let solution = /** @type {string | number} */ ((expandResult ? _.expand(e) : e).valueOf());
+                    if (callback) {
+                        solution = callback.call(e, solution);
+                    }
+                    solutions[vars[idx]] = solution;
+                });
+                return solutions;
+            }
+            /** @type {[string, SystemSolutionValueType][]} */
+            const solutions = [];
             result.each((e, idx) => {
-                let solution = (expandResult ? _.expand(e) : e).valueOf();
+                /** @type {SystemSolutionValueType} */
+                let solution = /** @type {string | number} */ ((expandResult ? _.expand(e) : e).valueOf());
                 if (callback) {
                     solution = callback.call(e, solution);
                 }
-                const variable = vars[idx];
-                if (core.Settings.SOLUTIONS_AS_OBJECT) {
-                    solutions[variable] = solution;
-                } else {
-                    solutions.push([variable, solution]);
-                } /* NO*/
+                solutions.push([vars[idx], solution]);
             });
-            // Done
             return solutions;
         },
         /**
@@ -852,16 +870,25 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         reduced.push(_.parse(eqns[i]));
                     }
 
-                    /** @type {Record<string, any>} */
-                    let knowns = {};
+                    /** @type {Record<string, NerdamerSymbolType | string | number>} */
+                    const knowns = {};
                     const solutions = __.solveSystem(reduced, vars);
                     // The solutions may have come back as an array
                     if (Array.isArray(solutions)) {
                         solutions.forEach(sol => {
-                            knowns[sol[0]] = sol[1];
+                            // For substitution, we only use single-value solutions (not arrays)
+                            if (!Array.isArray(sol[1])) {
+                                knowns[sol[0]] = sol[1];
+                            }
                         });
                     } else {
-                        knowns = solutions;
+                        // Filter out array solutions for substitution
+                        for (const key of Object.keys(solutions)) {
+                            const val = solutions[key];
+                            if (!Array.isArray(val)) {
+                                knowns[key] = val;
+                            }
+                        }
                     }
 
                     // Start by assuming they will all evaluate to zero. If even one fails
@@ -1573,7 +1600,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         if (e.isImaginary()) {
                             return true;
                         }
-                        /** @type {Record<string, any>} */
+                        /** @type {Record<string, NerdamerSymbolType>} */
                         const subs = {};
                         subs[v] = e;
                         const point = evaluate(symbol, subs);
@@ -1645,7 +1672,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
         // Easy fail. If it's a rational function and the denominator is zero
         // then we're done. Issue #555
-        /** @type {Record<string, any>} */
+        /** @type {Record<string, number>} */
         const known = {};
         known[solveFor] = 0;
 
@@ -1735,7 +1762,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         // If not it failed
         if (eqns.group === S && eqns.contains(solveFor)) {
             try {
-                /** @type {Record<string, any>} */
+                /** @type {Record<string, number>} */
                 const o = {};
                 o[solveFor] = 0;
                 evaluate(fn, o);
@@ -2279,7 +2306,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         // Perform some cleanup but don't do it agains arrays, etc
         // Check it actually evaluates to zero
         if (isSymbol(eqns)) {
-            /** @type {Record<string, any>} */
+            /** @type {Record<string, NerdamerSymbolType>} */
             const knowns = {};
             solutions = solutions.filter(sol => {
                 try {
