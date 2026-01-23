@@ -267,7 +267,7 @@ const baseJsRules: Linter.RulesRecord = {
     // Complexity limits (warnings to track but not block)
     complexity: ['warn', { max: 30 }],
     'max-classes-per-file': ['warn', { max: 12 }],
-    'max-lines': ['warn', { max: 1500, skipBlankLines: true, skipComments: true }],
+    'max-lines': ['warn', { max: 2500, skipBlankLines: true, skipComments: true }],
     'max-lines-per-function': ['warn', { max: 200, skipBlankLines: true, skipComments: true }],
     'max-statements': ['warn', { max: 50 }],
 

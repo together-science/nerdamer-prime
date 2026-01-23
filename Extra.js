@@ -54,58 +54,15 @@
  *
  * @typedef {import('./index').NerdamerCore.CalculusModule} CalculusModuleType
  *
- *   Interface for the LaPlace operations object
+ * @typedef {import('./index').NerdamerCore.ExtraModule} ExtraModuleType
  *
- * @typedef {{
- *     transform: (
- *         symbol: NerdamerSymbolType,
- *         t: NerdamerSymbolType | string,
- *         s: NerdamerSymbolType | string
- *     ) => NerdamerSymbolType;
- *     inverse: (
- *         symbol: NerdamerSymbolType,
- *         s: NerdamerSymbolType | string,
- *         t: NerdamerSymbolType | string
- *     ) => NerdamerSymbolType;
- * }} LaPlaceInterface
- *   Interface for the Statistics operations object
+ * @typedef {import('./index').NerdamerCore.LaPlaceSubModule} LaPlaceSubModuleType
  *
- * @typedef {{
- *     frequencyMap: (arr: NerdamerSymbolType[]) => Record<string, number>;
- *     sort: (arr: NerdamerSymbolType[]) => NerdamerSymbolType[];
- *     count: (arr: NerdamerSymbolType[]) => NerdamerSymbolType;
- *     sum: (arr: NerdamerSymbolType[], x_?: NerdamerSymbolType) => NerdamerSymbolType;
- *     mean: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
- *     median: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
- *     mode: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
- *     gVariance: (k: NerdamerSymbolType, args: NerdamerSymbolType[]) => NerdamerSymbolType;
- *     variance: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
- *     sampleVariance: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
- *     standardDeviation: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
- *     sampleStandardDeviation: (...args: NerdamerSymbolType[]) => NerdamerSymbolType;
- *     zScore: (x: NerdamerSymbolType, mean: NerdamerSymbolType, stdev: NerdamerSymbolType) => NerdamerSymbolType;
- * }} StatisticsInterface
- *   Interface for the Units operations object
+ * @typedef {import('./index').NerdamerCore.StatisticsSubModule} StatisticsSubModuleType
  *
- * @typedef {{
- *     table: Record<string, string>;
- * }} UnitsInterface Interface for the Extra module
+ * @typedef {import('./index').NerdamerCore.UnitsSubModule} UnitsSubModuleType
  *
- * @typedef {{
- *     version: string;
- *     LaPlace: LaPlaceInterface;
- *     Statistics: StatisticsInterface;
- *     Units: UnitsInterface;
- * }} ExtraInterface
- *   Decompose result object from core.Utils.decompose_fn
- *
- * @typedef {{
- *     a: NerdamerSymbolType;
- *     x: NerdamerSymbolType;
- *     ax: NerdamerSymbolType;
- *     b: NerdamerSymbolType;
- *     symbol?: NerdamerSymbolType;
- * }} DecomposeResultType
+ * @typedef {import('./index').NerdamerCore.DecomposeResultObject} DecomposeResultType
  */
 
 // Check if nerdamer exists globally (browser) or needs to be required (Node.js)
@@ -116,6 +73,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     require('./Algebra');
 }
 
+/** @returns {ExtraModuleType} */
 (function initExtraModule() {
     /** @type {CoreType} */
     const core = nerdamer.getCore();
@@ -171,7 +129,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         return found;
     };
 
-    /** @type {ExtraInterface} */
+    /** @type {ExtraModuleType} */
     const __ = (core.Extra = {
         version: '1.4.2',
         // http://integral-table.com/downloads/LaplaceTable.pdf
@@ -297,9 +255,11 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                         let retval;
                         // Expand and get partial fractions
                         if (symbol.group === CB) {
-                            symbol = /** @type {PartFracSubModuleType} */ (Algebra.PartFrac).partfrac(
-                                /** @type {NerdamerSymbolType} */ (_.expand(symbol)),
-                                s_
+                            symbol = /** @type {NerdamerSymbolType} */ (
+                                /** @type {PartFracSubModuleType} */ (Algebra.PartFrac).partfrac(
+                                    /** @type {NerdamerSymbolType} */ (_.expand(symbol)),
+                                    s_
+                                )
                             );
                         }
 
@@ -607,9 +567,11 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                                 } else {
                                     retval = new NerdamerSymbol(0);
 
-                                    symbol = /** @type {PartFracSubModuleType} */ (Algebra.PartFrac).partfrac(
-                                        /** @type {NerdamerSymbolType} */ (_.expand(symbol)),
-                                        s_
+                                    symbol = /** @type {NerdamerSymbolType} */ (
+                                        /** @type {PartFracSubModuleType} */ (Algebra.PartFrac).partfrac(
+                                            /** @type {NerdamerSymbolType} */ (_.expand(symbol)),
+                                            s_
+                                        )
                                     );
 
                                     symbol.each(x => {

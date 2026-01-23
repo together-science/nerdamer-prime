@@ -8755,7 +8755,7 @@ const DecomposeFnDeps = {
  * @param {NerdamerSymbolType} fn
  * @param {string} wrt
  * @param {false} [asObj]
- * @returns {(NerdamerSymbolType | VectorType | MatrixType)[]}
+ * @returns {NerdamerSymbolType[]}
  */
 /**
  * @param {NerdamerSymbolType} fn
@@ -9053,14 +9053,17 @@ function _clearFunctions() {
  * Provide a mechanism for accessing functions directly. Not yet complete!!! Some functions will return undefined. This
  * can maybe just remove the function object at some point when all functions are eventually housed in the global
  * function object. Returns ALL parser available functions. Parser.functions may not contain all functions
+ *
+ * @returns {import('./index').NerdamerCore.MathFunctions}
  */
 function importFunctions() {
+    /** @type {import('./index').NerdamerCore.MathFunctions} */
     const o = {};
     for (const x in ParserDeps._.functions) {
         if (!Object.hasOwn(ParserDeps._.functions, x)) {
             continue;
         }
-        o[x] = ParserDeps._.functions[x][0];
+        o[x] = /** @type {(...args: unknown[]) => unknown} */ (ParserDeps._.functions[x][0]);
     }
     return o;
 }

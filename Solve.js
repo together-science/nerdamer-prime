@@ -78,6 +78,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     require('./Algebra.js');
 }
 
+/** @returns {SolveModuleType} */
 (function initSolveModule() {
     // Handle imports
     const core = nerdamer.getCore();
@@ -435,6 +436,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     });
 
     // Version solve
+    /** @type {SolveModuleType} */
     const __ = (core.Solve = {
         version: '2.0.3',
         /** @type {NerdamerSymbolType[]} */
@@ -705,7 +707,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             }
 
             // Return c since that's the answer
-            return __.systemSolutions(c, vars, true, x => core.Utils.round(Number(x), 14));
+            return /** @type {any[]} */ (__.systemSolutions(c, vars, true, x => core.Utils.round(Number(x), 14)));
         },
         systemSolutions(result, vars, expandResult, callback) {
             const solutions = core.Settings.SOLUTIONS_AS_OBJECT ? {} : [];
@@ -738,7 +740,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             const varsB = variables(eqns[1]);
             // Check if it's a circle equation
             if (eqns.length === 2 && varsA.length === 2 && core.Utils.arrayEqual(varsA, varsB)) {
-                return __.solveCircle(eqns, varsA);
+                return /** @type {any[]} */ (__.solveCircle(eqns, varsA));
             }
 
             return []; // Return an empty set
@@ -1399,7 +1401,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 } else if (!isFinite(fx0) || !isFinite(fpx0) || Math.abs(fx0) > 1e25) {
                     // Hail Mary: binary search through the
                     // sign-switch interval
-                    return __.bSearch(point2, x0, f);
+                    return __.bSearch(point2, x0, /** @type {(x: number) => number} */ (f));
                     // // numbers got too big
                     // // at least follow the slope down
                     // const direction = Math.sign(fpx0)/Math.sign(fx0);
@@ -1756,7 +1758,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         const numvars = vars.length; // How many variables are we dealing with
 
         // it sufficient to solve (x+y) if eq is (x+y)^n since 0^n
-        if (core.Utils.isInt(eq.power) && eq.power > 1) {
+        if (core.Utils.isInt(eq.power) && Number(eq.power) > 1) {
             eq = _.parse(eq).toLinear();
         }
 
@@ -1867,13 +1869,22 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             return [lhs, rhs];
         };
 
+        /**
+         * @type {(
+         *     name: string,
+         *     lhs: NerdamerSymbolType,
+         *     rhs: NerdamerSymbolType
+         * ) => NerdamerSymbolType | undefined}
+         */
         __.inverseFunctionSolve = function inverseFunctionSolve(name, lhs, rhs) {
             // Ax+b comes back as [a, x, ax, b];
             const parts = explode(lhs.args[0], solveFor);
             // Check if x is by itself
             const x = /** @type {NerdamerSymbolType} */ (parts[1]);
             if (x.group === S) {
-                return _.divide(_.symfunction(name, [_.divide(rhs, _.parse(lhs.multiplier))]), parts[0]);
+                return /** @type {NerdamerSymbolType} */ (
+                    _.divide(_.symfunction(name, [_.divide(rhs, _.parse(lhs.multiplier))]), parts[0])
+                );
             }
             return undefined;
         };
@@ -1896,7 +1907,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     const p = /** @type {FracType} */ (v.power);
                     if (p.den.gt(1)) {
                         v.power = p.multiply(new core.Frac(cfact));
-                        eq.symbols[index] = _.multiply(v, parts[0]);
+                        eq.symbols[index] = /** @type {NerdamerSymbolType} */ (_.multiply(v, parts[0]));
                     }
                 }
             });
@@ -2006,7 +2017,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     point = points[i];
 
                     // See if there's a solution at this point
-                    solution = __.bisection(point, f);
+                    solution = __.bisection(point, /** @type {(x: number) => number} */ (f));
 
                     // If there's no solution then add it to the array for further investigation
                     if (typeof solution === 'undefined') {
@@ -2031,7 +2042,15 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                 for (i = 0; i < points.length; i++) {
                     point = points[i];
 
-                    addToResult(__.Newton(point, f, fp, lastPoint), hasTrig);
+                    addToResult(
+                        __.Newton(
+                            point,
+                            /** @type {(x: number) => number} */ (f),
+                            /** @type {(x: number) => number} */ (fp),
+                            lastPoint
+                        ),
+                        hasTrig
+                    );
                     lastPoint = point;
                 }
 
