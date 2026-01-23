@@ -9,7 +9,7 @@ const nerdamer = nerdamerRuntime as typeof nerdamerRuntime & Indexable;
 
 describe('Nerdamer API Surface Reflection Test', () => {
     let tsApiExports: string[];
-    let tsExportedDeclarations: ReadonlyMap<string, any[]>;
+    let tsExportedDeclarations: ReadonlyMap<string, tsMorph.ExportedDeclarations[]>;
     let project: tsMorph.Project;
     let sourceFile: tsMorph.SourceFile;
     let nerdamerNamespace: tsMorph.ModuleDeclaration;
@@ -72,15 +72,17 @@ describe('Nerdamer API Surface Reflection Test', () => {
                 continue;
             }
 
-            const tsDeclaration = tsDeclarations[0];
+            const tsDeclaration = tsDeclarations[0]!;
             const isRuntimeFunction = typeof runtimeValue === 'function';
 
             // Check if TS declaration indicates it's a function
             let isTsFunction = false;
 
-            if (tsDeclaration.getKind) {
-                const kind = tsDeclaration.getKind();
-                const kindName = tsDeclaration.getKindName?.() || 'Unknown';
+            // Use type guard for declarations that have getKind
+            const declarationWithKind = tsDeclaration as { getKind?: () => number; getKindName?: () => string };
+            if (declarationWithKind.getKind) {
+                const kind = declarationWithKind.getKind();
+                const kindName = declarationWithKind.getKindName?.() || 'Unknown';
 
                 // Handle direct function declarations
                 if (kind === tsMorph.SyntaxKind.FunctionDeclaration || kind === tsMorph.SyntaxKind.MethodSignature) {
@@ -88,12 +90,12 @@ describe('Nerdamer API Surface Reflection Test', () => {
                 }
 
                 // Handle function type property signatures
-                else if (
-                    kind === tsMorph.SyntaxKind.PropertySignature &&
-                    tsDeclaration.getTypeNode &&
-                    tsDeclaration.getTypeNode()?.getKind() === tsMorph.SyntaxKind.FunctionType
-                ) {
-                    isTsFunction = true;
+                else if (kind === tsMorph.SyntaxKind.PropertySignature) {
+                    // Cast to PropertySignature to access getTypeNode (must go through unknown first)
+                    const propSig = tsDeclaration as unknown as tsMorph.PropertySignature;
+                    if (propSig.getTypeNode?.()?.getKind() === tsMorph.SyntaxKind.FunctionType) {
+                        isTsFunction = true;
+                    }
                 }
 
                 // Handle export import assignments (like: export import cos = nerdamerPrime.cos)
@@ -123,22 +125,22 @@ describe('Nerdamer API Surface Reflection Test', () => {
             if (
                 isRuntimeFunction &&
                 !isTsFunction &&
-                tsDeclaration.getKind &&
-                tsDeclaration.getKind() !== tsMorph.SyntaxKind.ImportEqualsDeclaration &&
-                tsDeclaration.getKind() !== tsMorph.SyntaxKind.ImportClause &&
-                tsDeclaration.getKind() !== tsMorph.SyntaxKind.ImportDeclaration &&
-                tsDeclaration.getKind() !== tsMorph.SyntaxKind.ExportDeclaration &&
-                tsDeclaration.getKind() !== tsMorph.SyntaxKind.NamespaceImport
+                declarationWithKind.getKind &&
+                declarationWithKind.getKind() !== tsMorph.SyntaxKind.ImportEqualsDeclaration &&
+                declarationWithKind.getKind() !== tsMorph.SyntaxKind.ImportClause &&
+                declarationWithKind.getKind() !== tsMorph.SyntaxKind.ImportDeclaration &&
+                declarationWithKind.getKind() !== tsMorph.SyntaxKind.ExportDeclaration &&
+                declarationWithKind.getKind() !== tsMorph.SyntaxKind.NamespaceImport
             ) {
                 typeErrors.push(
-                    `${exportName}: Runtime is function but TS declares as non-function (kind: ${tsDeclaration.getKindName?.() || 'unknown'})`
+                    `${exportName}: Runtime is function but TS declares as non-function (kind: ${declarationWithKind.getKindName?.() || 'unknown'})`
                 );
             } else if (
                 !isRuntimeFunction &&
                 isTsFunction &&
-                tsDeclaration.getKind &&
-                (tsDeclaration.getKind() === tsMorph.SyntaxKind.FunctionDeclaration ||
-                    tsDeclaration.getKind() === tsMorph.SyntaxKind.MethodSignature)
+                declarationWithKind.getKind &&
+                (declarationWithKind.getKind() === tsMorph.SyntaxKind.FunctionDeclaration ||
+                    declarationWithKind.getKind() === tsMorph.SyntaxKind.MethodSignature)
             ) {
                 typeErrors.push(`${exportName}: TS declares as function but runtime is ${typeof runtimeValue}`);
             }
@@ -168,14 +170,17 @@ describe('Nerdamer API Surface Reflection Test', () => {
                 continue;
             }
 
-            const tsDeclaration = tsDeclarations[0];
+            const tsDeclaration = tsDeclarations[0]!;
 
-            // Try to get parameters from TS declaration
+            // Try to get parameters from TS declaration using type guard
             let tsParameterCount = 0;
-            if (tsDeclaration.getParameters) {
-                const params = tsDeclaration.getParameters();
+            const declarationWithParams = tsDeclaration as { getParameters?: () => tsMorph.ParameterDeclaration[] };
+            if (declarationWithParams.getParameters) {
+                const params = declarationWithParams.getParameters();
                 // Count required parameters (non-optional, non-rest)
-                tsParameterCount = params.filter((p: any) => !p.hasQuestionToken() && !p.isRestParameter()).length;
+                tsParameterCount = params.filter(
+                    (p: tsMorph.ParameterDeclaration) => !p.hasQuestionToken() && !p.isRestParameter()
+                ).length;
             }
 
             const runtimeArity = runtimeValue.length;
@@ -291,14 +296,17 @@ describe('Nerdamer API Surface Reflection Test', () => {
 
             if (tsDeclarations.length > 1) {
                 // Multiple declarations might indicate overloads, which is fine
-                const kinds = tsDeclarations.map((d: any) => (d.getKindName ? d.getKindName() : 'Unknown'));
+                const kinds = tsDeclarations.map((d: tsMorph.ExportedDeclarations) =>
+                    'getKindName' in d && typeof d.getKindName === 'function' ? d.getKindName() : 'Unknown'
+                );
                 console.log(`${exportName}: Multiple declarations (${kinds.join(', ')})`);
             }
 
-            const tsDeclaration = tsDeclarations[0];
+            const tsDeclaration = tsDeclarations[0]!;
 
-            // Check for basic structure issues
-            if (!tsDeclaration.getKind) {
+            // Check for basic structure issues - use type guard
+            const declarationWithKind = tsDeclaration as { getKind?: () => number };
+            if (!declarationWithKind.getKind) {
                 structureIssues.push(`${exportName}: TS declaration missing getKind method`);
             }
         }
@@ -379,10 +387,15 @@ describe('Nerdamer API Surface Reflection Test', () => {
             const isRuntimeFunction = typeof runtimeValue === 'function';
 
             if (tsDeclarations.length > 0) {
-                const tsDeclaration = tsDeclarations[0];
+                const tsDeclaration = tsDeclarations[0]!;
 
-                if (tsDeclaration.getKind) {
-                    const kindName = tsDeclaration.getKindName?.() || 'Unknown';
+                // Use type guard for declarations that may have getKind
+                const declarationWithMethods = tsDeclaration as {
+                    getKind?: () => number;
+                    getKindName?: () => string;
+                };
+                if (declarationWithMethods.getKind) {
+                    const kindName = declarationWithMethods.getKindName?.() || 'Unknown';
                     declarationPatterns[kindName] = (declarationPatterns[kindName] || 0) + 1;
 
                     // Look for potential issues
@@ -391,7 +404,8 @@ describe('Nerdamer API Surface Reflection Test', () => {
                     }
 
                     // Check for missing JSDoc or type annotations
-                    if (tsDeclaration.getJsDocs?.().length === 0 && kindName === 'FunctionDeclaration') {
+                    const declWithJsDocs = tsDeclaration as { getJsDocs?: () => unknown[] };
+                    if (declWithJsDocs.getJsDocs?.().length === 0 && kindName === 'FunctionDeclaration') {
                         // Note: Not flagging this as an error since many functions may not have JSDoc
                     }
                 }

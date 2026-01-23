@@ -68,6 +68,14 @@
  *   Equation instance type
  *
  * @typedef {import('./index').NerdamerCore.EquationInstance} EquationInstanceType
+ *
+ *   Solution result types
+ *
+ * @typedef {import('./index').NerdamerCore.SystemSolutionResult} SystemSolutionResultType
+ *
+ * @typedef {import('./index').NerdamerCore.CircleSolutionResult} CircleSolutionResultType
+ *
+ * @typedef {(NerdamerSymbolType | EquationInstanceType | string)[]} SolveEquationArray
  */
 
 // Check if nerdamer exists globally (browser) or needs to be required (Node.js)
@@ -570,7 +578,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
          * @param {NerdamerSymbolType[]} eqns The array of equations
          * @param {number} [tries] The maximum number of tries
          * @param {number} [start] The starting point where to start looking for solutions
-         * @returns {Array}
+         * @returns {SystemSolutionResultType | []}
          */
         solveNonLinearSystem(eqns, tries, start) {
             if (tries < 0) {
@@ -707,9 +715,21 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             }
 
             // Return c since that's the answer
-            return /** @type {any[]} */ (__.systemSolutions(c, vars, true, x => core.Utils.round(Number(x), 14)));
+            return /** @type {SystemSolutionResultType | []} */ (
+                __.systemSolutions(c, vars, true, x => core.Utils.round(Number(x), 14))
+            );
         },
+        /**
+         * Converts solution results to the appropriate format based on Settings.SOLUTIONS_AS_OBJECT.
+         *
+         * @param {MatrixType} result The result matrix
+         * @param {string[]} vars The variable names
+         * @param {boolean} [expandResult] Whether to expand the result
+         * @param {Function} [callback] Optional callback to transform each solution value
+         * @returns {SystemSolutionResultType}
+         */
         systemSolutions(result, vars, expandResult, callback) {
+            /** @type {Record<string, any> | [string, any][]} */
             const solutions = core.Settings.SOLUTIONS_AS_OBJECT ? {} : [];
 
             result.each((e, idx) => {
@@ -732,7 +752,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
          * plane, etc.
          *
          * @param {Array} eqns
-         * @returns {Array}
+         * @returns {CircleSolutionResultType | []}
          */
         solveSystemBySubstitution(eqns) {
             // Assume at least 2 equations. The function variables will just return an empty array if undefined is provided
@@ -740,7 +760,7 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
             const varsB = variables(eqns[1]);
             // Check if it's a circle equation
             if (eqns.length === 2 && varsA.length === 2 && core.Utils.arrayEqual(varsA, varsB)) {
-                return /** @type {any[]} */ (__.solveCircle(eqns, varsA));
+                return /** @type {CircleSolutionResultType | []} */ (__.solveCircle(eqns, varsA));
             }
 
             return []; // Return an empty set
@@ -1698,12 +1718,12 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 
         // Unwrap the vector since what we want are the elements
         if (eqns instanceof core.Vector) {
-            eqns = eqns.elements;
+            eqns = /** @type {SolveEquationArray} */ (eqns.elements);
         }
         // If it's an array then solve it as a system of equations
         // Must check BEFORE the default assignment to preserve original solveFor value
         if (isArray(eqns)) {
-            return __.solveSystem(eqns, solveFor);
+            return __.solveSystem(/** @type {SolveEquationArray} */ (eqns), solveFor);
         }
         solveFor ||= 'x'; // Assumes x by default
 

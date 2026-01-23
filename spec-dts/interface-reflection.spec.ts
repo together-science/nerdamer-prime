@@ -364,7 +364,15 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             expect(coreInterface).toBeDefined();
 
             // Core should have essential types like PARSER, NerdamerSymbol constructor, etc.
-            const memberNames = coreInterface?.getMembers().map(m => (m as any).getName?.()) || [];
+            const memberNames =
+                coreInterface?.getMembers().map(m => {
+                    // TypeElementTypes can be PropertySignature, MethodSignature, etc.
+                    // Check if it has getName method (most do)
+                    if ('getName' in m && typeof m.getName === 'function') {
+                        return m.getName();
+                    }
+                    return undefined;
+                }) || [];
             expect(memberNames.length).toBeGreaterThan(0);
         });
 
@@ -466,15 +474,12 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const nerdamerNamespace = sourceFile.getModules().find(m => m.getName() === 'nerdamer');
             // Get export declarations and manually filter to find import equals declarations
             const exportDeclarations = nerdamerNamespace?.getExportedDeclarations();
-            const importDeclarations: any[] = [];
+            const importDeclarations: tsMorph.ImportEqualsDeclaration[] = [];
             if (exportDeclarations) {
                 for (const [_key, declarations] of exportDeclarations) {
                     for (const decl of declarations) {
-                        if (
-                            (decl as any).getKind &&
-                            (decl as any).getKind() === tsMorph.SyntaxKind.ImportEqualsDeclaration
-                        ) {
-                            importDeclarations.push(decl);
+                        if (decl.getKind && decl.getKind() === tsMorph.SyntaxKind.ImportEqualsDeclaration) {
+                            importDeclarations.push(decl as unknown as tsMorph.ImportEqualsDeclaration);
                         }
                     }
                 }
@@ -549,12 +554,12 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const expr = nerdamerRuntime('x + 1');
 
             // Get all methods including inherited ones by walking the prototype chain
-            const getAllMethods = (obj: any): string[] => {
+            const getAllMethods = (obj: unknown): string[] => {
                 const methods = new Set<string>();
                 let current = obj;
                 while (current && current !== Object.prototype) {
                     Object.getOwnPropertyNames(current).forEach(name => {
-                        if (typeof obj[name] === 'function') {
+                        if (typeof (obj as Record<string, unknown>)[name] === 'function') {
                             methods.add(name);
                         }
                     });
@@ -599,21 +604,18 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const nerdamerNamespace = sourceFile.getModules().find(m => m.getName() === 'nerdamer');
             // Get export declarations and manually filter to find import equals declarations
             const exportDeclarations = nerdamerNamespace?.getExportedDeclarations();
-            const importEqualsDeclarations: any[] = [];
+            const importEqualsDeclarations: tsMorph.ImportEqualsDeclaration[] = [];
             if (exportDeclarations) {
                 for (const [_key, declarations] of exportDeclarations) {
                     for (const decl of declarations) {
-                        if (
-                            (decl as any).getKind &&
-                            (decl as any).getKind() === tsMorph.SyntaxKind.ImportEqualsDeclaration
-                        ) {
-                            importEqualsDeclarations.push(decl);
+                        if (decl.getKind && decl.getKind() === tsMorph.SyntaxKind.ImportEqualsDeclaration) {
+                            importEqualsDeclarations.push(decl as unknown as tsMorph.ImportEqualsDeclaration);
                         }
                     }
                 }
             }
             const tsStaticMethods = importEqualsDeclarations
-                .map((decl: any) => decl.getName())
+                .map((decl: tsMorph.ImportEqualsDeclaration) => decl.getName())
                 // Filter out TypeScript-only constructs like 'NerdamerCore'
                 .filter((name: string) => name !== 'NerdamerCore')
                 .sort();

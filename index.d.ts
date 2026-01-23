@@ -220,7 +220,9 @@ type ExpressionParam =
     | number
     | NerdamerExpression
     | NerdamerEquation
-    | nerdamerPrime.NerdamerCore.NerdamerSymbol;
+    | nerdamerPrime.NerdamerCore.NerdamerSymbol
+    | nerdamerPrime.NerdamerCore.Vector
+    | nerdamerPrime.NerdamerCore.Matrix;
 
 /**
  * Represents the result of solving a system of equations.
@@ -5468,22 +5470,48 @@ declare namespace nerdamerPrime {
             table: Record<string, string>;
         }
 
+        /**
+         * Represents solution values that can be returned by system solving functions. Values can be numbers (after
+         * numeric evaluation), strings (from rounding), or expressions/expression arrays (for symbolic solutions).
+         */
+        type SystemSolutionValue = string | number | NerdamerSymbol | NerdamerSymbol[];
+
+        /**
+         * Represents the result of solving a system of equations in the internal module. Format depends on
+         * Settings.SOLUTIONS_AS_OBJECT:
+         *
+         * - True: Returns Record<string, SystemSolutionValue>
+         * - False: Returns [string, SystemSolutionValue][]
+         */
+        type SystemSolutionResult = Record<string, SystemSolutionValue> | [string, SystemSolutionValue][];
+
+        /**
+         * Represents the result of solveCircle function. Format depends on Settings.SOLUTIONS_AS_OBJECT:
+         *
+         * - True: Returns Record<string, string[]> where keys are variable names
+         * - False: Returns string[][] where each inner array starts with the variable name
+         */
+        type CircleSolutionResult = Record<string, string[]> | string[][];
+
         /** Solve module interface for equation solving */
         interface SolveModule {
             version: string;
             solutions: NerdamerSymbol[];
             solve: (eq: NerdamerSymbol | string, variable: NerdamerSymbol | string) => Vector;
             toLHS: (eqn: EquationInstance | string | NerdamerSymbol, expand?: boolean) => NerdamerSymbol;
-            solveCircle: (eqns: NerdamerSymbol[], vars: string[]) => any[] | Record<string, string[]>;
-            solveNonLinearSystem: (eqns: NerdamerSymbol[], tries?: number, start?: number) => any[];
+            solveCircle: (eqns: NerdamerSymbol[], vars: string[]) => CircleSolutionResult;
+            solveNonLinearSystem: (eqns: NerdamerSymbol[], tries?: number, start?: number) => SystemSolutionResult | [];
             systemSolutions: (
                 result: Matrix,
                 vars: string[],
                 expandResult?: boolean,
-                callback?: (this: NerdamerSymbol, solution: any) => any
-            ) => any[] | Record<string, any>;
-            solveSystemBySubstitution: (eqns: NerdamerSymbol[]) => any[];
-            solveSystem: (eqns: any[], varArray?: string[]) => any[] | Record<string, any>;
+                callback?: (this: NerdamerSymbol, solution: SystemSolutionValue) => SystemSolutionValue
+            ) => SystemSolutionResult;
+            solveSystemBySubstitution: (eqns: NerdamerSymbol[]) => CircleSolutionResult | [];
+            solveSystem: (
+                eqns: (NerdamerSymbol | string | EquationInstance)[],
+                varArray?: string[]
+            ) => SystemSolutionResult;
             quad: (c: NerdamerSymbol, b: NerdamerSymbol, a: NerdamerSymbol) => (NerdamerSymbol | Vector | Matrix)[];
             cubic: (
                 d: NerdamerSymbol,

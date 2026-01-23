@@ -453,6 +453,9 @@ const typescriptRuleOverrides: Linter.RulesRecord = {
     '@typescript-eslint/prefer-readonly': 'error',
     '@typescript-eslint/promise-function-async': 'error',
     '@typescript-eslint/no-shadow': 'error',
+
+    // Prevent use of `any` type - enforce proper typing
+    '@typescript-eslint/no-explicit-any': 'error',
 };
 
 // =============================================================================
@@ -642,6 +645,7 @@ export default defineConfig([
             '@typescript-eslint/restrict-template-expressions': 'off',
             '@typescript-eslint/no-non-null-assertion': 'off',
             '@typescript-eslint/no-unnecessary-condition': 'off',
+            '@typescript-eslint/no-unsafe-enum-comparison': 'off',
             '@typescript-eslint/consistent-type-imports': 'off',
             '@typescript-eslint/prefer-for-of': 'off',
 

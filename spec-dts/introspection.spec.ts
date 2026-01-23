@@ -1,14 +1,19 @@
+import type nerdamer from '../index';
 import tsMorph from 'ts-morph';
+
+// Type alias for dynamic property access in introspection tests
+
+type Indexable = Record<string, any>;
 
 describe('Nerdamer AST Introspection Tests', () => {
     let project: tsMorph.Project;
     let sourceFile: tsMorph.SourceFile;
-    let nerdamerRuntime: any;
+    let nerdamerRuntime: typeof nerdamer & Indexable;
 
     beforeAll(async () => {
         // Load complete nerdamer with all modules using dynamic import
-        nerdamerRuntime = await import('../all.js');
-        nerdamerRuntime = nerdamerRuntime.default || nerdamerRuntime;
+        const module = await import('../all.js');
+        nerdamerRuntime = module.default || module;
 
         project = new tsMorph.Project({
             tsConfigFilePath: 'tsconfig.json',
@@ -19,11 +24,12 @@ describe('Nerdamer AST Introspection Tests', () => {
 
     it('should validate all method return types match TypeScript declarations using AST introspection', () => {
         const typeValidationErrors: string[] = [];
+
         const methodAnalysis: Record<string, any> = {};
 
         // Helper function to extract return type from TypeScript signature
-        function extractReturnType(methodDeclaration: any): string {
-            if (!methodDeclaration.getReturnTypeNode) {
+        function extractReturnType(methodDeclaration: tsMorph.MethodSignature | tsMorph.PropertySignature): string {
+            if (!('getReturnTypeNode' in methodDeclaration)) {
                 return 'unknown';
             }
 
@@ -37,35 +43,47 @@ describe('Nerdamer AST Introspection Tests', () => {
         }
 
         // Helper function to get method parameters
-        function getMethodParameters(methodDeclaration: any): { name: string; type: string; optional: boolean }[] {
-            if (!methodDeclaration.getParameters) {
+        function getMethodParameters(
+            methodDeclaration: tsMorph.MethodSignature | tsMorph.PropertySignature
+        ): { name: string; type: string; optional: boolean }[] {
+            if (!('getParameters' in methodDeclaration)) {
                 return [];
             }
 
             const params = methodDeclaration.getParameters();
-            return params.map((param: any) => ({
+            return params.map((param: tsMorph.ParameterDeclaration) => ({
                 name: param.getName(),
-                type: param.getTypeNode()?.getText() || 'any',
+                type: param.getTypeNode()?.getText() || 'unknown',
                 optional: param.hasQuestionToken(),
             }));
         }
 
         // Helper function to validate runtime type against declared type
+
         function validateReturnType(actualValue: any, declaredType: string, _methodName: string): boolean {
             const actualType = typeof actualValue;
 
             // Handle specific type mappings
+
             const typeMap: Record<string, (value: any) => boolean> = {
                 boolean: v => typeof v === 'boolean',
                 string: v => typeof v === 'string',
                 number: v => typeof v === 'number',
-                'string[]': v => Array.isArray(v) && v.every(item => typeof item === 'string'),
-                'number[]': v => Array.isArray(v) && v.every(item => typeof item === 'number'),
+                'string[]': v => Array.isArray(v) && v.every((item: unknown) => typeof item === 'string'),
+                'number[]': v => Array.isArray(v) && v.every((item: unknown) => typeof item === 'number'),
                 NerdamerExpression: v =>
-                    v && typeof v === 'object' && typeof v.toString === 'function' && typeof v.text === 'function',
+                    v !== null &&
+                    typeof v === 'object' &&
+                    typeof v.toString === 'function' &&
+                    typeof v.text === 'function',
                 'NerdamerExpression[]': v =>
                     Array.isArray(v) &&
-                    v.every(item => item && typeof item === 'object' && typeof item.toString === 'function'),
+                    v.every(
+                        (item: unknown) =>
+                            item !== null &&
+                            typeof item === 'object' &&
+                            typeof (item as Record<string, unknown>).toString === 'function'
+                    ),
                 void: v => v === undefined,
             };
 
@@ -92,9 +110,9 @@ describe('Nerdamer AST Introspection Tests', () => {
         }
 
         // Helper function to generate test arguments for methods
-        function generateTestArguments(parameters: { name: string; type: string; optional: boolean }[]): any[] {
+        function generateTestArguments(parameters: { name: string; type: string; optional: boolean }[]): unknown[] {
             const testExpr = nerdamerRuntime('x + 1');
-            const args: any[] = [];
+            const args: unknown[] = [];
 
             for (const param of parameters) {
                 if (param.optional) {
@@ -162,7 +180,7 @@ describe('Nerdamer AST Introspection Tests', () => {
 
                 // Test method on each test expression
                 for (let i = 0; i < testExpressions.length; i++) {
-                    const testExpr = testExpressions[i];
+                    const testExpr = testExpressions[i] as Indexable;
 
                     if (typeof testExpr[methodName] !== 'function') {
                         methodAnalysis[methodName].errors.push(`Method ${methodName} not found on runtime object`);
@@ -235,14 +253,11 @@ describe('Nerdamer AST Introspection Tests', () => {
 
     it('should validate nerdamerPrime namespace function signatures using AST introspection', () => {
         const primeValidationErrors: string[] = [];
+
         const functionAnalysis: Record<string, any> = {};
 
         // Helper function to extract return type from TypeScript function signature
-        function extractReturnType(functionDeclaration: any): string {
-            if (!functionDeclaration.getReturnTypeNode) {
-                return 'unknown';
-            }
-
+        function extractReturnType(functionDeclaration: tsMorph.FunctionDeclaration): string {
             const returnTypeNode = functionDeclaration.getReturnTypeNode();
             if (!returnTypeNode) {
                 return 'void';
@@ -254,33 +269,31 @@ describe('Nerdamer AST Introspection Tests', () => {
 
         // Helper function to get function parameters
         function getFunctionParameters(
-            functionDeclaration: any
+            functionDeclaration: tsMorph.FunctionDeclaration
         ): { name: string; type: string; optional: boolean; rest: boolean }[] {
-            if (!functionDeclaration.getParameters) {
-                return [];
-            }
-
             const params = functionDeclaration.getParameters();
-            return params.map((param: any) => ({
+            return params.map((param: tsMorph.ParameterDeclaration) => ({
                 name: param.getName(),
-                type: param.getTypeNode()?.getText() || 'any',
+                type: param.getTypeNode()?.getText() || 'unknown',
                 optional: param.hasQuestionToken(),
                 rest: param.isRestParameter(),
             }));
         }
 
         // Helper function to validate runtime type against declared type
-        function validatePrimeReturnType(actualValue: any, declaredType: string, functionName: string): boolean {
+        function validatePrimeReturnType(actualValue: unknown, declaredType: string, functionName: string): boolean {
             const actualType = typeof actualValue;
 
             // Enhanced NerdamerExpression validation that detects object wrappers
-            function isProperNerdamerExpression(v: any): boolean {
+            function isProperNerdamerExpression(v: unknown): boolean {
                 if (!v || typeof v !== 'object') {
                     return false;
                 }
 
+                const obj = v as Record<string, unknown>;
+
                 // Must have the required methods
-                if (typeof v.toString !== 'function' || typeof v.text !== 'function') {
+                if (typeof obj.toString !== 'function' || typeof obj['text'] !== 'function') {
                     return false;
                 }
 
@@ -291,15 +304,19 @@ describe('Nerdamer AST Introspection Tests', () => {
 
                 // Critical check: symbol property should not be undefined for valid expressions
                 // This detects the vecget issue where invalid indices return { symbol: undefined }
-                if (v.symbol === undefined) {
+                if (obj['symbol'] === undefined) {
                     return false;
                 }
 
                 // The symbol should be a proper NerdamerSymbol object with expected properties
-                if (v.symbol && typeof v.symbol === 'object') {
+                if (obj['symbol'] && typeof obj['symbol'] === 'object') {
                     // A proper NerdamerSymbol should have these core properties according to the type definitions
+                    const symbolObj = obj['symbol'] as Record<string, unknown>;
                     const hasSymbolProps =
-                        'group' in v.symbol && 'value' in v.symbol && 'multiplier' in v.symbol && 'power' in v.symbol;
+                        'group' in symbolObj &&
+                        'value' in symbolObj &&
+                        'multiplier' in symbolObj &&
+                        'power' in symbolObj;
                     if (!hasSymbolProps) {
                         return false;
                     }
@@ -309,20 +326,42 @@ describe('Nerdamer AST Introspection Tests', () => {
             }
 
             // Handle specific type mappings for nerdamerPrime functions
-            const typeMap: Record<string, (value: any) => boolean> = {
+            const typeMap: Record<string, (value: unknown) => boolean> = {
                 string: v => typeof v === 'string',
                 number: v => typeof v === 'number',
                 boolean: v => typeof v === 'boolean',
-                'string[]': v => Array.isArray(v) && v.every(item => typeof item === 'string'),
-                'number[]': v => Array.isArray(v) && v.every(item => typeof item === 'number'),
+                'string[]': v => Array.isArray(v) && v.every((item: unknown) => typeof item === 'string'),
+                'number[]': v => Array.isArray(v) && v.every((item: unknown) => typeof item === 'number'),
                 void: v => v === undefined,
                 NerdamerExpression: isProperNerdamerExpression,
-                'NerdamerCore.Vector': v =>
-                    v && typeof v === 'object' && typeof v.toString === 'function' && v.symbol?.group === 8,
-                'NerdamerCore.Matrix': v =>
-                    v && typeof v === 'object' && typeof v.toString === 'function' && v.symbol?.group === 8,
-                'NerdamerCore.Set': v => v && typeof v === 'object' && typeof v.toString === 'function',
-                NerdamerEquation: v => v && typeof v === 'object' && v.LHS && v.RHS,
+                'NerdamerCore.Vector': v => {
+                    const obj = v as Record<string, unknown> | null;
+                    const symbolObj = obj?.['symbol'] as Record<string, unknown> | null;
+                    return (
+                        v !== null &&
+                        typeof v === 'object' &&
+                        typeof obj?.['toString'] === 'function' &&
+                        symbolObj?.['group'] === 8
+                    );
+                },
+                'NerdamerCore.Matrix': v => {
+                    const obj = v as Record<string, unknown> | null;
+                    const symbolObj = obj?.['symbol'] as Record<string, unknown> | null;
+                    return (
+                        v !== null &&
+                        typeof v === 'object' &&
+                        typeof obj?.['toString'] === 'function' &&
+                        symbolObj?.['group'] === 8
+                    );
+                },
+                'NerdamerCore.Set': v => {
+                    const obj = v as Record<string, unknown> | null;
+                    return v !== null && typeof v === 'object' && typeof obj?.['toString'] === 'function';
+                },
+                NerdamerEquation: v => {
+                    const obj = v as Record<string, unknown> | null;
+                    return v !== null && typeof v === 'object' && !!obj?.['LHS'] && !!obj?.['RHS'];
+                },
                 'typeof nerdamer': v => typeof v === 'function',
             };
 
@@ -348,7 +387,10 @@ describe('Nerdamer AST Introspection Tests', () => {
                 return (
                     Array.isArray(actualValue) &&
                     actualValue.every(
-                        (item: any) => item && typeof item === 'object' && typeof item.toString === 'function'
+                        (item: unknown) =>
+                            item !== null &&
+                            typeof item === 'object' &&
+                            typeof (item as Record<string, unknown>).toString === 'function'
                     )
                 );
             }
@@ -387,9 +429,9 @@ describe('Nerdamer AST Introspection Tests', () => {
         // Helper function to generate test arguments for nerdamerPrime functions
         function generatePrimeTestArguments(
             parameters: { name: string; type: string; optional: boolean; rest: boolean }[]
-        ): any[] {
+        ): unknown[] {
             const testExpr = nerdamerRuntime('x + 1');
-            const args: any[] = [];
+            const args: unknown[] = [];
 
             for (const param of parameters) {
                 if (param.optional) {
@@ -568,7 +610,7 @@ describe('Nerdamer AST Introspection Tests', () => {
                             let functionallyWorks = false;
                             try {
                                 // Generate minimal test arguments
-                                const testArgs: any[] = [];
+                                const testArgs: unknown[] = [];
                                 for (let i = 0; i < Math.min(requiredParams, 3); i++) {
                                     if (parameters[i]?.type.includes('string')) {
                                         testArgs.push('x');
@@ -713,16 +755,21 @@ describe('Nerdamer AST Introspection Tests', () => {
     });
     it('should validate functions using metadata-enhanced testing', () => {
         const metadataValidationErrors: string[] = [];
+
         const functionAnalysis: Record<string, any> = {};
 
         // Helper function to extract JSDoc comments and parse test metadata
-        function extractTestMetadata(functionDeclaration: any): {
-            validArgs?: any[];
-            invalidArgs?: any[];
+        function extractTestMetadata(functionDeclaration: tsMorph.FunctionDeclaration): {
+            validArgs?: unknown[];
+            invalidArgs?: unknown[];
             description?: string;
         } {
             const jsDocComments = functionDeclaration.getJsDocs();
-            const metadata: any = {};
+            const metadata: {
+                validArgs?: unknown[];
+                invalidArgs?: unknown[];
+                description?: string;
+            } = {};
 
             for (const jsDoc of jsDocComments) {
                 // Use getFullText() instead of getComment() to get the complete JSDoc including custom tags
@@ -732,7 +779,7 @@ describe('Nerdamer AST Introspection Tests', () => {
                     const validArgsMatch = /@test-valid-args\s*(?<args>\[.*?\])/u.exec(fullText);
                     if (validArgsMatch?.groups?.['args']) {
                         try {
-                            metadata.validArgs = JSON.parse(validArgsMatch.groups['args']);
+                            metadata.validArgs = JSON.parse(validArgsMatch.groups['args']) as unknown[];
                         } catch (parseError) {
                             console.warn(`Failed to parse @test-valid-args for function: ${parseError}`);
                         }
@@ -742,7 +789,7 @@ describe('Nerdamer AST Introspection Tests', () => {
                     const invalidArgsMatch = /@test-invalid-args\s*(?<args>\[.*?\])/u.exec(fullText);
                     if (invalidArgsMatch?.groups?.['args']) {
                         try {
-                            metadata.invalidArgs = JSON.parse(invalidArgsMatch.groups['args']);
+                            metadata.invalidArgs = JSON.parse(invalidArgsMatch.groups['args']) as unknown[];
                         } catch (parseError) {
                             console.warn(`Failed to parse @test-invalid-args for function: ${parseError}`);
                         }
@@ -754,7 +801,7 @@ describe('Nerdamer AST Introspection Tests', () => {
         }
 
         // Helper function to evaluate test arguments in the test context
-        function evaluateTestArgs(args: any[]): any[] {
+        function evaluateTestArgs(args: unknown[]): unknown[] {
             return args.map(arg => {
                 if (typeof arg === 'string' && arg.includes('nerdamer.')) {
                     // Evaluate nerdamer expressions by replacing nerdamer. with nerdamerRuntime.
@@ -772,11 +819,7 @@ describe('Nerdamer AST Introspection Tests', () => {
         }
 
         // Helper function to extract return type from TypeScript function signature
-        function extractReturnType(functionDeclaration: any): string {
-            if (!functionDeclaration.getReturnTypeNode) {
-                return 'unknown';
-            }
-
+        function extractReturnType(functionDeclaration: tsMorph.FunctionDeclaration): string {
             const returnTypeNode = functionDeclaration.getReturnTypeNode();
             if (!returnTypeNode) {
                 return 'void';
@@ -788,16 +831,12 @@ describe('Nerdamer AST Introspection Tests', () => {
 
         // Helper function to get function parameters
         function getFunctionParameters(
-            functionDeclaration: any
+            functionDeclaration: tsMorph.FunctionDeclaration
         ): { name: string; type: string; optional: boolean; rest: boolean }[] {
-            if (!functionDeclaration.getParameters) {
-                return [];
-            }
-
             const params = functionDeclaration.getParameters();
-            return params.map((param: any) => ({
+            return params.map((param: tsMorph.ParameterDeclaration) => ({
                 name: param.getName(),
-                type: param.getTypeNode()?.getText() || 'any',
+                type: param.getTypeNode()?.getText() || 'unknown',
                 optional: param.hasQuestionToken(),
                 rest: param.isRestParameter(),
             }));
@@ -805,10 +844,10 @@ describe('Nerdamer AST Introspection Tests', () => {
 
         // Robust type validation using TypeScript's own type system via ts-morph
         function validateReturnType(
-            actualValue: any,
+            actualValue: unknown,
             declaredType: string,
             functionName: string,
-            typeNode?: any
+            typeNode?: tsMorph.TypeNode
         ): boolean {
             // Use ts-morph's TypeScript integration for robust type checking
             if (typeNode) {
@@ -824,7 +863,7 @@ describe('Nerdamer AST Introspection Tests', () => {
                     if (type.isUnion()) {
                         // For union types, check if the actual value matches any of the union members
                         const unionTypes = type.getUnionTypes();
-                        return unionTypes.some((unionType: any) => {
+                        return unionTypes.some((unionType: tsMorph.Type) => {
                             const unionTypeText = unionType.getSymbol()?.getName() || unionType.getText();
                             return validateSingleType(actualValue, unionTypeText, functionName);
                         });
@@ -843,9 +882,9 @@ describe('Nerdamer AST Introspection Tests', () => {
         }
 
         // Helper function to validate a single (non-union) type
-        function validateSingleType(actualValue: any, declaredType: string, functionName: string): boolean {
+        function validateSingleType(actualValue: unknown, declaredType: string, functionName: string): boolean {
             // Enhanced NerdamerExpression validation that detects object wrappers
-            function isProperNerdamerExpression(v: any): boolean {
+            function isProperNerdamerExpression(v: unknown): boolean {
                 if (v === undefined || v === null) {
                     return false;
                 }
@@ -853,27 +892,33 @@ describe('Nerdamer AST Introspection Tests', () => {
                     return false;
                 }
 
+                const obj = v as Record<string, unknown>;
+
                 // Must have the required methods from CoreExpressionBase
-                if (typeof v.toString !== 'function' || typeof v.text !== 'function') {
+                if (typeof obj.toString !== 'function' || typeof obj['text'] !== 'function') {
                     return false;
                 }
 
                 // Must have a symbol property (from NerdamerExpression interface)
-                if (!('symbol' in v)) {
+                if (!('symbol' in obj)) {
                     return false;
                 }
 
                 // Critical check: symbol property should not be undefined for valid expressions
                 // This detects the vecget issue where invalid indices return { symbol: undefined }
-                if (v.symbol === undefined) {
+                if (obj['symbol'] === undefined) {
                     console.log(`  🔍 Detected object wrapper with undefined symbol for ${functionName}`);
                     return false;
                 }
 
                 // The symbol should be a proper NerdamerSymbol object with expected properties
-                if (v.symbol && typeof v.symbol === 'object') {
+                if (obj['symbol'] && typeof obj['symbol'] === 'object') {
+                    const symbolObj = obj['symbol'] as Record<string, unknown>;
                     const hasSymbolProps =
-                        'group' in v.symbol && 'value' in v.symbol && 'multiplier' in v.symbol && 'power' in v.symbol;
+                        'group' in symbolObj &&
+                        'value' in symbolObj &&
+                        'multiplier' in symbolObj &&
+                        'power' in symbolObj;
                     if (!hasSymbolProps) {
                         console.log(`  🔍 NerdamerSymbol object missing required properties for ${functionName}`);
                         return false;
@@ -889,9 +934,11 @@ describe('Nerdamer AST Introspection Tests', () => {
                     return false;
                 }
 
+                const obj = actualValue as Record<string, unknown>;
+
                 // Extract the expected property from the object literal type
                 if (declaredType.includes('symbol:')) {
-                    if (!('symbol' in actualValue)) {
+                    if (!('symbol' in obj)) {
                         return false;
                     }
 
@@ -899,19 +946,18 @@ describe('Nerdamer AST Introspection Tests', () => {
                     if (declaredType.includes('NerdamerSymbol | undefined')) {
                         // Allow symbol to be either a proper NerdamerSymbol object or undefined
                         return (
-                            actualValue.symbol === undefined ||
-                            (actualValue.symbol && typeof actualValue.symbol === 'object')
+                            obj['symbol'] === undefined || (obj['symbol'] !== null && typeof obj['symbol'] === 'object')
                         );
                     }
                     if (declaredType.includes('NerdamerSymbol')) {
                         // NerdamerSymbol is required, undefined is NOT allowed
-                        if (actualValue.symbol === undefined) {
+                        if (obj['symbol'] === undefined) {
                             console.log(
                                 `  🚨 NerdamerSymbol property is undefined but type requires NerdamerSymbol (no undefined allowed)`
                             );
                             return false;
                         }
-                        return actualValue.symbol && typeof actualValue.symbol === 'object';
+                        return obj['symbol'] !== null && typeof obj['symbol'] === 'object';
                     }
                 }
 
@@ -919,7 +965,7 @@ describe('Nerdamer AST Introspection Tests', () => {
             }
 
             // Standard type validation
-            const typeValidators: Record<string, (value: any) => boolean> = {
+            const typeValidators: Record<string, (value: unknown) => boolean> = {
                 undefined: v => v === undefined,
                 string: v => typeof v === 'string',
                 number: v => typeof v === 'number',
@@ -927,13 +973,25 @@ describe('Nerdamer AST Introspection Tests', () => {
                 void: v => v === undefined,
                 any: _v => true,
                 unknown: _v => true,
-                'string[]': v => Array.isArray(v) && v.every(item => typeof item === 'string'),
-                'number[]': v => Array.isArray(v) && v.every(item => typeof item === 'number'),
+                'string[]': v => Array.isArray(v) && v.every((item: unknown) => typeof item === 'string'),
+                'number[]': v => Array.isArray(v) && v.every((item: unknown) => typeof item === 'number'),
                 NerdamerExpression: isProperNerdamerExpression,
-                'NerdamerCore.Vector': v => v && typeof v === 'object' && typeof v.toString === 'function',
-                'NerdamerCore.Matrix': v => v && typeof v === 'object' && typeof v.toString === 'function',
-                'NerdamerCore.Set': v => v && typeof v === 'object' && typeof v.toString === 'function',
-                NerdamerEquation: v => v && typeof v === 'object' && v.LHS && v.RHS,
+                'NerdamerCore.Vector': v => {
+                    const o = v as Record<string, unknown> | null;
+                    return v !== null && typeof v === 'object' && typeof o?.['toString'] === 'function';
+                },
+                'NerdamerCore.Matrix': v => {
+                    const o = v as Record<string, unknown> | null;
+                    return v !== null && typeof v === 'object' && typeof o?.['toString'] === 'function';
+                },
+                'NerdamerCore.Set': v => {
+                    const o = v as Record<string, unknown> | null;
+                    return v !== null && typeof v === 'object' && typeof o?.['toString'] === 'function';
+                },
+                NerdamerEquation: v => {
+                    const o = v as Record<string, unknown> | null;
+                    return v !== null && typeof v === 'object' && Boolean(o?.['LHS']) && Boolean(o?.['RHS']);
+                },
                 'typeof nerdamer': v => typeof v === 'function',
             };
 
