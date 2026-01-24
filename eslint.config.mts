@@ -267,7 +267,7 @@ const baseJsRules: Linter.RulesRecord = {
     // Complexity limits (warnings to track but not block)
     complexity: ['warn', { max: 30 }],
     'max-classes-per-file': ['warn', { max: 12 }],
-    'max-lines': ['warn', { max: 1000, skipBlankLines: true, skipComments: true }],
+    'max-lines': ['warn', { max: 2500, skipBlankLines: true, skipComments: true }],
     'max-lines-per-function': ['warn', { max: 200, skipBlankLines: true, skipComments: true }],
     'max-statements': ['warn', { max: 50 }],
 
@@ -453,6 +453,9 @@ const typescriptRuleOverrides: Linter.RulesRecord = {
     '@typescript-eslint/prefer-readonly': 'error',
     '@typescript-eslint/promise-function-async': 'error',
     '@typescript-eslint/no-shadow': 'error',
+
+    // Prevent use of `any` type - enforce proper typing
+    '@typescript-eslint/no-explicit-any': 'error',
 };
 
 // =============================================================================
@@ -642,6 +645,7 @@ export default defineConfig([
             '@typescript-eslint/restrict-template-expressions': 'off',
             '@typescript-eslint/no-non-null-assertion': 'off',
             '@typescript-eslint/no-unnecessary-condition': 'off',
+            '@typescript-eslint/no-unsafe-enum-comparison': 'off',
             '@typescript-eslint/consistent-type-imports': 'off',
             '@typescript-eslint/prefer-for-of': 'off',
 

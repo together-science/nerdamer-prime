@@ -1,15 +1,20 @@
+import type nerdamer from '../index';
 import tsMorph from 'ts-morph';
 
+// Type alias for dynamic property access in investigation tests
+
+type Indexable = Record<string, any>;
+
 describe('Arity Mismatch Investigation', () => {
-    let nerdamerRuntime: any;
+    let nerdamerRuntime: typeof nerdamer & Indexable;
     let project: tsMorph.Project;
     let sourceFile: tsMorph.SourceFile;
     let nerdamerPrimeNamespace: tsMorph.ModuleDeclaration | undefined;
 
     beforeAll(async () => {
         // Load complete nerdamer with all modules
-        nerdamerRuntime = await import('../all.js');
-        nerdamerRuntime = nerdamerRuntime.default || nerdamerRuntime;
+        const module = await import('../all.js');
+        nerdamerRuntime = module.default || module;
 
         project = new tsMorph.Project({
             tsConfigFilePath: 'tsconfig.json',

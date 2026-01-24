@@ -169,6 +169,43 @@ describe('Calculus', () => {
         expect(nerdamer('limit((2sin(x)-sin(2x))/(x-sin(x)),x,0)').toString()).toEqual('6');
     });
 
+    it('should calculate limit signs correctly', () => {
+        // Simple cases: n/x where numerator is constant
+        expect(nerdamer('limit(1/x, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit(-1/x, x, 0)').toString()).toEqual('-Infinity');
+        expect(nerdamer('limit(5/x, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit(-5/x, x, 0)').toString()).toEqual('-Infinity');
+
+        // Even powers: sign only depends on numerator
+        expect(nerdamer('limit(1/x^2, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit(-1/x^2, x, 0)').toString()).toEqual('-Infinity');
+        expect(nerdamer('limit(3/x^2, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit(-3/x^2, x, 0)').toString()).toEqual('-Infinity');
+        expect(nerdamer('limit(1/x^4, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit(-1/x^4, x, 0)').toString()).toEqual('-Infinity');
+
+        // Odd powers > 1
+        expect(nerdamer('limit(1/x^3, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit(-1/x^3, x, 0)').toString()).toEqual('-Infinity');
+
+        // Expression numerators that evaluate to negative
+        expect(nerdamer('limit((-3+2*cos(x))/x, x, 0)').toString()).toEqual('-Infinity');
+        expect(nerdamer('limit((cos(x)-2)/x, x, 0)').toString()).toEqual('-Infinity');
+        expect(nerdamer('limit((1-cos(x))/x^2, x, 0)').toString()).toEqual('1/2'); // L'Hopital case
+
+        // Expression numerators that evaluate to positive
+        expect(nerdamer('limit((3+2*cos(x))/x, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit((2+cos(x))/x, x, 0)').toString()).toEqual('Infinity');
+
+        // Product forms that should have correct sign
+        expect(nerdamer('limit((-3+2*cos(x))*x^(-1), x, 0)').toString()).toEqual('-Infinity');
+        expect(nerdamer('limit((3+2*cos(x))*x^(-1), x, 0)').toString()).toEqual('Infinity');
+
+        // More complex expressions
+        expect(nerdamer('limit((-1+cos(x))/x^2, x, 0)').toString()).toEqual('-1/2');
+        expect(nerdamer('limit((sin(x)-x)/x^3, x, 0)').toString()).toEqual('-1/6');
+    });
+
     it('should integrate properly', () => {
         expect(nerdamer('integrate(sin(x), x)').toString()).toEqual('-cos(x)');
         expect(nerdamer('integrate((22/7)^x,x)').toString()).toEqual('(log(1/7)+log(22))^(-1)*22^x*7^(-x)');
@@ -198,7 +235,7 @@ describe('Calculus', () => {
         expect(nerdamer('integrate(sqrt(x-a), x)').toString()).toEqual('(2/3)*(-a+x)^(3/2)');
         expect(nerdamer('integrate(x^n*log(x), x)').toString()).toEqual('(1+n)^(-1)*log(x)*x^(1+n)-(1+n)^(-2)*x^(1+n)');
         expect(nerdamer('integrate(3*a*sec(x)^2, x)').toString()).toEqual('3*a*tan(x)');
-        expect(nerdamer('integrate(a/(x^2+b*x+a*x+a*b),x)').toString()).toEqual('(((-a^(-1)*b+1)^(-1)*a^(-1)*b+1)*a^(-1)*log(b+x)-(-a^(-1)*b+1)^(-1)*a^(-1)*log(a+x))*a');
+        expect(nerdamer('integrate(a/(x^2+b*x+a*x+a*b),x)').toString()).toEqual('(((-a*b^(-1)+1)^(-1)*a*b^(-1)+1)*b^(-1)*log(a+x)-(-a*b^(-1)+1)^(-1)*b^(-1)*log(b+x))*a');
         expect(nerdamer('integrate(log(a*x+b),x)').toString()).toEqual('((a*x+b)*log(a*x+b)-a*x-b)*a');
         expect(nerdamer('integrate(x*log(x),x)').toString()).toEqual('(-1/4)*x^2+(1/2)*log(x)*x^2');
         expect(nerdamer('integrate(log(a*x)/x,x)').toString()).toEqual('(1/2)*log(a*x)^2');

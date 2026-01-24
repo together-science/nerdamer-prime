@@ -6,14 +6,19 @@
  * - Vecget should return NerdamerExpression or undefined
  * - But actually returns object wrappers with symbol properties
  */
+import type nerdamer from '../index';
+
+// Type alias for dynamic property access in investigation tests
+
+type Indexable = Record<string, any>;
 
 describe('vecget Return Type Investigation', () => {
-    let nerdamerRuntime: any;
+    let nerdamerRuntime: typeof nerdamer & Indexable;
 
     beforeAll(async () => {
         // Load complete nerdamer with all modules
-        nerdamerRuntime = await import('../all.js');
-        nerdamerRuntime = nerdamerRuntime.default || nerdamerRuntime;
+        const module = await import('../all.js');
+        nerdamerRuntime = module.default || module;
     });
 
     it('should investigate vecget return type behavior', () => {
