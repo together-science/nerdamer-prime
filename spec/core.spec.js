@@ -3278,7 +3278,7 @@ describe('misc and regression tests', () => {
     });
 });
 
-describe('Known issues', () => {
+describe('Known issues (core)', function () {
     /*
      * GitHub Issue: together-science/nerdamer-prime#62
      * Title: "Number of decimal places and rounding errors in text('decimals', n)"
