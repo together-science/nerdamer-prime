@@ -49,7 +49,7 @@ describe('Extra Calculus', () => {
     });
 });
 
-describe('Known issues (extra)', function () {
+describe('Known issues (extra)', () => {
     /*
      * GitHub Issue: together-science/nerdamer-prime#14
      * Title: "Problems with ilt"

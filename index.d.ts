@@ -6,9 +6,9 @@
  *
  * @version 1.3.0
  * @author Nerdamer-Prime TypeScript Definitions
- * @see {@link https://github.com/together-science/nerdamer-prime}
+ * @see {@link https://github.com/together-science/nerdamer-prime} ##
  *
- * ## Quick Start Guide
+ * Quick Start Guide
  *
  * ```typescript
  * import nerdamer from 'nerdamer-prime';
