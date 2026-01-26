@@ -5,6 +5,7 @@
 /node_modules/
 /package-lock.json
 /.vscode
+/spec/test.js
 
 # Temporary Files
 **/report*
