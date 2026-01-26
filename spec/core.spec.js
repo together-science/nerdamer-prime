@@ -3278,7 +3278,11 @@ describe('misc and regression tests', () => {
     });
 });
 
+<<<<<<< HEAD
+describe('Known issues (core)', function () {
+=======
 describe('Known issues', () => {
+>>>>>>> 662287c3e9a85c1fcbd7a9b6d8d4c64d9bc597a1
     /*
      * GitHub Issue: together-science/nerdamer-prime#62
      * Title: "Number of decimal places and rounding errors in text('decimals', n)"
