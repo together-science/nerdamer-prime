@@ -3177,9 +3177,6 @@ describe('omit brackets for functions', () => {
     });
     it('should recognize functions with arguments containing coefficients', () => {
         expect(nerdamer('sin 2x').toString()).toEqual('sin(2*x)');
-    });
-    it('should recognize functions with arguments containing coefficients', () => {
-        expect(nerdamer('sin 2x').toString()).toEqual('sin(2*x)');
         expect(nerdamer('sin a x').toString()).toEqual('sin(a)*x');
     });
     it('should multiply functions without brackets', () => {
@@ -3278,7 +3275,7 @@ describe('misc and regression tests', () => {
     });
 });
 
-describe('Known issues (core)', function () {
+describe('Known issues (core)', () => {
     /*
      * GitHub Issue: together-science/nerdamer-prime#62
      * Title: "Number of decimal places and rounding errors in text('decimals', n)"
