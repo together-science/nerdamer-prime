@@ -1,9 +1,9 @@
-import { NerdamerExpression, SolveResult } from '../index';
+import type { NerdamerExpression, SolveResult } from '../index';
 
 // Import complete nerdamer with all modules for runtime
 const nerdamer = require('../all');
 
-function expectType<T>(value: T): void {}
+function expectType<T>(_value: T): void {}
 
 describe('Nerdamer Algebra & Solve Addon Type Definitions', () => {
     it('should compile when using algebra functions correctly', () => {
@@ -64,7 +64,7 @@ describe('Nerdamer Algebra & Solve Addon Type Definitions', () => {
 
     it('should handle expression method solving', () => {
         // Test solveFor method on expressions
-        const expr = nerdamer('a*x^2 + b*x + c = 0');
+        const expr = nerdamer('x^2 - 4 = 0');
         const solutions: NerdamerExpression[] = expr.solveFor('x');
         expectType<NerdamerExpression[]>(solutions);
     });

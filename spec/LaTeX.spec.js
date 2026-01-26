@@ -1,12 +1,25 @@
 /* global expect */
 
-'use strict';
+const nerdamer = require('../nerdamer.core.js');
 
-var nerdamer = require('../nerdamer.core.js');
+/**
+ * Helper to run a test with warnings silenced. Use this for tests where warnings are expected and don't indicate bugs.
+ *
+ * @param {Function} testFn - The test function to run
+ */
+function withSilencedWarnings(testFn) {
+    const previous = nerdamer.getCore().Settings.SILENCE_WARNINGS;
+    nerdamer.set('SILENCE_WARNINGS', true);
+    try {
+        testFn();
+    } finally {
+        nerdamer.set('SILENCE_WARNINGS', previous);
+    }
+}
 
-describe('TeX features', function () {
-    it('should render TeX output correctly', function () {
-        var testCases = [
+describe('TeX features', () => {
+    it('should render TeX output correctly', () => {
+        const testCases = [
             {
                 given: '2',
                 TeX: '2',
@@ -224,56 +237,56 @@ describe('TeX features', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
-            // when
-            var teX = nerdamer(testCases[i].given).toTeX();
-            var decimalTex = nerdamer(testCases[i].given).toTeX('decimal');
+        for (let i = 0; i < testCases.length; ++i) {
+            // When
+            const teX = nerdamer(testCases[i].given).toTeX();
+            const decimalTex = nerdamer(testCases[i].given).toTeX('decimal');
 
-            // then
-            expect(teX).toEqual(testCases[i].TeX, 'for formula ' + testCases[i].given);
-            expect(decimalTex).toEqual(testCases[i].decimalTeX, 'for formula ' + testCases[i].given);
+            // Then
+            expect(teX).toEqual(testCases[i].TeX, `for formula ${testCases[i].given}`);
+            expect(decimalTex).toEqual(testCases[i].decimalTeX, `for formula ${testCases[i].given}`);
         }
     });
 
     /** #36: Weird results with sqrt */
-    it('should render square roots properly', function () {
-        // given
-        var formula = '2*sqrt(x)';
+    it('should render square roots properly', () => {
+        // Given
+        const formula = '2*sqrt(x)';
 
-        // when
-        var teX = nerdamer(formula).toTeX();
+        // When
+        const teX = nerdamer(formula).toTeX();
 
-        // then
+        // Then
         expect(teX).toEqual('2 \\cdot \\sqrt{x}');
     });
 
     /** #39: Terms multiplied in brackets not rendered correctly */
-    it('should render parentheses', function () {
-        // given
-        var formula = '(x+1)*(x+2)';
+    it('should render parentheses', () => {
+        // Given
+        const formula = '(x+1)*(x+2)';
 
-        // when
-        var teX = nerdamer(formula).toTeX();
+        // When
+        const teX = nerdamer(formula).toTeX();
 
-        // then
+        // Then
         expect(teX).toEqual('\\left(x+1\\right) \\cdot \\left(x+2\\right)');
     });
 
     /** #41: Latex output should use descending order */
-    it('should use descending order of polynomials', function () {
-        // given
-        var formula = 'x^2+x+1';
+    it('should use descending order of polynomials', () => {
+        // Given
+        const formula = 'x^2+x+1';
 
-        // when
-        var teX = nerdamer(formula).toTeX();
+        // When
+        const teX = nerdamer(formula).toTeX();
 
-        // then
+        // Then
         expect(teX).toEqual('x^{2}+x+1');
     });
 
-    it('should support Greek letters', function () {
-        // given
-        var testCases = [
+    it('should support Greek letters', () => {
+        // Given
+        const testCases = [
             {
                 given: 'alpha + beta',
                 expected: '\\alpha+\\beta',
@@ -288,16 +301,16 @@ describe('TeX features', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
-            // when
-            var teX = nerdamer(testCases[i].given).toTeX();
+        for (let i = 0; i < testCases.length; ++i) {
+            // When
+            const teX = nerdamer(testCases[i].given).toTeX();
 
-            // then
+            // Then
             expect(teX).toEqual(testCases[i].expected);
         }
     });
 
-    it('should explicitly convert to LaTeX', function () {
+    it('should explicitly convert to LaTeX', () => {
         expect(nerdamer.convertToLaTeX('realpart(a)')).toEqual('\\operatorname{Re}\\left(a\\right)');
         expect(nerdamer.convertToLaTeX('imagpart(a)')).toEqual('\\operatorname{Im}\\left(a\\right)');
         expect(nerdamer.convertToLaTeX('diff(cos(x),x)')).toEqual('\\frac{d}{d x}\\left({\\mathrm{cos}\\left(x\\right)}\\right)');
@@ -311,9 +324,9 @@ describe('TeX features', function () {
         expect(nerdamer.convertToLaTeX('log1p(x)')).toEqual('\\ln\\left( 1 + x \\right)');
     });
 
-    it('should display integrals', function () {
-        // given
-        var testCases = [
+    it('should display integrals', () => {
+        // Given
+        const testCases = [
             {
                 given: 'defint(log(2cos(x/2)),-π,π,x)',
                 expected: '\\int\\limits_{-\\pi}^{\\pi} \\mathrm{log}\\left(2 \\cdot \\mathrm{cos}\\left(\\frac{x}{2}\\right)\\right) dx',
@@ -324,12 +337,19 @@ describe('TeX features', function () {
             },
         ];
 
-        for (var i = 0; i < testCases.length; ++i) {
-            // when
-            var teX = nerdamer(testCases[i].given).toTeX();
+        /*
+         * The defint expression triggers numerical integration which generates warnings
+         * due to singularities at the bounds (log(cos(x/2)) → -∞ as x → ±π).
+         * The warnings are expected - we're only testing the TeX rendering here.
+         */
+        withSilencedWarnings(() => {
+            for (let i = 0; i < testCases.length; ++i) {
+                // When
+                const teX = nerdamer(testCases[i].given).toTeX();
 
-            // then
-            expect(teX).toEqual(testCases[i].expected);
-        }
+                // Then
+                expect(teX).toEqual(testCases[i].expected);
+            }
+        });
     });
 });
