@@ -194,7 +194,7 @@ describe('Solve', function () {
         ).toEqual('y');
     });
 
-    describe('Known issues', function () {
+    describe('Known issues (solve)', function () {
         /*
          * Problem: Solver returns rational approximation instead of exact symbolic answer.
          *

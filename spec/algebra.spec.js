@@ -384,7 +384,7 @@ describe('Algebra', function () {
         expect(nerdamer('(-1/2)*sqrt(5)+1/2').simplify().text()).toBe('-0.6180339887498949600');
     });
 
-    describe('Known issues', function () {
+    describe('Known issues (algebra)', function () {
         /*
          * GitHub Issue: together-science/nerdamer-prime#1
          * Title: "evaluate fails on sqrt expression"
