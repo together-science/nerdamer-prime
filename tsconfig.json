@@ -1,39 +1,18 @@
 {
+    "extends": "./tsconfig.base.json",
     "compilerOptions": {
-        "declaration": true,
-        "emitDeclarationOnly": false,
+        // Allow importing JS files without type errors
         "allowJs": true,
-        "checkJs": true,
-        "outDir": "./dist",
+        "checkJs": false,
 
-        // Modern ES target and libraries
-        "target": "ES2022",
-        "lib": ["ES2022", "DOM"],
-        "module": "ESNext",
-        "moduleResolution": "bundler",
-
-        // Strict type checking (modern best practices)
+        // Strict type checking - enabled for TypeScript files
         "strict": true,
         "exactOptionalPropertyTypes": true,
         "noUncheckedIndexedAccess": true,
         "noImplicitOverride": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
-        "noPropertyAccessFromIndexSignature": true,
-
-        // Modern module handling
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true,
-        "forceConsistentCasingInFileNames": true,
-        "verbatimModuleSyntax": false,
-        "allowImportingTsExtensions": false,
-
-        // Output settings
-        "skipLibCheck": true,
-
-        // Relaxed settings for JS compilation
-        "noImplicitAny": false
+        "noPropertyAccessFromIndexSignature": true
     },
-    "include": ["index.d.ts", "nerdamer.core.js"],
-    "exclude": ["node_modules", "spec", "spec-dts"]
+    "include": ["index.d.ts", "eslint.config.mts", "spec-dts/**/*.ts"]
 }
