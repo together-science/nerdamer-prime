@@ -70,7 +70,7 @@ describe('Functions', () => {
     it('should calculate functions', () => {
         expect(toFixed(parse('sin(1)'))).toEqual(toFixed(0.8414709848078965));
     });
-    it('should calculate functions', () => {
+    it('should calculate nestedfunctions', () => {
         expect(toFixed(parse('sin(sin(2))'))).toEqual(toFixed(0.7890723435728884));
     });
     it('should add with functions', () => {
@@ -123,8 +123,6 @@ describe('Brackets', () => {
     });
     it('should handle multiple levels of brackets', () => {
         expect(parse('((((((((9))))))))+1')).toEqual(10);
-    });
-    it('should handle multiple levels of brackets', () => {
         expect(parse('((((((1+1))+4)))+3)')).toEqual(9);
     });
 });
@@ -198,8 +196,6 @@ describe('Spaces', function() {
 describe('Substitutions', () => {
     it('should substitute x', () => {
         expect(parse('x+1', { x: 4 })).toEqual(5);
-    });
-    it('should substitute x', () => {
         expect(parse('2*x+1', { x: 4 })).toEqual(9);
     });
 });
