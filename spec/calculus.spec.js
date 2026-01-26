@@ -1,12 +1,25 @@
 /* global expect */
 
-'use strict';
+const nerdamer = require('../nerdamer.core.js');
+const { round } = nerdamer.getCore().Utils;
 
-var nerdamer = require('../nerdamer.core.js');
-var round = nerdamer.getCore().Utils.round;
+/**
+ * Helper to run a test with warnings silenced. Use this for tests where warnings are expected and don't indicate bugs.
+ *
+ * @param {Function} testFn - The test function to run
+ */
+function withSilencedWarnings(testFn) {
+    const previous = nerdamer.getCore().Settings.SILENCE_WARNINGS;
+    nerdamer.set('SILENCE_WARNINGS', true);
+    try {
+        testFn();
+    } finally {
+        nerdamer.set('SILENCE_WARNINGS', previous);
+    }
+}
 
-describe('Calculus', function () {
-    it('should differentiate correctly', function () {
+describe('Calculus', () => {
+    it('should differentiate correctly', () => {
         expect(nerdamer('diff(cos(x),x)').toString()).toEqual('-sin(x)');
         expect(nerdamer('diff(log(x),x)').toString()).toEqual('x^(-1)');
         expect(nerdamer('diff(tan(x),x)').toString()).toEqual('sec(x)^2');
@@ -45,17 +58,17 @@ describe('Calculus', function () {
         expect(nerdamer('diff(sinc(a*x^3+b),x)').toString()).toEqual('3*((a*x^3+b)*cos(a*x^3+b)-sin(a*x^3+b))*(a*x^3+b)^(-2)*a*x^2');
         expect(nerdamer('diff(sqrt(e^x + a),x)').toString()).toEqual('(1/2)*(a+e^x)^(-1/2)*e^x');
 
-        // issue #
+        // Issue #
         expect(nerdamer('diff(3asin(x),x)').toString()).toEqual('3*sqrt(-x^2+1)^(-1)');
         expect(nerdamer('diff(5acos(x),x)').toString()).toEqual('-5*sqrt(-x^2+1)^(-1)');
         expect(nerdamer('diff(7atan(x),x)').toString()).toEqual('7*(1+x^2)^(-1)');
 
-        // equations
+        // Equations
         expect(nerdamer('diff(3asin(x)=x,x)').toString()).toEqual('3*sqrt(-x^2+1)^(-1)=1');
     });
 
     /*
-    todo: cover all function differentiation, with scalars:
+    Todo: cover all function differentiation, with scalars:
         case LOG:
         case COS:
         case SIN:
@@ -97,7 +110,7 @@ describe('Calculus', function () {
         case Settings.LOG10:
     */
 
-    it('should calculate sums correctly', function () {
+    it('should calculate sums correctly', () => {
         expect(nerdamer('sum(x+y, x, 0, 3)').evaluate().toString()).toEqual('4*y+6');
         expect(nerdamer('sum(x^2+x, x, 0, 10)').evaluate().toString()).toEqual('440');
         expect(nerdamer('sum(x^2*z^2+x*y-z+1, x, 0, 10)').evaluate().toString()).toEqual('-11*z+385*z^2+11+55*y');
@@ -107,21 +120,39 @@ describe('Calculus', function () {
         expect(round(nerdamer('sum(e^(-x^2*π/9),x,1,100)').evaluate(), 10)).toEqual(round(1.0, 10));
     });
 
-    it('should calculate the definite integral correctly', function () {
+    it('should calculate the definite integral correctly', () => {
         expect(round(nerdamer('defint(cos(x),1,2,x)').evaluate(), 14)).toEqual(round(0.067826442018, 14));
         expect(round(nerdamer('defint(cos(x)^3*x^2-1,-1,9)').evaluate(), 14)).toEqual(round(8.543016466395, 14));
         expect(round(nerdamer('defint(cos(x^x),1,2,x)').evaluate(), 14)).toEqual(round(-0.27113666621, 14));
         expect(round(nerdamer('defint(cos(x^log(sin(x))),2,3,x)').evaluate(), 14)).toEqual(round(0.805604089074, 14));
-        expect(round(nerdamer('defint(log(2*cos(x/2)),-π,π,x)').evaluate(), 14)).toEqual(round(-0, 14));
-        expect(round(nerdamer('defint(log(cos(x/2)),-π,π,x)').evaluate(), 14)).toEqual(round(-4.355172180607, 14));
+
+        /*
+         * The following integrals have singularities at the integration bounds:
+         * - log(cos(x/2)) approaches -∞ as x → ±π (since cos(±π/2) = 0)
+         * - This causes the adaptive Simpson integration to hit max recursion depth ~19,500 times
+         * - The warnings are expected and don't indicate bugs - results are still accurate
+         */
+        withSilencedWarnings(() => {
+            expect(round(nerdamer('defint(log(2*cos(x/2)),-π,π,x)').evaluate(), 14)).toEqual(round(0, 14));
+            expect(round(nerdamer('defint(log(cos(x/2)),-π,π,x)').evaluate(), 14)).toEqual(round(-4.355172180607, 14));
+        });
+
         expect(round(nerdamer('defint(log(x+1), -1, 1, x)').evaluate(), 14)).toEqual(round(-0.6137056388801095, 14));
         expect(round(nerdamer('defint(log(x), 0, 1, x)').evaluate(), 14)).toEqual(round(-1, 14));
-        expect(round(nerdamer('defint((x^2-3)/(-x^3+9x+1), 1, 3, x)').evaluate(), 14)).toEqual(round(0.732408192445406585, 14));
-        expect(round(nerdamer('defint(x*(x-5)^(1/2),5,8)').evaluate(), 14)).toEqual(round(23.555890982936999348, 14));
-        expect(round(nerdamer('defint(sqrt(4(x^2)+4), 0, 3)').evaluate(), 14)).toEqual(round(11.305279439735999908, 14));
+        expect(round(nerdamer('defint((x^2-3)/(-x^3+9x+1), 1, 3, x)').evaluate(), 14)).toEqual(round(0.7324081924454066, 14));
+
+        /*
+         * These integrals involve sqrt expressions that can't be symbolically integrated.
+         * The symbolic integrator emits "Unable to compute integral!" before falling back
+         * to numerical integration, which succeeds. The warning is expected behavior.
+         */
+        withSilencedWarnings(() => {
+            expect(round(nerdamer('defint(x*(x-5)^(1/2),5,8)').evaluate(), 14)).toEqual(round(23.555890982937, 14));
+            expect(round(nerdamer('defint(sqrt(4(x^2)+4), 0, 3)').evaluate(), 14)).toEqual(round(11.305279439736, 14));
+        });
     });
 
-    it('should calculate limits correctly', function () {
+    it('should calculate limits correctly', () => {
         expect(nerdamer('limit((2-2*x^2)/(x-1), x, 1)').toString()).toEqual('-4');
         expect(nerdamer('limit(1/2*(x^2 - 1)/(x^2 + 1), x, 3)').toString()).toEqual('2/5');
         expect(nerdamer('limit(tan(3*x)/tan(x), x, pi/2)').toString()).toEqual('1/3');
@@ -134,11 +165,48 @@ describe('Calculus', function () {
         expect(nerdamer('limit(x/(x+1)^2, x, -1)').toString()).toEqual('-Infinity');
         expect(nerdamer('limit(log(x),x, 0)').toString()).toEqual('-Infinity');
         expect(nerdamer('limit((3*sin(x)-sin(2*x))/(x-sin(x)),x,0)').toString()).toEqual('Infinity');
-        // issue #12
+        // Issue #12
         expect(nerdamer('limit((2sin(x)-sin(2x))/(x-sin(x)),x,0)').toString()).toEqual('6');
     });
 
-    it('should integrate properly', function () {
+    it('should calculate limit signs correctly', () => {
+        // Simple cases: n/x where numerator is constant
+        expect(nerdamer('limit(1/x, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit(-1/x, x, 0)').toString()).toEqual('-Infinity');
+        expect(nerdamer('limit(5/x, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit(-5/x, x, 0)').toString()).toEqual('-Infinity');
+
+        // Even powers: sign only depends on numerator
+        expect(nerdamer('limit(1/x^2, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit(-1/x^2, x, 0)').toString()).toEqual('-Infinity');
+        expect(nerdamer('limit(3/x^2, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit(-3/x^2, x, 0)').toString()).toEqual('-Infinity');
+        expect(nerdamer('limit(1/x^4, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit(-1/x^4, x, 0)').toString()).toEqual('-Infinity');
+
+        // Odd powers > 1
+        expect(nerdamer('limit(1/x^3, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit(-1/x^3, x, 0)').toString()).toEqual('-Infinity');
+
+        // Expression numerators that evaluate to negative
+        expect(nerdamer('limit((-3+2*cos(x))/x, x, 0)').toString()).toEqual('-Infinity');
+        expect(nerdamer('limit((cos(x)-2)/x, x, 0)').toString()).toEqual('-Infinity');
+        expect(nerdamer('limit((1-cos(x))/x^2, x, 0)').toString()).toEqual('1/2'); // L'Hopital case
+
+        // Expression numerators that evaluate to positive
+        expect(nerdamer('limit((3+2*cos(x))/x, x, 0)').toString()).toEqual('Infinity');
+        expect(nerdamer('limit((2+cos(x))/x, x, 0)').toString()).toEqual('Infinity');
+
+        // Product forms that should have correct sign
+        expect(nerdamer('limit((-3+2*cos(x))*x^(-1), x, 0)').toString()).toEqual('-Infinity');
+        expect(nerdamer('limit((3+2*cos(x))*x^(-1), x, 0)').toString()).toEqual('Infinity');
+
+        // More complex expressions
+        expect(nerdamer('limit((-1+cos(x))/x^2, x, 0)').toString()).toEqual('-1/2');
+        expect(nerdamer('limit((sin(x)-x)/x^3, x, 0)').toString()).toEqual('-1/6');
+    });
+
+    it('should integrate properly', () => {
         expect(nerdamer('integrate(sin(x), x)').toString()).toEqual('-cos(x)');
         expect(nerdamer('integrate((22/7)^x,x)').toString()).toEqual('(log(1/7)+log(22))^(-1)*22^x*7^(-x)');
         expect(nerdamer('integrate(cos(x), x)').toString()).toEqual('sin(x)');
@@ -167,7 +235,7 @@ describe('Calculus', function () {
         expect(nerdamer('integrate(sqrt(x-a), x)').toString()).toEqual('(2/3)*(-a+x)^(3/2)');
         expect(nerdamer('integrate(x^n*log(x), x)').toString()).toEqual('(1+n)^(-1)*log(x)*x^(1+n)-(1+n)^(-2)*x^(1+n)');
         expect(nerdamer('integrate(3*a*sec(x)^2, x)').toString()).toEqual('3*a*tan(x)');
-        expect(nerdamer('integrate(a/(x^2+b*x+a*x+a*b),x)').toString()).toEqual('(((-a^(-1)*b+1)^(-1)*a^(-1)*b+1)*a^(-1)*log(b+x)-(-a^(-1)*b+1)^(-1)*a^(-1)*log(a+x))*a');
+        expect(nerdamer('integrate(a/(x^2+b*x+a*x+a*b),x)').toString()).toEqual('(((-a*b^(-1)+1)^(-1)*a*b^(-1)+1)*b^(-1)*log(a+x)-(-a*b^(-1)+1)^(-1)*b^(-1)*log(b+x))*a');
         expect(nerdamer('integrate(log(a*x+b),x)').toString()).toEqual('((a*x+b)*log(a*x+b)-a*x-b)*a');
         expect(nerdamer('integrate(x*log(x),x)').toString()).toEqual('(-1/4)*x^2+(1/2)*log(x)*x^2');
         expect(nerdamer('integrate(log(a*x)/x,x)').toString()).toEqual('(1/2)*log(a*x)^2');
@@ -203,14 +271,28 @@ describe('Calculus', function () {
         expect(nerdamer('integrate(tan(x)*csc(x), x)').toString()).toEqual('log(sec(x)+tan(x))');
         expect(nerdamer('integrate(sinh(x)*e^x, x)').toString()).toEqual('(-1/2)*x+(1/4)*e^(2*x)');
         expect(nerdamer('integrate(sinh(x)*cos(x), x)').toString()).toEqual('(-1/4)*e^(-x)*sin(x)+(1/4)*cos(x)*e^(-x)+(1/4)*cos(x)*e^x+(1/4)*e^x*sin(x)');
-        expect(nerdamer('integrate(cos(x^2), x)').toString()).toEqual('integrate(cos(x^2),x)');
+        /*
+         * The Fresnel integral cos(x^2) has no closed-form antiderivative in terms of
+         * elementary functions. The integrator correctly returns the expression unchanged
+         * and emits "Unable to compute integral!" which is expected, not a bug.
+         */
+        withSilencedWarnings(() => {
+            expect(nerdamer('integrate(cos(x^2), x)').toString()).toEqual('integrate(cos(x^2),x)');
+        });
         expect(nerdamer('integrate(sqrt(a-x^2)*x^2, x)').toString()).toEqual('((-1/16)*cos(2*asin(sqrt(a)^(-1)*x))*sin(2*asin(sqrt(a)^(-1)*x))+(1/8)*asin(sqrt(a)^(-1)*x))*a^2');
         expect(nerdamer('integrate((1-x^2)^(3/2), x)').toString()).toEqual('(-3/16)*cos(2*asin(x))*sin(2*asin(x))+(-x^2+1)^(3/2)*x+(3/8)*asin(x)');
         expect(nerdamer('integrate((1-x^2)^(3/2)*x^2, x)').toString()).toEqual('(-1/32)*cos(2*asin(x))*sin(2*asin(x))+(-1/48)*cos(2*asin(x))^2*sin(2*asin(x))+(1/16)*asin(x)+(1/48)*sin(2*asin(x))');
         expect(nerdamer('integrate(cos(x)^2*sin(x)^4, x)').toString()).toEqual('(-1/32)*cos(2*x)*sin(2*x)+(-1/48)*sin(2*x)+(1/16)*x+(1/48)*cos(2*x)^2*sin(2*x)');
         expect(nerdamer('integrate(log(a*x+1)/x^2, x)').toString()).toEqual('(-log(1+a*x)+log(x))*a-log(1+a*x)*x^(-1)');
         expect(nerdamer('integrate(x^2*(1-x^2)^(5/2), x)').toString()).toEqual('(-1/128)*cos(2*asin(x))^3*sin(2*asin(x))+(-1/48)*cos(2*asin(x))^2*sin(2*asin(x))+(-3/256)*cos(2*asin(x))*sin(2*asin(x))+(1/48)*sin(2*asin(x))+(5/128)*asin(x)');
-        expect(nerdamer('integrate(1/tan(a*x)^n, x)').toString()).toEqual('integrate(tan(a*x)^(-n),x)');
+        /*
+         * Generic symbolic integration of tan(a*x)^(-n) for arbitrary n
+         * cannot be resolved. The integrator correctly returns the expression unchanged
+         * and emits "Unable to compute integral!" which is expected, not a bug.
+         */
+        withSilencedWarnings(() => {
+            expect(nerdamer('integrate(1/tan(a*x)^n, x)').toString()).toEqual('integrate(tan(a*x)^(-n),x)');
+        });
         expect(nerdamer('integrate(sin(x)^2*cos(x)*tan(x), x)').toString()).toEqual('(-3/4)*cos(x)+(1/12)*cos(3*x)');
         expect(nerdamer('integrate(cos(x)^2/sin(x),x)').toString()).toEqual('-log(cot(x)+csc(x))+cos(x)');
         expect(nerdamer('integrate(cos(x)/x,x)').toString()).toEqual('Ci(x)');

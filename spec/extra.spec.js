@@ -1,12 +1,10 @@
 /* global expect */
 
-'use strict';
-
-var nerdamer = require('../nerdamer.core.js');
+const nerdamer = require('../nerdamer.core.js');
 require('../Extra');
 
-describe('Extra Calculus', function () {
-    it('should transform Laplace correctly', function () {
+describe('Extra Calculus', () => {
+    it('should transform Laplace correctly', () => {
         expect(nerdamer('laplace(5, t, s)').toString()).toEqual('5*s^(-1)');
         expect(nerdamer('laplace(a*t, t, s)').toString()).toEqual('a*s^(-2)');
         expect(nerdamer('laplace(cos(a*t), t, s)').toString()).toEqual('(a^2+s^2)^(-1)*s');
@@ -24,7 +22,7 @@ describe('Extra Calculus', function () {
         expect(nerdamer('laplace(sinh(t)*e^t, t, s)').toString()).toEqual('(-1/2)*(-s+2)^(-1)+(-1/2)*s^(-1)');
     });
 
-    it('should invert a Laplace transform correctly', function () {
+    it('should invert a Laplace transform correctly', () => {
         expect(nerdamer('ilt(a/(b*x), x, t)').toString()).toEqual('a*b^(-1)');
         expect(nerdamer('ilt(a*6/(b*s^6),s,t)').toString()).toEqual('(1/20)*a*b^(-1)*t^5');
         expect(nerdamer('ilt(3*s/(4*s^2+5),s,t)').toString()).toEqual('(3/4)*cos((1/2)*sqrt(5)*t)');
@@ -40,7 +38,7 @@ describe('Extra Calculus', function () {
         expect(nerdamer('ilt(1/(s^2+2s+1),s,t)').toString()).toEqual('e^(-t)*t');
     });
 
-    it('should calculate mode correctly', function () {
+    it('should calculate mode correctly', () => {
         expect(nerdamer('mode(r,r,r,r)').toString()).toEqual('r');
         expect(nerdamer('mode(1,2)').toString()).toEqual('mode(1,2)');
         expect(nerdamer('mode(1,2,3,1,2)').toString()).toEqual('mode(1,2)');
@@ -72,7 +70,7 @@ describe('Known issues (extra)', function () {
      * Note: The first issue reported (ilt(1/(s^3+2*s^2+s),s,t) separated incorrectly)
      * was fixed in commit 5839284 on Mar 30, 2024.
      */
-    xit('should return real result for ilt with real roots (issue #14)', function () {
+    xit('should return real result for ilt with real roots (issue #14)', () => {
         // The result should not contain 'i' since s^2+4s+1 has real roots
         const result = nerdamer('ilt(1/((s)*(s^2+4*s+1)),s,t)').toString();
         expect(result).not.toContain('i');

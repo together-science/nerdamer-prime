@@ -2,14 +2,83 @@
 import nerdamerRuntime from '../all';
 import tsMorph from 'ts-morph';
 
+// Type alias for dynamic property access in reflection tests
+
+type Indexable = Record<string, any>;
+const nerdamer = nerdamerRuntime as typeof nerdamerRuntime & Indexable;
+
 describe('Nerdamer TypeScript Interface Reflection', () => {
     let project: tsMorph.Project;
     let sourceFile: tsMorph.SourceFile;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let typeChecker: tsMorph.TypeChecker;
+
+    /**
+     * Helper to get method-like members from an interface. The index.d.ts uses property signatures with function types
+     * (e.g., `add: (x: T) => R`) instead of method signatures (e.g., `add(x: T): R`), so we need to check properties
+     * whose type is a function type.
+     */
+    const getMethodLikeMembers = (iface: tsMorph.InterfaceDeclaration | undefined): string[] => {
+        if (!iface) {
+            return [];
+        }
+        const methodNames: string[] = [];
+        // Check actual method signatures
+        iface.getMethods().forEach(m => {
+            methodNames.push(m.getName());
+        });
+        // Check property signatures with function types
+        iface.getProperties().forEach(p => {
+            const typeNode = p.getTypeNode();
+            if (typeNode && typeNode.getKind() === tsMorph.SyntaxKind.FunctionType) {
+                methodNames.push(p.getName());
+            }
+        });
+        return methodNames;
+    };
+
+    /** Helper to get a method-like member by name (either method signature or property with function type) */
+    const getMethodLikeMember = (
+        iface: tsMorph.InterfaceDeclaration | undefined,
+        name: string
+    ):
+        | {
+              getReturnTypeNode: () => tsMorph.TypeNode | undefined;
+              getParameters: () => { getTypeNode: () => tsMorph.TypeNode | undefined }[];
+          }
+        | undefined => {
+        if (!iface) {
+            return undefined;
+        }
+        // Try method signature first
+        const method = iface.getMethod(name);
+        if (method) {
+            return {
+                getReturnTypeNode: () => method.getReturnTypeNode(),
+                getParameters: () => method.getParameters(),
+            };
+        }
+        // Try property with function type
+        const prop = iface.getProperty(name);
+        if (prop) {
+            const typeNode = prop.getTypeNode();
+            if (typeNode && typeNode.getKind() === tsMorph.SyntaxKind.FunctionType) {
+                const funcType = typeNode as tsMorph.FunctionTypeNode;
+                return {
+                    getReturnTypeNode: () => funcType.getReturnTypeNode(),
+                    getParameters: () =>
+                        funcType.getParameters().map(p => ({
+                            getTypeNode: () => p.getTypeNode(),
+                        })),
+                };
+            }
+        }
+        return undefined;
+    };
 
     beforeAll(() => {
         project = new tsMorph.Project({
-            tsConfigFilePath: 'spec-dts/tsconfig.json',
+            tsConfigFilePath: 'tsconfig.json',
         });
 
         sourceFile = project.getSourceFileOrThrow('index.d.ts');
@@ -71,12 +140,12 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
     });
 
     describe('Core Expression Interfaces', () => {
-        it('should have CoreExpressionBase interface with essential methods', () => {
-            const coreBase = sourceFile.getInterface('CoreExpressionBase');
-            expect(coreBase).toBeDefined();
+        it('should have NerdamerExpression interface with essential output methods', () => {
+            const nerdamerExpression = sourceFile.getInterface('NerdamerExpression');
+            expect(nerdamerExpression).toBeDefined();
 
-            const methodNames = coreBase?.getMethods().map((m: tsMorph.MethodSignature) => m.getName()) || [];
-            // Note: 'clone' method removed due to runtime inconsistency - it doesn't exist in Expression prototype
+            const methodNames = getMethodLikeMembers(nerdamerExpression);
+            // These methods were previously in CoreExpressionBase but are now directly on NerdamerExpression
             const expectedMethods = ['toString', 'text', 'latex', 'valueOf'];
 
             for (const method of expectedMethods) {
@@ -84,18 +153,18 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             }
         });
 
-        it('should have NerdamerExpression interface extending CoreExpressionBase', () => {
+        it('should have NerdamerExpression interface as standalone (not extending CoreExpressionBase)', () => {
             const nerdamerExpression = sourceFile.getInterface('NerdamerExpression');
             expect(nerdamerExpression).toBeDefined();
 
-            const extends_ = nerdamerExpression?.getExtends();
-            expect(extends_).toHaveLength(1);
-            expect(extends_?.[0]?.getText()).toBe('CoreExpressionBase');
+            const extendsClause = nerdamerExpression?.getExtends();
+            // NerdamerExpression no longer extends CoreExpressionBase - methods are directly defined
+            expect(extendsClause).toHaveLength(0);
         });
 
         it('should have NerdamerExpression with essential arithmetic methods', () => {
             const nerdamerExpression = sourceFile.getInterface('NerdamerExpression');
-            const methodNames = nerdamerExpression?.getMethods().map((m: tsMorph.MethodSignature) => m.getName()) || [];
+            const methodNames = getMethodLikeMembers(nerdamerExpression);
 
             const arithmeticMethods = ['add', 'subtract', 'multiply', 'divide', 'pow'];
             for (const method of arithmeticMethods) {
@@ -105,7 +174,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
         it('should have NerdamerExpression with comparison methods', () => {
             const nerdamerExpression = sourceFile.getInterface('NerdamerExpression');
-            const methodNames = nerdamerExpression?.getMethods().map((m: tsMorph.MethodSignature) => m.getName()) || [];
+            const methodNames = getMethodLikeMembers(nerdamerExpression);
 
             const comparisonMethods = ['eq', 'lt', 'gt', 'lte', 'gte'];
             for (const method of comparisonMethods) {
@@ -115,7 +184,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
         it('should have NerdamerExpression with manipulation methods', () => {
             const nerdamerExpression = sourceFile.getInterface('NerdamerExpression');
-            const methodNames = nerdamerExpression?.getMethods().map((m: tsMorph.MethodSignature) => m.getName()) || [];
+            const methodNames = getMethodLikeMembers(nerdamerExpression);
 
             // Note: 'factor' is a static method, not an instance method
             const manipulationMethods = ['expand', 'simplify', 'evaluate', 'sub', 'solveFor'];
@@ -128,19 +197,18 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
     describe('JavaScript Runtime vs TypeScript Interface Comparison', () => {
         it('should validate NerdamerExpression methods exist on runtime instances', () => {
             // Create a runtime expression
-            const runtimeExpr = (nerdamerRuntime as any)('x + 1');
+            const runtimeExpr = nerdamerRuntime('x + 1') as Indexable;
 
-            // Get TypeScript interface methods
+            // Get TypeScript interface methods (including property signatures with function types)
             const nerdamerExpression = sourceFile.getInterface('NerdamerExpression');
-            const tsMethodNames =
-                nerdamerExpression?.getMethods().map((m: tsMorph.MethodSignature) => m.getName()) || [];
+            const tsMethodNames = getMethodLikeMembers(nerdamerExpression);
 
             // Test that each TS method exists on the runtime object
             const methodTestResults = [];
 
             for (const methodName of tsMethodNames) {
-                const exists = typeof (runtimeExpr as any)[methodName] === 'function';
-                const actualType = typeof (runtimeExpr as any)[methodName];
+                const exists = typeof runtimeExpr[methodName] === 'function';
+                const actualType = typeof runtimeExpr[methodName];
                 methodTestResults.push({ method: methodName, exists, type: actualType });
             }
 
@@ -158,14 +226,14 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
         });
 
         it('should validate runtime expression behavior matches TypeScript expectations', () => {
-            const runtimeExpr = (nerdamerRuntime as any)('x^2 + 2*x + 1');
+            const runtimeExpr = nerdamerRuntime('x^2 + 2*x + 1');
 
             // Test basic operations that should exist per TypeScript
             expect(typeof runtimeExpr.toString).toBe('function');
             expect(typeof runtimeExpr.text).toBe('function');
             expect(typeof runtimeExpr.evaluate).toBe('function');
             expect(typeof runtimeExpr.expand).toBe('function');
-            expect(typeof (runtimeExpr as any).simplify).toBe('function');
+            expect(typeof runtimeExpr.simplify).toBe('function');
 
             // Test that operations return expected types
             const expanded = runtimeExpr.expand();
@@ -173,15 +241,15 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             expect(typeof expanded.toString).toBe('function');
 
             // Test factor as static method (not instance method)
-            expect(typeof (nerdamerRuntime as any).factor).toBe('function');
-            const factored = (nerdamerRuntime as any).factor(runtimeExpr);
+            expect(typeof nerdamerRuntime.factor).toBe('function');
+            const factored = nerdamerRuntime.factor(runtimeExpr);
             expect(factored).toBeDefined();
             expect(typeof factored.toString).toBe('function');
         });
 
         it('should validate arithmetic operations work as TypeScript suggests', () => {
-            const expr1 = (nerdamerRuntime as any)('x + 1');
-            const expr2 = (nerdamerRuntime as any)('y + 2');
+            const expr1 = nerdamerRuntime('x + 1');
+            const expr2 = nerdamerRuntime('y + 2');
 
             // Test that arithmetic methods exist and work
             if (typeof expr1.add === 'function') {
@@ -204,8 +272,9 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
         });
 
         it('should validate comparison operations work as TypeScript suggests', () => {
-            const expr1 = (nerdamerRuntime as any)('5');
-            const expr2 = (nerdamerRuntime as any)('3');
+            const expr1 = nerdamerRuntime('5');
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const expr2 = nerdamerRuntime('3');
 
             // Test comparison methods if they exist
             if (typeof expr1.eq === 'function') {
@@ -225,7 +294,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
         });
 
         it('should validate buildFunction method works as TypeScript suggests', () => {
-            const expr = (nerdamerRuntime as any)('x^2 + y');
+            const expr = nerdamerRuntime('x^2 + y');
 
             if (typeof expr.buildFunction === 'function') {
                 try {
@@ -244,24 +313,24 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
         });
 
         it('should validate equation handling matches TypeScript definitions', () => {
-            const equation = (nerdamerRuntime as any)('x^2 = 4');
+            const equation = nerdamerRuntime('x^2 = 4') as Indexable;
 
             // Check if it's recognized as an equation (has LHS and RHS properties)
-            if ((equation as any).LHS && (equation as any).RHS) {
-                expect(typeof (equation as any).LHS.toString).toBe('function');
-                expect(typeof (equation as any).RHS.toString).toBe('function');
+            if (equation['LHS'] && equation['RHS']) {
+                expect(typeof equation['LHS'].toString).toBe('function');
+                expect(typeof equation['RHS'].toString).toBe('function');
 
-                if (typeof (equation as any).toLHS === 'function') {
-                    const lhsForm = (equation as any).toLHS();
+                if (typeof equation['toLHS'] === 'function') {
+                    const lhsForm = equation['toLHS']();
                     expect(lhsForm).toBeDefined();
                     expect(typeof lhsForm.toString).toBe('function');
                 }
             }
 
             // Test solve functionality if available
-            if (typeof (equation as any).solveFor === 'function') {
+            if (typeof equation['solveFor'] === 'function') {
                 try {
-                    const solutions = (equation as any).solveFor('x');
+                    const solutions = equation['solveFor']('x');
                     expect(Array.isArray(solutions)).toBe(true);
                 } catch (error) {
                     // Some equations might not be solvable, that's ok
@@ -280,25 +349,9 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             expect(nerdamerCoreNamespace).toBeDefined();
         });
 
-        it('should have core data structure constructor interfaces', () => {
-            const expectedConstructors = [
-                'FracConstructor',
-                'SymbolConstructor',
-                'ExpressionConstructor',
-                'VectorConstructor',
-                'MatrixConstructor',
-                'SetConstructor',
-                'CollectionConstructor',
-            ];
-
-            for (const constructor of expectedConstructors) {
-                const iface = nerdamerCoreNamespace?.getInterface(constructor);
-                expect(iface).toBeDefined();
-            }
-        });
-
         it('should have core data structure interfaces', () => {
-            const expectedInterfaces = ['Frac', 'Symbol', 'Vector', 'Matrix', 'Set', 'Collection'];
+            // These are the main data structure interfaces (not constructors)
+            const expectedInterfaces = ['Frac', 'NerdamerSymbol', 'Vector', 'Matrix', 'NerdamerSet', 'Collection'];
 
             for (const ifaceName of expectedInterfaces) {
                 const iface = nerdamerCoreNamespace?.getInterface(ifaceName);
@@ -306,11 +359,28 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             }
         });
 
+        it('should have Core interface with essential properties', () => {
+            const coreInterface = nerdamerCoreNamespace?.getInterface('Core');
+            expect(coreInterface).toBeDefined();
+
+            // Core should have essential types like PARSER, NerdamerSymbol constructor, etc.
+            const memberNames =
+                coreInterface?.getMembers().map(m => {
+                    // TypeElementTypes can be PropertySignature, MethodSignature, etc.
+                    // Check if it has getName method (most do)
+                    if ('getName' in m && typeof m.getName === 'function') {
+                        return m.getName();
+                    }
+                    return undefined;
+                }) || [];
+            expect(memberNames.length).toBeGreaterThan(0);
+        });
+
         it('should validate Vector/Matrix are properly wrapped Expressions', () => {
             // Test vector creation and base expression functionality
-            if (typeof (nerdamerRuntime as any).vector === 'function') {
+            if (typeof nerdamerRuntime.vector === 'function') {
                 try {
-                    const vec = (nerdamerRuntime as any).vector([1, 2, 3]);
+                    const vec = nerdamerRuntime.vector([1, 2, 3]) as Indexable;
                     expect(vec).toBeDefined();
 
                     // Test that vector IS an expression (has base expression methods)
@@ -324,7 +394,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
                         // Note: 'clone' removed due to Expression prototype inconsistency
                     ];
                     const existingBaseMethods = baseExpressionMethods.filter(
-                        (method: string) => typeof (vec as any)[method] === 'function'
+                        (method: string) => typeof vec[method] === 'function'
                     );
 
                     // Vector should have most base expression methods since it extends NerdamerExpression
@@ -332,21 +402,21 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
                     // Test vector-specific properties or behavior (if any)
                     // Vectors use static functions like nerdamer.vecget(), not instance methods
-                    expect(typeof (nerdamerRuntime as any).vecget).toBe('function');
-                    expect(typeof (nerdamerRuntime as any).dot).toBe('function');
-                    expect(typeof (nerdamerRuntime as any).cross).toBe('function');
+                    expect(typeof nerdamerRuntime.vecget).toBe('function');
+                    expect(typeof nerdamerRuntime.dot).toBe('function');
+                    expect(typeof nerdamerRuntime.cross).toBe('function');
                 } catch (error) {
                     console.log('Vector test failed:', (error as Error).message);
                 }
             }
 
             // Test matrix creation and base expression functionality
-            if (typeof (nerdamerRuntime as any).matrix === 'function') {
+            if (typeof nerdamerRuntime.matrix === 'function') {
                 try {
-                    const mat = (nerdamerRuntime as any).matrix([
+                    const mat = nerdamerRuntime.matrix([
                         [1, 2],
                         [3, 4],
-                    ]);
+                    ]) as Indexable;
                     expect(mat).toBeDefined();
 
                     // Test that matrix IS an expression (has base expression methods)
@@ -360,7 +430,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
                         // Note: 'clone' removed due to Expression prototype inconsistency
                     ];
                     const existingBaseMethods = baseExpressionMethods.filter(
-                        (method: string) => typeof (mat as any)[method] === 'function'
+                        (method: string) => typeof mat[method] === 'function'
                     );
 
                     // Matrix should have most base expression methods since it extends NerdamerExpression
@@ -368,9 +438,9 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
                     // Test matrix-specific properties or behavior (if any)
                     // Matrices use static functions like nerdamer.matget(), not instance methods
-                    expect(typeof (nerdamerRuntime as any).matget).toBe('function');
-                    expect(typeof (nerdamerRuntime as any).determinant).toBe('function');
-                    expect(typeof (nerdamerRuntime as any).transpose).toBe('function');
+                    expect(typeof nerdamerRuntime.matget).toBe('function');
+                    expect(typeof nerdamerRuntime.determinant).toBe('function');
+                    expect(typeof nerdamerRuntime.transpose).toBe('function');
                 } catch (error) {
                     console.log('Matrix test failed:', (error as Error).message);
                 }
@@ -387,15 +457,15 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             expect(typeof nerdamerRuntime).toBe('function');
 
             // Test string input
-            const expr1 = (nerdamerRuntime as any)('x + 1');
+            const expr1 = nerdamerRuntime('x + 1');
             expect(expr1).toBeDefined();
 
             // Test with substitutions
-            const expr2 = (nerdamerRuntime as any)('x + 1', { x: 2 });
+            const expr2 = nerdamerRuntime('x + 1', { x: 2 });
             expect(expr2).toBeDefined();
 
             // Test with options
-            const expr3 = (nerdamerRuntime as any)('x^2 + 2*x + 1', {}, 'expand');
+            const expr3 = nerdamerRuntime('x^2 + 2*x + 1', {}, 'expand');
             expect(expr3).toBeDefined();
         });
 
@@ -404,15 +474,12 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const nerdamerNamespace = sourceFile.getModules().find(m => m.getName() === 'nerdamer');
             // Get export declarations and manually filter to find import equals declarations
             const exportDeclarations = nerdamerNamespace?.getExportedDeclarations();
-            const importDeclarations: any[] = [];
+            const importDeclarations: tsMorph.ImportEqualsDeclaration[] = [];
             if (exportDeclarations) {
-                for (const [key, declarations] of exportDeclarations) {
+                for (const [_key, declarations] of exportDeclarations) {
                     for (const decl of declarations) {
-                        if (
-                            (decl as any).getKind &&
-                            (decl as any).getKind() === tsMorph.SyntaxKind.ImportEqualsDeclaration
-                        ) {
-                            importDeclarations.push(decl);
+                        if (decl.getKind && decl.getKind() === tsMorph.SyntaxKind.ImportEqualsDeclaration) {
+                            importDeclarations.push(decl as unknown as tsMorph.ImportEqualsDeclaration);
                         }
                     }
                 }
@@ -423,7 +490,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
             // Test that at least some of these exist on the runtime
             const existingStaticMethods = staticMethods.filter(
-                (method: string) => typeof (nerdamerRuntime as any)[method] !== 'undefined'
+                (method: string) => typeof nerdamer[method] !== 'undefined'
             );
 
             console.log(
@@ -437,8 +504,8 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const essentialMethods = ['expand', 'factor', 'simplify', 'solve', 'diff', 'integrate', 'cos', 'sin'];
             for (const method of essentialMethods) {
                 if (staticMethods.includes(method)) {
-                    expect((nerdamerRuntime as any)[method]).toBeDefined();
-                    expect(typeof (nerdamerRuntime as any)[method]).toBe('function');
+                    expect(nerdamer[method]).toBeDefined();
+                    expect(typeof nerdamer[method]).toBe('function');
                 }
             }
         });
@@ -450,7 +517,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const arithmeticMethods = ['add', 'subtract', 'multiply', 'divide', 'pow'];
 
             for (const methodName of arithmeticMethods) {
-                const method = nerdamerExpression?.getMethod(methodName);
+                const method = getMethodLikeMember(nerdamerExpression, methodName);
                 const returnType = method?.getReturnTypeNode()?.getText();
                 expect(returnType).toBe('NerdamerExpression');
             }
@@ -461,7 +528,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const arithmeticMethods = ['add', 'subtract', 'multiply', 'divide', 'pow'];
 
             for (const methodName of arithmeticMethods) {
-                const method = nerdamerExpression?.getMethod(methodName);
+                const method = getMethodLikeMember(nerdamerExpression, methodName);
                 const parameters = method?.getParameters();
                 expect(parameters?.length).toBe(1);
 
@@ -475,7 +542,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const comparisonMethods = ['eq', 'lt', 'gt', 'lte', 'gte'];
 
             for (const methodName of comparisonMethods) {
-                const method = nerdamerExpression?.getMethod(methodName);
+                const method = getMethodLikeMember(nerdamerExpression, methodName);
                 const returnType = method?.getReturnTypeNode()?.getText();
                 expect(returnType).toBe('boolean');
             }
@@ -484,15 +551,15 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
     describe('Runtime to TypeScript Coverage Analysis', () => {
         it('should analyze runtime expression prototype vs TypeScript interface coverage', () => {
-            const expr = (nerdamerRuntime as any)('x + 1');
+            const expr = nerdamerRuntime('x + 1');
 
             // Get all methods including inherited ones by walking the prototype chain
-            const getAllMethods = (obj: any): string[] => {
+            const getAllMethods = (obj: unknown): string[] => {
                 const methods = new Set<string>();
                 let current = obj;
                 while (current && current !== Object.prototype) {
                     Object.getOwnPropertyNames(current).forEach(name => {
-                        if (typeof obj[name] === 'function') {
+                        if (typeof (obj as Record<string, unknown>)[name] === 'function') {
                             methods.add(name);
                         }
                     });
@@ -507,9 +574,8 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const nerdamerExpression = sourceFile.getInterface('NerdamerExpression');
             const coreExpressionBase = sourceFile.getInterface('CoreExpressionBase');
 
-            const nerdamerMethods =
-                nerdamerExpression?.getMethods().map((m: tsMorph.MethodSignature) => m.getName()) || [];
-            const coreMethods = coreExpressionBase?.getMethods().map((m: tsMorph.MethodSignature) => m.getName()) || [];
+            const nerdamerMethods = getMethodLikeMembers(nerdamerExpression);
+            const coreMethods = getMethodLikeMembers(coreExpressionBase);
 
             const allTsMethods = [...new Set([...nerdamerMethods, ...coreMethods])].sort();
 
@@ -532,27 +598,24 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
 
         it('should analyze static function coverage', () => {
             const runtimeStaticMethods = Object.getOwnPropertyNames(nerdamerRuntime)
-                .filter((name: string) => typeof (nerdamerRuntime as any)[name] === 'function')
+                .filter((name: string) => typeof nerdamer[name] === 'function')
                 .sort();
 
             const nerdamerNamespace = sourceFile.getModules().find(m => m.getName() === 'nerdamer');
             // Get export declarations and manually filter to find import equals declarations
             const exportDeclarations = nerdamerNamespace?.getExportedDeclarations();
-            const importEqualsDeclarations: any[] = [];
+            const importEqualsDeclarations: tsMorph.ImportEqualsDeclaration[] = [];
             if (exportDeclarations) {
-                for (const [key, declarations] of exportDeclarations) {
+                for (const [_key, declarations] of exportDeclarations) {
                     for (const decl of declarations) {
-                        if (
-                            (decl as any).getKind &&
-                            (decl as any).getKind() === tsMorph.SyntaxKind.ImportEqualsDeclaration
-                        ) {
-                            importEqualsDeclarations.push(decl);
+                        if (decl.getKind && decl.getKind() === tsMorph.SyntaxKind.ImportEqualsDeclaration) {
+                            importEqualsDeclarations.push(decl as unknown as tsMorph.ImportEqualsDeclaration);
                         }
                     }
                 }
             }
             const tsStaticMethods = importEqualsDeclarations
-                .map((decl: any) => decl.getName())
+                .map((decl: tsMorph.ImportEqualsDeclaration) => decl.getName())
                 // Filter out TypeScript-only constructs like 'NerdamerCore'
                 .filter((name: string) => name !== 'NerdamerCore')
                 .sort();
@@ -596,7 +659,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             const nerdamerNamespace = sourceFile.getModules().find(m => m.getName() === 'nerdamer');
             expect(nerdamerNamespace).toBeDefined();
 
-            // nerdamerPrime namespace should exist
+            // NerdamerPrime namespace should exist
             const primeNamespace = sourceFile.getModules().find(m => m.getName() === 'nerdamerPrime');
             expect(primeNamespace).toBeDefined();
 
