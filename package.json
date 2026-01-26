@@ -1,12 +1,12 @@
 {
     "author": {
-        "name": "Gunnar Mein taking over from Martin Donk",
+        "name": "Gunnar Mein and Cameron Garnham, taking over from Martin Donk",
         "email": "info@together.science"
     },
     "description": "javascript light-weight symbolic math library",
     "name": "nerdamer-prime",
     "license": "MIT",
-    "version": "1.3.1",
+    "version": "1.4.0",
     "homepage": "https://github.com/together-science/nerdamer-prime",
     "directory": {
         "lib": "./"
