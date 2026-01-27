@@ -7,6 +7,9 @@ The license is unchanged, everything is free under MIT terms.
 
 The npm js installation point has moved: `npm i nerdamer-prime`.
 
+In version 1.4.0, Cameron Garnham (@da2ce7) has substantially reworked the type system and the dependencies on
+BigInteger and BigDecimal (thanks Cameron!). Please let us know if you find that this leads to any incompatibities with old versions. The biggest change here recently was going from "Symbol" to "NerdamerSymbol" for obvious reasons. The laste pre-changes version published was 1.3.1, but we think you should try to make the new version work for you.
+
 NOTICE: Starting with version 1.2.0, vector and matrix semantics are changing to be more useful for linear algebra. If this causes you problems, please stick with 1.1.26 and let us know so we can see how we could make compatible changes.
 
 Our intentions:

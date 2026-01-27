@@ -310,4 +310,8 @@ describe('Calculus', () => {
         expect(nerdamer('integrate(1/(sqrt(1-1/x^2)*x), x)').toString()).toEqual('(-1/2)*log(1+sqrt(-x^(-2)+1))+(1/2)*log(-1+sqrt(-x^(-2)+1))');
         expect(nerdamer('integrate(exp(2*log(x)),x)').toString()).toEqual('(1/3)*x^3');
     });
+
+    it('should handle integrals of sqrt(a*x^2+b) (issue #61)', () => {
+        expect(nerdamer('integrate(sqrt(a*x^2+b), x)').text('fractions')).toBe('(a*x^2+b)^(1/2)*x-((-1/2)*cos(asin(i*sqrt(a)*sqrt(b)^(-1)*x))*sin(asin(i*sqrt(a)*sqrt(b)^(-1)*x))+(1/2)*asin(i*sqrt(a)*sqrt(b)^(-1)*x))*a^(-1)*b^2*sqrt(-a^(-1)*b)*sqrt(b)^(-1)');
+    });
 });
