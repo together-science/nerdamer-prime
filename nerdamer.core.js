@@ -2139,7 +2139,7 @@ function arrayMin(arr) {
 /**
  * Checks to see if a number is an even number
  *
- * @param {number | string | { valueOf(): number | string }} num
+ * @param {number | string | FracType | { valueOf(): number | string | DecimalType }} num
  * @returns {boolean}
  */
 function even(num) {
@@ -4321,7 +4321,7 @@ class Expression {
         return ExpressionDeps.LaTeX.latex(this.symbol, option);
     }
 
-    /** @returns {number | string} */
+    /** @returns {number | string | DecimalType} */
     valueOf() {
         return this.symbol.valueOf();
     }
@@ -4389,7 +4389,7 @@ class Expression {
      * @returns {boolean}
      */
     isInfinity() {
-        return Math.abs(this.symbol.multiplier.valueOf()) === Infinity;
+        return Math.abs(/** @type {number} */ (this.symbol.multiplier.valueOf())) === Infinity;
     }
 
     /**
@@ -9063,7 +9063,7 @@ function importFunctions() {
         if (!Object.hasOwn(ParserDeps._.functions, x)) {
             continue;
         }
-        o[x] = /** @type {(...args: unknown[]) => unknown} */ (ParserDeps._.functions[x][0]);
+        o[x] = /** @type {any} */ (ParserDeps._.functions[x][0]);
     }
     return o;
 }
@@ -9978,7 +9978,7 @@ class NerdamerSymbol {
             // handle the multiplier
             // sign already declared above
             const m = this.multiplier.clone().abs();
-            const mfactors = Math2.ifactor(m.valueOf());
+            const mfactors = Math2.ifactor(/** @type {number} */ (m.valueOf()));
             // If we have a multiplier of 6750 and a min of 2 then the factors are 5^3*5^3*2
             // we can then reduce it to 2*3*5*(15)^2
             let out_ = new Frac(1);
@@ -10801,9 +10801,10 @@ class NerdamerSymbol {
     }
     /**
      * A numeric value to be returned for Javascript. It will try to return a number as far a possible but in case of a
-     * pure symbolic symbol it will just return its text representation
+     * pure symbolic symbol it will just return its text representation. When Settings.USE_BIG is true, may return a
+     * Decimal instance for numeric symbols.
      *
-     * @returns {string | number}
+     * @returns {string | number | DecimalType}
      */
     valueOf() {
         if (this.group === NerdamerSymbolDeps.N) {
