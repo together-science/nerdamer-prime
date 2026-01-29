@@ -35,7 +35,19 @@ describe('Nerdamer API Surface Reflection Test', () => {
                     (!name.startsWith('Nerdamer') || name === 'NerdamerSet') &&
                     !name.endsWith('Constructor') &&
                     !name.includes('Interface') &&
-                    name !== 'NerdamerCore'
+                    name !== 'NerdamerCore' &&
+                    // Filter out type-only exports (type aliases) that have no runtime representation
+                    ![
+                        'OutputType',
+                        'ParseOption',
+                        'ExpressionParam',
+                        'ExpandOptions',
+                        'ArithmeticOperand',
+                        'LaTeXToken',
+                        'FilteredLaTeXToken',
+                        'SortFn',
+                        'SolveResult',
+                    ].includes(name)
             )
             .sort();
     });

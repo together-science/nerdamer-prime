@@ -1,3 +1,7 @@
+_next version_
+
+- `valueOf()` on `NerdamerExpression` and `NerdamerSymbol` now correctly typed to return `string | number | Decimal` instead of `string | number`. When `Settings.USE_BIG` is enabled, numeric symbols return a `Decimal` instance from the `decimal.js` library. TypeScript users may need to handle this additional return type.
+
 _version 1.4.0_
 
 - `continued_fraction` function renamed to `continuedFraction` for camelCase consistency

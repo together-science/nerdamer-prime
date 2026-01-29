@@ -74,10 +74,11 @@
  * ```
  */
 // #region Main Exports
-// Import BigInteger type from big-integer library
-import type { BigInteger } from 'big-integer';
-// Import Decimal type from big.js library for high-precision arithmetic
-import type { Big as Decimal } from 'big.js';
+// Import BigInteger types from big-integer library
+// We need both the instance type and the static type (constructor/factory)
+import type { BigInteger, BigIntegerStatic } from 'big-integer';
+// Import Decimal types from decimal.js library for high-precision arithmetic
+import type Decimal from 'decimal.js';
 
 // Extend global Math interface with polyfills defined by nerdamer
 declare global {
@@ -88,24 +89,10 @@ declare global {
     }
 }
 
-// Main exports
+// Main export for CommonJS compatibility
 export = nerdamer;
+// UMD global namespace declaration
 export as namespace nerdamer;
-
-// Named exports for modern import syntax
-export {
-    NerdamerExpression,
-    NerdamerEquation,
-    SolveResult,
-    ExpressionParam,
-    OutputType,
-    ParseOption,
-    ExpandOptions,
-    ArithmeticOperand,
-    LaTeXToken,
-    FilteredLaTeXToken,
-    SortFn,
-};
 
 // #endregion
 
@@ -324,7 +311,7 @@ interface NerdamerExpression {
      */
     text: (option?: OutputType) => string;
     latex: (option?: OutputType) => string;
-    valueOf: () => number | string;
+    valueOf: () => number | string | Decimal;
 
     // Basic methods
     variables: () => string[];
@@ -590,9 +577,6 @@ interface NerdamerExpression {
     // Conversion
     /** Gets expression as LaTeX */
     toTeX: (format?: OutputType) => string;
-
-    /** Gets expression as LaTeX */
-    latex: (format?: OutputType) => string;
 
     /** Forces the expression to displayed with decimals */
     toDecimal: (precision?: number) => string;
@@ -950,6 +934,11 @@ declare namespace nerdamer {
 
     // Import NerdamerCore namespace
     export import NerdamerCore = nerdamerPrime.NerdamerCore;
+
+    // Type exports for modern ES module syntax (import type { X } from 'nerdamer-prime')
+    export type { NerdamerExpression, NerdamerEquation, SolveResult, ExpressionParam };
+    export type { OutputType, ParseOption, ExpandOptions, ArithmeticOperand };
+    export type { LaTeXToken, FilteredLaTeXToken, SortFn };
 }
 
 // #endregion
@@ -1855,7 +1844,7 @@ declare namespace nerdamerPrime {
      * @returns Array of parsed NerdamerSymbol objects
      */
     function parse(expression: string): NerdamerCore.NerdamerSymbol[];
-    function rpn(expression: string): Token[];
+    function rpn(expression: string): NerdamerCore.Token[];
 
     /**
      * Returns the list of user-defined functions.
@@ -1993,8 +1982,8 @@ declare namespace nerdamerPrime {
             negate(): this;
             clone(): PowerValue;
             toString(): string;
-            /** Multiplies power values - signature varies by implementation */
-            multiply(m: number | Frac | PowerValue): PowerValue;
+            /** Multiplies power values - signature varies by implementation. Optional on NerdamerSymbol. */
+            multiply?(m: number | Frac | PowerValue): PowerValue;
         }
 
         /** Represents a high-precision fraction. */
@@ -2092,7 +2081,7 @@ declare namespace nerdamerPrime {
             toString: () => string;
             text: (option?: OutputType | string[]) => string;
             latex: (option?: OutputType | string[]) => string;
-            valueOf: () => number | string;
+            valueOf: () => number | string | Decimal;
 
             // Properties - these are REQUIRED on NerdamerSymbol but not on Vector/Matrix
             /** Symbol group number (N, S, FN, PL, CB, CP, EX) - REQUIRED on NerdamerSymbol */
@@ -3025,14 +3014,13 @@ declare namespace nerdamerPrime {
          * module-specific interfaces (CoreMathFunctions, AlgebraMathFunctions, etc.) have required properties for use
          * when you know the module is loaded.
          */
-        interface MathFunctions
-            extends
-                Partial<CoreMathFunctions>,
-                Partial<AlgebraMathFunctions>,
-                Partial<CalculusMathFunctions>,
-                Partial<ExtraMathFunctions>,
-                Partial<SolveMathFunctions>,
-                Record<string, ((...args: unknown[]) => unknown) | undefined> {}
+        type MathFunctions = Partial<CoreMathFunctions> &
+            Partial<AlgebraMathFunctions> &
+            Partial<CalculusMathFunctions> &
+            Partial<ExtraMathFunctions> &
+            Partial<SolveMathFunctions> &
+            /** Index signature for dynamically registered functions */
+            Record<string, ((...args: NerdamerSymbol[]) => NerdamerSymbol | Vector | Matrix) | undefined>;
 
         /** Static Build utilities for compiling expressions to JavaScript functions. */
         interface Build {
@@ -4216,9 +4204,9 @@ declare namespace nerdamerPrime {
             /**
              * Checks if a number or the numerator of a fraction is even.
              *
-             * @param num The number or Frac object.
+             * @param num The number, string, or object with valueOf() that can be coerced to number.
              */
-            even(num: number | Frac): boolean;
+            even(num: number | string | { valueOf(): number | string | Decimal }): boolean;
 
             /**
              * Checks if the inverse of a number's fractional part is even.
@@ -4794,7 +4782,7 @@ declare namespace nerdamerPrime {
             Utils: Utils;
             Math2: Math2;
             LaTeX: LaTeX;
-            bigInt: typeof BigInteger;
+            bigInt: BigIntegerStatic;
             bigDec: typeof Decimal;
             /** Equation constructor (available when Solve module is loaded) */
             Equation?: EquationConstructor;

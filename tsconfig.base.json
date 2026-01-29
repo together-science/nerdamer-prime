@@ -20,7 +20,7 @@
         "allowImportingTsExtensions": false,
 
         // Advanced options
-        "skipLibCheck": true,
+        "skipLibCheck": false,
         "isolatedModules": true,
 
         // Type resolution
