@@ -14,7 +14,7 @@
     "publishConfig": {
         "access": "public"
     },
-    "main": "nerdamer.core.js",
+    "main": "index.js",
     "typings": "index.d.ts",
     "keywords": [
         "math",
