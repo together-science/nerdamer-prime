@@ -17090,11 +17090,9 @@ class Parser {
                     const im = symA.imagpart();
                     if (re.isConstant('all') && im.isConstant('all')) {
                         phi = Settings.USE_BIG
-                            ? new NerdamerSymbol(
-                                  nerdamerBigDecimal
-                                      .atan2(im.multiplier.toDecimal(), re.multiplier.toDecimal())
-                                      .times(symB.toString())
-                              )
+                            ? nerdamerBigDecimal
+                                  .atan2(im.multiplier.toDecimal(), re.multiplier.toDecimal())
+                                  .times(symB.toString())
                             : Math.atan2(Number(im.multiplier.toDecimal()), Number(re.multiplier.toDecimal())) *
                               Number(symB.multiplier.toDecimal());
                         theta = new NerdamerSymbol(phi);
