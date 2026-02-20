@@ -352,4 +352,25 @@ describe('TeX features', () => {
             }
         });
     });
+
+    it('should handle operators in log with different bases', function() {
+        const testCases = [
+            {
+                given: 'log10(7*x)',
+                expected: '\\log_{10}\\left( 7 \\cdot x\\right)'
+            },
+            {
+                given: 'ln(7*x)',
+                expected: '\\ln \\left(7 \\cdot x\\right)'
+            },
+            {
+                given: 'log(7*x)',
+                expected: '\\log\\left( 7 \\cdot x\\right)'
+            }
+        ]
+        for (let i = 0; i < testCases.length; ++i) {
+            const output = nerdamer.convertToLaTeX(testCases[i].given);
+            expect(output).toEqual(testCases[i].expected);            
+        }
+    });
 });
