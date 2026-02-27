@@ -17833,3 +17833,5 @@ const nerdamer = (function initNerdamerCore() {
 if (typeof module !== 'undefined') {
     module.exports = nerdamer;
 }
+
+console.log("nerdamer.core.js loaded")
