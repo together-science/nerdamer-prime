@@ -924,3 +924,5 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
 if (typeof module !== 'undefined') {
     module.exports = nerdamer;
 }
+
+console.log('extra.js loaded');

@@ -17834,4 +17834,4 @@ if (typeof module !== 'undefined') {
     module.exports = nerdamer;
 }
 
-console.log("nerdamer.core.js loaded")
+console.log('nerdamer.core.js loaded');

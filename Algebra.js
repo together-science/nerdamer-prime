@@ -6211,3 +6211,5 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     ]);
     nerdamer.updateAPI();
 })();
+
+console.log('algebra.js loaded');

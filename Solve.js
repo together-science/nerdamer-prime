@@ -2368,3 +2368,5 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     ]);
     nerdamer.updateAPI();
 })();
+
+console.log('solve.js loaded');

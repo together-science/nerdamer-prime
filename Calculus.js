@@ -3485,3 +3485,5 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
     // Link registered functions externally
     nerdamer.updateAPI();
 })();
+
+console.log('calculus.js loaded');
