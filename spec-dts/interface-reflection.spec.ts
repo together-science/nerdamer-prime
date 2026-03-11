@@ -30,7 +30,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
         // Check property signatures with function types
         iface.getProperties().forEach(p => {
             const typeNode = p.getTypeNode();
-            if (typeNode && typeNode.getKind() === tsMorph.SyntaxKind.FunctionType) {
+            if (typeNode?.getKind() === tsMorph.SyntaxKind.FunctionType) {
                 methodNames.push(p.getName());
             }
         });
@@ -62,7 +62,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
         const prop = iface.getProperty(name);
         if (prop) {
             const typeNode = prop.getTypeNode();
-            if (typeNode && typeNode.getKind() === tsMorph.SyntaxKind.FunctionType) {
+            if (typeNode?.getKind() === tsMorph.SyntaxKind.FunctionType) {
                 const funcType = typeNode as tsMorph.FunctionTypeNode;
                 return {
                     getReturnTypeNode: () => funcType.getReturnTypeNode(),
@@ -478,7 +478,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             if (exportDeclarations) {
                 for (const [_key, declarations] of exportDeclarations) {
                     for (const decl of declarations) {
-                        if (decl.getKind && decl.getKind() === tsMorph.SyntaxKind.ImportEqualsDeclaration) {
+                        if (decl.getKind?.() === tsMorph.SyntaxKind.ImportEqualsDeclaration) {
                             importDeclarations.push(decl as unknown as tsMorph.ImportEqualsDeclaration);
                         }
                     }
@@ -608,7 +608,7 @@ describe('Nerdamer TypeScript Interface Reflection', () => {
             if (exportDeclarations) {
                 for (const [_key, declarations] of exportDeclarations) {
                     for (const decl of declarations) {
-                        if (decl.getKind && decl.getKind() === tsMorph.SyntaxKind.ImportEqualsDeclaration) {
+                        if (decl.getKind?.() === tsMorph.SyntaxKind.ImportEqualsDeclaration) {
                             importEqualsDeclarations.push(decl as unknown as tsMorph.ImportEqualsDeclaration);
                         }
                     }

@@ -527,7 +527,7 @@ interface NerdamerExpression {
      *     nerdamer('8').lt(100);
      *     // true
      *
-     * @param value The value being tested
+     * @param other The value being tested
      */
     lt: (other: ExpressionParam) => boolean;
 
@@ -540,7 +540,7 @@ interface NerdamerExpression {
      *     nerdamer('800').gt(100);
      *     // true
      *
-     * @param value The value being tested
+     * @param other The value being tested
      */
     gt: (other: ExpressionParam) => boolean;
 
@@ -553,7 +553,7 @@ interface NerdamerExpression {
      *     nerdamer('x').lte(100);
      *     // false
      *
-     * @param value The value being tested
+     * @param other The value being tested
      */
     lte: (other: ExpressionParam) => boolean;
 
@@ -566,7 +566,7 @@ interface NerdamerExpression {
      *     nerdamer('x').gte(100);
      *     // false
      *
-     * @param value The value being tested
+     * @param other The value being tested
      */
     gte: (other: ExpressionParam) => boolean;
 
@@ -586,7 +586,7 @@ interface NerdamerExpression {
      * Plotting for the demo is accomplished using this. The order of the parameters is in alphabetical order by default
      * but an argument array can be provided with the desired order.
      *
-     * @param args_array The argument array with the order in which they are preferred.
+     * @param variables The argument array with the order in which they are preferred.
      */
     buildFunction: (variables?: string[]) => (...args: number[]) => number;
 }
@@ -5076,6 +5076,9 @@ declare namespace nerdamerPrime {
              * @param symbol The polynomial
              * @param v Optional variable symbol
              * @param o Optional options object for tracking
+             * @param o.nd Optional unknown for tracking
+             * @param o.sd Optional unknown for tracking
+             * @param o.depth Optional unknown for tracking
              * @returns Degree as a symbol (or Frac-like)
              */
             degree: (
