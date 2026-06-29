@@ -76,7 +76,7 @@
         "prettier": "^3",
         "prettier-plugin-jsdoc": "^1",
         "ts-jest": "^29",
-        "ts-morph": "^27",
+        "ts-morph": "^28",
         "typescript": "^5",
         "typescript-eslint": "^8"
     }
