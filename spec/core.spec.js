@@ -1808,7 +1808,7 @@ describe('Nerdamer core', () => {
     it('should multiply vectors correctly', () => {
         expect(nerdamer('3*[a,b]').toString()).toEqual('[3*a,3*b]');
         expect(nerdamer('[a,b]*x').toString()).toEqual('[a*x,b*x]');
-        expect(nerdamer('[a,b]*[a,b]').toString()).toEqual('[a^2,b^2]');
+        expect(nerdamer('[a,b]*[a,b]').toString()).toEqual('a^2+b^2');
     });
     it('should cross-multiply vectors correctly', () => {
         expect(nerdamer('cross([1,2,3],[4,5,6])').toString()).toEqual('[-3,6,-3]');
