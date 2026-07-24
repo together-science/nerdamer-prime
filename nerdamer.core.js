@@ -5747,11 +5747,14 @@ class Matrix {
                         const MM = new Matrix();
                         const rows = this.rows();
                         for (let i = 0; i < rows; i++) {
-                            const e = MatrixDeps._.multiply(
-                                new Vector(/** @type {NerdamerSymbolType[]} */ (this.elements[i])),
-                                new Vector(/** @type {NerdamerSymbolType[]} */ (matrixTyped.elements[i]))
+                            const rowA = /** @type {NerdamerSymbolType[]} */ (this.elements[i]);
+                            const rowB = /** @type {NerdamerSymbolType[]} */ (matrixTyped.elements[i]);
+                            MM.elements[i] = rowA.map(
+                                (x, j) =>
+                                    /** @type {NerdamerSymbolType} */ (
+                                        MatrixDeps._.multiply(x.clone(), rowB[j].clone())
+                                    )
                             );
-                            MM.elements[i] = /** @type {VectorType} */ (e).elements;
                         }
                         return MM;
                     }
@@ -16819,7 +16822,28 @@ class Parser {
 
                 b = M;
             } else if (isMatrixA && isMatrixB) {
-                b = /** @type {MatrixType} */ (a).multiply(/** @type {MatrixType} */ (b));
+                const aMatrix = /** @type {MatrixType} */ (a);
+                const bMatrix = /** @type {MatrixType} */ (b);
+                const aIsVectorShaped = aMatrix.rows() === 1 || aMatrix.cols() === 1;
+                const bIsVectorShaped = bMatrix.rows() === 1 || bMatrix.cols() === 1;
+                if (aIsVectorShaped && bIsVectorShaped) {
+                    const aVec = new Vector(
+                        /** @type {NerdamerSymbolType[]} */ (
+                            aMatrix.rows() === 1 ? aMatrix.elements[0] : aMatrix.elements.map(row => row[0])
+                        )
+                    );
+                    const bVec = new Vector(
+                        /** @type {NerdamerSymbolType[]} */ (
+                            bMatrix.rows() === 1 ? bMatrix.elements[0] : bMatrix.elements.map(row => row[0])
+                        )
+                    );
+                    if (aVec.elements.length === bVec.elements.length) {
+                        return /** @type {NerdamerSymbolType} */ (aVec.dot(bVec));
+                    }
+                    err('Dimensions must match!');
+                } else {
+                    b = aMatrix.multiply(bMatrix);
+                }
             } else if (aIsSymbol && isVector(b)) {
                 const bVec = /** @type {VectorType} */ (b);
                 bVec.each((el, idx) => {
