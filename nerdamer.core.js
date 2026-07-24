@@ -16831,12 +16831,10 @@ class Parser {
             } else if (isVector(a) && isVector(b)) {
                 const aVec = /** @type {VectorType} */ (a);
                 const bVec = /** @type {VectorType} */ (b);
-                bVec.each((el, idx) => {
-                    idx--;
-                    bVec.elements[idx] = /** @type {NerdamerSymbolType} */ (
-                        _.multiply(aVec.elements[idx], bVec.elements[idx])
-                    );
-                });
+                if (aVec.elements.length === bVec.elements.length) {
+                    return /** @type {NerdamerSymbolType} */ (aVec.dot(bVec));
+                }
+                err('Dimensions must match!');
             } else if (isVector(a) && isMatrix(b)) {
                 // Try to convert a to a matrix
                 return this.multiply(b, a);
