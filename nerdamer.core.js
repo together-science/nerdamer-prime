@@ -5742,22 +5742,6 @@ class Matrix {
             () => {
                 const M = /** @type {MatrixType} */ (matrix).elements || /** @type {unknown[][]} */ (matrix);
                 if (!this.canMultiplyFromLeft(M)) {
-                    const matrixTyped = /** @type {MatrixType} */ (matrix);
-                    if (this.sameSize(matrixTyped)) {
-                        const MM = new Matrix();
-                        const rows = this.rows();
-                        for (let i = 0; i < rows; i++) {
-                            const rowA = /** @type {NerdamerSymbolType[]} */ (this.elements[i]);
-                            const rowB = /** @type {NerdamerSymbolType[]} */ (matrixTyped.elements[i]);
-                            MM.elements[i] = rowA.map(
-                                (x, j) =>
-                                    /** @type {NerdamerSymbolType} */ (
-                                        MatrixDeps._.multiply(x.clone(), rowB[j].clone())
-                                    )
-                            );
-                        }
-                        return MM;
-                    }
                     return null;
                 }
                 let ni = this.elements.length;
@@ -16842,7 +16826,12 @@ class Parser {
                     }
                     err('Dimensions must match!');
                 } else {
-                    b = aMatrix.multiply(bMatrix);
+                    const product = aMatrix.multiply(bMatrix);
+                    if (product) {
+                        b = product;
+                    } else {
+                        err('Dimensions must match!');
+                    }
                 }
             } else if (aIsSymbol && isVector(b)) {
                 const bVec = /** @type {VectorType} */ (b);
@@ -16865,17 +16854,14 @@ class Parser {
             } else if (isMatrix(a) && isVector(b)) {
                 const aMatrix = /** @type {MatrixType} */ (a);
                 const bVec = /** @type {VectorType} */ (b);
-                if (bVec.elements.length === aMatrix.rows()) {
-                    const M = new Matrix();
-                    const l = aMatrix.cols();
-                    bVec.each((e, idx) => {
-                        const row = [];
-                        for (let j = 0; j < l; j++) {
-                            row.push(_.multiply(aMatrix.elements[idx - 1][j].clone(), e.clone()));
-                        }
-                        M.elements.push(row);
-                    });
-                    return M;
+                if (bVec.elements.length === aMatrix.cols()) {
+                    const rows = aMatrix.rows();
+                    const resultElements = [];
+                    for (let i = 0; i < rows; i++) {
+                        const rowVec = new Vector(/** @type {NerdamerSymbolType[]} */ (aMatrix.elements[i]));
+                        resultElements.push(/** @type {NerdamerSymbolType} */ (rowVec.dot(bVec)));
+                    }
+                    return new Vector(resultElements);
                 }
                 err('Dimensions must match!');
             }

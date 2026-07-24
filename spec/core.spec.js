@@ -1872,7 +1872,21 @@ describe('Nerdamer core', () => {
     it('should still multiply non-vector matrices normally', () => {
         expect(nerdamer('matrix([1,2],[3,4])*matrix([5,6],[7,8])').toString()).toEqual('matrix([19,22],[43,50])');
         expect(nerdamer('matrix([1,2,3],[4,5,6])*matrix([1,0],[0,1],[1,1])').toString()).toEqual('matrix([4,5],[10,11])');
-        expect(nerdamer('matrix([1,2,3],[4,5,6])*matrix([2,3,4],[5,6,7])').toString()).toEqual('matrix([2,6,12],[20,30,42])');
+    });
+    it('should error rather than fall back to element-wise multiplication for non-conformable matrices', () => {
+        expect(() => {
+            nerdamer('matrix([1,2,3],[4,5,6])*matrix([2,3,4],[5,6,7])');
+        }).toThrowError();
+        expect(() => {
+            nerdamer('matrix([1,2,3],[4,5,6])*matrix([1,2,3,4,5],[1,2,3,4,5],[1,2,3,4,5],[1,2,3,4,5])');
+        }).toThrowError();
+    });
+    it('should multiply a matrix by a vector using the dot product of each row', () => {
+        expect(nerdamer('matrix([1,2,3],[4,5,6])*[1,10,100]').toString()).toEqual('[321,654]');
+        expect(nerdamer('[1,10,100]*matrix([1,2,3],[4,5,6],[7,8,9])').toString()).toEqual('[321,654,987]');
+        expect(() => {
+            nerdamer('matrix([1,2,3],[4,5,6])*[1,10]');
+        }).toThrowError();
     });
     it('should perform scientific rounding', () => {
         expect(nerdamer('12/7*x+cos(33333333333333333)-11/17').text('scientific')).toEqual('-6.47058823529412e-1+1.71428571428571*x+cos(3.33333333333333e16)');
