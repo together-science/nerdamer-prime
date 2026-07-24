@@ -728,6 +728,7 @@ export default defineConfig([
             'build/',
             'coverage/',
             '*.min.js',
+            '*.min.mjs',
             'all.min.js',
 
             // Dependencies

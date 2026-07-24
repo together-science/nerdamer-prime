@@ -15,7 +15,25 @@
         "access": "public"
     },
     "main": "nerdamer.core.js",
+    "module": "all.esm.min.mjs",
     "typings": "index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./index.d.ts",
+            "import": "./all.esm.min.mjs",
+            "require": "./nerdamer.core.js"
+        },
+        "./all": {
+            "types": "./index.d.ts",
+            "import": "./all.esm.min.mjs",
+            "require": "./all.js"
+        },
+        "./nerdamer.core": "./nerdamer.core.js",
+        "./Algebra": "./Algebra.js",
+        "./Calculus": "./Calculus.js",
+        "./Solve": "./Solve.js",
+        "./Extra": "./Extra.js"
+    },
     "keywords": [
         "math",
         "matrix",
@@ -49,7 +67,7 @@
         "node": ">=15"
     },
     "scripts": {
-        "build": "tsc && tsc -p tsconfig.js.json && esbuild all.js --bundle --minify --outfile=all.min.js --format=iife --global-name=nerdamer",
+        "build": "tsc && tsc -p tsconfig.js.json && esbuild all.js --bundle --minify --outfile=all.min.js --format=iife --global-name=nerdamer && esbuild all.esm.mjs --bundle --minify --outfile=all.esm.min.mjs --format=esm",
         "test": "tsc --noEmit && tsc -p tsconfig.js.json --noEmit && jasmine && jest",
         "lint": "tsc --noEmit && tsc -p tsconfig.js.json --noEmit && eslint . --fix",
         "lint:check": "tsc --noEmit && tsc -p tsconfig.js.json --noEmit && eslint .",
