@@ -67,6 +67,7 @@
         "node": ">=15"
     },
     "scripts": {
+        "prepare": "npm run build",
         "build": "tsc && tsc -p tsconfig.js.json && esbuild all.js --bundle --minify --outfile=all.min.js --format=iife --global-name=nerdamer && esbuild all.esm.mjs --bundle --minify --outfile=all.esm.min.mjs --format=esm",
         "test": "tsc --noEmit && tsc -p tsconfig.js.json --noEmit && jasmine && jest",
         "lint": "tsc --noEmit && tsc -p tsconfig.js.json --noEmit && eslint . --fix",
