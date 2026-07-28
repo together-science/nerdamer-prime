@@ -482,6 +482,95 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
         return retval;
     });
 
+    /**
+     * Attempts to reduce a single (non-additive) term to a closed form for sum(term, indexName, 1, n), by pulling out
+     * any constant factor (Constant Multiple Rule) and applying the standard closed-form formula for the remaining
+     * power of the index. Returns null when the term isn't a supported shape (i.e. isn't a constant, or a constant
+     * times index^1, index^2 or index^3).
+     *
+     * @param {NerdamerSymbolType} term
+     * @param {string} indexName
+     * @param {NerdamerSymbolType} n
+     * @returns {NerdamerSymbolType | null}
+     */
+    function closedFormSumOfTerm(term, indexName, n) {
+        // Constant: sum(c, i, 1, n) = c*n
+        if (!term.contains(indexName)) {
+            return /** @type {NerdamerSymbolType} */ (_.multiply(term.clone(), n.clone()));
+        }
+
+        // Determine what power of the index this term carries, so we know which closed-form formula applies
+        let power = null;
+        if (term.group === S && term.value === indexName) {
+            power = Number(term.power);
+        } else if (term.group === CB) {
+            term.each(factor => {
+                if (power === null && factor.group === S && factor.value === indexName) {
+                    power = Number(factor.power);
+                }
+            });
+        }
+
+        if (power === null || !isInt(power) || power < 1 || power > 3) {
+            return null;
+        }
+
+        // Constant Multiple Rule: pull the remaining factors out as a constant coefficient
+        const coefficient = /** @type {NerdamerSymbolType} */ (
+            _.divide(
+                term.clone(),
+                /** @type {NerdamerSymbolType} */ (_.pow(new NerdamerSymbol(indexName), new NerdamerSymbol(power)))
+            )
+        );
+        if (coefficient.contains(indexName)) {
+            return null;
+        }
+
+        let closedForm;
+        if (power === 1) {
+            closedForm = _.parse(format('(({0})*(({0})+1))/2', n));
+        } else if (power === 2) {
+            closedForm = _.parse(format('(({0})*(({0})+1)*(2*({0})+1))/6', n));
+        } else {
+            closedForm = _.parse(format('((({0})*(({0})+1))/2)^2', n));
+        }
+
+        return /** @type {NerdamerSymbolType} */ (_.multiply(coefficient, closedForm));
+    }
+
+    /**
+     * Attempts to compute a closed form for sum(fn, indexName, 1, n) using the Sum Rule to split fn into terms and
+     * closedFormSumOfTerm to resolve each term. Returns null if any term isn't a supported closed form, in which case
+     * the sum is left unevaluated.
+     *
+     * @param {NerdamerSymbolType} fn
+     * @param {string} indexName
+     * @param {NerdamerSymbolType} n
+     * @returns {NerdamerSymbolType | null}
+     */
+    function closedFormSum(fn, indexName, n) {
+        // Sum Rule: sum(f+g, i, 1, n) = sum(f, i, 1, n) + sum(g, i, 1, n)
+        if (fn.group === CP || fn.group === PL) {
+            let result = new NerdamerSymbol(0);
+            let unresolved = false;
+            fn.each(term => {
+                if (unresolved) {
+                    return;
+                }
+                const termSum = closedFormSumOfTerm(term, indexName, n);
+                if (termSum === null) {
+                    unresolved = true;
+                    return;
+                }
+                result = /** @type {NerdamerSymbolType} */ (_.add(result, termSum));
+            }, true);
+
+            return unresolved ? null : result;
+        }
+
+        return closedFormSumOfTerm(fn, indexName, n);
+    }
+
     core.Settings.integration_depth = 10;
 
     core.Settings.max_lim_depth = 10;
@@ -524,6 +613,12 @@ if (typeof module !== 'undefined' && nerdamer === undefined) {
                     }
                     return result;
                 });
+            } else if (core.Utils.isNumericSymbol(start) && Number(start) === 1) {
+                const closedForm = closedFormSum(fn, indexName, end);
+                retval =
+                    closedForm === null
+                        ? _.symfunction('sum', [fn, new NerdamerSymbol(indexName), start, end])
+                        : closedForm;
             } else {
                 retval = _.symfunction('sum', [fn, new NerdamerSymbol(indexName), start, end]);
             }

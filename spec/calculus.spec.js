@@ -120,6 +120,33 @@ describe('Calculus', () => {
         expect(round(nerdamer('sum(e^(-x^2*π/9),x,1,100)').evaluate(), 10)).toEqual(round(1.0, 10));
     });
 
+    it('should calculate symbolic sums with a symbolic upper bound correctly', () => {
+        // Standard closed-form formulas
+        expect(nerdamer('sum(5, x, 1, n)').toString()).toEqual('5*n');
+        expect(nerdamer('sum(x, x, 1, n)').toString()).toEqual('(1/2)*(1+n)*n');
+        expect(nerdamer('sum(x^2, x, 1, n)').toString()).toEqual('(1/6)*(1+2*n)*(1+n)*n');
+        expect(nerdamer('sum(x^3, x, 1, n)').toString()).toEqual('(1/4)*((1+n)*n)^2');
+
+        // Constant Multiple Rule
+        expect(nerdamer('sum(2*x, x, 1, n)').toString()).toEqual('(1+n)*n');
+        expect(nerdamer('sum(3*x^2, x, 1, n)').toString()).toEqual('(1/2)*(1+2*n)*(1+n)*n');
+
+        // Sum Rule combined with the closed-form formulas above
+        expect(nerdamer('sum(x^2+x, x, 1, n)').toString()).toEqual('(1/2)*(1+n)*n+(1/6)*(1+2*n)*(1+n)*n');
+        expect(nerdamer('sum(x^2+3*x+2, x, 1, n)').toString()).toEqual('(1/6)*(1+2*n)*(1+n)*n+(3/2)*(1+n)*n+2*n');
+
+        // Verify the closed forms against direct numerical evaluation
+        expect(nerdamer('sum(x^2+3*x+2, x, 1, n)').evaluate({ n: 10 }).toString()).toEqual(nerdamer('sum(x^2+3*x+2, x, 1, 10)').evaluate().toString());
+
+        // A free variable unrelated to the index is treated as a constant factor
+        expect(nerdamer('sum(x^2*y+2*x, x, 1, n)').toString()).toEqual('(1+n)*n+(1/6)*(1+2*n)*(1+n)*n*y');
+
+        // Falls back to an unevaluated sum when no closed form applies
+        expect(nerdamer('sum(sin(x), x, 1, n)').toString()).toEqual('sum(sin(x),x,1,n)');
+        expect(nerdamer('sum(x^4, x, 1, n)').toString()).toEqual('sum(x^4,x,1,n)');
+        expect(nerdamer('sum(x, x, 2, n)').toString()).toEqual('sum(x,x,2,n)');
+    });
+
     it('should calculate the definite integral correctly', () => {
         expect(round(nerdamer('defint(cos(x),1,2,x)').evaluate(), 14)).toEqual(round(0.067826442018, 14));
         expect(round(nerdamer('defint(cos(x)^3*x^2-1,-1,9)').evaluate(), 14)).toEqual(round(8.543016466395, 14));
