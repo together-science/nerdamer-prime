@@ -13571,7 +13571,18 @@ class Parser {
                             (!operator.leftAssoc && prefixes[prefixes.length - 1].precedence >= operator.precedence)
                         ) // Revisit for commas
                         {
-                            stack.push(prefixes.pop());
+                            const prefixOperator = prefixes.pop();
+                            // When a prefix (e.g. unary minus) is forced onto the stack solely because
+                            // it decorates operator's operand (operator.leftAssoc branch above, used for
+                            // e.g. `^`), raise its effective precedence to match operator's. Otherwise a
+                            // later lower-precedence-than-prefix-but-higher-than-operator token (e.g. `*`
+                            // after `^-1`) would stop popping at the prefix without ever resolving
+                            // operator first, letting the prefix incorrectly swallow that later operand
+                            // too (e.g. turning `x^-1*y` into `x^(-y)` instead of `(x^-1)*y`).
+                            if (operator.leftAssoc && operator.precedence > prefixOperator.precedence) {
+                                prefixOperator.precedence = operator.precedence;
+                            }
+                            stack.push(prefixOperator);
                         } else {
                             break;
                         }

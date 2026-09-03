@@ -192,6 +192,24 @@ describe('Nerdamer core', () => {
                 given: '(-1)^(3/4)',
                 expected: '(-1)^(3/4)',
             },
+            // Regression tests for issue #147: a unary minus in an exponent must not
+            // swallow a subsequent multiplication, e.g. x^-1*y is (x^-1)*y, not x^(-1*y)
+            {
+                given: 'x^-1*y',
+                expected: 'x^(-1)*y',
+            },
+            {
+                given: 'x^-1*y*z',
+                expected: 'x^(-1)*y*z',
+            },
+            {
+                given: '2^-1*3',
+                expected: '3/2',
+            },
+            {
+                given: '(a+1)^-1*a',
+                expected: '(1+a)^(-1)*a',
+            },
         ];
 
         for (const k in cases) {

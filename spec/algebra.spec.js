@@ -315,6 +315,13 @@ describe('Algebra', () => {
         expect(nerdamer('(1-y)^2').simplify().text()).toBe('(-y+1)^2');
         expect(nerdamer('48-48*(x/100)').simplify().text()).toBe('0.48*(-x+100)');
         expect(nerdamer('-sqrt(12/5)').simplify().evaluate().text()).toBe('-1.5491933384829665247');
+        // Regression tests for issue #147: distributing a multiplying variable over a sum
+        // containing (expr-with-that-variable)^(-1) must not leak the variable into the
+        // power's exponent, e.g. (1+(1+a)^(-1))*a must not simplify to (1+a)^(-a)+a
+        expect(nerdamer('(1+(1+a)^(-1))*a').simplify().toString()).toEqual('(1+a)^(-1)*a+a');
+        expect(nerdamer('(1+a)^(-1)*a').simplify().toString()).toEqual('(1+a)^(-1)*a');
+        expect(nerdamer('(1+(1+a)^(-1))*b').simplify().toString()).toEqual('(1+a)^(-1)*b+b');
+        expect(nerdamer('(1+a^(-1))*a').simplify().toString()).toEqual('1+a');
     });
     it('simplify should be pure', () => {
         const a = nerdamer('100*2^((1/2)*m)');

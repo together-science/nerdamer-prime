@@ -142,6 +142,13 @@ describe('Prefixes', () => {
         expect(parse('(5^-3^2)')).toEqual(5.12e-7);
         expect(parse('-(--5*--7)')).toEqual(-35);
     });
+    // Regression test for issue #147: a unary minus in an exponent must bind only
+    // to the exponent, not to everything multiplied after it. 2^-1*3 must equal
+    // (2^-1)*3 = 1.5, not 2^(-1*3) = 0.125.
+    it('should not let a unary minus exponent swallow a following multiplication', () => {
+        expect(parse('2^-1*3')).toEqual(1.5);
+        expect(parse('2^-2*3')).toEqual(0.75);
+    });
 });
 
 /*
