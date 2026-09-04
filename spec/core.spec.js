@@ -1877,6 +1877,13 @@ describe('Nerdamer core', () => {
         expect(nerdamer('matrix([1,2])/matrix([8,4])').toString()).toEqual('matrix([1/8,1/2])');
         expect(nerdamer('16/matrix([8,4])').toString()).toEqual('matrix([2,4])');
     });
+    // Regression test for issue #143: determinant()'s do-while loop always ran its
+    // body at least once, so a 1x1 matrix (n = 0) crashed trying to read M.elements[1]
+    it('should compute the determinant of matrices of various sizes, including 1x1 (issue #143)', () => {
+        expect(nerdamer('determinant(matrix([5]))').toString()).toEqual('5');
+        expect(nerdamer('determinant(matrix([1,2],[3,4]))').toString()).toEqual('-2');
+        expect(nerdamer('determinant(matrix([1,2,3],[4,5,6],[7,8,10]))').toString()).toEqual('-3');
+    });
     it('should compute a dot product when multiplying matrices that are really vectors', () => {
         expect(nerdamer('matrix([1,2,3])*matrix([4,5,6])').toString()).toEqual('32');
         expect(nerdamer('matrix([1],[2],[3])*matrix([4],[5],[6])').toString()).toEqual('32');

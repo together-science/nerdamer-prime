@@ -5479,12 +5479,13 @@ class Matrix {
         let n = M.elements.length - 1;
         const k = n;
         let i;
-        do {
+        while (n) {
             i = k - n + 1;
             det = /** @type {NerdamerSymbolType} */ (
                 MatrixDeps._.multiply(det, /** @type {NerdamerSymbolType} */ (M.elements[i][i]))
             );
-        } while (--n);
+            n--;
+        }
         return det;
     }
 
