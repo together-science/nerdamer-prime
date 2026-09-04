@@ -4848,14 +4848,15 @@ class Vector {
         if (n !== V.length) {
             return false;
         }
-        do {
+        while (n) {
             if (
                 Math.abs(/** @type {number} */ (VectorDeps._.subtract(this.elements[n - 1], V[n - 1]).valueOf())) >
                 VectorDeps.Settings.PRECISION
             ) {
                 return false;
             }
-        } while (--n);
+            n--;
+        }
         return true;
     }
 
@@ -4908,10 +4909,11 @@ class Vector {
         let n = this.elements.length;
         const k = n;
         let i;
-        do {
+        while (n) {
             i = k - n;
             fn(this.elements[i], i + 1);
-        } while (--n);
+            n--;
+        }
     }
 
     /**
@@ -5095,11 +5097,12 @@ class Vector {
                 if (n !== V.length) {
                     return null;
                 }
-                do {
+                while (n) {
                     product = /** @type {NerdamerSymbolType} */ (
                         VectorDeps._.add(product, VectorDeps._.multiply(this.elements[n - 1], V[n - 1]))
                     );
-                } while (--n);
+                    n--;
+                }
                 return product;
             },
             undefined,
@@ -5158,7 +5161,7 @@ class Vector {
         let n = this.elements.length;
         const k = n;
         let i;
-        do {
+        while (n) {
             i = k - n;
             const el = this.elements[i];
             const elVal = /** @type {number} */ (el.valueOf());
@@ -5166,7 +5169,8 @@ class Vector {
             if (Math.abs(elVal) > Math.abs(mVal)) {
                 m = el;
             }
-        } while (--n);
+            n--;
+        }
         return m;
     }
 
@@ -5192,12 +5196,13 @@ class Vector {
         let n = this.elements.length;
         const k = n;
         let i;
-        do {
+        while (n) {
             i = k - n;
             if (index === null && this.elements[i].valueOf() === x.valueOf()) {
                 index = i + 1;
             }
-        } while (--n);
+            n--;
+        }
         return index;
     }
 

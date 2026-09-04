@@ -3341,6 +3341,31 @@ describe('misc and regression tests', () => {
         expect(nerdamerCore.Utils.isPrime(3)).toBe(true);
         expect(nerdamerCore.Utils.isPrime(4)).toBe(false);
     });
+
+    /**
+     * Regression test for issue #144: several Vector.prototype methods used a
+     * `do { ... } while (--n)` loop, which infinite-loops on an empty vector
+     * because n = 0 makes --n become -1, which is truthy in JS.
+     */
+    it('should not hang on empty vectors (issue #144)', () => {
+        const nerdamerCore = nerdamer.getCore();
+        const v = new nerdamerCore.Vector([]);
+
+        let calls = 0;
+        v.each(() => {
+            calls++;
+        });
+        expect(calls).toEqual(0);
+
+        expect(v.eql(new nerdamerCore.Vector([]))).toBe(true);
+        expect(v.dot(new nerdamerCore.Vector([])).toString()).toEqual('0');
+        expect(v.max()).toEqual(0);
+        expect(v.indexOf(nerdamer('1').symbol)).toBeNull();
+
+        // The original repro from the issue: adding to an empty set-turned-vector
+        // used to hang for Settings.TIMEOUT (~800ms) and then throw "timeout"
+        expect(nerdamer('difference({1,2},{1,2}) + 1').toString()).toEqual('[]');
+    });
 });
 
 describe('Known issues (core)', () => {
