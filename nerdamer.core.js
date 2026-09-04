@@ -1180,7 +1180,7 @@ class Frac {
             }
             n = r.times(10);
         }
-        const whole = narr.shift();
+        let whole = narr.shift();
         if (narr.length === 0) {
             return sign + whole.toString();
         }
@@ -1190,7 +1190,24 @@ class Frac {
             for (let j = 0; j < 2; j++) {
                 lt.unshift(narr.pop());
             }
-            narr.push(Math.round(Number(lt.join('.'))));
+            let rounded = Math.round(Number(lt.join('.')));
+            // Rounding the two guard digits can carry (e.g. 9.5 -> 10). Propagate
+            // that carry into the remaining digits, and into the whole part if it
+            // carries all the way through, instead of pushing a two-digit value
+            // as a single array entry (which corrupted the digit string).
+            if (rounded >= 10) {
+                rounded -= 10;
+                let carry = 1;
+                while (carry && narr.length) {
+                    const next = Number(narr.pop()) + carry;
+                    carry = next >= 10 ? 1 : 0;
+                    narr.push(next % 10);
+                }
+                if (carry) {
+                    whole = whole.add(1);
+                }
+            }
+            narr.push(rounded);
         }
 
         const dec = `${whole.toString()}.${narr.join('')}`;

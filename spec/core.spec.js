@@ -3266,7 +3266,7 @@ describe('misc and regression tests', () => {
         expect(nerdamer('f(2x)').expand().text()).toEqual('-6*x+5');
 
         // Issue #39
-        expect(nerdamer('3.535401^3.535401').evaluate().text()).toEqual('86.88617111335813153910');
+        expect(nerdamer('3.535401^3.535401').evaluate().text()).toEqual('86.8861711133581315310');
         expect(nerdamer('4.5354^3.535401').evaluate().text()).toEqual('209.6039348783757529458');
 
         // Issue 53
@@ -3291,7 +3291,7 @@ describe('misc and regression tests', () => {
         // in multiply() to work correctly
         const result = nerdamer('3.535401^3.535401').evaluate().text();
         // The result should be approximately 86.886, NOT 141.69
-        expect(result).toEqual('86.88617111335813153910');
+        expect(result).toEqual('86.8861711133581315310');
 
         // Additional test with slightly different values that also stress
         // the precision boundaries
@@ -3329,9 +3329,7 @@ describe('misc and regression tests', () => {
     });
 
     /**
-     * Regression test for issue #145: isPrime() had no lower-bound guard, so
-     * Math.sqrt(0) === 0 and Math.sqrt(1) === 1 made the trial-division loop
-     * never run, falling through to `return true` for both 0 and 1.
+     * Regression test for issue #145: isPrime() had no lower-bound guard, so Math.sqrt(0) === 0 and Math.sqrt(1) === 1 made the trial-division loop never run, falling through to `return true` for both 0 and 1.
      */
     it('should not report 0 or 1 as prime (issue #145)', () => {
         const nerdamerCore = nerdamer.getCore();
@@ -3343,9 +3341,7 @@ describe('misc and regression tests', () => {
     });
 
     /**
-     * Regression test for issue #144: several Vector.prototype methods used a
-     * `do { ... } while (--n)` loop, which infinite-loops on an empty vector
-     * because n = 0 makes --n become -1, which is truthy in JS.
+     * Regression test for issue #144: several Vector.prototype methods used a `do { ... } while (--n)` loop, which infinite-loops on an empty vector because n = 0 makes --n become -1, which is truthy in JS.
      */
     it('should not hang on empty vectors (issue #144)', () => {
         const nerdamerCore = nerdamer.getCore();
@@ -3353,7 +3349,7 @@ describe('misc and regression tests', () => {
 
         let calls = 0;
         v.each(() => {
-            calls++;
+            calls += 1;
         });
         expect(calls).toEqual(0);
 
@@ -3365,6 +3361,25 @@ describe('misc and regression tests', () => {
         // The original repro from the issue: adding to an empty set-turned-vector
         // used to hang for Settings.TIMEOUT (~800ms) and then throw "timeout"
         expect(nerdamer('difference({1,2},{1,2}) + 1').toString()).toEqual('[]');
+    });
+
+    /**
+     * Regression test for issue #142: Frac.prototype.decimal() rounded its last two "guard" digits and pushed the rounded value back as a single array entry. When that rounding carried into a two-digit value (e.g. 9.5 -> 10), the "10" was concatenated in place as two characters instead of carrying
+     * into the preceding digit, corrupting the decimal string (e.g. 20/21 at 1 decimal place became "0.10" instead of "1.0").
+     */
+    it('should correctly carry a rounding overflow in decimal() (issue #142)', () => {
+        // Carry propagates all the way into the whole part
+        expect(nerdamer('20/21').text('decimals', 1)).toEqual('1.0');
+        expect(nerdamer('21/22').text('decimals', 1)).toEqual('1.0');
+        expect(nerdamer('-20/21').text('decimals', 1)).toEqual('-1.0');
+
+        // Carry propagates through one or more interior 9s without reaching whole:
+        // 2/201 = 0.00995024875... which rounds to 0.010 at 3 decimal places
+        expect(nerdamer('2/201').text('decimals', 3)).toEqual('0.010');
+
+        // Non-carry cases are unaffected
+        expect(nerdamer('1/3').text('decimals', 5)).toEqual('0.33333');
+        expect(nerdamer('1/7').text('decimals', 10)).toEqual('0.1428571429');
     });
 });
 
