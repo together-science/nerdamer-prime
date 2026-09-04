@@ -3996,6 +3996,9 @@ const IsPrimeDeps = {
  * @returns {boolean}
  */
 function isPrime(n) {
+    if (n < 2) {
+        return false;
+    }
     if (n in IsPrimeDeps.PRIMES_SET) {
         return true;
     }

@@ -3320,6 +3320,20 @@ describe('misc and regression tests', () => {
         // The mathematically correct result is 1
         expect(result.toString()).toEqual('1');
     });
+
+    /**
+     * Regression test for issue #145: isPrime() had no lower-bound guard, so
+     * Math.sqrt(0) === 0 and Math.sqrt(1) === 1 made the trial-division loop
+     * never run, falling through to `return true` for both 0 and 1.
+     */
+    it('should not report 0 or 1 as prime (issue #145)', () => {
+        const nerdamerCore = nerdamer.getCore();
+        expect(nerdamerCore.Utils.isPrime(0)).toBe(false);
+        expect(nerdamerCore.Utils.isPrime(1)).toBe(false);
+        expect(nerdamerCore.Utils.isPrime(2)).toBe(true);
+        expect(nerdamerCore.Utils.isPrime(3)).toBe(true);
+        expect(nerdamerCore.Utils.isPrime(4)).toBe(false);
+    });
 });
 
 describe('Known issues (core)', () => {
